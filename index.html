@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fusa Conecta — Ciudad Jardín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#204F2E;--teal-d:#163520;--fucsia:#BC487D;--nectar:#EA8143;--gold:#DAB23F;
+  --sage:#A6C1A2;--purpura:#6C2E77;
+  --crema:#F8F7EB;--forest:#204F2E;--jungle:#2E3E29;--emerg:#BC487D;--wa:#25D366;--g-blue:#1a73e8;
+  --gris:#6E776A;--linea:#ECEAE0;--sombra:0 16px 44px rgba(20,40,30,.07);--sombra-shell:0 30px 90px rgba(0,0,0,.45);
+  --r:20px;--tap:46px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Poppins',system-ui,sans-serif;color:var(--jungle);line-height:1.5;-webkit-font-smoothing:antialiased;
+  background:linear-gradient(165deg,#12362a 0%,#0d5f53 45%,#103a2c 100%);
+  display:flex;justify-content:center;align-items:flex-start;min-height:100vh;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{display:block;max-width:100%}
+input,select,textarea{font-family:inherit}
+body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2' opacity='0.05'%3E%3Cpath d='M0 120 Q150 60 300 120 T600 120'/%3E%3Cpath d='M0 180 Q150 120 300 180 T600 180'/%3E%3Cpath d='M0 240 Q150 180 300 240 T600 240'/%3E%3Cpath d='M0 300 Q150 240 300 300 T600 300'/%3E%3C/g%3E%3C/svg%3E");}
+.shell{position:relative;z-index:2;width:480px;max-width:100%;height:calc(100vh - 40px);margin:20px 0;background:var(--crema);border-radius:32px;box-shadow:var(--sombra-shell);overflow:hidden;display:flex;flex-direction:column;}
+.logo{width:auto;object-fit:contain}
+.logo--light{filter:brightness(0) invert(1)}
+.topbar{background:var(--teal);color:#fff;flex-shrink:0;z-index:20;box-shadow:0 6px 22px rgba(33,78,45,.30);overflow:hidden;max-height:300px;transition:max-height 0.38s cubic-bezier(.4,0,.2,1),box-shadow 0.3s ease}
+.topbar.arriba{max-height:0;box-shadow:none}
+.nav-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 14px}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:30px;padding:8px 13px;font-size:13px;font-weight:500;min-height:auto;transition:background .16s ease,opacity .16s ease}
+.nav-btn:hover{background:rgba(255,255,255,.22)}
+.nav-btn svg{width:16px;height:16px}
+.nav-btn.izq{justify-self:start}.nav-btn.der{justify-self:end}
+.nav-btn.invisible{opacity:0;pointer-events:none}
+.nav-row .logo{justify-self:center;height:40px}
+.solo-icono{width:40px;height:40px;justify-content:center;padding:0}
+.descubre{padding:0 14px 13px}
+.sesion{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;min-height:26px}
+.saludo{font-size:13px;color:rgba(255,255,255,.9);font-weight:500;display:flex;align-items:center;gap:7px}
+.saludo .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#fff,#e7f1ef);color:var(--teal);display:grid;place-items:center;font-weight:700;font-size:12.5px;box-shadow:0 0 0 2px rgba(255,255,255,.45),0 2px 6px rgba(0,0,0,.18)}
+.btn-mini{background:var(--teal);color:#fff;border-radius:30px;padding:7px 14px;font-size:12px;font-weight:600;min-height:auto}
+.btn-mini.salir{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22)}
+.buscador{position:relative}
+.buscador svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--gris)}
+.buscador input{width:100%;border:none;border-radius:14px;padding:13px 14px 13px 42px;font-size:14px;background:#fff;color:var(--jungle);outline:none;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.buscador input::placeholder{color:#9aa394}
+.hero-frase{margin-top:10px;text-align:center;font-size:12.5px;color:rgba(255,255,255,.88);font-weight:500;letter-spacing:.2px}
+.cats{display:flex;gap:8px;margin-top:11px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex-shrink:0;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:30px;padding:9px 14px;font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .16s ease;min-height:auto}
+.cat .dot{width:8px;height:8px;border-radius:50%}
+.cat:hover{background:rgba(255,255,255,.22)}
+.cat.activa{background:#fff;color:var(--teal);font-weight:600;border-color:#fff}
+.cat.fav.activa{background:var(--fucsia);color:#fff;border-color:var(--fucsia)}
+.cat.sos{background:var(--emerg);color:#fff;border-color:var(--emerg);font-weight:600}
+.cuerpo{flex:1;overflow-y:auto;background:var(--crema);display:flex;flex-direction:column}
+.cuerpo.tinta-sos{background:rgba(198,40,40,.05)}
+.vista{padding:18px 16px 24px;flex:1}
+.head-v{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:15px}
+.head-v h2{font-size:20px;font-weight:700;color:var(--jungle)}
+.head-v .conteo{font-size:12px;color:var(--gris);font-weight:500;flex-shrink:0}
+.grid{display:flex;flex-direction:column;gap:18px}
+.card{background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 8px 26px rgba(20,40,30,.08);border:1px solid #f0ede4;animation:aparece .4s ease both}
+.card .hero{height:122px;position:relative;display:grid;place-items:center;font-size:48px;overflow:hidden}
+.card .hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.badge{position:absolute;top:11px;left:11px;font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:30px;letter-spacing:.2px;box-shadow:0 2px 6px rgba(0,0,0,.14)}
+.fav-btn{position:absolute;top:9px;right:9px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.94);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.16);backdrop-filter:blur(4px);z-index:2}
+.fav-btn svg{width:20px;height:20px;stroke:var(--fucsia);fill:none;stroke-width:2;transition:fill .15s ease}
+.fav-btn.on svg{fill:var(--fucsia)}
+.fav-btn.pop{animation:pop .35s ease}
+.card .cuerpo-c{padding:14px 15px 15px}
+.card h3{font-size:15.5px;font-weight:600;color:var(--jungle);margin-bottom:6px;line-height:1.25}
+.stars{display:flex;align-items:center;gap:3px;margin-bottom:8px}
+.stars svg{width:14px;height:14px}
+.stars .num{font-size:12px;color:var(--gris);font-weight:600;margin-left:4px}
+.card p.desc{font-size:12.5px;color:var(--gris);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row-mini{display:flex;align-items:center;gap:6px;margin-top:9px;font-size:11.5px;color:var(--teal);font-weight:500}
+.row-mini svg{width:13px;height:13px;flex-shrink:0;color:var(--gold)}
+.acciones-c{display:flex;gap:9px;margin-top:13px}
+.btn-cta{flex:1;background:var(--sage);color:var(--teal);border-radius:13px;padding:12px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 6px 16px rgba(166,193,162,.45);transition:filter .15s ease,transform .12s ease}
+.btn-cta:hover{filter:brightness(1.05)}.btn-cta:active{transform:scale(.98)}
+.btn-cta svg{width:15px;height:15px}
+.btn-ico{width:46px;border-radius:13px;display:grid;place-items:center;transition:filter .15s ease}
+.btn-ico.wa{background:var(--wa)}.btn-ico.tel{background:var(--teal)}
+.btn-ico:hover{filter:brightness(1.07)}
+.btn-ico svg{width:20px;height:20px;fill:#fff;color:#fff}
+.sos-aviso{background:var(--emerg);color:#fff;border-radius:18px;padding:14px 16px;font-size:12.5px;display:flex;gap:11px;align-items:flex-start;margin-bottom:15px;box-shadow:var(--sombra)}
+.sos-aviso svg{width:19px;height:19px;flex-shrink:0;margin-top:1px}
+.sos-card{background:#fff;border-radius:16px;box-shadow:var(--sombra);padding:14px 15px;display:flex;align-items:center;gap:13px;border-left:5px solid var(--emerg)}
+.sos-card .ico{width:46px;height:46px;border-radius:13px;background:rgba(198,40,40,.10);display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.sos-card .info{flex:1;min-width:0}
+.sos-card .info b{display:block;font-size:14.5px;color:var(--jungle);font-weight:600}
+.sos-card .info span{font-size:12px;color:var(--gris)}
+.sos-card a.call{background:var(--emerg);color:#fff;font-weight:700;border-radius:12px;padding:11px 15px;font-size:14px;display:flex;align-items:center;gap:7px;text-decoration:none;flex-shrink:0}
+.sos-card a.call svg{width:16px;height:16px}
+.footer{background:var(--teal-d);color:#fff;padding:24px 18px 26px;margin-top:8px}
+.footer .f-logo{height:44px;margin:0 auto 14px;filter:brightness(0) invert(1)}
+.footer p{font-size:12px;color:rgba(255,255,255,.78);margin:0 auto 16px;max-width:300px;text-align:center}
+.btn-emergencia{width:100%;background:var(--emerg);color:#fff;border-radius:16px;padding:15px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 22px rgba(198,40,40,.45);transition:filter .15s ease,transform .12s ease}
+.btn-emergencia:hover{filter:brightness(1.06)}.btn-emergencia:active{transform:scale(.98)}
+.btn-emergencia svg{width:20px;height:20px}
+.f-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0 14px}
+.f-links button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:12px;font-weight:500;padding:8px 13px;border-radius:30px}
+.f-links button:hover{background:rgba(255,255,255,.22)}
+.f-copy{font-size:11px;color:rgba(255,255,255,.55);border-top:1px solid rgba(255,255,255,.15);padding-top:14px;text-align:center}
+.fab{position:absolute;right:18px;bottom:78px;z-index:30;background:var(--nectar);color:#fff;border-radius:30px;padding:14px 20px;font-weight:700;font-size:14px;display:none;align-items:center;gap:9px;box-shadow:0 10px 28px rgba(238,122,77,.5);transition:transform .14s ease,filter .15s ease}
+.fab:hover{filter:brightness(1.05)}.fab:active{transform:scale(.96)}
+.fab svg{width:19px;height:19px}
+.fab.show{display:inline-flex;animation:fabIn .35s ease both}
+/* ===== SPLASH LIGHT ===== */
+.splash{position:absolute;inset:0;z-index:50;overflow:hidden;transition:opacity .55s ease,transform .55s ease}
+.splash.oculto{opacity:0;transform:scale(1.05);pointer-events:none}
+.splash--light{
+  background:#F7F7EB url('fondo-patron_png.png') center/cover no-repeat;
+  display:flex;align-items:center;justify-content:center;color:#214E2D;
+}
+.splash--light .splash-inner{
+  position:relative;z-index:1;display:flex;flex-direction:column;
+  align-items:center;text-align:center;
+  padding:160px 30px 50px;gap:32px;width:100%;
+}
+.splash--light .splash-logo-wrap{display:block;animation:logoRespira 5s ease-in-out 1s infinite}
+.splash--light .splash-logo{
+  width:auto;height:auto;max-width:170px;max-height:220px;
+  object-fit:contain;display:block;
+  filter:brightness(0) saturate(0);opacity:.85;
+}
+.splash--light .splash-desc{
+  max-width:78%;color:#214E2D;font-weight:400;font-size:15px;
+  line-height:1.65;letter-spacing:.2px;
+}
+.splash--light .splash-cta{width:100%;max-width:290px;display:flex;flex-direction:column;gap:14px}
+.splash--light .sp-btn{
+  width:100%;padding:16px 28px;border-radius:50px;
+  font-size:15px;font-weight:600;cursor:pointer;
+  font-family:'Poppins',sans-serif;
+  transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;
+}
+.splash--light .sp-btn:active{transform:scale(.96)}
+.splash--light .sp-btn--primary{
+  background:#A6C1A2;color:#214E2D;border:none;
+  box-shadow:0 4px 14px rgba(33,78,45,.20),0 1px 4px rgba(0,0,0,.10),
+             inset 0 1px 0 rgba(255,255,255,.30);
+}
+.splash--light .sp-btn--primary:hover{
+  filter:brightness(1.06);transform:scale(1.02);
+  box-shadow:0 6px 18px rgba(33,78,45,.28),0 2px 6px rgba(0,0,0,.12),
+             inset 0 1px 0 rgba(255,255,255,.30);
+}
+.splash--light .sp-btn--ghost{
+  background:rgba(166,193,162,.18);color:#214E2D;
+  border:1.5px solid rgba(33,78,45,.35);
+  box-shadow:0 2px 8px rgba(33,78,45,.10);
+}
+.splash--light .sp-btn--ghost:hover{background:rgba(166,193,162,.30);transform:scale(1.02)}
+/* ===== OVERLAYS ===== */
+.overlay{position:fixed;inset:0;z-index:70;background:rgba(15,25,18,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .28s ease}
+.overlay.centro{align-items:center;padding:20px}
+.overlay.abierto{opacity:1;pointer-events:auto}
+.sheet{width:480px;max-width:100%;max-height:94vh;background:var(--crema);border-radius:28px 28px 0 0;overflow-y:auto;transform:translateY(40px);transition:transform .32s cubic-bezier(.22,1,.36,1)}
+.overlay.abierto .sheet{transform:translateY(0)}
+.grab{width:42px;height:5px;border-radius:5px;background:#d8d5c8;margin:11px auto 0}
+.cerrar{position:absolute;top:14px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-items:center;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.cerrar svg{width:18px;height:18px;color:var(--jungle)}
+/* ===== DETALLE MODAL ===== */
+.det-hero{height:210px;position:relative;display:grid;place-items:center;font-size:80px;overflow:hidden}
+.det-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.det-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.35) 100%);pointer-events:none}
+.det-hero .badge,.det-hero .det-fav{z-index:2}
+.det-fav{position:absolute;top:14px;right:16px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.det-fav svg{width:22px;height:22px;stroke:var(--fucsia);fill:none;stroke-width:2}
+.det-fav.on svg{fill:var(--fucsia)}
+.det-body{padding:20px 18px 26px}
+.det-body h2{font-size:22px;font-weight:700;color:var(--jungle);margin-bottom:9px;line-height:1.22}
+.det-body .stars{margin-bottom:14px}
+.det-body .desc{font-size:14px;color:#54604f;margin-bottom:18px}
+.det-row{display:flex;align-items:flex-start;gap:11px;margin-bottom:11px;font-size:13.5px;color:#54604f}
+.det-row svg{width:18px;height:18px;color:var(--teal);flex-shrink:0;margin-top:1px}
+.det-row b{color:var(--jungle);font-weight:600}
+.det-acciones{display:flex;gap:10px;margin:18px 0}
+.det-acciones a{flex:1;min-height:var(--tap);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:13.5px;text-decoration:none;transition:filter .15s ease,transform .12s ease}
+.det-acciones a:active{transform:scale(.97)}
+.a-wa{background:var(--wa);color:#fff}.a-call{background:var(--teal);color:#fff}
+.a-wa svg,.a-call svg{width:17px;height:17px;fill:currentColor}
+.mapa-label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--gris);font-weight:500;margin-bottom:8px}
+.mapa-label svg{width:15px;height:15px;color:var(--nectar)}
+.mapa-wrap{border-radius:16px;overflow:hidden;box-shadow:var(--sombra);border:1px solid var(--linea)}
+.mapa-wrap iframe{width:100%;height:210px;border:0;display:block}
+.btn-llegar{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;width:100%;background:#fff;border:1.5px solid var(--gold);color:var(--jungle);border-radius:14px;padding:12px;font-weight:600;font-size:13.5px;text-decoration:none}
+.btn-llegar svg{width:16px;height:16px;color:var(--gold)}
+/* ===== LOGIN ===== */
+.login-head{background:linear-gradient(135deg,var(--teal),var(--teal-d));padding:32px 24px 20px;border-radius:28px 28px 0 0;text-align:center}
+.login-head .logo{height:64px;margin:0 auto 14px;filter:brightness(0) invert(1)}
+.login-head h2{font-size:20px;font-weight:700;color:#fff}
+.login-head p{font-size:13px;color:rgba(255,255,255,.85);margin-top:5px}
+.login-body{padding:18px 24px 28px;display:flex;flex-direction:column;gap:11px}
+.btn-social{min-height:var(--tap);border-radius:14px;border:1.5px solid var(--linea);background:#fff;display:flex;align-items:center;justify-content:center;gap:11px;font-weight:600;font-size:14px;color:#3c4738;transition:background .15s ease,transform .12s ease}
+.btn-social:hover{background:#f5f4ec}.btn-social:active{transform:scale(.98)}
+.btn-social svg{width:20px;height:20px}
+.sep{display:flex;align-items:center;gap:12px;color:#aab3a3;font-size:11px;margin:4px 0}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--linea)}
+.login-mail{display:flex;flex-direction:column;gap:9px}
+.login-mail input{border:1.5px solid var(--linea);border-radius:14px;padding:12px 14px;font-size:14px;outline:none}
+.login-mail input:focus{border-color:var(--teal)}
+#lMail{min-height:var(--tap);width:100%;border-radius:14px;background:var(--fucsia);color:#fff;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 6px 18px rgba(245,0,87,.32)}
+.login-nota{font-size:11px;color:#aab3a3;text-align:center;margin-top:4px;line-height:1.5}
+/* ===== GOOGLE MODAL ===== */
+.g-card{width:400px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);transform:translateY(20px) scale(.98);transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.overlay.abierto .g-card{transform:translateY(0) scale(1)}
+.g-top{display:flex;justify-content:center;padding:22px 0 4px}
+.g-logo{font-size:22px;font-weight:500}
+.g-logo .b{color:#4285F4}.g-logo .r{color:#EA4335}.g-logo .y{color:#FBBC05}.g-logo .g{color:#4285F4}.g-logo .e{color:#34A853}.g-logo .r2{color:#EA4335}
+.g-body{padding:6px 28px 22px;text-align:center}
+.g-body h3{font-size:21px;font-weight:400;color:#202124;margin-bottom:4px}
+.g-body .sub{font-size:14px;color:#5f6368;margin-bottom:20px}
+.g-account{display:flex;align-items:center;gap:13px;border:1px solid #dadce0;border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;transition:background .14s ease;margin-bottom:10px}
+.g-account:hover{background:#f8faff}
+.g-account .ga-av{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:600;font-size:15px;flex-shrink:0}
+.g-account .ga-info b{display:block;font-size:14px;color:#202124;font-weight:500}
+.g-account .ga-info span{font-size:12.5px;color:#5f6368}
+.g-field input{width:100%;border:1px solid #dadce0;border-radius:8px;padding:13px 14px;font-size:15px;outline:none;color:#202124;margin-top:4px}
+.g-field input:focus{border-color:var(--g-blue);box-shadow:0 0 0 1px var(--g-blue)}
+.g-actions{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.g-cancel{color:var(--g-blue);font-weight:600;font-size:14px;padding:9px 8px;border-radius:6px}
+.g-cancel:hover{background:rgba(26,115,232,.06)}
+.g-ok{background:var(--g-blue);color:#fff;font-weight:600;font-size:14px;padding:10px 22px;border-radius:8px}
+.g-ok:hover{background:#1765cc}
+.g-foot{text-align:center;font-size:11px;color:#9aa0a6;padding:0 0 16px}
+/* ===== FORMULARIO ===== */
+.form-head{padding:24px 22px 6px}
+.form-intro{background:linear-gradient(135deg,var(--nectar),var(--fucsia));color:#fff;border-radius:18px;padding:18px}
+.form-intro h2{font-size:20px;font-weight:700;margin-bottom:5px}
+.form-intro p{font-size:13px;opacity:.92}
+.form-body{padding:16px 22px 26px}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:13px;font-weight:600;color:var(--jungle);margin-bottom:7px}
+.campo label .req{color:var(--fucsia)}
+.campo input,.campo select,.campo textarea{width:100%;border:1.5px solid var(--linea);border-radius:14px;padding:12px 14px;font-size:14px;outline:none;background:#fff;transition:border-color .15s ease}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--teal)}
+.campo textarea{resize:vertical;min-height:80px}
+.campo .ayuda{font-size:11px;color:var(--gris);margin-top:5px}
+.campo input[type=file]{padding:11px 12px;font-size:13px;color:var(--gris);background:#fff}
+.campo input[type=file]::file-selector-button{margin-right:10px;border:none;background:var(--teal);color:#fff;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+.btn-publicar{width:100%;background:var(--nectar);color:#fff;border-radius:15px;padding:15px;font-weight:700;font-size:15px;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s ease,transform .12s ease}
+.btn-publicar:hover{filter:brightness(1.05)}.btn-publicar:active{transform:scale(.99)}
+.btn-publicar svg{width:18px;height:18px}
+/* ===== APOYO ===== */
+.apoyo-body{padding:30px 24px 28px;text-align:center}
+.apoyo-body .em{font-size:50px;margin-bottom:10px}
+.apoyo-body h2{font-size:21px;font-weight:700;color:var(--jungle)}
+.apoyo-body p{font-size:13.5px;color:#54604f;margin:9px auto 20px;max-width:320px}
+.montos{display:flex;gap:9px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.monto{border:1.5px solid var(--linea);background:#fff;border-radius:14px;padding:12px 16px;font-weight:700;font-size:15px;color:var(--jungle);transition:all .15s ease;min-width:78px}
+.monto:hover{border-color:var(--gold)}.monto.sel{background:var(--gold);color:#fff;border-color:var(--gold)}
+.apoyo-fb{border:1.5px solid var(--linea);border-radius:14px;width:100%;padding:12px 14px;font-size:13.5px;resize:vertical;min-height:74px;outline:none;margin-bottom:14px}
+.apoyo-fb:focus{border-color:var(--teal)}
+/* ===== EDAD ===== */
+.edad-card{width:380px;max-width:100%;background:#fff;border-radius:22px;padding:30px 26px 22px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.45);transform:translateY(20px) scale(.98);transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.overlay.abierto .edad-card{transform:translateY(0) scale(1)}
+.edad-card .edad-ic{width:64px;height:64px;border-radius:18px;background:rgba(123,63,179,.12);display:grid;place-items:center;font-size:32px;margin:0 auto 14px}
+.edad-card h3{font-size:20px;font-weight:700;color:var(--jungle);margin-bottom:8px}
+.edad-card p{font-size:13.5px;color:#54604f;margin-bottom:20px}
+.edad-card p b{color:var(--jungle)}
+.edad-actions{display:flex;gap:11px}
+.edad-actions button{flex:1;min-height:var(--tap);border-radius:14px;font-weight:700;font-size:14px;transition:filter .15s ease,transform .12s ease}
+.edad-actions button:active{transform:scale(.97)}
+.edad-no{background:#f0eee6;color:var(--gris)}
+.edad-no:hover{background:#e7e4d9}
+.edad-si{background:var(--fucsia);color:#fff}
+.edad-si:hover{filter:brightness(1.06)}
+.edad-foot{margin-top:14px;font-size:11px;color:#aab3a3}
+/* ===== LEGAL ===== */
+.legal-body{padding:26px 24px 28px}
+.legal-body h2{font-size:21px;font-weight:700;color:var(--jungle);margin-bottom:14px}
+.legal-body h3{font-size:14.5px;font-weight:700;color:var(--teal);margin:18px 0 7px}
+.legal-body p{font-size:13px;color:#54604f;margin-bottom:11px;line-height:1.6}
+.legal-body .btn{margin-top:10px}
+/* ===== TOAST / VACÍO ===== */
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(80px);z-index:90;background:var(--jungle);color:#fff;padding:13px 20px;border-radius:30px;font-size:13.5px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .35s ease;display:flex;align-items:center;gap:9px;max-width:90vw}
+.toast svg{width:17px;height:17px;flex-shrink:0}.toast.ver{opacity:1;transform:translateX(-50%) translateY(0)}
+.vacio{text-align:center;padding:46px 20px;color:var(--gris)}
+.vacio .em{font-size:44px;margin-bottom:12px}
+.vacio b{display:block;color:var(--jungle);font-weight:600;margin-bottom:4px;font-size:15px}
+.vacio p{font-size:13px}
+/* ===== KEYFRAMES ===== */
+@keyframes logoRespira{0%,100%{transform:scale(.99)}50%{transform:scale(1.01)}}
+@keyframes bloom{0%{opacity:0;transform:scale(.65)}100%{opacity:1;transform:scale(1)}}
+@keyframes halo{0%{opacity:.55;transform:scale(.4)}100%{opacity:0;transform:scale(1.7)}}
+@keyframes drift{from{transform:translateY(0)}to{transform:translateY(-22px)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes sube{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes aparece{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.32)}100%{transform:scale(1)}}
+@keyframes fabIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:520px){
+  body{background:var(--crema)} body::before{display:none}
+  .shell{width:100%;height:100vh;height:100dvh;margin:0;border-radius:0;box-shadow:none}
+  .sheet{border-radius:24px 24px 0 0}.g-card{border-radius:18px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.splash--light .splash-logo{opacity:.85}}
+:focus-visible{outline:3px solid var(--nectar);outline-offset:2px;border-radius:6px}
+/* ===== CATEGORÍAS CON ICONOS SVG ===== */
+#cats.cats{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;gap:10px!important;padding:12px 16px 10px!important;scrollbar-width:none!important}
+#cats.cats::-webkit-scrollbar{display:none!important}
+#cats .cat{flex:0 0 auto!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;background:rgba(255,255,255,.13)!important;border:1.5px solid rgba(255,255,255,.18)!important;border-radius:18px!important;padding:10px 10px 8px!important;min-width:66px!important;gap:5px!important;white-space:normal!important;text-align:center!important;font-size:10.5px!important;font-weight:500!important;color:rgba(255,255,255,.88)!important;line-height:1.2!important}
+#cats .cat .cat-ic{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+#cats .cat .cat-ic svg{width:20px;height:20px;stroke:rgba(255,255,255,.82);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#cats .cat .dot{display:none!important}
+#cats .cat.activa{background:#fff!important;color:var(--teal)!important;border-color:#fff!important;box-shadow:0 4px 14px rgba(0,0,0,.14)!important}
+#cats .cat.activa .cat-ic svg{stroke:var(--teal)!important}
+#cats .cat.fav.activa{background:var(--fucsia)!important;color:#fff!important}
+#cats .cat.fav.activa .cat-ic svg{stroke:#fff!important}
+#cats .cat.sos{background:var(--emerg)!important;border-color:var(--emerg)!important;color:#fff!important}
+#cats .cat.sos .cat-ic svg{stroke:#fff!important}
+/* ===== BOTTOM NAVIGATION ===== */
+.bottom-nav{display:flex;align-items:center;justify-content:space-around;background:#fff;border-top:1px solid rgba(0,105,92,.1);height:62px;flex-shrink:0;padding:0 8px;box-shadow:0 -4px 16px rgba(34,81,47,.06);position:relative;z-index:25}
+.bn-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:1;padding:8px 0;color:#B0BAB0;font-size:11px;font-weight:500;border-radius:14px;transition:color .18s ease;cursor:pointer;background:none;border:none}
+.bn-btn svg{width:22px;height:22px;stroke:#B0BAB0;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s ease}
+.bn-btn.bn-active{color:#22512F}
+.bn-btn.bn-active svg{stroke:#22512F}
+.bn-btn.bn-active span{font-weight:700}
+.bn-btn.bn-sos{color:#BC487D !important}
+.bn-btn.bn-sos svg{stroke:#BC487D !important}
+.btn-mini.btn-sumar{background:var(--sage);color:var(--teal);font-weight:700}
+.splash-tipo-label{font-size:12.5px;color:#204F2E;font-weight:500;text-align:center;margin-bottom:4px}
+.splash-tipo-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sp-btn--usuario{background:#A6C1A2;color:#204F2E;border:none;border-radius:50px;padding:15px 10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;box-shadow:0 3px 10px rgba(32,79,46,.18);transition:filter .15s ease,transform .15s ease}
+.sp-btn--productor{background:#204F2E;color:#F8F7EB;border:none;border-radius:50px;padding:15px 10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;box-shadow:0 3px 10px rgba(32,79,46,.25);transition:filter .15s ease,transform .15s ease}
+.sp-btn--usuario:hover,.sp-btn--productor:hover{filter:brightness(1.07);transform:scale(1.02)}
+.sp-btn--usuario:active,.sp-btn--productor:active{transform:scale(.96)}
+.bn-btn:active{opacity:.7}
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <header class="topbar" id="topbar">
+    <div class="nav-row">
+      <button class="nav-btn izq" id="bVolver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Volver
+      </button>
+      <img src="logo.png" alt="Fusa Conecta" class="logo logo--light">
+    </div>
+    <div class="descubre" id="descubre">
+      <div class="sesion" id="sesion"></div>
+      <div class="buscador">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="busqueda" placeholder="Busca comercios, fincas, rutas, trámites...">
+      </div>
+          <div class="cats" id="cats"></div>
+    </div>
+  </header>
+
+  <main class="cuerpo" id="cuerpo"></main>
+
+<nav class="bottom-nav" id="bottomNav">
+    <button class="bn-btn bn-active" data-bn="inicio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h4v-5h6v5h4V10"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="bn-btn" data-bn="favoritos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      <span>Favoritos</span>
+    </button>
+    <button class="bn-btn bn-sos" data-bn="sos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>SOS</span>
+    </button>
+  </nav>
+
+  <button class="fab" id="fab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Sumar mi comercio
+  </button>
+
+  <section class="splash splash--light" id="splash">
+    <div class="splash-inner">
+      <span class="splash-logo-wrap">
+        <img src="logo.png" alt="Fusa Conecta Logo" class="splash-logo">
+      </span>
+      <p class="splash-desc">El corazón comercial, campesino y turístico de Fusagasugá, en un solo lugar.</p>
+  <div class="splash-cta">
+        <p class="splash-tipo-label">¿Cómo quieres ingresar?</p>
+        <div class="splash-tipo-row">
+          <button class="sp-btn--usuario" id="sUsuario">👤 Usuario</button>
+          <button class="sp-btn--productor" id="sProductor">🏪 Productor</button>
+        </div>
+        <button class="sp-btn sp-btn--ghost" id="sInvitado">Solo explorar</button>
+      </div>
+    </div>
+    <button id="sGoogle" style="display:none" aria-hidden="true"></button>
+    <button id="sApoyo" style="display:none" aria-hidden="true"></button>
+  </section>
+</div>
+
+<!-- MODALES FUERA DEL SHELL -->
+<div class="overlay" id="ovDetalle"><div class="sheet" id="sheetDetalle"></div></div>
+
+<div class="overlay" id="ovForm">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="cerrar" data-cerrar="ovForm" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="form-head"><div class="form-intro" id="formIntro"><h2>Suma tu comercio</h2><p>Publica tu negocio, finca, ruta o servicio en Fusa Conecta.</p></div></div>
+    <div class="form-body">
+      <div class="campo"><label>Nombre del negocio <span class="req">*</span></label><input type="text" id="fNombre" placeholder="Ej: Café de la Abuela"></div>
+      <div class="campo"><label>Categoría <span class="req">*</span></label><select id="fCat"><option value="">Selecciona una categoría</option><option value="comercio">Directorio Comercial</option><option value="campo">Vitrina del Campo</option><option value="turismo">Turismo y Rutas</option><option value="hospedaje">Hospedaje</option><option value="bares">Bares y Licores</option><option value="tramite">Trámites Municipales</option></select></div>
+      <div class="campo"><label>Descripción</label><textarea id="fDesc" placeholder="Cuenta en pocas líneas qué ofreces y qué te hace especial…"></textarea></div>
+      <div class="campo"><label>Ubicación</label><input type="text" id="fDir" placeholder="Ej: Cra 7 # 6-32, Centro"><p class="ayuda">Se usa para ubicar tu negocio en el mapa.</p></div>
+      <div class="campo"><label>Teléfono / WhatsApp</label><input type="tel" id="fTel" placeholder="Ej: 3001234567"></div>
+      <div class="campo"><label>Foto del negocio</label><input type="file" id="fFoto" accept="image/*"><p class="ayuda">Opcional · se mostrará en la tarjeta y el detalle.</p></div>
+      <button class="btn-publicar" id="bPublicar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>Publicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovLogin">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="cerrar" data-cerrar="ovLogin" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="login-head">
+      <img src="logo.png" alt="Fusa Conecta" class="logo">
+      <h2>Ingresa a Fusa Conecta</h2>
+      <p>Guarda tus favoritos y suma tu comercio</p>
+    </div>
+    <div class="login-body">
+      <button class="btn-social" id="lGoogle">
+        <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+        Continuar con Google
+      </button>
+      <button class="btn-social" id="lFacebook">
+        <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.96h-1.52c-1.49 0-1.96.93-1.96 1.88V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12z"/></svg>
+        Continuar con Facebook
+      </button>
+      <div class="sep">o con tu correo</div>
+      <div class="login-mail">
+        <input type="email" id="mail" placeholder="tucorreo@email.com">
+        <button id="lMail">Entrar</button>
+      </div>
+      <p class="login-nota">Simulación de alta fidelidad: OAuth real requiere backend y claves API.</p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay centro" id="ovGoogle">
+  <div class="g-card">
+    <div class="g-top"><div class="g-logo"><span class="b">G</span><span class="r">o</span><span class="y">o</span><span class="g">g</span><span class="e">l</span><span class="r2">e</span></div></div>
+    <div class="g-body">
+      <h3>Elige una cuenta</h3>
+      <div class="sub">para continuar a Fusa Conecta</div>
+      <div class="g-account" id="gPreset">
+        <div class="ga-av">F</div>
+        <div class="ga-info"><b>Cuenta de demostración</b><span>fusaconecta.demo@gmail.com</span></div>
+      </div>
+      <div class="g-field"><input type="text" id="gNombre" placeholder="O escribe tu nombre para continuar"></div>
+      <div class="g-actions">
+        <button class="g-cancel" data-cerrar="ovGoogle">Cancelar</button>
+        <button class="g-ok" id="gContinuar">Continuar</button>
+      </div>
+    </div>
+    <p class="g-foot">Ventana simulada · no se envían datos reales</p>
+  </div>
+</div>
+
+<div class="overlay" id="ovApoyo">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="cerrar" data-cerrar="ovApoyo" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="apoyo-body">
+      <div class="em">🌱</div>
+      <h2>Apoya a Fusa Conecta</h2>
+      <p>Con un aporte simbólico ayudas a sumar más comercios, fincas, rutas y trámites de nuestra Ciudad Jardín.</p>
+      <div class="montos" id="montos">
+        <button class="monto" data-m="5.000">$5.000</button>
+        <button class="monto" data-m="10.000">$10.000</button>
+        <button class="monto" data-m="20.000">$20.000</button>
+      </div>
+      <textarea class="apoyo-fb" id="feedback" placeholder="¿Una idea o un lugar que deberíamos incluir?"></textarea>
+      <button class="btn btn-nectar" id="bEnviarApoyo" style="background:var(--teal);color:#fff;border-radius:14px;padding:14px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center">Enviar mi apoyo</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay centro" id="ovEdad">
+  <div class="edad-card">
+    <div class="edad-ic">🍸</div>
+    <h3>Verificación de edad</h3>
+    <p>El módulo de <b>Bares y Licores</b> es solo para personas mayores de edad. ¿Eres mayor de 18 años?</p>
+    <div class="edad-actions">
+      <button class="edad-no" id="edadNo">No</button>
+      <button class="edad-si" id="edadSi">Sí, soy mayor</button>
+    </div>
+    <p class="edad-foot">Consumo responsable · Ley 124 de 1994</p>
+  </div>
+</div>
+
+<div class="overlay" id="ovLegal">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="cerrar" data-cerrar="ovLegal" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="legal-body">
+      <h2>Aviso Legal y Privacidad</h2>
+      <p>Fusa Conecta es un directorio informativo comunitario. La información se publica con fines de divulgación local y puede contener datos de demostración. No nos hacemos responsables por disponibilidad, calidad o veracidad de los servicios de terceros.</p>
+      <h3>Tratamiento de datos (Habeas Data)</h3>
+      <p>En cumplimiento de la Ley 1581 de 2012, los datos personales suministrados serán tratados únicamente para operar el directorio. El titular puede solicitar rectificación o supresión de sus datos en cualquier momento. No compartimos información con terceros sin autorización.</p>
+      <h3>Consumo responsable</h3>
+      <p>El módulo de Bares y Licores está dirigido exclusivamente a mayores de 18 años. El exceso de alcohol es perjudicial para la salud.</p>
+      <button class="btn" data-cerrar="ovLegal" style="background:var(--teal);color:#fff;border-radius:14px;padding:13px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;margin-top:10px">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ===== PALETA POR CATEGORÍA ===== */
+const CAT = {
+  campo:     { label:'Vitrina del Campo',    bg:'#C5A059', fg:'#3a3110', hero:'linear-gradient(135deg,#d8c074,#C5A059)', emoji:'🌱' },
+  comercio:  { label:'Directorio Comercial', bg:'#EE7A4D', fg:'#fff',    hero:'linear-gradient(135deg,#F4A079,#EE7A4D)', emoji:'🏪' },
+  turismo:   { label:'Turismo y Rutas',      bg:'#F50057', fg:'#fff',    hero:'linear-gradient(135deg,#F76C8F,#F50057)', emoji:'📍' },
+  hospedaje: { label:'Hospedaje',            bg:'#2D6A8E', fg:'#fff',    hero:'linear-gradient(135deg,#4A90C2,#2D6A8E)', emoji:'🛏️' },
+  bares:     { label:'Bares y Licores',      bg:'#5B3A8C', fg:'#fff',    hero:'linear-gradient(135deg,#7E57C2,#4A2D80)', emoji:'🍸' },
+  tramite:   { label:'Trámites Municipales', bg:'#00695C', fg:'#fff',    hero:'linear-gradient(135deg,#2a9d8f,#00695C)', emoji:'🏛️' }
+};
+function mapa(q){ return 'https://maps.google.com/maps?q='+encodeURIComponent(q+' Fusagasuga Cundinamarca')+'&z=15&output=embed'; }
+
+/* ===== BASE DE DATOS (60 registros) ===== */
+let database = [
+  /* CAMPO (1-10) */
+  { id:1,  cat:'campo',    emoji:'☕', rating:4.8, nombre:'Café Sutagao',                  desc:'Café de origen cultivado y tostado por familias campesinas del piedemonte fusagasugueño, con secado al sol y tueste artesanal. Vendemos en grano y molido, y ofrecemos catación los fines de semana para conocer todo el proceso de la finca a la taza.',          horario:'Sáb y Dom · 7:00 a.m. – 2:00 p.m.', direccion:'Vereda Bermejal, finca La Esperanza',     tel:'3101110001', imagen:'', mapa:mapa('Vereda Bermejal'), propietario:null, categoria:'campo' },
+  { id:2,  cat:'campo',    emoji:'🍯', rating:4.9, nombre:'Miel La Aguadita',               desc:'Miel pura de abejas, polen y propóleo producidos en colmenas del corregimiento de La Aguadita, sin procesar ni mezclar. Ofrecemos recorridos guiados por el apiario con cita previa para grupos y familias.',                                                        horario:'Lun a Sáb · 8:00 a.m. – 4:00 p.m.',    direccion:'Corregimiento La Aguadita',              tel:'3101110002', imagen:'', mapa:mapa('La Aguadita'), propietario:null, categoria:'campo' },
+  { id:3,  cat:'campo',    emoji:'🧺', rating:4.7, nombre:'Artesanías de Balay',            desc:'Cestería y artesanías tradicionales tejidas a mano en fibras naturales por artesanas locales con técnicas heredadas. Hacemos piezas decorativas y utilitarias por encargo para hogar y regalo.',                                                                      horario:'Lun a Sáb · 8:00 a.m. – 5:00 p.m.',    direccion:'Vereda Bosachoque',                      tel:'3101110003', imagen:'', mapa:mapa('Vereda Bosachoque'), propietario:null, categoria:'campo' },
+  { id:4,  cat:'campo',    emoji:'🌸', rating:5.0, nombre:'Vivero de Orquídeas de Fusa',    desc:'Cattleyas, phalaenopsis y orquídeas nativas cultivadas con dedicación en plena Ciudad Jardín. Encuentra plantas en flor, sustratos y materas, además de asesoría para el cuidado de tu orquídea.',                                                                    horario:'Mar a Dom · 9:00 a.m. – 5:00 p.m.',    direccion:'Vereda Bosachoque, sector El Jardín',    tel:'3101110004', imagen:'', mapa:mapa('Vereda Bosachoque vivero'), propietario:null, categoria:'campo' },
+  { id:5,  cat:'campo',    emoji:'🧀', rating:4.7, nombre:'Quesos Campesinos El Triunfo',   desc:'Queso doble crema, campesino y cuajada fresca elaborados a diario con leche de la vereda de forma tradicional. Atendemos pedidos al por mayor para tiendas, panaderías y restaurantes.',                                                                              horario:'Todos los días · 6:00 a.m. – 1:00 p.m.',direccion:'Vereda El Triunfo',                      tel:'3101110005', imagen:'', mapa:mapa('Vereda El Triunfo'), propietario:null, categoria:'campo' },
+  { id:6,  cat:'campo',    emoji:'🍓', rating:4.5, nombre:'Conservas Doña Rosa',            desc:'Mermeladas de mora, fresa y uchuva hechas sin conservantes con fruta fresca de fincas vecinas y cocción lenta. Tenemos frascos surtidos y presentaciones para regalo y eventos.',                                                                                      horario:'Mié a Dom · 9:00 a.m. – 4:00 p.m.',    direccion:'Vereda Sardinas',                        tel:'3101110006', imagen:'', mapa:mapa('Vereda Sardinas'), propietario:null, categoria:'campo' },
+  { id:7,  cat:'campo',    emoji:'🥬', rating:4.8, nombre:'Huerta Orgánica San José',       desc:'Verduras y hortalizas orgánicas cultivadas sin agroquímicos y cosechadas el mismo día de entrega. Ofrecemos canastas semanales a domicilio dentro del casco urbano de Fusagasugá.',                                                                                    horario:'Lun, Mié y Vie · 7 a.m. – 12 m.',      direccion:'Vereda Usatama',                         tel:'3101110007', imagen:'', mapa:mapa('Vereda Usatama'), propietario:null, categoria:'campo' },
+  { id:8,  cat:'campo',    emoji:'🥛', rating:4.6, nombre:'Lácteos La Pradera',             desc:'Leche fresca, yogurt natural y kumis producidos en finca con ganado propio. Entregamos el producto del día, directo del establo a tu mesa, a hogares y negocios de barrio.',                                                                                          horario:'Todos los días · 5:30 a.m. – 11 a.m.', direccion:'Vereda La Cascada',                      tel:'3101110008', imagen:'', mapa:mapa('Vereda La Cascada'), propietario:null, categoria:'campo' },
+  { id:9,  cat:'campo',    emoji:'🧶', rating:4.9, nombre:'Tejidos Manos Campesinas',       desc:'Mochilas, ruanas y tejidos en lana elaborados por mujeres artesanas del campo fusagasugueño, combinando diseños tradicionales y contemporáneos. Tejemos también a la medida.',                                                                                        horario:'Jue a Dom · 9:00 a.m. – 5:00 p.m.',    direccion:'Vereda Tierra Negra',                    tel:'3101110009', imagen:'', mapa:mapa('Vereda Tierra Negra'), propietario:null, categoria:'campo' },
+  { id:10, cat:'campo',    emoji:'🪴', rating:4.7, nombre:'Vivero Verde Plantas Nativas',   desc:'Plántulas ornamentales, frutales y árboles nativos para reforestar tu jardín o finca, con especies adaptadas al clima de Fusagasugá. Damos asesoría en siembra y paisajismo.',                                                                                        horario:'Mar a Dom · 8:00 a.m. – 5:00 p.m.',    direccion:'Vereda Novillero',                       tel:'3101110010', imagen:'', mapa:mapa('Vereda Novillero'), propietario:null, categoria:'campo' },
+  /* COMERCIO (11-20) */
+  { id:11, cat:'comercio', emoji:'🔧', rating:4.5, nombre:'Ferretería El Tornillo de Oro',  desc:'Herramientas, materiales de construcción, pintura, plomería y eléctricos con asesoría para arreglos del hogar y obra. Hacemos despacho a domicilio dentro de la ciudad.',                                                                                              horario:'Lun a Sáb · 7:00 a.m. – 7:00 p.m.',    direccion:'Cra 7 # 6-32, Centro',                  tel:'3102220011', imagen:'', mapa:mapa('Centro Carrera 7'), propietario:null, categoria:'comercio' },
+  { id:12, cat:'comercio', emoji:'🍕', rating:4.7, nombre:'Pizzería Nápoles Fusa',          desc:'Pizza artesanal en horno de leña, pastas frescas y entradas italianas en ambiente familiar con masa de fermentación lenta. Atendemos en el local y con domicilios en todo el casco urbano.',                                                                            horario:'Mar a Dom · 4:00 p.m. – 10:30 p.m.',   direccion:'Cll 18 # 8-15, barrio Balmoral',         tel:'3102220012', imagen:'', mapa:mapa('Barrio Balmoral'), propietario:null, categoria:'comercio' },
+  { id:13, cat:'comercio', emoji:'🍽️', rating:4.8, nombre:'La Casona Sumapaceña',          desc:'Cocina típica del Sumapaz: ajiaco, mute, sancocho y bandeja paisa con sazón casera. Almuerzos ejecutivos entre semana y carta tradicional los fines de semana.',                                                                                                      horario:'Todos los días · 11 a.m. – 8:00 p.m.', direccion:'Cra 6 # 10-40, Centro',                 tel:'3102220013', imagen:'', mapa:mapa('Centro Carrera 6'), propietario:null, categoria:'comercio' },
+  { id:14, cat:'comercio', emoji:'🥐', rating:4.6, nombre:'Panadería y Café El Cedro',      desc:'Pan fresco del día, pastelería, tortas y café de la región, ideal para desayunos y onces. Recibimos encargos de tortas para cumpleaños y eventos con anticipación.',                                                                                                   horario:'Todos los días · 5:30 a.m. – 8:00 p.m.',direccion:'Cll 8 # 12-09, barrio Pekín',           tel:'3102220014', imagen:'', mapa:mapa('Barrio Pekin'), propietario:null, categoria:'comercio' },
+  { id:15, cat:'comercio', emoji:'💊', rating:4.4, nombre:'Droguería Salud Total',          desc:'Medicamentos, cuidado personal y primeros auxilios con toma de presión gratuita y orientación farmacéutica. Servicio a domicilio y horario extendido.',                                                                                                                 horario:'Todos los días · 7:00 a.m. – 10 p.m.', direccion:'Cra 8 # 7-21, Centro',                  tel:'3102220015', imagen:'', mapa:mapa('Centro Carrera 8'), propietario:null, categoria:'comercio' },
+  { id:16, cat:'comercio', emoji:'👟', rating:4.3, nombre:'Calzado El Paso',                desc:'Calzado para toda la familia: deportivo, formal, escolar y de trabajo, con marcas nacionales y asesoría de tallas. Servicio de reparación de zapatería en el local.',                                                                                                  horario:'Lun a Sáb · 9:00 a.m. – 7:30 p.m.',    direccion:'Cll 16 # 7-50, barrio Emilio Sierra',    tel:'3102220016', imagen:'', mapa:mapa('Barrio Emilio Sierra'), propietario:null, categoria:'comercio' },
+  { id:17, cat:'comercio', emoji:'🍦', rating:4.7, nombre:'Heladería Fusa Fresh',           desc:'Helados artesanales, malteadas y postres fríos con frutas frescas de la región, perfectos para el clima cálido de Fusa. Sabores de temporada y opciones sin azúcar.',                                                                                                 horario:'Todos los días · 12 m. – 9:00 p.m.',   direccion:'Cra 7 # 12-18, Centro',                  tel:'3102220017', imagen:'', mapa:mapa('Centro parque principal'), propietario:null, categoria:'comercio' },
+  { id:18, cat:'comercio', emoji:'📒', rating:4.5, nombre:'Papelería Mil Ideas',            desc:'Útiles escolares, papelería, fotocopias e impresiones a color, además de recargas y trámites en línea. Punto de referencia para estudiantes y oficinas del sector.',                                                                                                   horario:'Lun a Sáb · 8:00 a.m. – 7:00 p.m.',    direccion:'Cll 10 # 9-30, barrio San Mateo',        tel:'3102220018', imagen:'', mapa:mapa('Barrio San Mateo'), propietario:null, categoria:'comercio' },
+  { id:19, cat:'comercio', emoji:'🏍️', rating:4.6, nombre:'Taller RápidoMoto',             desc:'Mantenimiento, repuestos y mecánica express para motos de todas las marcas, con cambio de aceite mientras esperas y diagnóstico gratuito. Personal técnico con experiencia.',                                                                                           horario:'Lun a Sáb · 7:30 a.m. – 6:00 p.m.',    direccion:'Av. Las Palmas # 22-14',                 tel:'3102220019', imagen:'', mapa:mapa('Avenida Las Palmas'), propietario:null, categoria:'comercio' },
+  { id:20, cat:'comercio', emoji:'🐾', rating:4.9, nombre:'Veterinaria Huellitas',          desc:'Consulta, vacunación, peluquería canina, guardería y tienda de mascotas, con urgencias y planes de salud preventiva. Un equipo que cuida a tus mascotas con cariño.',                                                                                                  horario:'Lun a Sáb · 8–7 · Dom 9–1',            direccion:'Cll 14 # 6-22, Centro',                  tel:'3102220020', imagen:'', mapa:mapa('Centro Calle 14'), propietario:null, categoria:'comercio' },
+  /* TURISMO (21-30) */
+  { id:21, cat:'turismo',  emoji:'⛰️', rating:4.8, nombre:'Cerro Fusacatán',               desc:'Cerro tutelar de Fusagasugá y uno de sus principales miradores, desde donde se aprecia toda la ciudad y el valle del río Cuja. Ideal para caminata y avistamiento de aves al amanecer.',                                                                               horario:'Recomendado · 5:00 a.m. – 4:00 p.m.',  direccion:'Costado oriental del casco urbano',      tel:'3103330021', imagen:'', mapa:mapa('Cerro Fusacatan'), propietario:null, categoria:'turismo' },
+  { id:22, cat:'turismo',  emoji:'🪨', rating:4.6, nombre:'Sendero Cara del Indio',         desc:'Formación rocosa cuyo perfil tallado por la naturaleza recuerda el rostro de un indígena. El sendero corto ofrece vistas panorámicas del paisaje sumapaceño cargado de historia.',                                                                                      horario:'Visita diurna · 6:00 a.m. – 5:00 p.m.',direccion:'Vía Fusagasugá – Arbeláez',              tel:'3103330022', imagen:'', mapa:mapa('Cara del Indio'), propietario:null, categoria:'turismo' },
+  { id:23, cat:'turismo',  emoji:'🌫️', rating:4.7, nombre:'Corregimiento La Aguadita',     desc:'Clima frío y niebla a 20 minutos del centro, puerta al páramo. Senderos de montaña, cultivos de trucha y paisajes de bosque altoandino. Una escapada perfecta.',                                                                                                      horario:'Acceso todo el día · lleva abrigo',     direccion:'Corregimiento La Aguadita',              tel:'3103330023', imagen:'', mapa:mapa('La Aguadita corregimiento'), propietario:null, categoria:'turismo' },
+  { id:24, cat:'turismo',  emoji:'🏘️', rating:4.5, nombre:'Pueblito Fusagasugueño',         desc:'Replica de la arquitectura colonial de la región con artesanías, gastronomía típica y eventos culturales. Un plan familiar para conocer las tradiciones del Sumapaz.',                                                                                                  horario:'Mar a Dom · 9:00 a.m. – 6:00 p.m.',    direccion:'Sector turístico, casco urbano',         tel:'3103330024', imagen:'', mapa:mapa('Pueblito Fusagasugueño'), propietario:null, categoria:'turismo' },
+  { id:25, cat:'turismo',  emoji:'🥾', rating:4.6, nombre:'Ruta de los Sutagaos',           desc:'Senderismo que rememora a los Sutagaos, pueblo indígena original de la región, atravesando paisajes rurales, miradores y caminos ancestrales del municipio.',                                                                                                           horario:'Recorrido guiado · salida en la mañana',direccion:'Zona rural de Fusagasugá',              tel:'3103330025', imagen:'', mapa:mapa('Fusagasuga ruta sutagaos'), propietario:null, categoria:'turismo' },
+  { id:26, cat:'turismo',  emoji:'🛤️', rating:4.5, nombre:'Camino Real de Alaska',          desc:'Antiguo camino real empedrado con el trazado colonial en la vereda Alaska, rodeado de vegetación. Ideal para caminatas ecológicas y fotografía de paisaje.',                                                                                                           horario:'Visita diurna · clima templado',        direccion:'Vereda Alaska',                          tel:'3103330026', imagen:'', mapa:mapa('Vereda Alaska camino real'), propietario:null, categoria:'turismo' },
+  { id:27, cat:'turismo',  emoji:'🌄', rating:4.4, nombre:'Mirador de Ricaurte',            desc:'Punto elevado en el sector de Ricaurte con amplias vistas del valle y la zona rural de Fusagasugá. Lugar tranquilo para contemplar el atardecer y disfrutar del aire de montaña.',                                                                                     horario:'Recomendado · 6:00 a.m. – 5:00 p.m.',  direccion:'Sector Ricaurte',                        tel:'3103330027', imagen:'', mapa:mapa('Ricaurte mirador'), propietario:null, categoria:'turismo' },
+  { id:28, cat:'turismo',  emoji:'🏞️', rating:4.5, nombre:'Alto de San Benito',             desc:'Sector campestre con zonas verdes, fincas y miradores naturales, popular para paseos de fin de semana. Punto de partida de varias rutas ecológicas de la región.',                                                                                                     horario:'Acceso todo el día',                    direccion:'Sector San Benito',                      tel:'3103330028', imagen:'', mapa:mapa('San Benito Fusagasuga'), propietario:null, categoria:'turismo' },
+  { id:29, cat:'turismo',  emoji:'⛪', rating:4.6, nombre:'Iglesia de Belén',               desc:'Templo tradicional del barrio Belén, referente religioso y arquitectónico del centro de Fusagasugá, parte del recorrido patrimonial de la ciudad. Espacio de fe y encuentro comunitario.',                                                                               horario:'Según horario de misas',                direccion:'Barrio Belén, casco urbano',             tel:'3103330029', imagen:'', mapa:mapa('Iglesia de Belen Fusagasuga'), propietario:null, categoria:'turismo' },
+  { id:30, cat:'turismo',  emoji:'☕', rating:4.9, nombre:'Hacienda Coloma – Museo del Café',desc:'Hacienda cafetera donde se recorre el proceso del café regional, con catación, tienda y senderos entre cafetales. Uno de los grandes atractivos turísticos de Fusagasugá.',                                                                                             horario:'Mar a Dom · 9:00 a.m. – 4:00 p.m.',    direccion:'Vía Fusagasugá – Bogotá, km 4',          tel:'3103330030', imagen:'', mapa:mapa('Hacienda Coloma museo del cafe'), propietario:null, categoria:'turismo' },
+  /* HOSPEDAJE (31-40) */
+  { id:31, cat:'hospedaje',emoji:'🏨', rating:4.5, nombre:'Hotel Casa Tarará',              desc:'Hotel céntrico con habitaciones cómodas, wifi, parqueadero y desayuno incluido, a pasos del parque principal. Ideal para viajes de negocios y turismo.',                                                                                                               horario:'Recepción 24 horas',                    direccion:'Cra 7 # 8-40, Centro',                  tel:'3104440031', imagen:'', mapa:mapa('Centro Carrera 7 hotel'), propietario:null, categoria:'hospedaje' },
+  { id:32, cat:'hospedaje',emoji:'🛎️', rating:4.7, nombre:'Hotel Boutique La Quinta',       desc:'Hotel boutique con diseño cálido, jardines y zona de descanso para una estadía tranquila. Ofrece habitaciones temáticas y atención personalizada cerca del centro.',                                                                                                   horario:'Recepción 24 horas',                    direccion:'Cll 12 # 6-18, Centro',                  tel:'3104440032', imagen:'', mapa:mapa('Centro Calle 12 hotel'), propietario:null, categoria:'hospedaje' },
+  { id:33, cat:'hospedaje',emoji:'🎒', rating:4.4, nombre:'Hostal Viajero Sumapaz',         desc:'Hostal económico con habitaciones privadas y compartidas, cocina común y ambiente para mochileros. Punto de encuentro para conocer las rutas de la región sumapaceña.',                                                                                                  horario:'Recepción 7 a.m. – 10 p.m.',           direccion:'Cll 16 # 9-25, barrio San Mateo',        tel:'3104440033', imagen:'', mapa:mapa('Barrio San Mateo hostal'), propietario:null, categoria:'hospedaje' },
+  { id:34, cat:'hospedaje',emoji:'⛺', rating:4.8, nombre:'Glamping Cielo Verde',            desc:'Domos panorámicos en la montaña con fogata y vistas al valle, combinando naturaleza y comodidad. Incluye desayuno y actividades al aire libre.',                                                                                                                        horario:'Check-in 3 p.m. · Check-out 12 m.',    direccion:'Vereda Bermejal, sector alto',           tel:'3104440034', imagen:'', mapa:mapa('Vereda Bermejal glamping'), propietario:null, categoria:'hospedaje' },
+  { id:35, cat:'hospedaje',emoji:'🌳', rating:4.6, nombre:'Hotel Campestre El Vergel',      desc:'Hotel campestre con piscina, zonas verdes y salones para eventos, ideal para descansar en familia. Planes de fin de semana y celebraciones cerca de la ciudad.',                                                                                                        horario:'Recepción 24 horas',                    direccion:'Vía Fusagasugá – Arbeláez km 2',         tel:'3104440035', imagen:'', mapa:mapa('Via Arbelaez hotel campestre Fusagasuga'), propietario:null, categoria:'hospedaje' },
+  { id:36, cat:'hospedaje',emoji:'🏢', rating:4.3, nombre:'Aparta-hotel Ciudad Jardín',     desc:'Apartamentos amoblados por noche o temporada con cocina equipada y wifi, perfectos para estadías largas. Comodidad de hogar con servicios de hotel.',                                                                                                                   horario:'Recepción 6 a.m. – 11 p.m.',           direccion:'Cll 6 # 5-12, Centro',                   tel:'3104440036', imagen:'', mapa:mapa('Centro Fusagasuga aparta hotel'), propietario:null, categoria:'hospedaje' },
+  { id:37, cat:'hospedaje',emoji:'🌿', rating:4.5, nombre:'Glamping Bosque de Niebla',      desc:'Glamping de clima frío en La Aguadita, entre bosque y senderos, con domos cálidos y fogatas nocturnas. Una escapada para desconectarse rodeado de naturaleza.',                                                                                                        horario:'Check-in 3 p.m. · Check-out 12 m.',    direccion:'Corregimiento La Aguadita',              tel:'3104440037', imagen:'', mapa:mapa('La Aguadita glamping'), propietario:null, categoria:'hospedaje' },
+  { id:38, cat:'hospedaje',emoji:'🏬', rating:4.4, nombre:'Hotel Plaza Centro',             desc:'Hotel funcional frente a zonas comerciales, con habitaciones sencillas, ascensor y desayuno. Bien ubicado para quienes vienen por trámites o compras en el centro.',                                                                                                   horario:'Recepción 24 horas',                    direccion:'Cra 6 # 7-55, Centro',                   tel:'3104440038', imagen:'', mapa:mapa('Centro Carrera 6 hotel plaza'), propietario:null, categoria:'hospedaje' },
+  { id:39, cat:'hospedaje',emoji:'🛏️', rating:4.6, nombre:'Finca-Hotel Los Cerezos',        desc:'Finca-hotel con zonas verdes, piscina, juegos y restaurante, pensada para grupos y familias. Espacios para reuniones y celebraciones en ambiente campestre.',                                                                                                          horario:'Recepción 24 horas',                    direccion:'Vereda Guavio',                          tel:'3104440039', imagen:'', mapa:mapa('Vereda Guavio Fusagasuga finca hotel'), propietario:null, categoria:'hospedaje' },
+  { id:40, cat:'hospedaje',emoji:'🧳', rating:4.5, nombre:'Hostal Mochilero Fusa',          desc:'Hostal juvenil con tarifas económicas, terraza y planes de senderismo guiado por la región. Ambiente social ideal para viajeros que recorren el Sumapaz.',                                                                                                              horario:'Recepción 7 a.m. – 11 p.m.',           direccion:'Cll 18 # 7-30, barrio Balmoral',         tel:'3104440040', imagen:'', mapa:mapa('Barrio Balmoral hostal'), propietario:null, categoria:'hospedaje' },
+  /* BARES (41-50) */
+  { id:41, cat:'bares',    emoji:'🍸', rating:4.6, nombre:'Gastrobar La Terraza',           desc:'Coctelería de autor, picadas y música en vivo los fines de semana en una terraza con vista a la ciudad. Servicio a domicilio de cocteles y tablas para compartir.',                                                                                                    horario:'Jue a Sáb · 5 p.m. – 2 a.m.',          direccion:'Cll 17 # 7-22, Centro',                  tel:'3105550041', imagen:'', mapa:mapa('Centro Calle 17 bar'), propietario:null, categoria:'bares' },
+  { id:42, cat:'bares',    emoji:'🎶', rating:4.4, nombre:'Discoteca Luna Club',            desc:'Pista amplia con reguetón, crossover y electrónica, zona VIP y la mejor rumba del fin de semana. Reservas de mesa y botellas disponibles.',                                                                                                                              horario:'Vie y Sáb · 9 p.m. – 3 a.m.',          direccion:'Av. Las Palmas # 18-40',                 tel:'3105550042', imagen:'', mapa:mapa('Avenida Las Palmas discoteca Fusagasuga'), propietario:null, categoria:'bares' },
+  { id:43, cat:'bares',    emoji:'🛵', rating:4.5, nombre:'Estanco El Trago Express',       desc:'Amplia variedad de licores nacionales e importados con domicilio rápido en todo el casco urbano. Promociones y combos para reuniones y eventos.',                                                                                                                         horario:'Todos los días · 10 a.m. – 12 a.m.',   direccion:'Cra 8 # 14-10, Centro',                  tel:'3105550043', imagen:'', mapa:mapa('Centro Carrera 8 licores'), propietario:null, categoria:'bares' },
+  { id:44, cat:'bares',    emoji:'🍷', rating:4.7, nombre:'Bar de Vinos Uvas & Co',         desc:'Carta nacional e importada, tablas de quesos y maridajes guiados en ambiente íntimo. Venta de botellas y domicilios de vino seleccionado.',                                                                                                                              horario:'Mié a Sáb · 4 p.m. – 12 a.m.',         direccion:'Cll 12 # 8-05, Centro',                  tel:'3105550044', imagen:'', mapa:mapa('Centro Calle 12 bar de vinos'), propietario:null, categoria:'bares' },
+  { id:45, cat:'bares',    emoji:'🍺', rating:4.6, nombre:'Cervecería Artesanal Fusa Beer', desc:'Estilos de barril locales, hamburguesas y alitas en ambiente relajado. Growlers y domicilios de cerveza fría para llevar.',                                                                                                                                               horario:'Mar a Dom · 3 p.m. – 11 p.m.',          direccion:'Cra 7 # 20-15, barrio Balmoral',         tel:'3105550045', imagen:'', mapa:mapa('Balmoral cerveceria Fusagasuga'), propietario:null, categoria:'bares' },
+  { id:46, cat:'bares',    emoji:'🎤', rating:4.3, nombre:'Karaoke Las Vegas',              desc:'Cabinas privadas y salón general con gran catálogo de canciones, cocteles y pasabocas. Ideal para celebraciones y planes entre amigos.',                                                                                                                                  horario:'Jue a Sáb · 6 p.m. – 2 a.m.',          direccion:'Cll 16 # 6-28, Centro',                  tel:'3105550046', imagen:'', mapa:mapa('Centro Calle 16 karaoke'), propietario:null, categoria:'bares' },
+  { id:47, cat:'bares',    emoji:'🚚', rating:4.5, nombre:'Licorera 24h Don Licor',         desc:'Domicilios nocturnos de cervezas, aguardiente, ron y mezcladores las 24 horas. La opción cuando la reunión se extiende.',                                                                                                                                                 horario:'Todos los días · 24 horas',             direccion:'Av. Las Palmas # 25-03',                 tel:'3105550047', imagen:'', mapa:mapa('Avenida Las Palmas licorera Fusagasuga'), propietario:null, categoria:'bares' },
+  { id:48, cat:'bares',    emoji:'🌴', rating:4.5, nombre:'Lounge Bar Selva',               desc:'Ambiente tropical con coctelería tiki, música chill y zona al aire libre. Perfecto para after office y noches tranquilas con buena mixología.',                                                                                                                           horario:'Mié a Sáb · 5 p.m. – 1 a.m.',          direccion:'Cll 19 # 8-50, Centro',                  tel:'3105550048', imagen:'', mapa:mapa('Centro Calle 19 lounge bar'), propietario:null, categoria:'bares' },
+  { id:49, cat:'bares',    emoji:'📻', rating:4.4, nombre:'Bar Rockola El Recuerdo',        desc:'Música popular y rockola con clásicos del despecho y la salsa, cerveza y aguardiente en ambiente sin pretensiones. Tradición rumbera del centro de Fusa.',                                                                                                                horario:'Jue a Dom · 4 p.m. – 1 a.m.',           direccion:'Cra 6 # 13-12, Centro',                  tel:'3105550049', imagen:'', mapa:mapa('Centro Carrera 6 bar rockola'), propietario:null, categoria:'bares' },
+  { id:50, cat:'bares',    emoji:'🍹', rating:4.7, nombre:'Cocktail Bar Mixología 360',     desc:'Coctelería de autor y clásicos reinventados con bartenders profesionales y barra en vivo. Servicio de cocteles a domicilio en botella lista para servir.',                                                                                                                horario:'Jue a Sáb · 6 p.m. – 2 a.m.',          direccion:'Cll 17 # 9-14, Centro',                  tel:'3105550050', imagen:'', mapa:mapa('Centro Calle 17 cocktail bar'), propietario:null, categoria:'bares' },
+  /* TRÁMITES (51-60) — instituciones reales */
+  { id:51, cat:'tramite',  emoji:'🏛️', rating:4.2, nombre:'Alcaldía Municipal de Fusagasugá',      desc:'Sede de la administración municipal para trámites de gobierno, hacienda, planeación y atención ciudadana. Línea gratuita y conmutador. Punto central para PQRS e impuestos.',                                                                       horario:'Lun a Vie · 8–12 y 2–6 p.m.',          direccion:'Calle 6 N° 6-24, Centro',                tel:'6018868181', imagen:'', mapa:mapa('Alcaldia de Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:52, cat:'tramite',  emoji:'📜', rating:4.3, nombre:'Notaría Primera de Fusagasugá',          desc:'Autenticaciones, registro civil, escrituras, declaraciones, matrimonios y sucesiones para el círculo de Fusagasugá. Confirmar requisitos antes de asistir.',                                                                                         horario:'Lun a Vie · 8–1 y 2–5 · Sáb 8–12',     direccion:'Calle 9 N° 7-21, Centro',                tel:'6018731234', imagen:'', mapa:mapa('Notaria Primera de Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:53, cat:'tramite',  emoji:'📜', rating:4.2, nombre:'Notaría Segunda de Fusagasugá',          desc:'Jornada continua para autenticación, registro civil, cambio de nombre, matrimonios y sucesiones. Fe pública para la provincia del Sumapaz.',                                                                                                        horario:'Lun a Vie · 8–5 (continuo) · Sáb 8–12',direccion:'Cra 8 N° 8-13, Centro',                 tel:'6018735678', imagen:'', mapa:mapa('Notaria Segunda de Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:54, cat:'tramite',  emoji:'🚒', rating:4.9, nombre:'Bomberos Voluntarios de Fusagasugá',     desc:'Atiende incendios, rescates y emergencias las 24 horas, además de capacitaciones e inspecciones de seguridad. Línea de emergencia todos los días del año.',                                                                                          horario:'Emergencias · 24 horas',                direccion:'Carrera 5 N° 9-02, Centro',              tel:'3115853577', imagen:'', mapa:mapa('Bomberos Voluntarios de Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:55, cat:'tramite',  emoji:'🎓', rating:4.6, nombre:'SENA – Centro Agroecológico y Empresarial',desc:'Formación titulada y complementaria gratuita en áreas agroindustriales, administrativas y turismo para la provincia del Sumapaz.',                                                                                                            horario:'Lun a Vie · 7:00 a.m. – 5:00 p.m.',    direccion:'Av. Manuel H. Cárdenas Vélez, Calle 16', tel:'6018673476', imagen:'', mapa:mapa('SENA Centro Agroecologico Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:56, cat:'tramite',  emoji:'➕', rating:4.7, nombre:'Cruz Roja – Fusagasugá',                  desc:'Atención prehospitalaria, primeros auxilios, capacitaciones y apoyo humanitario. Punto de referencia para emergencias en salud. Línea nacional 132.',                                                                                               horario:'Lun a Vie · 8–12 y 2–5 p.m.',          direccion:'Centro, Fusagasugá',                     tel:'132',        imagen:'', mapa:mapa('Cruz Roja Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:57, cat:'tramite',  emoji:'⚖️', rating:4.0, nombre:'Fiscalía General – Fusagasugá',          desc:'Sede local para denuncias y actuaciones penales con orientación a las víctimas. Para denuncias, línea nacional 122.',                                                                                                                               horario:'Lun a Vie · 8:00 a.m. – 5:00 p.m.',    direccion:'Centro, Fusagasugá',                     tel:'122',        imagen:'', mapa:mapa('Fiscalia Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:58, cat:'tramite',  emoji:'👨‍👩‍👧', rating:4.1, nombre:'Comisaría de Familia',                  desc:'Protege los derechos de la familia, atiende violencia intrafamiliar, conciliaciones y medidas de protección con acompañamiento psicosocial y jurídico.',                                                                                            horario:'Lun a Vie · 8–12 y 2–6 p.m.',          direccion:'Calle 6 N° 6-24, Centro',                tel:'6018868181', imagen:'', mapa:mapa('Comisaria de Familia Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:59, cat:'tramite',  emoji:'💜', rating:4.4, nombre:'Casa de la Mujer',                        desc:'Atención, orientación y empoderamiento de las mujeres, con asesoría jurídica y psicológica frente a violencias de género. Línea Púrpura 155.',                                                                                                      horario:'Lun a Vie · 8–12 y 2–6 p.m.',          direccion:'Centro, Fusagasugá',                     tel:'155',        imagen:'', mapa:mapa('Casa de la Mujer Fusagasuga'), propietario:null, categoria:'tramite' },
+  { id:60, cat:'tramite',  emoji:'🏦', rating:4.0, nombre:'Bancolombia – Sucursal Fusagasugá',       desc:'Retiros, consignaciones, apertura de productos y asesoría financiera con cajeros automáticos y atención en caja. Para consultas, línea nacional de atención.',                                                                                       horario:'Lun a Vie · 9:00 a.m. – 4:00 p.m.',    direccion:'Centro, Fusagasugá',                     tel:'6014040',    imagen:'', mapa:mapa('Bancolombia Fusagasuga centro'), propietario:null, categoria:'tramite' }
+];
+let nextId = 61;
+let editandoId = null;
+
+const emergencias = [
+  { nombre:'Policía Nacional', detalle:'Línea de emergencia nacional', tel:'123', emoji:'🚓' },
+  { nombre:'Bomberos Fusagasugá', detalle:'Incendios y rescates · 24h', tel:'3115853577', emoji:'🚒' },
+  { nombre:'Cruz Roja', detalle:'Atención prehospitalaria', tel:'132', emoji:'➕' },
+  { nombre:'Hospital San Rafael', detalle:'Urgencias médicas', tel:'6018672051', emoji:'🏥' },
+  { nombre:'Línea Púrpura / Mujer', detalle:'Apoyo y orientación', tel:'155', emoji:'💜' }
+];
+
+/* ===== ESTADO Y NAVEGACIÓN ===== */
+const estado = { usuario:null, favoritos:[], q:'', cat:'todas', mayorEdad:false, pendienteProductor:false };
+const stack = [];
+function vistaActual(){ return stack[stack.length-1] || { tipo:'lista', cat:'todas' }; }
+function navegar(v){ stack.push(v); render(); }
+function volver(){ if(stack.length>1){ stack.pop(); render(); } }
+function inicio(){ stack.length=0; navegar({ tipo:'lista', cat:'todas' }); }
+
+/* ===== UTILIDADES ===== */
+const $  = (s,c=document) => c.querySelector(s);
+const $$ = (s,c=document) => c.querySelectorAll(s);
+function logueado(){ return !!estado.usuario; }
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('ver');
+  if(t._t) clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('ver'),3000);
+}
+function abrir(id){ $('#'+id).classList.add('abierto'); }
+function cerrar(id){ $('#'+id).classList.remove('abierto'); }
+function estrellas(n){
+  return Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" fill="${i<Math.round(n)?'#C5A059':'#e0ddd4'}" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`).join('')+`<span class="num">${n.toFixed(1)}</span>`;
+}
+
+/* ===== ICONOS GENERALES ===== */
+const IC = {
+  reloj:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>',
+  pin:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  tel:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 3.09 5.18 2 2 0 0 1 5.09 3h3a2 2 0 0 1 2 1.72 12.8 12.8 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9.91 10.91a16 16 0 0 0 6.18 6.18l1.27-1.34a2 2 0 0 1 2.11-.45 12.8 12.8 0 0 0 2.81.7A2 2 0 0 1 24 18z"/></svg>',
+  wa:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.27-.13-1.59-.78-1.84-.87s-.42-.13-.6.13-.69.87-.84 1.05-.31.19-.58.06a7.3 7.3 0 0 1-2.14-1.32 8 8 0 0 1-1.48-1.84c-.16-.27 0-.42.12-.55s.27-.31.4-.47a1.7 1.7 0 0 0 .27-.45.5.5 0 0 0 0-.47c-.06-.13-.6-1.44-.82-1.97s-.43-.45-.59-.46h-.51a1 1 0 0 0-.72.34A3 3 0 0 0 8 10.87a5.26 5.26 0 0 0 1.1 2.79 12 12 0 0 0 4.61 4.06c.64.28 1.14.44 1.53.57a3.68 3.68 0 0 0 1.69.11 2.76 2.76 0 0 0 1.81-1.28 2.24 2.24 0 0 0 .16-1.28c-.07-.12-.25-.18-.51-.31zM12 2a10 10 0 0 0-8.65 15L2 22l5.17-1.35A10 10 0 1 0 12 2z"/></svg>',
+  map:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>',
+  mas:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>',
+  sos:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>'
+};
+
+/* ===== ICONOS DE CATEGORÍAS (chips de navegación) ===== */
+const CAT_IC = {
+  todas:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  comercio:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2 2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/></svg>',
+  campo:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="14" rx="6" ry="4.5"/><circle cx="16" cy="9" r="3"/><path d="M19 8c1.5-1.5 3.5-.5 3 1.5"/><path d="M15.5 6.5c0-1.5 1.5-2.5 2.5-1.5"/><path d="M9 18c-2 1.5-2 3.5 0 3.5h6c2 0 2-2 0-3.5"/><circle cx="17" cy="9" r=".5" fill="currentColor"/></svg>',
+  hospedaje:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  bares:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-2.5 7A5.5 5.5 0 0 1 12 12a5.5 5.5 0 0 1-4.5-2L5 3z"/><line x1="12" y1="12" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="17" y1="5" x2="20" y2="2"/><circle cx="19" cy="3" r="1.5"/></svg>',
+  tramite:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  favoritos:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+  emergencias:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+};
+
+/* ===== RENDER HEADER ===== */
+function renderHeader(){
+  const v = vistaActual();
+  $('#bVolver').classList.toggle('invisible', stack.length<=1);
+  const enLista = v.tipo==='lista';
+  $('#descubre').style.display = enLista ? 'block' : 'none';
+  if(!enLista) return;
+  $('#busqueda').value = estado.q;
+  const ses = $('#sesion');
+  if(logueado()){
+    const ini = estado.usuario.nombre.charAt(0).toUpperCase();
+ ses.innerHTML = '<span class="saludo"><span class="av">'+ini+'</span>Hola, '+estado.usuario.nombre+'</span>'
+      + '<div style="display:flex;gap:7px;align-items:center">'
+      + '<button class="btn-mini btn-sumar" id="bSumar" title="Sumar mi comercio">+ Sumar</button>'
+      + '<button class="btn-mini salir" id="bSalir">Salir</button>'
+      + '</div>';
+    $('#bSumar').onclick = ()=>{ editandoId=null; resetForm(); abrir('ovForm'); };
+    $('#bSalir').onclick = ()=>{
+      estado.usuario=null; estado.favoritos=[]; editandoId=null;
+      if(v.cat==='favoritos'){ inicio(); return; }
+      renderHeader(); renderFab(); render();
+      toast('Sesión cerrada');
+    };
+  } else {
+    ses.innerHTML = '<span class="saludo">Explora y guarda tus favoritos</span>'
+      + '<button class="btn-mini" id="bEntrar">Entrar</button>';
+    $('#bEntrar').onclick = ()=>abrir('ovLogin');
+  }
+  const chips = [
+    { k:'todas',      t:'Todas'            },
+    { k:'comercio',   t:'Directorio'       },
+    { k:'campo',      t:'Campo'            },
+    { k:'turismo',    t:'Turismo'          },
+    { k:'hospedaje',  t:'Hospedaje'        },
+    { k:'bares',      t:'Bares y Licores'  },
+    { k:'tramite',    t:'Trámites'         }
+  ];
+  let html = chips.map(c=>{
+    const act=(v.cat===c.k)?' activa':'';
+    const ic = CAT_IC[c.k] ? '<span class="cat-ic">'+CAT_IC[c.k]+'</span>' : '';
+    return '<button class="cat'+act+'" data-cat="'+c.k+'">'+ic+c.t+'</button>';
+  }).join('');
+ 
+  $('#cats').innerHTML = html;
+  $$('#cats .cat').forEach(b=> b.onclick = ()=>{
+    const k=b.dataset.cat;
+    if(v.cat===k) return;
+    if(k==='bares'){ irABares(); return; }
+    navegar({ tipo:'lista', cat:k });
+  });
+}
+
+/* ===== VERIFICACIÓN DE EDAD PARA BARES ===== */
+function irABares(){
+  if(estado.mayorEdad){ navegar({ tipo:'lista', cat:'bares' }); return; }
+  abrir('ovEdad');
+}
+
+/* ===== FAB ===== */
+function renderFab(){
+  const f=$('#fab');
+  if(f) f.classList.remove('show'); // Acceso al formulario via boton "+ Sumar" del header
+}
+
+/* ===== CARD HTML ===== */
+function cardHTML(d){
+  const cat = CAT[d.cat] || { label:'Otro', bg:'#888', fg:'#fff', emoji:'📌' };
+  const esFav = estado.favoritos.includes(d.id);
+  const heroContent = d.imagen
+    ? '<img src="'+d.imagen+'" alt="'+d.nombre+'" loading="lazy">'
+    : '<span style="font-size:48px">'+d.emoji+'</span>';
+  const heroStyle = d.imagen ? '' : 'style="background:'+cat.hero+'"';
+  return '<div class="card" data-ver="'+d.id+'">'
+    + '<div class="hero" '+heroStyle+'>'+heroContent
+    + '<span class="badge" style="background:'+cat.bg+';color:'+cat.fg+'">'+cat.label+'</span>'
+    + '<button class="fav-btn'+(esFav?' on':'')+'" data-fav="'+d.id+'" aria-label="Favorito">'+IC.heart+'</button>'
+    + '</div>'
+    + '<div class="cuerpo-c">'
+    + '<h3>'+d.nombre+'</h3>'
+    + '<div class="stars">'+estrellas(d.rating)+'</div>'
+    + '<p class="desc">'+d.desc+'</p>'
+    + '<div class="row-mini">'+IC.pin+'<span>'+d.direccion+'</span></div>'
+    + '<div class="acciones-c">'
+    + '<button class="btn-cta" data-ver="'+d.id+'">'+IC.reloj+' Ver detalles</button>'
+    + '<a class="btn-ico wa" href="https://wa.me/57'+d.tel+'" target="_blank" rel="noopener" aria-label="WhatsApp">'+IC.wa+'</a>'
+    + '<a class="btn-ico tel" href="tel:'+d.tel+'" aria-label="Llamar">'+IC.tel+'</a>'
+    + '</div></div></div>';
+}
+
+/* ===== RENDER PRINCIPAL ===== */
+function render(){
+  const v = vistaActual();
+  const cuerpo = $('#cuerpo');
+  cuerpo.className = 'cuerpo' + (v.cat==='emergencias' ? ' tinta-sos' : '');
+
+  if(v.tipo==='lista'){
+    let items = [...database];
+    if(v.cat && v.cat!=='todas' && v.cat!=='favoritos') items=items.filter(d=>d.cat===v.cat);
+    if(v.cat==='favoritos') items=items.filter(d=>estado.favoritos.includes(d.id));
+    if(estado.q) items=items.filter(d=>(d.nombre+' '+d.desc+' '+d.direccion).toLowerCase().includes(estado.q.toLowerCase()));
+
+    if(v.cat==='emergencias'){
+      const avisoHtml = '<div class="sos-aviso">'+IC.sos+'<span>Llama directamente al número indicado · estas son las líneas de emergencia de Fusagasugá y del país.</span></div>';
+      const sosHtml = emergencias.map(e=>'<div class="sos-card">'
+        + '<div class="ico">'+e.emoji+'</div>'
+        + '<div class="info"><b>'+e.nombre+'</b><span>'+e.detalle+'</span></div>'
+        + '<a class="call" href="tel:'+e.tel+'">'+IC.tel+' '+e.tel+'</a>'
+        + '</div>').join('');
+      cuerpo.innerHTML = '<div class="vista">'+avisoHtml+sosHtml+'</div>'+footerHTML();
+      enlazarFooter(); renderBottomNav(); return;
+    }
+
+    const cat = CAT[v.cat];
+    const titulo = v.cat==='favoritos' ? 'Mis Favoritos' : (v.cat==='todas' ? 'Todo Fusa Conecta' : (cat?cat.label:'Resultados'));
+    let html;
+    if(items.length===0){
+      html = '<div class="vacio"><div class="em">🌿</div><b>Sin resultados</b><p>'+(v.cat==='favoritos'?'Aún no tienes favoritos guardados.':'Pronto habrá más aquí.')+'</p></div>';
+    } else {
+      html = '<div class="head-v"><h2>'+titulo+'</h2><span class="conteo">'+items.length+' lugares</span></div>'
+        + '<div class="grid">'+items.map(cardHTML).join('')+'</div>';
+    }
+    cuerpo.innerHTML = '<div class="vista">'+html+'</div>'+footerHTML();
+    $$('#cuerpo .card [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(+b.dataset.ver));
+    $$('#cuerpo .fav-btn').forEach(b=>b.onclick=e=>{
+      e.stopPropagation();
+      if(!logueado()){ abrir('ovLogin'); return; }
+      const id=+b.dataset.fav;
+      const idx=estado.favoritos.indexOf(id);
+      if(idx===-1) estado.favoritos.push(id); else estado.favoritos.splice(idx,1);
+      b.classList.toggle('on',estado.favoritos.includes(id));
+      b.classList.add('pop'); setTimeout(()=>b.classList.remove('pop'),400);
+      toast(estado.favoritos.includes(id)?'Agregado a favoritos ❤️':'Quitado de favoritos');
+    });
+    enlazarFooter();
+  }
+  renderHeader();
+  renderFab();
+  renderBottomNav();
+}
+
+/* ===== ABRIR DETALLE ===== */
+function abrirDetalle(id){
+  const d = database.find(x=>x.id===id);
+  if(!d) return;
+  const cat = CAT[d.cat] || { label:'Otro', bg:'#888', fg:'#fff', emoji:'📌' };
+  const esFav = estado.favoritos.includes(d.id);
+  const heroContent = d.imagen
+    ? '<img src="'+d.imagen+'" alt="'+d.nombre+'">'
+    : '<span style="font-size:80px">'+d.emoji+'</span>';
+  const heroStyle = d.imagen ? '' : 'style="background:'+cat.hero+'"';
+
+  const esPropietario = logueado() && d.propietario && d.propietario===estado.usuario.nombre;
+  const btnEditar = esPropietario
+    ? '<button id="btnEditar" style="width:100%;background:var(--teal);color:#fff;border-radius:14px;padding:13px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px">'+IC.edit+' Editar mi comercio</button>'
+    : '';
+
+  const html = '<div class="grab"></div>'
+    + '<button class="cerrar" id="cerrarDet" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    + '<div class="det-hero" '+heroStyle+'>'+heroContent
+    + '<span class="badge" style="background:'+cat.bg+';color:'+cat.fg+'">'+cat.label+'</span>'
+    + '<button class="det-fav'+(esFav?' on':'')+'" id="detFav">'+IC.heart+'</button>'
+    + '</div>'
+    + '<div class="det-body">'
+    + '<h2>'+d.nombre+'</h2>'
+    + '<div class="stars">'+estrellas(d.rating)+'</div>'
+    + '<p class="desc">'+d.desc+'</p>'
+    + '<div class="det-row">'+IC.pin+'<span><b>Dirección:</b> '+d.direccion+'</span></div>'
+    + '<div class="det-row">'+IC.reloj+'<span><b>Horario:</b> '+d.horario+'</span></div>'
+    + '<div class="det-row">'+IC.tel+'<span><b>Contacto:</b> '+d.tel+'</span></div>'
+    + '<div class="det-acciones">'
+    + '<a class="a-wa" href="https://wa.me/57'+d.tel+'" target="_blank" rel="noopener">'+IC.wa+' WhatsApp</a>'
+    + '<a class="a-call" href="tel:'+d.tel+'">'+IC.tel+' Llamar</a>'
+    + '</div>'
+    + '<div class="mapa-label">'+IC.map+' Ubicación en el mapa</div>'
+    + '<div class="mapa-wrap"><iframe src="'+d.mapa+'" allowfullscreen loading="lazy" title="Mapa"></iframe></div>'
+    + '<a class="btn-llegar" href="https://www.google.com/maps/search/'+encodeURIComponent(d.direccion+' Fusagasuga')+'" target="_blank" rel="noopener">'+IC.map+' Cómo llegar</a>'
+    + btnEditar
+    + '</div>';
+
+  const sheet = $('#sheetDetalle');
+  sheet.innerHTML = html;
+  abrir('ovDetalle');
+
+  $('#cerrarDet').onclick = ()=>cerrar('ovDetalle');
+  $('#detFav').onclick = ()=>{
+    if(!logueado()){ abrir('ovLogin'); return; }
+    const idx=estado.favoritos.indexOf(d.id);
+    if(idx===-1) estado.favoritos.push(d.id); else estado.favoritos.splice(idx,1);
+    const fav=estado.favoritos.includes(d.id);
+    $('#detFav').classList.toggle('on',fav);
+    toast(fav?'Agregado a favoritos ❤️':'Quitado de favoritos');
+  };
+
+  if(esPropietario){
+    $('#btnEditar').onclick = ()=>{
+      editandoId = d.id;
+      $('#fNombre').value = d.nombre;
+      $('#fCat').value   = d.cat;
+      $('#fDesc').value  = d.desc;
+      $('#fDir').value   = d.direccion;
+      $('#fTel').value   = d.tel;
+      $('#fFoto').value  = '';
+      $('#formIntro h2').textContent = 'Editar mi comercio';
+      $('#formIntro p').textContent  = 'Actualiza la información de tu negocio.';
+      $('#bPublicar').childNodes[1].textContent = ' Guardar cambios';
+      cerrar('ovDetalle');
+      abrir('ovForm');
+    };
+  }
+}
+
+/* ===== FOOTER HTML ===== */
+function footerHTML(){
+  return '<footer class="footer">'
+    + '<img src="logo.png" alt="Fusa Conecta" class="f-logo">'
+    + '<p>El directorio digital de Fusagasugá, la Ciudad Jardín del Sumapaz.</p>'
+    + '<div class="f-links">'
+    + '<button id="fApoyo">💚 Apoyar el proyecto</button>'
+    + '<button id="fLegal">📋 Aviso legal</button>'
+    + '</div>'
+    + '<p class="f-copy">© 2025 Fusa Conecta<br>Hecho con <span style="color:#A6C1A2;font-size:15px">♥</span> amor en Fusagasugá</p>'
+    + '</footer>';
+}
+function enlazarFooter(){
+  const fApoyo=$('#fApoyo');if(fApoyo)  fApoyo.onclick  = ()=>abrir('ovApoyo');
+  const fLegal=$('#fLegal');if(fLegal)  fLegal.onclick  = ()=>abrir('ovLegal');
+}
+
+/* ===== CERRAR OVERLAYS CON BACKDROP ===== */
+$$('.overlay').forEach(ov=>{
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('abierto'); });
+});
+$$('[data-cerrar]').forEach(b=>{
+  b.onclick=()=>cerrar(b.dataset.cerrar);
+});
+
+/* ===== SPLASH → OCULTAR ===== */
+function ocultarSplash(){ $('#splash').classList.add('oculto'); }
+
+$('#sInvitado').onclick  = ()=>{ ocultarSplash(); toast('Explorando Fusa Conecta 🌿'); };
+$('#sUsuario').onclick   = ()=>{ ocultarSplash(); abrir('ovLogin'); };
+$('#sProductor').onclick = ()=>{ estado.pendienteProductor=true; ocultarSplash(); abrir('ovLogin'); };
+$('#sGoogle').onclick   = ()=>{ ocultarSplash(); abrir('ovGoogle'); };
+$('#sApoyo').onclick    = ()=>{ ocultarSplash(); abrir('ovApoyo'); };
+
+/* ===== INICIAR SESIÓN SIMULADA ===== */
+function iniciarSesion(nombre, email){
+  estado.usuario = { nombre: nombre.trim(), email: email };
+  ocultarSplash();
+  cerrar('ovLogin'); cerrar('ovGoogle');
+  renderHeader(); renderFab();
+  toast('Bienvenida/o, '+nombre.trim()+' 🌸');
+  if(estado.pendienteProductor){
+    estado.pendienteProductor = false;
+    setTimeout(()=>{ editandoId=null; resetForm(); abrir('ovForm'); }, 500);
+  }
+}
+
+/* ===== LOGIN: GOOGLE ===== */
+$('#lGoogle').onclick = ()=>{ cerrar('ovLogin'); abrir('ovGoogle'); };
+
+$('#gPreset').onclick = ()=>{
+  iniciarSesion('Demo Fusagasugá', 'fusaconecta.demo@gmail.com');
+};
+$('#gContinuar').onclick = ()=>{
+  const n = $('#gNombre').value.trim() || 'Demo Fusagasugá';
+  iniciarSesion(n, n.toLowerCase().replace(/\s/g,'.')+'@gmail.com');
+};
+
+/* ===== LOGIN: FACEBOOK ===== */
+$('#lFacebook').onclick = ()=>{
+  iniciarSesion('Fusa User', 'usuario@facebook.com');
+};
+
+/* ===== LOGIN: CORREO ===== */
+$('#lMail').onclick = ()=>{
+  const m = $('#mail').value.trim();
+  if(!m || !m.includes('@')){ toast('Ingresa un correo válido'); return; }
+  iniciarSesion(m.split('@')[0], m);
+};
+$('#mail').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#lMail').click(); });
+
+/* ===== VERIFICACIÓN EDAD ===== */
+$('#edadSi').onclick = ()=>{
+  estado.mayorEdad = true; cerrar('ovEdad');
+  navegar({ tipo:'lista', cat:'bares' });
+};
+$('#edadNo').onclick = ()=>{
+  cerrar('ovEdad');
+  toast('Solo para mayores de 18 años. Consumo responsable.');
+};
+
+/* ===== FORMULARIO: PUBLICAR / EDITAR ===== */
+function resetForm(){
+  $('#fNombre').value=''; $('#fCat').value=''; $('#fDesc').value='';
+  $('#fDir').value='';    $('#fTel').value='';  $('#fFoto').value='';
+  $('#formIntro h2').textContent = 'Suma tu comercio';
+  $('#formIntro p').textContent  = 'Publica tu negocio, finca, ruta o servicio en Fusa Conecta.';
+  $('#bPublicar').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg> Publicar';
+}
+
+$('#bPublicar').onclick = ()=>{
+  if(!logueado()){ cerrar('ovForm'); abrir('ovLogin'); return; }
+  const nombre  = $('#fNombre').value.trim();
+  const cat     = $('#fCat').value;
+  if(!nombre){ toast('Escribe el nombre del negocio'); return; }
+  if(!cat){    toast('Selecciona una categoría'); return; }
+  const file = $('#fFoto').files[0];
+
+  const guardar = (img)=>{
+    if(editandoId !== null){
+      const idx = database.findIndex(x=>x.id===editandoId);
+      if(idx!==-1){
+        database[idx].nombre    = nombre;
+        database[idx].cat       = cat;
+        database[idx].desc      = $('#fDesc').value.trim() || database[idx].desc;
+        database[idx].direccion = $('#fDir').value.trim()  || database[idx].direccion;
+        database[idx].tel       = $('#fTel').value.trim()  || database[idx].tel;
+        if(img) database[idx].imagen = img;
+      }
+      editandoId=null;
+      cerrar('ovForm');
+      navegar({ tipo:'lista', cat:cat });
+      toast('"'+nombre+'" actualizado ✅');
+    } else {
+      const nuevo = {
+        id:nextId++,
+        cat:cat,
+        emoji: CAT[cat]?.emoji || '🏪',
+        rating:4.5,
+        nombre:nombre,
+        desc:  $('#fDesc').value.trim() || 'Negocio local de Fusagasugá.',
+        horario:'Consultar directamente',
+        direccion:$('#fDir').value.trim() || 'Fusagasugá',
+        tel:  $('#fTel').value.trim() || '000',
+        imagen:img,
+        mapa: mapa($('#fDir').value.trim() || 'Fusagasuga'),
+        propietario:estado.usuario.nombre,
+        categoria:cat
+      };
+      database.unshift(nuevo);
+      cerrar('ovForm');
+      navegar({ tipo:'lista', cat:cat });
+      toast('"'+nombre+'" publicado 🌿');
+    }
+  };
+
+  if(file){
+    const fr=new FileReader();
+    fr.onload=ev=>guardar(ev.target.result);
+    fr.readAsDataURL(file);
+  } else {
+    guardar('');
+  }
+};
+
+/* ===== APOYO ===== */
+$$('.monto').forEach(b=>b.onclick=()=>{
+  $$('.monto').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');
+});
+$('#bEnviarApoyo').onclick=()=>{
+  const sel=$('.monto.sel');
+  if(!sel){ toast('Selecciona un monto'); return; }
+  cerrar('ovApoyo');
+  toast('¡Gracias por apoyar Fusa Conecta! 💚 Monto: '+sel.dataset.m);
+};
+
+/* ===== NAVEGACIÓN: VOLVER ===== */
+$('#bVolver').onclick = ()=>volver();
+
+/* ===== BUSCADOR ===== */
+let _debounce;
+$('#busqueda').addEventListener('input', e=>{
+  clearTimeout(_debounce);
+  _debounce=setTimeout(()=>{
+    estado.q=e.target.value;
+    const v=vistaActual();
+    if(v.tipo==='lista') render(); else navegar({ tipo:'lista', cat:'todas' });
+  },300);
+});
+
+/* ===== BOTTOM NAVIGATION ===== */
+function renderBottomNav(){
+  const v = vistaActual();
+  const cat = v.cat;
+  $$('.bn-btn').forEach(b=>{
+    const bn=b.dataset.bn;
+    const activo = (bn==='inicio'    && (cat==='todas' || !cat))
+      || (bn==='favoritos' && cat==='favoritos')
+      || (bn==='sos'       && cat==='emergencias');
+    b.classList.toggle('bn-active', activo);
+  });
+}
+
+$$('.bn-btn').forEach(b=>{
+  b.onclick=()=>{
+    const bn=b.dataset.bn;
+    if(bn==='inicio')    { inicio(); return; }
+    if(bn==='favoritos') {
+      if(!logueado()){ abrir('ovLogin'); return; }
+      navegar({ tipo:'lista', cat:'favoritos' });
+    }
+    if(bn==='sos') { navegar({ tipo:'lista', cat:'emergencias' }); }
+  };
+});
+
+/* ===== SCROLL: OCULTAR TOPBAR AL BAJAR ===== */
+(function(){
+  const topbar = document.getElementById('topbar');
+  const cuerpo  = document.getElementById('cuerpo');
+  cuerpo.addEventListener('scroll', function(){
+    topbar.classList.toggle('arriba', cuerpo.scrollTop > 70);
+  }, { passive: true });
+})();
+
+/* ===== ARRANQUE ===== */
+inicio();
+</script>
+</body>
+</html>
