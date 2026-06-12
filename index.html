@@ -489,7 +489,26 @@ body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-even
 </div>
 
 <div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
+/* ===== INICIALIZAR FIREBASE ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDUz1Mcf0m4A4L5ohsaQ8WWMeOeItrxhZk",
+  authDomain: "fusa-conecta.firebaseapp.com",
+  projectId: "fusa-conecta",
+  storageBucket: "fusa-conecta.firebasestorage.app",
+  messagingSenderId: "1045068656562",
+  appId: "1:1045068656562:web:0316f5c7b41851b7c37eab"
+};
+
+// Encendemos la conexión
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ===== PALETA POR CATEGORÍA ===== */
 const CAT={
   campo:    {label:'Vitrina del Campo',    bg:'#DAB23F',fg:'#3a3110',hero:'linear-gradient(135deg,#e8cc78,#DAB23F)',emoji:'🌿'},
   comercio: {label:'Directorio Comercial', bg:'#EA8143',fg:'#fff',   hero:'linear-gradient(135deg,#F4A079,#EA8143)',emoji:'🏪'},
