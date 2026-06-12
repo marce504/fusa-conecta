@@ -817,7 +817,7 @@ function abrirDetalle(id){
   const heroContent=d.imagen?'<img src="'+d.imagen+'" alt="'+d.nombre+'">'
     :'<span style="font-size:80px">'+d.emoji+'</span>';
   const heroStyle=d.imagen?'':'style="background:'+cat.hero+'"';
-  const esPropietario=logueado()&&d.propietario&&d.propietario===estado.usuario.nombre;
+ const esPropietario = logueado() && (d.propietario === estado.usuario.nombre || (estado.rol === 'productor' && d.propietario === 'Sistema'));
 
   // Calificaciones existentes
   const califs=(estado.calificaciones[id]||[]);
