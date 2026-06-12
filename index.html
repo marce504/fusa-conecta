@@ -220,7 +220,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-even
 .campo .ayuda{font-size:11px;color:var(--gris);margin-top:5px}
 .campo input[type=file]{padding:11px 12px;font-size:13px;color:var(--gris)}
 .campo input[type=file]::file-selector-button{margin-right:10px;border:none;background:var(--teal);color:#fff;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
-.btn-publicar{width:100%;background:var(--nectar);color:#fff;border-radius:15px;padding:15px;font-weight:700;font-size:15px;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s ease}
+.btn-publicar{width:100%;max-width:240px;margin:15px auto 6px;background:var(--nectar);color:#fff;border-radius:15px;padding:15px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s ease,transform .12s ease}
 .btn-publicar:hover{filter:brightness(1.05)}
 /* APOYO */
 .apoyo-body{padding:30px 24px 28px;text-align:center}
@@ -1008,6 +1008,33 @@ db.collection('comercios').orderBy('fechaCreacion', 'desc').onSnapshot((snapshot
   render(); 
 });
 
+/* ===== FUNCIÓN PARA COMPRIMIR IMÁGENES AUTOMÁTICAMENTE ===== */
+function comprimirImagen(file, callback) {
+  if (!file) return callback('');
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = (event) => {
+    const img = new Image();
+    img.src = event.target.result;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      // Si la foto es gigante, la reducimos a 800px de ancho máximo
+      if (width > 800) {
+        height = Math.round(height * (800 / width));
+        width = 800;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      // Exportamos en JPG comprimido al 60% de calidad (0.6)
+      callback(canvas.toDataURL('image/jpeg', 0.6));
+    };
+  };
+}
+
 /* ===== FORMULARIO: PUBLICAR / EDITAR EN FIREBASE ===== */
 $('#bPublicar').onclick = ()=>{
   if(!logueado()){ cerrar('ovForm'); abrir('ovLogin'); return; }
@@ -1016,6 +1043,13 @@ $('#bPublicar').onclick = ()=>{
   if(!nombre){ toast('Escribe el nombre del negocio'); return; }
   if(!cat){    toast('Selecciona una categoría'); return; }
   const file = $('#fFoto').files[0];
+
+  // Efecto visual: Cambiamos el botón mientras sube a la nube
+  const btn = $('#bPublicar');
+  const textoOriginal = btn.innerHTML;
+  btn.innerHTML = '⏳ Guardando...';
+  btn.style.opacity = '0.7';
+  btn.style.pointerEvents = 'none'; // Evita que hagan doble clic por accidente
 
   const guardar = (img)=>{
     const datosComercio = {
@@ -1041,24 +1075,35 @@ $('#bPublicar').onclick = ()=>{
         cerrar('ovForm');
         navegar({ tipo:'lista', cat:cat });
         toast('"'+nombre+'" actualizado en la nube ✅');
-      }).catch((error) => console.error(error));
+      }).catch((error) => {
+        console.error("Error al actualizar:", error);
+        toast('Error de conexión con Firebase');
+      }).finally(() => {
+        // Restauramos el botón a la normalidad
+        btn.innerHTML = textoOriginal;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      });
     } else {
       db.collection('comercios').add(datosComercio)
       .then(() => {
         cerrar('ovForm');
         navegar({ tipo:'lista', cat:cat });
         toast('"'+nombre+'" publicado en Firebase 🌿');
-      }).catch((error) => console.error(error));
+      }).catch((error) => {
+        console.error("Error al publicar:", error);
+        toast('Error: La imagen sigue siendo muy pesada');
+      }).finally(() => {
+        // Restauramos el botón a la normalidad
+        btn.innerHTML = textoOriginal;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      });
     }
   };
 
-  if(file){
-    const fr=new FileReader();
-    fr.onload=ev=>guardar(ev.target.result);
-    fr.readAsDataURL(file);
-  } else {
-    guardar('');
-  }
+  // Llamamos a la función mágica para achicar la foto antes de guardar
+  comprimirImagen(file, guardar);
 };
 
 /* ===== APOYO ===== */
