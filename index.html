@@ -941,17 +941,7 @@ function footerHTML(){
 }
 function enlazarFooter(){
   const fa=$('#fApoyo');if(fa) fa.onclick=()=>abrir('ovApoyo');
-  const fLegal=$('#fLegal');
-if(fLegal) fLegal.onclick = ()=> {
-    toast("Subiendo 60 comercios... espera 5 seg ⏳");
-    comerciosOriginales.forEach(item => {
-        // Creamos una copia exacta pero lista para la nube
-        const clon = { ...item, propietario: "Sistema", fechaCreacion: new Date() };
-        delete clon.id; // Borramos tu ID numérico para que Firebase le ponga uno seguro
-        db.collection('comercios').add(clon);
-    });
-    setTimeout(()=> toast("¡Los 60 comercios ya están en Firebase! 🎉 Presiona F5"), 5000);
-};
+const fLegal=$('#fLegal');if(fLegal)  fLegal.onclick  = ()=>abrir('ovLegal');
 }
 
 /* ===== CERRAR OVERLAYS ===== */
