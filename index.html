@@ -518,7 +518,7 @@ const CAT={
   tramite:  {label:'Trámites Municipales', bg:'#204F2E',fg:'#fff',   hero:'linear-gradient(135deg,#3a8f58,#204F2E)',emoji:'🏛️'}
 };
 function mapa(q){return 'https://maps.google.com/maps?q='+encodeURIComponent(q+' Fusagasuga Cundinamarca')+'&z=15&output=embed';}
-let database=[
+const comerciosOriginales = [
   {id:1, cat:'campo',    emoji:'🌿',rating:4.8,nombre:'Café Sutagao',                  desc:'Café de origen cultivado y tostado por familias campesinas del piedemonte fusagasugueño, con secado al sol y tueste artesanal. Catación los fines de semana.',horario:'Sáb y Dom · 7–2 p.m.',direccion:'Vereda Bermejal',     tel:'3101110001',imagen:'',mapa:mapa('Vereda Bermejal'),propietario:null,calificaciones:[]},
   {id:2, cat:'campo',    emoji:'🍯',rating:4.9,nombre:'Miel La Aguadita',               desc:'Miel pura de abejas, polen y propóleo del corregimiento de La Aguadita. Recorridos guiados por el apiario con cita previa.',horario:'Lun-Sáb · 8–4 p.m.',    direccion:'Cto La Aguadita',    tel:'3101110002',imagen:'',mapa:mapa('La Aguadita'),propietario:null,calificaciones:[]},
   {id:3, cat:'campo',    emoji:'🧺',rating:4.7,nombre:'Artesanías de Balay',            desc:'Cestería y artesanías tradicionales tejidas a mano en fibras naturales por artesanas locales. Piezas por encargo.',horario:'Lun-Sáb · 8–5 p.m.',    direccion:'Vereda Bosachoque',  tel:'3101110003',imagen:'',mapa:mapa('Vereda Bosachoque'),propietario:null,calificaciones:[]},
@@ -580,6 +580,7 @@ let database=[
   {id:59,cat:'tramite',  emoji:'💜',rating:4.4,nombre:'Casa de la Mujer',                       desc:'Orientación, asesoría jurídica y psicológica. Línea Púrpura 155.',horario:'Lun-Vie · 8–12 y 2–6', direccion:'Centro, Fusagasugá',     tel:'155',       imagen:'',mapa:mapa('Casa de la Mujer Fusagasuga'),propietario:null,calificaciones:[]},
   {id:60,cat:'tramite',  emoji:'🏦',rating:4.0,nombre:'Bancolombia – Sucursal Fusagasugá',      desc:'Retiros, consignaciones y asesoría financiera. Cajeros automáticos y atención en caja.',horario:'Lun-Vie · 9–4 p.m.',   direccion:'Centro, Fusagasugá',     tel:'6014040',   imagen:'',mapa:mapa('Bancolombia Fusagasuga centro'),propietario:null,calificaciones:[]}
 ];
+let database = [...comerciosOriginales];
 let nextId=61, editandoId=null;
 const emergencias=[
   {nombre:'Policía Nacional',    detalle:'Emergencia nacional', tel:'123',        emoji:'🚓'},
@@ -940,7 +941,17 @@ function footerHTML(){
 }
 function enlazarFooter(){
   const fa=$('#fApoyo');if(fa) fa.onclick=()=>abrir('ovApoyo');
-  const fl=$('#fLegal');if(fl) fl.onclick=()=>abrir('ovLegal');
+  const fLegal=$('#fLegal');
+if(fLegal) fLegal.onclick = ()=> {
+    toast("Subiendo 60 comercios... espera 5 seg ⏳");
+    comerciosOriginales.forEach(item => {
+        // Creamos una copia exacta pero lista para la nube
+        const clon = { ...item, propietario: "Sistema", fechaCreacion: new Date() };
+        delete clon.id; // Borramos tu ID numérico para que Firebase le ponga uno seguro
+        db.collection('comercios').add(clon);
+    });
+    setTimeout(()=> toast("¡Los 60 comercios ya están en Firebase! 🎉 Presiona F5"), 5000);
+};
 }
 
 /* ===== CERRAR OVERLAYS ===== */
