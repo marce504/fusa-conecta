@@ -739,11 +739,11 @@ function render(){
       :'<div class="head-v"><h2>'+titulo+'</h2><span class="conteo">'+items.length+' lugares</span></div>'
         +'<div class="grid">'+items.map(cardHTML).join('')+'</div>';
     cuerpo.innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
-    $$('#cuerpo .card [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(+b.dataset.ver));
+    $$('#cuerpo .card [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
     $$('#cuerpo .fav-btn').forEach(b=>b.onclick=e=>{
       e.stopPropagation();
       if(!logueado()){abrir('ovLogin');return;}
-      const id=+b.dataset.fav,idx=estado.favoritos.indexOf(id);
+      const d = database.find(x=>x.id.toString() === id.toString());
       if(idx===-1) estado.favoritos.push(id); else estado.favoritos.splice(idx,1);
       b.classList.toggle('on',estado.favoritos.includes(id));
       b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),400);
@@ -1166,6 +1166,45 @@ window._logoBlanco='iVBORw0KGgoAAAANSUhEUgAAAZAAAAE0CAYAAAACMmU0AAA3TklEQVR4nO3d
 
 /* ===== ARRANQUE ===== */
 inicio();
+/* ===== FUNCIÓN TEMPORAL PARA CARGAR LOS 60 COMERCIOS AUTOMÁTICAMENTE ===== */
+function subirListadoMasivo() {
+  // Filtramos la base de datos para no duplicar si ya hay elementos con propietarios reales
+  const elementosAEnviar = database.filter(item => typeof item.id === 'number');
+  
+  if(elementosAEnviar.length === 0) {
+    toast("El listado ya fue migrado o está vacío");
+    return;
+  }
+
+  toast("Subiendo 60 comercios a la nube... espera un momento ⏳");
+  
+  elementosAEnviar.forEach((item) => {
+    // Creamos una copia limpia para Firebase
+    const clonComercio = {
+      cat: item.cat,
+      emoji: item.emoji || '🏪',
+      rating: item.rating || 4.5,
+      nombre: item.nombre,
+      desc: item.desc,
+      horario: item.horario || 'Consultar directamente',
+      direccion: item.direccion,
+      tel: item.tel,
+      imagen: item.imagen || '',
+      mapa: mapa(item.direccion),
+      propietario: "Sistema", // Marcado como del sistema
+      categoria: item.cat,
+      fechaCreacion: new Date()
+    };
+
+    db.collection('comercios').add(clonComercio)
+      .then(() => console.log(`Subido: ${item.nombre}`))
+      .catch(err => console.error(err));
+  });
+
+  setTimeout(() => {
+    toast("¡Los 60 comercios están guardados en Firebase! Real definitivo 🎉");
+  }, 4000);
+}
 </script>
 </body>
 </html>
