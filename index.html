@@ -995,42 +995,70 @@ function resetForm(){
   $('#formIntro p').textContent='Publica tu negocio, finca, ruta o servicio.';
   $('#bPublicar').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg> Publicar';
 }
-$('#bPublicar').onclick=()=>{
-  if(!logueado()){cerrar('ovForm');abrir('ovLogin');return;}
-  const nombre=$('#fNombre').value.trim(),cat=$('#fCat').value;
-  if(!nombre){toast('Escribe el nombre del negocio');return;}
-  if(!cat){toast('Selecciona una categoría');return;}
-  const file=$('#fFoto').files[0];
-  const guardar=(img)=>{
-    if(editandoId!==null){
-      const idx=database.findIndex(x=>x.id===editandoId);
-      if(idx!==-1){
-        database[idx].nombre=nombre;database[idx].cat=cat;
-        database[idx].desc=$('#fDesc').value.trim()||database[idx].desc;
-        database[idx].direccion=$('#fDir').value.trim()||database[idx].direccion;
-        database[idx].tel=$('#fTel').value.trim()||database[idx].tel;
-        if(img) database[idx].imagen=img;
-      }
-      editandoId=null;cerrar('ovForm');
-      if(estado.rol==='productor'){stack.length=0;stack.push({tipo:'dashboard'});render();}
-      else render();
-      toast('"'+nombre+'" actualizado ✅');
+/* ===== ESCUCHAR BASE DE DATOS EN TIEMPO REAL (FIREBASE) ===== */
+db.collection('comercios').orderBy('fechaCreacion', 'desc').onSnapshot((snapshot) => {
+  let comerciosFirebase = [];
+  snapshot.forEach((doc) => {
+    comerciosFirebase.push({ id: doc.id, ...doc.data() });
+  });
+  
+  if(comerciosFirebase.length > 0) {
+    database = comerciosFirebase;
+  }
+  render(); 
+});
+
+/* ===== FORMULARIO: PUBLICAR / EDITAR EN FIREBASE ===== */
+$('#bPublicar').onclick = ()=>{
+  if(!logueado()){ cerrar('ovForm'); abrir('ovLogin'); return; }
+  const nombre  = $('#fNombre').value.trim();
+  const cat     = $('#fCat').value;
+  if(!nombre){ toast('Escribe el nombre del negocio'); return; }
+  if(!cat){    toast('Selecciona una categoría'); return; }
+  const file = $('#fFoto').files[0];
+
+  const guardar = (img)=>{
+    const datosComercio = {
+      cat: cat,
+      emoji: CAT[cat]?.emoji || '🏪',
+      rating: 4.5,
+      nombre: nombre,
+      desc: $('#fDesc').value.trim() || 'Negocio local de Fusagasugá.',
+      horario: 'Consultar directamente',
+      direccion: $('#fDir').value.trim() || 'Fusagasugá',
+      tel: $('#fTel').value.trim() || '000',
+      imagen: img,
+      mapa: mapa($('#fDir').value.trim() || 'Fusagasuga'),
+      propietario: estado.usuario.nombre,
+      categoria: cat,
+      fechaCreacion: new Date() 
+    };
+
+    if(editandoId !== null){
+      db.collection('comercios').doc(editandoId).update(datosComercio)
+      .then(() => {
+        editandoId = null;
+        cerrar('ovForm');
+        navegar({ tipo:'lista', cat:cat });
+        toast('"'+nombre+'" actualizado en la nube ✅');
+      }).catch((error) => console.error(error));
     } else {
-      const nuevo={id:nextId++,cat,emoji:CAT[cat]?.emoji||'🏪',rating:4.5,nombre,
-        desc:$('#fDesc').value.trim()||'Negocio local de Fusagasugá.',
-        horario:'Consultar directamente',
-        direccion:$('#fDir').value.trim()||'Fusagasugá',
-        tel:$('#fTel').value.trim()||'000',
-        imagen:img,mapa:mapa($('#fDir').value.trim()||'Fusagasuga'),
-        propietario:estado.usuario.nombre,calificaciones:[]};
-      database.unshift(nuevo);cerrar('ovForm');
-      if(estado.rol==='productor'){stack.length=0;stack.push({tipo:'dashboard'});render();}
-      else render();
-      toast('"'+nombre+'" publicado 🌿');
+      db.collection('comercios').add(datosComercio)
+      .then(() => {
+        cerrar('ovForm');
+        navegar({ tipo:'lista', cat:cat });
+        toast('"'+nombre+'" publicado en Firebase 🌿');
+      }).catch((error) => console.error(error));
     }
   };
-  if(file){const fr=new FileReader();fr.onload=ev=>guardar(ev.target.result);fr.readAsDataURL(file);}
-  else guardar('');
+
+  if(file){
+    const fr=new FileReader();
+    fr.onload=ev=>guardar(ev.target.result);
+    fr.readAsDataURL(file);
+  } else {
+    guardar('');
+  }
 };
 
 /* ===== APOYO ===== */
