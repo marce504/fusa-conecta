@@ -688,7 +688,13 @@ function irABares(){
   abrir('ovEdad');
 }
 function renderFab(){const f=$('#fab');if(f)f.classList.remove('show');}
-
+/* ===== TOGGLE FAVORITO (normaliza IDs a string) ===== */
+function toggleFavorito(rawId){
+  const id=rawId.toString();
+  const idx=estado.favoritos.indexOf(id);
+  if(idx===-1) estado.favoritos.push(id);
+  else estado.favoritos.splice(idx,1);
+}
 /* ===== CARD HTML ===== */
 function cardHTML(d){
   const cat=CAT[d.cat]||{label:'Otro',bg:'#888',fg:'#fff',emoji:'📌'};
@@ -723,7 +729,7 @@ function render(){
   if(v.tipo==='lista'){
     let items=[...database];
     if(v.cat&&v.cat!=='todas'&&v.cat!=='favoritos') items=items.filter(d=>d.cat===v.cat);
-    if(v.cat==='favoritos') items=items.filter(d=>estado.favoritos.includes(d.id));
+    if(v.cat==='favoritos') items=items.filter(d=>estado.favoritos.includes(d.id.toString()));
     if(estado.q) items=items.filter(d=>(d.nombre+' '+d.desc+' '+d.direccion).toLowerCase().includes(estado.q.toLowerCase()));
     if(v.cat==='emergencias'){
       cuerpo.className='cuerpo tinta-sos';
@@ -744,11 +750,11 @@ function render(){
     $$('#cuerpo .fav-btn').forEach(b=>b.onclick=e=>{
       e.stopPropagation();
       if(!logueado()){abrir('ovLogin');return;}
-      const d = database.find(x=>x.id.toString() === id.toString());
-      if(idx===-1) estado.favoritos.push(id); else estado.favoritos.splice(idx,1);
-      b.classList.toggle('on',estado.favoritos.includes(id));
+      toggleFavorito(b.dataset.fav);
+      const esFav=estado.favoritos.includes(b.dataset.fav.toString());
+      b.classList.toggle('on',esFav);
       b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),400);
-      toast(estado.favoritos.includes(id)?'Agregado a favoritos ❤️':'Quitado de favoritos');
+      toast(esFav?'Agregado a favoritos ❤️':'Quitado de favoritos');
     });
     enlazarFooter();
   }
@@ -759,7 +765,7 @@ function render(){
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
   const nom=estado.usuario?estado.usuario.nombre:'Productor';
-  const misCom=database.filter(d=>d.propietario&&d.propietario===nom);
+  const misCom=database.filter(d=>d.propietario && d.propietario.toString()===nom.toString());
   const cardsHTML=misCom.length===0
     ?'<div class="vacio"><div class="em">🏪</div><b>Aún no tienes comercios</b><p>Haz clic en "+ Registrar nuevo" para publicar tu primer negocio.</p></div>'
     :misCom.map(d=>{
@@ -810,14 +816,14 @@ function renderDashboard(){
 
 /* ===== DETALLE CON CALIFICACIONES ===== */
 function abrirDetalle(id){
-  const d=database.find(x=>x.id===id);
+  const d=database.find(x=>x.id.toString()===id.toString());
   if(!d) return;
   const cat=CAT[d.cat]||{label:'Otro',bg:'#888',fg:'#fff',emoji:'📌'};
-  const esFav=estado.favoritos.includes(d.id);
+  const esFav=estado.favoritos.includes(d.id.toString());
   const heroContent=d.imagen?'<img src="'+d.imagen+'" alt="'+d.nombre+'">'
     :'<span style="font-size:80px">'+d.emoji+'</span>';
   const heroStyle=d.imagen?'':'style="background:'+cat.hero+'"';
- const esPropietario = logueado() && (d.propietario === estado.usuario.nombre || (estado.rol === 'productor' && d.propietario === 'Sistema'));
+ const esPropietario = logueado() && estado.rol==='productor' && d.propietario === estado.usuario.nombre;
 
   // Calificaciones existentes
   const califs=(estado.calificaciones[id]||[]);
@@ -875,10 +881,10 @@ function abrirDetalle(id){
   $('#cerrarDet').onclick=()=>cerrar('ovDetalle');
   $('#detFav').onclick=()=>{
     if(!logueado()){abrir('ovLogin');return;}
-    const idx=estado.favoritos.indexOf(d.id);
-    if(idx===-1) estado.favoritos.push(d.id); else estado.favoritos.splice(idx,1);
-    $('#detFav').classList.toggle('on',estado.favoritos.includes(d.id));
-    toast(estado.favoritos.includes(d.id)?'Agregado ❤️':'Quitado de favoritos');
+    toggleFavorito(d.id);
+    const esFav=estado.favoritos.includes(d.id.toString());
+    $('#detFav').classList.toggle('on',esFav);
+    toast(esFav?'Agregado ❤️':'Quitado de favoritos');
   };
   if(esPropietario){
     $('#btnEditar').onclick=()=>{
