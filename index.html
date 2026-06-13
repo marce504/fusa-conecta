@@ -1210,5 +1210,12 @@ function subirListadoMasivo() {
   }, 4000);
 }
 </script>
+<script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('PWA lista y motor encendido'))
+          .catch((err) => console.log('Error PWA: ', err));
+      }
+    </script>
 </body>
 </html>
