@@ -652,7 +652,7 @@ function renderHeader(){
   const enLista = v.tipo==='lista';
   $('#descubre').style.display = enLista ? 'block' : 'none';
   if(!enLista) return;
-  $('#busqueda').value=estado.q;
+  //$('#busqueda').value=estado.q;
   const ses=$('#sesion');
   if(logueado()){
     const ini=estado.usuario.nombre.charAt(0).toUpperCase();
