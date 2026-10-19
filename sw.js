@@ -1,7 +1,7 @@
 // Service Worker de Fusa Conecta: app instalable y disponible sin conexión (RNF-02).
 // - La interfaz, los datos base y las emergencias se guardan al instalar.
 // - Las fotos, mapas y librerías se guardan la primera vez que se ven.
-const VERSION = 'fusa-v3';
+const VERSION = 'fusa-v4';
 const CACHE_APP = VERSION + '-app';
 const CACHE_RUNTIME = VERSION + '-runtime';
 const CACHE_MAPAS = VERSION + '-mapas';
@@ -63,7 +63,7 @@ self.addEventListener('fetch', (e) => {
   // Páginas y código propio: primero la red (siempre la versión publicada), sin conexión la copia guardada
   if (req.mode === 'navigate' || (propio && !url.pathname.includes('/img/'))) {
     e.respondWith(
-      fetch(req)
+      fetch(req.mode === 'navigate' ? req : new Request(req.url, { cache: 'no-cache' }))
         .then((r) => guardar(CACHE_APP, req.mode === 'navigate' ? './index.html' : req, r))
         .catch(() => caches.match(req.mode === 'navigate' ? './index.html' : req, { ignoreSearch: true }))
     );

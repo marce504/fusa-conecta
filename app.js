@@ -155,6 +155,8 @@ function parsearRangos(t){
   }
   return out;
 }
+// Licoreras y bares que atienden las 24 horas (se destacan con una etiqueta en la tarjeta y la ficha)
+function es24h(d){return d.cat==='bares'&&/24\s*h|24 horas/i.test(d.horario||'');}
 function estadoApertura(d){
   let dias,rangos;
   if(d.dias&&d.dias.length&&d.abre&&d.cierra){
@@ -306,6 +308,7 @@ function cardHTML(d){
     +heroHTML(d,'hero')
     +'<span class="badge" style="background:'+cat.bg+';color:'+cat.fg+'">'+cat.label+'</span>'
     +(premiumVigente(d)?'<span class="badge-dest">★ Destacado</span>':'')
+    +(es24h(d)?'<span class="badge-24h">🕐 Abierto 24 horas</span>':'')
     +'<button class="fav-btn'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-label="Favorito">'+IC.heart+'</button>'
     +'</div><div class="cuerpo-c">'
     +'<h3>'+esc(d.nombre)+'</h3>'
@@ -453,6 +456,7 @@ function abrirDetalle(id){
     +heroHTML(d,'det-hero')
     +'<span class="badge" style="background:'+cat.bg+';color:'+cat.fg+'">'+cat.label+'</span>'
     +(premium?'<span class="badge-dest det">★ Destacado</span>':'')
+    +(es24h(d)?'<span class="badge-24h det">🕐 Abierto 24 horas</span>':'')
     +'<button class="det-fav'+(esFav?' on':'')+'" id="detFav" aria-label="Favorito">'+IC.heart+'</button></div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
