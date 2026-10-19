@@ -700,7 +700,9 @@ function renderPerfil(){
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<button class="btn-calificar" id="pfRegistro">Crear cuenta</button><button class="btn-secundario" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn-secundario" id="pfProductor">🏪 Soy productor / comerciante</button></div>'
-      +'<div class="perfil-seccion"><button class="pf-item" id="pfLegal">📋 Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
+      +'<div class="perfil-seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">📲 Instalar la app en mi celular</button>':'')
+      +'<button class="pf-item" id="pfLegal">📋 Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
+    const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
     $('#pfRegistro').onclick=()=>abrirLogin('registro');$('#pfIngresar').onclick=()=>abrirLogin('ingresar');
     $('#pfProductor').onclick=()=>abrirLogin('registro',true);$('#pfLegal').onclick=()=>abrir('ovLegal');
     enlazarFooter();return;
@@ -721,6 +723,7 @@ function renderPerfil(){
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
     +'<button class="pf-item" id="pfLegal">📋 Ver aviso legal y privacidad</button>'
     +'<button class="pf-item peligro" id="pfEliminar">🗑️ Eliminar mi cuenta y mis datos</button></div>'
+    +(puedeInstalar()?'<button class="btn-dash-nuevo" id="pfInstalar">📲 Instalar la app en mi celular</button>':'')
     +'<button class="btn-secundario" id="pfSalir">Cerrar sesión</button>'
     +'</div>'+footerHTML();
   const r=$('#pfReenviar');if(r)r.onclick=()=>auth.currentUser.sendEmailVerification().then(()=>toast('Te enviamos el correo de verificación 📧')).catch(()=>toast('Intenta de nuevo en unos minutos'));
@@ -739,6 +742,7 @@ function renderPerfil(){
     toast(on?'Recibirás promociones 🔔':'Notificaciones desactivadas');
   };
   $('#pfLegal').onclick=()=>abrir('ovLegal');
+  const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
   $('#pfEliminar').onclick=eliminarCuenta;
   $('#pfSalir').onclick=cerrarSesion;
   enlazarFooter();
@@ -1234,11 +1238,54 @@ actualizarConexion();
 /* ===== PWA: trabajo sin conexión ===== */
 if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 
+/* ===== INSTALAR COMO APP DEL CELULAR (PWA) ===== */
+let avisoInstalar=null;
+const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function appInstalada(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}
+function puedeInstalar(){return !appInstalada()&&(!!avisoInstalar||esIOS||/android/i.test(navigator.userAgent));}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();avisoInstalar=e;mostrarBannerInstalar();if(vistaActual().tipo==='perfil')render(true);});
+window.addEventListener('appinstalled',()=>{avisoInstalar=null;ocultarBannerInstalar();toast('¡Fusa Conecta quedó instalada en tu celular! 📲');});
+async function instalarApp(){
+  ocultarBannerInstalar();
+  if(avisoInstalar){
+    avisoInstalar.prompt();
+    const r=await avisoInstalar.userChoice.catch(()=>null);
+    avisoInstalar=null;
+    if(r&&r.outcome==='accepted')return;
+    return;
+  }
+  const pasos=esIOS
+    ?'<li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> <span class="ico-paso">⬆️</span> en la barra inferior.</li><li>Elige <b>«Agregar a inicio»</b> y luego <b>«Agregar»</b>.</li>'
+    :'<li>Abre esta página en <b>Google Chrome</b>.</li><li>Toca el menú <b>⋮</b> (arriba a la derecha).</li><li>Elige <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla principal»</b> y confirma con <b>«Instalar»</b>.</li>';
+  abrirHoja('<div class="instalar-ver"><img src="img/icons/icon-192.png" alt="Fusa Conecta" class="inst-ic"><h2>Instala Fusa Conecta</h2>'
+    +'<p>Quedará en tu pantalla de inicio con su propio ícono y se abrirá como una app, sin la barra del navegador.</p>'
+    +'<ol class="inst-pasos">'+pasos+'</ol><p class="cv-nota">Funciona sin internet para emergencias, favoritos y cupones guardados.</p></div>');
+}
+function mostrarBannerInstalar(){
+  if(appInstalada()||!puedeInstalar())return;
+  if(Date.now()-ls.get('fc_instalar_cerrado',0)<3*86400000)return;
+  if(!$('#splash').classList.contains('oculto'))return;
+  let b=$('#bannerInstalar');
+  if(!b){
+    b=document.createElement('div');b.id='bannerInstalar';b.className='banner-instalar';
+    b.innerHTML='<img src="img/icons/icon-192.png" alt=""><div><b>Instala Fusa Conecta</b><span>Úsala como app, sin navegador</span></div><button class="bi-si">Instalar</button><button class="bi-no" aria-label="Cerrar">✕</button>';
+    $('#shell').appendChild(b);
+    b.querySelector('.bi-si').onclick=instalarApp;
+    b.querySelector('.bi-no').onclick=()=>{ls.set('fc_instalar_cerrado',Date.now());ocultarBannerInstalar();};
+  }
+  requestAnimationFrame(()=>b.classList.add('ver'));
+}
+function ocultarBannerInstalar(){const b=$('#bannerInstalar');if(b)b.classList.remove('ver');}
+new MutationObserver(()=>{if($('#splash').classList.contains('oculto'))setTimeout(mostrarBannerInstalar,3800);})
+  .observe($('#splash'),{attributes:true,attributeFilter:['class']});
+
 /* ===== ARRANQUE ===== */
 try{history.replaceState({n:0},'');}catch(e){}
 inicio();
 if(navigator.geolocation&&navigator.permissions){
   navigator.permissions.query({name:'geolocation'}).then(p=>{if(p.state==='granted')pedirUbicacion().then(()=>render(true));}).catch(()=>{});
 }
+// Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa
+(function(){const ir=new URLSearchParams(location.search).get('ir');if(ir==='sos'||ir==='mapa'){ocultarSplash();navegar({tipo:ir});}})();
 // Enlace compartido: #c/<id> abre la ficha del lugar
 if(/^#c\//.test(location.hash)){const id=decodeURIComponent(location.hash.slice(3));ocultarSplash();setTimeout(()=>abrirDetalle(id),300);}

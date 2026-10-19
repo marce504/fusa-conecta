@@ -169,4 +169,26 @@ button:disabled{opacity:.6;pointer-events:none}
 .promo-banner span{font-size:12px;color:#54604f}
 .toast{white-space:normal;text-align:center}
 .sin-anim .card{animation:none}
+/* INSTALAR APP */
+.banner-instalar{position:absolute;left:10px;right:10px;bottom:74px;z-index:45;display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:10px 10px 10px 12px;box-shadow:0 12px 30px rgba(0,0,0,.25);border:1.5px solid var(--sage);transform:translateY(160%);opacity:0;transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+.banner-instalar.ver{transform:translateY(0);opacity:1}
+.banner-instalar img{width:42px;height:42px;border-radius:11px;flex-shrink:0}
+.banner-instalar div{flex:1;min-width:0}
+.banner-instalar b{display:block;font-size:13.5px;color:var(--jungle)}
+.banner-instalar span{font-size:11.5px;color:var(--gris)}
+.banner-instalar .bi-si{background:var(--teal);color:#fff;font-weight:700;font-size:13px;border-radius:12px;padding:10px 14px;min-height:44px}
+.banner-instalar .bi-no{color:var(--gris);font-size:16px;width:36px;height:44px}
+.instalar-ver{padding:30px 24px 28px;text-align:center}
+.instalar-ver .inst-ic{width:76px;height:76px;border-radius:20px;margin:0 auto 12px;box-shadow:var(--sombra)}
+.instalar-ver h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.instalar-ver p{font-size:13.5px;color:#54604f}
+.inst-pasos{text-align:left;margin:18px 0 6px;padding-left:22px;display:flex;flex-direction:column;gap:10px;font-size:14px;color:var(--jungle)}
+.inst-pasos .ico-paso{display:inline-block;background:#eef4ed;border-radius:6px;padding:0 5px}
+/* En modo app instalada: pantalla completa del celular, respetando la muesca */
+@media (display-mode: standalone){
+  body{background:var(--crema)} body::before{display:none}
+  .shell{width:100%;height:100vh;height:100dvh;margin:0;border-radius:0;box-shadow:none}
+  .topbar{padding-top:env(safe-area-inset-top)}
+  .bottom-nav{padding-bottom:env(safe-area-inset-bottom);height:calc(64px + env(safe-area-inset-bottom))}
+}
 .det-fav{top:60px}
