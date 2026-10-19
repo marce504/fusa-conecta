@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// Reglas de seguridad de Fusa Conecta (Documento Técnico v2, cap. 4.8).
+// - El directorio es de lectura pública (RF-03: modo invitado).
+// - Solo usuarios autenticados con cuenta real (no anónima) escriben.
+// - Cada comerciante solo modifica sus propios comercios, cupones y promociones.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+    function cuentaReal() {
+      return autenticado() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function esAdmin() {
+      return cuentaReal()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    }
+    function duenoDe(comercioId) {
+      return cuentaReal()
+        && get(/databases/$(database)/documents/comercios/$(comercioId)).data.propietario_uid == request.auth.uid;
+    }
+
+    // Identidad y consentimiento Ley 1581 (RF-02, RNF-05). Nunca guarda contraseñas.
+    match /usuarios/{uid} {
+      allow read: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
+      allow create: if cuentaReal() && request.auth.uid == uid
+        && request.resource.data.consentimiento_ley1581 == true
+        && request.resource.data.rol in ['usuario', 'comerciante'];
+      allow update: if cuentaReal() && request.auth.uid == uid
+        && request.resource.data.fecha_consentimiento == resource.data.fecha_consentimiento
+        && request.resource.data.consentimiento_ley1581 == true
+        && (request.resource.data.rol == resource.data.rol
+            || (resource.data.rol == 'usuario' && request.resource.data.rol == 'comerciante'));
+      allow delete: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
+    }
+
+    // Directorio comercial: fuente de verdad (RF-08, RF-19 a RF-21).
+    match /comercios/{id} {
+      allow read: if true;
+      allow create: if cuentaReal()
+        && request.resource.data.propietario_uid == request.auth.uid
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0;
+      allow update: if esAdmin()
+        || (cuentaReal() && resource.data.propietario_uid == request.auth.uid
+            && request.resource.data.propietario_uid == request.auth.uid);
+      allow delete: if esAdmin()
+        || (cuentaReal() && resource.data.propietario_uid == request.auth.uid);
+    }
+
+    // Calificaciones: una por usuario y comercio, el id es "<comercio>_<uid>" (RF-12).
+    match /calificaciones/{id} {
+      allow read: if true;
+      allow create, update: if cuentaReal()
+        && id == request.resource.data.comercio_id + '_' + request.auth.uid
+        && request.resource.data.usuario_uid == request.auth.uid
+        && request.resource.data.estrellas is int
+        && request.resource.data.estrellas >= 1
+        && request.resource.data.estrellas <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 500;
+      allow delete: if esAdmin()
+        || (cuentaReal() && resource.data.usuario_uid == request.auth.uid);
+    }
+
+    // Cupones publicados por el comerciante Premium (RF-11, CU-16).
+    match /cupones/{id} {
+      allow read: if true;
+      allow create: if duenoDe(request.resource.data.comercio_id)
+        && request.resource.data.cupo_restante >= 0;
+      allow update: if duenoDe(resource.data.comercio_id)
+        && request.resource.data.comercio_id == resource.data.comercio_id
+        && request.resource.data.cupo_restante >= 0;
+      allow delete: if esAdmin() || duenoDe(resource.data.comercio_id);
+    }
+
+    // Cupones generados por un usuario. El id "<cupon>_<uid>_<AAAAMMDD>" limita a 1 por día (RF-11).
+    match /canjes/{id} {
+      allow read: if cuentaReal()
+        && (resource.data.usuario_uid == request.auth.uid
+            || resource.data.propietario_uid == request.auth.uid);
+      allow create: if cuentaReal()
+        && request.resource.data.usuario_uid == request.auth.uid
+        && request.resource.data.estado == 'activo'
+        && id.matches(request.resource.data.cupon_id + '_' + request.auth.uid + '_[0-9]{8}');
+      // Solo el comerciante dueño valida el canje, y solo una vez (activo -> usado).
+      allow update: if cuentaReal()
+        && resource.data.propietario_uid == request.auth.uid
+        && resource.data.estado == 'activo'
+        && request.resource.data.estado == 'usado'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'fecha_canje']);
+    }
+
+    // Promociones de comercios Premium (RF-18).
+    match /notificaciones/{id} {
+      allow read: if true;
+      allow create: if duenoDe(request.resource.data.comercio_id)
+        && request.resource.data.titulo is string
+        && request.resource.data.mensaje is string
+        && request.resource.data.mensaje.size() <= 280;
+      allow delete: if esAdmin() || duenoDe(resource.data.comercio_id);
+    }
+
+    // Moderación de contenido (CU-18).
+    match /{document=**} {
+      allow read, write: if esAdmin();
+    }
+  }
+}
