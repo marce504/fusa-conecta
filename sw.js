@@ -1,7 +1,7 @@
 // Service Worker de Fusa Conecta: app instalable y disponible sin conexión (RNF-02).
 // - La interfaz, los datos base y las emergencias se guardan al instalar.
 // - Las fotos, mapas y librerías se guardan la primera vez que se ven.
-const VERSION = 'fusa-v5';
+const VERSION = 'fusa-v6';
 const CACHE_APP = VERSION + '-app';
 const CACHE_RUNTIME = VERSION + '-runtime';
 const CACHE_MAPAS = VERSION + '-mapas';
@@ -24,7 +24,7 @@ const APP_SHELL = [
 ];
 
 // Servicios en vivo que nunca se guardan en caché
-const SIN_CACHE = /firestore\.googleapis\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com|apis\.google\.com|accounts\.google\.com|firebaseapp\.com\/__\/|127\.0\.0\.1:(8099|9099)/;
+const SIN_CACHE = /firestore\.googleapis\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com|apis\.google\.com|accounts\.google\.com|firebaseapp\.com\/__\/|\/__\/(auth|firebase)\/|127\.0\.0\.1:(8099|9099)/;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

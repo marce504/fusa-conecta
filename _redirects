@@ -1,0 +1,3 @@
+# Ingreso con Google desde el mismo dominio de la app (Firebase Auth, opción de proxy).
+# Evita que Chrome bloquee el retorno de la ventana de Google por el aislamiento de almacenamiento.
+/__/auth/*  https://fusa-conecta.firebaseapp.com/__/auth/:splat  200!

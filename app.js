@@ -11,7 +11,9 @@
 /* ===== FIREBASE (Singleton) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDUz1Mcf0m4A4L5ohsaQ8WWMeOeItrxhZk",
-  authDomain: "fusa-conecta.firebaseapp.com",
+  // En el sitio publicado el ingreso con Google vuelve al mismo dominio de la app
+  // (Netlify reenvía /__/auth/* a Firebase); así Chrome no bloquea el regreso de la sesión.
+  authDomain: location.hostname==='fusa-conecta.netlify.app'?'fusa-conecta.netlify.app':'fusa-conecta.firebaseapp.com',
   projectId: "fusa-conecta",
   storageBucket: "fusa-conecta.firebasestorage.app",
   messagingSenderId: "1045068656562",
@@ -1001,8 +1003,19 @@ async function ingresarGoogle(){
   const provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});
   registroPendiente={consent:modoLogin==='registro'&&$('#lConsent').checked,rol:$('#lComerciante').checked?'comerciante':'usuario'};
   bloquearLogin(true);
+  // En celulares y en la app instalada la ventana emergente de Google no puede devolver
+  // la sesión: se usa redirección de página completa y se retoma al volver.
+  const actual=auth.currentUser;
+  if(appInstalada()||/android|iphone|ipad|ipod/i.test(navigator.userAgent)){
+    ls.set('fc_registro_pendiente',registroPendiente);
+    try{
+      if(actual&&actual.isAnonymous)await actual.linkWithRedirect(provider);
+      else await auth.signInWithRedirect(provider);
+    }catch(err){toast(mensajeAuth(err));bloquearLogin(false);}
+    return;
+  }
   try{
-    const actual=auth.currentUser;let cred;
+    let cred;
     if(actual&&actual.isAnonymous){
       try{cred=await actual.linkWithPopup(provider);}
       catch(err){if(err.code==='auth/credential-already-in-use'&&err.credential)cred=await auth.signInWithCredential(err.credential);else throw err;}
@@ -1109,7 +1122,14 @@ async function eliminarCuenta(){
     else toast('No se pudo eliminar la cuenta. Intenta de nuevo.');
   }
 }
-auth.getRedirectResult().catch(e=>{if(e&&e.code)toast(mensajeAuth(e));});
+// Regreso del ingreso con Google por redirección
+auth.getRedirectResult().catch(async e=>{
+  // La cuenta de Google ya existía: se entra con ella en lugar de vincular la sesión de invitado
+  if(e&&e.code==='auth/credential-already-in-use'&&e.credential){
+    try{await auth.signInWithCredential(e.credential);return;}catch(e2){e=e2;}
+  }
+  if(e&&e.code)toast(mensajeAuth(e));
+});
 auth.onAuthStateChanged(user=>{
   if(!user){estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
