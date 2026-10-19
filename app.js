@@ -1137,7 +1137,7 @@ function mostrarPromo(n){
 /* ===== FOOTER ===== */
 function footerHTML(){
   return '<footer class="footer">'
-    +(window._logoBlanco?'<img src="data:image/png;base64,'+window._logoBlanco+'" alt="Fusa Conecta" class="f-logo">':'')
+    +'<img src="'+LOGO_SRC+'" alt="Fusa Conecta" class="f-logo">'
     +'<p>El directorio digital de Fusagasugá, la Ciudad Jardín del Sumapaz.</p>'
     +'<div class="f-links"><button id="fApoyo">💚 Apoyar el proyecto</button><button id="fLegal">📋 Aviso legal</button></div>'
     +'<p class="f-copy">© 2026 Fusa Conecta<br>Hecho con amor en Fusagasugá <span style="color:var(--sage)">♥</span></p></footer>';
