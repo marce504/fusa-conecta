@@ -102,7 +102,7 @@ function normalizarNube(id,x){
     tel,whatsapp:x.whatsapp||(esCelular(tel)?tel:''),imagen:x.imagen||'',lat:x.lat,lng:x.lng,ubicacion_aprox:x.ubicacion_aprox!==false,
     esPremium:!!x.esPremium,suscripcion_vigente_hasta:aMs(x.suscripcion_vigente_hasta),prioridadBusqueda:+x.prioridadBusqueda||0,
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
-    tipo:x.tipo||'',nivelDificultad:x.nivelDificultad||''};
+    tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||''};
 }
 function reconstruirDirectorio(){database=[...COMERCIOS_BASE.map(c=>({...c})),...comerciosNube];}
 db.collection('comercios').onSnapshot(snap=>{
@@ -229,6 +229,16 @@ window.addEventListener('popstate',()=>{
 });
 
 /* ===== HEADER ===== */
+// Logo vectorial de la cabecera clara: copia estática del logo del splash, en verde de marca
+const LOGO_SVG=(()=>{
+  const s=$('#splash .splash-logo-svg');if(!s)return '';
+  const c=s.cloneNode(true);
+  c.querySelectorAll('style').forEach(x=>x.remove());
+  c.querySelectorAll('path,text').forEach(p=>{p.removeAttribute('class');p.setAttribute('fill','#204F2E');});
+  const t=c.querySelector('text');if(t)t.setAttribute('font-size','57.02');
+  c.setAttribute('class','sesion-logo-svg');c.setAttribute('role','img');
+  return c.outerHTML;
+})();
 function renderHeader(){
   const v=vistaActual();
   $('#bVolver').classList.toggle('invisible',stack.length<=1);
@@ -237,7 +247,7 @@ function renderHeader(){
   if(!enLista)return;
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
   const ses=$('#sesion');
-  const logo='<img src="'+LOGO_SRC+'" alt="Fusa Conecta" class="sesion-logo">';
+  const logo=LOGO_SVG||'<img src="'+LOGO_SRC+'" alt="Fusa Conecta" class="sesion-logo">';
   if(logueado()){
     const nom=estado.usuario.nombre;
     ses.innerHTML=logo+'<div class="sesion-acciones"><button class="saludo" id="bPerfilTop"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span>Veci, '+esc(nom.split(' ')[0])+'</button>'
@@ -248,21 +258,48 @@ function renderHeader(){
     ses.innerHTML=logo+'<button class="btn-mini" id="bEntrar">Entrar</button>';
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
-  const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Directorio'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
+  const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comercios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'"><span class="cat-ic">'+CAT_IC[c.k]+'</span>'+c.t+'</button>').join('');
   $$('#cats .cat').forEach(b=>b.onclick=()=>{
-    const k=b.dataset.cat;if(v.cat===k)return;
+    const k=b.dataset.cat;if(v.cat===k&&!v.sub)return;
     if(k==='bares'){irABares();return;}
     navegar({tipo:'lista',cat:k});
   });
+  const activa=$('#cats .cat.activa');
+  if(activa)activa.scrollIntoView({inline:'nearest',block:'nearest'});
+  renderSubcategorias(v);
 }
+/* ===== SEGUNDO NIVEL DE FILTROS (subcategorías) =====
+   En "Todas" y "Comercios" se muestran las de Comercios; en "Turismo" las de turismo;
+   en las demás categorías la fila desaparece. */
+function renderSubcategorias(v){
+  let fila=$('#subcats');
+  if(!fila){$('#cats').insertAdjacentHTML('afterend','<div class="subcats" id="subcats" role="tablist" aria-label="Subcategorías"></div>');fila=$('#subcats');}
+  const grupo=v.cat==='todas'?'comercio':v.cat;
+  const subs=(SUBCATS[grupo]||[]).filter(s=>database.some(d=>d.cat===grupo&&subDe(d)===s.k));
+  if(!subs.length||v.cat==='favoritos'){fila.innerHTML='';fila.classList.remove('ver');return;}
+  const enGrupo=v.cat===grupo;
+  fila.innerHTML=(enGrupo?'<button class="subcat'+(!v.sub?' activa':'')+'" data-sub="">Todos</button>':'')
+    +subs.map(s=>'<button class="subcat'+(enGrupo&&v.sub===s.k?' activa':'')+'" data-sub="'+s.k+'">'+s.t+'</button>').join('');
+  fila.classList.add('ver');
+  $$('#subcats .subcat').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.sub;
+    if(!enGrupo){navegar({tipo:'lista',cat:grupo,sub:k});return;}
+    if((v.sub||'')===k)return;
+    // Cambiar de subcategoría no llena el historial del botón Atrás
+    stack[stack.length-1]={tipo:'lista',cat:grupo,sub:k};render();
+  });
+  const act=$('#subcats .subcat.activa');if(act)act.scrollIntoView({inline:'nearest',block:'nearest'});
+}
+function subDe(d){return d.cat==='turismo'?(d.tipo||''):(d.sub||'');}
+function nombreSub(cat,k){const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^\S+\s/,''):'';}
 function irABares(){if(estado.mayorEdad){navegar({tipo:'lista',cat:'bares'});return;}abrir('ovEdad');}
 
 /* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19) ===== */
 function coincide(d,q){
   if(!q)return true;
-  const txt=norm(d.nombre+' '+d.desc+' '+d.direccion+' '+(CAT[d.cat]?CAT[d.cat].label:'')+' '+(d.tipo||''));
+  const txt=norm(d.nombre+' '+d.desc+' '+d.direccion+' '+(CAT[d.cat]?CAT[d.cat].label:'')+' '+(d.tipo||'')+' '+nombreSub(d.cat,subDe(d)));
   return norm(q).split(/\s+/).filter(Boolean).every(t=>txt.includes(t));
 }
 function prioridad(d){
@@ -278,9 +315,10 @@ function ordenar(items){
     return calificacionDe(b).prom-calificacionDe(a).prom;
   });
 }
-function itemsVisibles(cat){
+function itemsVisibles(cat,sub){
   let items=[...database];
   if(cat&&cat!=='todas'&&cat!=='favoritos')items=items.filter(d=>d.cat===cat);
+  if(sub)items=items.filter(d=>subDe(d)===sub);
   if(cat==='favoritos')items=items.filter(d=>estado.favoritos.includes(String(d.id)));
   if(cat==='todas'&&!estado.mayorEdad)items=items.filter(d=>d.cat!=='bares');
   return ordenar(items.filter(d=>coincide(d,estado.q)));
@@ -391,8 +429,9 @@ function render(conservarScroll){
   cuerpo.scrollTop=scroll;
 }
 function renderLista(v){
-  const items=itemsVisibles(v.cat);
-  const titulo=v.cat==='favoritos'?'Mis Favoritos':(v.cat==='todas'?'Todo Fusa Conecta':(CAT[v.cat]?CAT[v.cat].label:'Resultados'));
+  const items=itemsVisibles(v.cat,v.sub);
+  const titulo=v.cat==='favoritos'?'Mis Favoritos':(v.cat==='todas'?'Todo Fusa Conecta':(CAT[v.cat]?CAT[v.cat].label:'Resultados'))
+    +(v.sub?' · '+nombreSub(v.cat,v.sub):'');
   const vacio=v.cat==='favoritos'?'Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.':(estado.q?'No encontramos “'+esc(estado.q)+'”. Prueba con otra palabra.':'Pronto habrá más aquí.');
   const html=items.length===0
     ?'<div class="vacio"><div class="em">🌿</div><b>Sin resultados</b><p>'+vacio+'</p></div>'
@@ -876,6 +915,7 @@ function abrirFormComercio(d){
   editandoId=d?d.id:null;ubicacionForm=d&&d.lat?[d.lat,d.lng]:null;
   $('#fNombre').value=d?d.nombre:'';$('#fCat').value=d?d.cat:'';$('#fDesc').value=d?d.desc:'';
   $('#fDir').value=d?d.direccion:'';$('#fTel').value=d?d.tel:'';$('#fFoto').value='';
+  pintarSubForm(d?subDe(d):'');
   $('#fAbre').value=d&&d.abre?d.abre:'08:00';$('#fCierra').value=d&&d.cierra?d.cierra:'18:00';
   const dias=d&&d.dias?d.dias:[1,2,3,4,5,6];
   $$('#fDias input').forEach(i=>i.checked=dias.includes(+i.value));
@@ -889,6 +929,14 @@ function abrirFormComercio(d){
   $('#bPublicar').innerHTML=d?'Guardar cambios':'Publicar';
   abrir('ovForm');
 }
+// Subcategoría del formulario: solo para Comercios y Turismo
+function pintarSubForm(valor){
+  const subs=SUBCATS[$('#fCat').value]||[];
+  $('#fSubWrap').style.display=subs.length?'block':'none';
+  $('#fSub').innerHTML='<option value="">Selecciona el tipo</option>'+subs.map(s=>'<option value="'+s.k+'">'+s.t+'</option>').join('');
+  $('#fSub').value=subs.some(s=>s.k===valor)?valor:'';
+}
+$('#fCat').addEventListener('change',()=>pintarSubForm(''));
 function comprimirImagen(file){
   return new Promise(res=>{
     if(!file)return res('');
@@ -906,6 +954,8 @@ async function publicarComercio(){
   const nombre=$('#fNombre').value.trim(),cat=$('#fCat').value,tel=telLimpio($('#fTel').value);
   if(!nombre){toast('Escribe el nombre del negocio');return;}
   if(!cat){toast('Selecciona una categoría');return;}
+  const sub=$('#fSub').value;
+  if(SUBCATS[cat]&&!sub){toast('Selecciona el tipo de negocio');return;}
   if(tel&&!/^\d{7,10}$/.test(tel)){toast('Revisa el número de teléfono');return;}
   const dias=[...$$('#fDias input:checked')].map(i=>+i.value);
   const abre=$('#fAbre').value,cierra=$('#fCierra').value;
@@ -923,6 +973,7 @@ async function publicarComercio(){
       direccion:$('#fDir').value.trim()||'Fusagasugá',tel,whatsapp:esCelular(tel)?tel:'',dias,abre,cierra,
       horario:dias.length?dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+abre+' – '+cierra:'Consultar directamente',
       propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,municipio:'Fusagasugá',fecha_modificacion:FV.serverTimestamp()};
+    if(cat==='turismo'){datos.tipo=sub;datos.sub='';}else datos.sub=SUBCATS[cat]?sub:'';
     if(ubicacionForm){datos.lat=ubicacionForm[0];datos.lng=ubicacionForm[1];datos.ubicacion_aprox=false;}
     if(img)datos.imagen=img;
     if($('#fPremium').style.display!=='none'){datos.redesSociales=redes;datos.sitioWeb=$('#fWeb').value.trim();}

@@ -11,7 +11,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#F7F6EA",
-  "theme_color": "#204F2E",
+  "theme_color": "#FFFFFF",
   "categories": ["travel", "shopping", "lifestyle", "navigation"],
   "icons": [
     { "src": "img/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

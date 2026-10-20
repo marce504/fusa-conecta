@@ -320,9 +320,9 @@ body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-even
 @keyframes textoFade{from{opacity:0}to{opacity:1}}
 .splash-logo-svg .htx{animation:textoFade .8s ease 1.1s both!important}
 </style>
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=9">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#204F2E">
+<meta name="theme-color" content="#FFFFFF">
 <meta name="description" content="Directorio inteligente de comercios, turismo y emergencias de Fusagasugá y Pasca.">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="img/icons/favicon-32.png">
@@ -427,7 +427,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-even
     <div class="form-head"><div class="form-intro" id="formIntro"><h2>Suma tu comercio</h2><p>Publica tu negocio, finca, ruta o servicio en Fusa Conecta.</p></div></div>
     <div class="form-body">
       <div class="campo"><label>Nombre del negocio <span class="req">*</span></label><input type="text" id="fNombre" maxlength="80" placeholder="Ej: Café de la Abuela"></div>
-      <div class="campo"><label>Categoría <span class="req">*</span></label><select id="fCat"><option value="">Selecciona una categoría</option><option value="comercio">Directorio Comercial</option><option value="campo">Vitrina del Campo</option><option value="turismo">Turismo y Rutas</option><option value="hospedaje">Hospedaje</option><option value="bares">Bares y Licores</option><option value="tramite">Trámites Municipales</option></select></div>
+      <div class="campo"><label>Categoría <span class="req">*</span></label><select id="fCat"><option value="">Selecciona una categoría</option><option value="comercio">Comercios</option><option value="campo">Vitrina del Campo</option><option value="turismo">Turismo y Rutas</option><option value="hospedaje">Hospedaje</option><option value="bares">Bares y Licores</option><option value="tramite">Trámites Municipales</option></select></div>
+      <div class="campo" id="fSubWrap" style="display:none"><label>Tipo de negocio</label><select id="fSub"></select></div>
       <div class="campo"><label>Descripción</label><textarea id="fDesc" maxlength="400" placeholder="Cuenta en pocas líneas qué ofreces..."></textarea></div>
       <div class="campo"><label>Dirección</label><input type="text" id="fDir" maxlength="120" placeholder="Ej: Cra 7 # 6-32, Centro"></div>
       <div class="campo"><label>Ubicación en el mapa</label><button type="button" class="btn-ubicar" id="fUbicar">📍 Usar mi ubicación actual</button><p class="ayuda" id="fUbicTxt"></p></div>
@@ -547,7 +548,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;opacity:.5;pointer-even
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="datos.js?v=6"></script>
-<script src="app.js?v=7"></script>
+<script src="datos.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

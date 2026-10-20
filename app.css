@@ -192,3 +192,53 @@ button:disabled{opacity:.6;pointer-events:none}
   .bottom-nav{padding-bottom:env(safe-area-inset-bottom);height:calc(64px + env(safe-area-inset-bottom))}
 }
 .det-fav{top:60px}
+
+/* =====================================================================
+   CLEAN UI — cabecera, búsqueda y filtros (mobile-first)
+   Fondo claro, acento verde esmeralda solo en estados activos y botones clave.
+   ===================================================================== */
+:root{--esmeralda:#10B981;--esmeralda-d:#059669;--esmeralda-suave:#ECFDF5;--txt-fuerte:#111827;--txt:#374151;--txt-suave:#6B7280;--fondo:#F9FAFB;--borde:#E5E7EB}
+.shell,.cuerpo{background:var(--fondo)}
+/* Cabecera blanca */
+.topbar{background:#FFFFFF;color:var(--txt-fuerte);box-shadow:0 1px 0 var(--borde),0 6px 16px -10px rgba(17,24,39,.12);max-height:360px}
+.nav-row{padding:10px 16px 0}
+.nav-row:has(.nav-btn.invisible){display:none}
+.nav-btn{background:#F3F4F6;border:none;color:var(--txt);font-weight:600;min-height:40px}
+.nav-btn:hover{background:var(--borde)}
+.descubre{padding:12px 16px 12px}
+.sesion{margin-bottom:12px}
+.sesion-logo{filter:none;height:40px}
+.saludo{color:var(--txt);font-weight:600;font-size:13px}
+.saludo .av{background:var(--esmeralda-suave);color:var(--esmeralda-d);box-shadow:none;font-weight:700}
+.btn-mini{background:var(--esmeralda);color:#fff;border:none;font-weight:600;padding:9px 16px;min-height:38px;box-shadow:0 4px 10px -4px rgba(16,185,129,.6)}
+.btn-mini.salir{background:#F3F4F6;color:var(--txt);box-shadow:none}
+/* Barra de búsqueda tipo píldora */
+.buscador svg{left:16px;color:var(--txt-suave);width:18px;height:18px}
+.buscador input{border-radius:9999px;background:#FFFFFF;border:1px solid #F1F2F4;padding:13px 18px 13px 46px;font-size:14px;color:var(--txt-fuerte);box-shadow:0 4px 6px -1px rgba(0,0,0,.05);transition:border-color .15s ease,box-shadow .15s ease}
+.buscador input::placeholder{color:#9CA3AF}
+.buscador input:focus{border-color:var(--esmeralda);box-shadow:0 0 0 4px rgba(16,185,129,.12),0 4px 6px -1px rgba(0,0,0,.05)}
+.sugerencias{border-radius:18px;border:1px solid var(--borde);box-shadow:0 12px 28px -6px rgba(17,24,39,.18)}
+/* Fila principal: chips tipo píldora con scroll horizontal oculto */
+#cats.cats{padding:14px 0 2px!important;gap:8px!important;margin:0!important;scroll-padding:0 16px}
+#cats .cat{flex-direction:row!important;align-items:center!important;background:#F3F4F6!important;border:none!important;border-radius:9999px!important;padding:8px 14px 8px 11px!important;min-width:0!important;min-height:40px;gap:6px!important;font-size:13px!important;font-weight:500!important;color:var(--txt)!important;white-space:nowrap!important;box-shadow:none!important;transition:background .15s ease,color .15s ease}
+#cats .cat:hover{background:var(--borde)!important}
+#cats .cat .cat-ic{width:18px;height:18px}
+#cats .cat .cat-ic svg{width:16px;height:16px;stroke:var(--txt-suave)!important}
+#cats .cat.activa{background:var(--esmeralda)!important;color:#FFFFFF!important;font-weight:600!important;box-shadow:0 4px 10px -3px rgba(16,185,129,.55)!important}
+#cats .cat.activa .cat-ic svg{stroke:#FFFFFF!important}
+/* Segunda fila: subcategorías más pequeñas */
+.subcats{display:none;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 0 2px}
+.subcats::-webkit-scrollbar{display:none}
+.subcats.ver{display:flex;animation:fade .25s ease}
+.subcat{flex:0 0 auto;background:#FFFFFF;border:1px solid var(--borde);color:var(--txt);border-radius:9999px;padding:6px 12px;font-size:12px;font-weight:500;white-space:nowrap;min-height:34px;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.subcat:hover{border-color:#D1D5DB}
+.subcat.activa{background:var(--esmeralda);border-color:var(--esmeralda);color:#FFFFFF;font-weight:600;box-shadow:0 3px 8px -3px rgba(16,185,129,.55)}
+/* Títulos y navegación inferior con el nuevo acento */
+.head-v h2{font-weight:600;color:var(--txt-fuerte)}
+.head-v .conteo{color:var(--txt-suave)}
+.bottom-nav{background:#FFFFFF;border-top:1px solid var(--borde);box-shadow:0 -6px 16px -12px rgba(17,24,39,.15)}
+.bn-btn{color:#9CA3AF}
+.bn-btn svg{stroke:#9CA3AF}
+.bn-btn.bn-active{color:var(--esmeralda-d)}
+.bn-btn.bn-active svg{stroke:var(--esmeralda-d)}
+.sesion-logo-svg{height:44px;width:auto;flex-shrink:0;display:block}
