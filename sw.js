@@ -1,7 +1,7 @@
 // Service Worker de Fusa Conecta: app instalable y disponible sin conexión (RNF-02).
 // - La interfaz, los datos base y las emergencias se guardan al instalar.
 // - Las fotos, mapas y librerías se guardan la primera vez que se ven.
-const VERSION = 'fusa-v7';
+const VERSION = 'fusa-v8';
 const CACHE_APP = VERSION + '-app';
 const CACHE_RUNTIME = VERSION + '-runtime';
 const CACHE_MAPAS = VERSION + '-mapas';
@@ -13,6 +13,7 @@ const APP_SHELL = [
   './app.js',
   './app.css',
   './datos.js',
+  './icons.js',
   './manifest.json',
   './img/icons/icon-192.png',
   './img/icons/icon-512.png',
