@@ -198,6 +198,31 @@ service cloud.firestore {
       allow update, delete: if esAdmin();
     }
 
+    /* ---------- Opiniones de la fase de pruebas: cualquiera crea (incluso invitado), solo el admin lee ---------- */
+    function textoOpcional(d, campo, max) {
+      return !(campo in d) || (d[campo] is string && d[campo].size() <= max);
+    }
+    match /opiniones/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['puntaje', 'temas', 'comentario', 'correo', 'uid', 'rol',
+                                                             'pantalla_origen', 'version_app', 'dispositivo', 'fecha'])
+        && request.resource.data.puntaje is int
+        && request.resource.data.puntaje >= 1 && request.resource.data.puntaje <= 5
+        && request.resource.data.fecha == request.time
+        && (!('temas' in request.resource.data) || (request.resource.data.temas is list
+              && request.resource.data.temas.size() <= 7
+              && request.resource.data.temas.toSet().hasOnly(['Diseño', 'Facilidad de uso', 'Información de lugares',
+                                                               'Cupones', 'Mapa', 'Velocidad', 'Otro'])))
+        && textoOpcional(request.resource.data, 'comentario', 500)
+        && textoOpcional(request.resource.data, 'correo', 120)
+        && textoOpcional(request.resource.data, 'rol', 20)
+        && textoOpcional(request.resource.data, 'pantalla_origen', 30)
+        && textoOpcional(request.resource.data, 'version_app', 20)
+        && textoOpcional(request.resource.data, 'dispositivo', 400)
+        && (!('uid' in request.resource.data) || request.resource.data.uid == null
+            || (autenticado() && request.resource.data.uid == request.auth.uid));
+      allow read, update, delete: if esAdmin();
+    }
+
     /* ---------- Reportes de reseñas o fichas ---------- */
     match /reportes/{id} {
       allow create: if cuentaReal() && request.resource.data.uid == request.auth.uid;

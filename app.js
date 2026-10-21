@@ -45,7 +45,7 @@ const ls={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},
   del(k){try{localStorage.removeItem(k);}catch(e){}}
 };
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2500);}
+function toast(msg){const t=$('#toast'),tb=$('#topbar');t.style.top=Math.max(8,(tb?tb.getBoundingClientRect().bottom:0)+8)+'px';t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2500);}
 function abrir(id){$('#'+id).classList.add('abierto');}
 // Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
 const alCerrar={};
@@ -230,7 +230,7 @@ function estadoApertura(d){
   const cuando=prox.o===0?'Abre a las '+horaTexto(prox.ini):prox.o===1?'Abre mañana '+horaTexto(prox.ini):'Abre el '+DIAS_LARGO[prox.di]+' '+horaTexto(prox.ini);
   return {tipo:'cerr',abierto:false,texto:cuando};
 }
-function estadoHTML(ap){return ap?'<span class="estado '+ap.tipo+'"><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
+function estadoHTML(ap,id){return ap?'<span class="estado '+ap.tipo+'"'+(id!=null?' data-estado="'+esc(id)+'"':'')+'><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
 function horarioTexto(d){
   if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra);
   return d.horario||'Consultar directamente';
@@ -260,7 +260,7 @@ function iconoEmergencia(e){
   return 'shield';
 }
 function califHTML(cal){
-  return cal.total?'<span class="calif">'+icon('star',16,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' ('+cal.total+')</span>':'<span class="nuevo">Nuevo</span>';
+  return cal.total?'<span class="calif">'+icon('star',16,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' ('+cal.total+')</span>':'';
 }
 function estrellasFijas(n){return Array.from({length:5},(_,i)=>'<span class="'+(i<n?'on':'')+'">'+icon('star',14,'ic-fill')+'</span>').join('');}
 const PTO='<span class="pto" aria-hidden="true">·</span>';
@@ -310,6 +310,9 @@ function renderHeader(){
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
   pintarSaludo();
+  const conBanner=v.cat==='todas'&&!v.sub&&!estado.q;
+  $('#plegBanner').hidden=!conBanner;
+  if(conBanner)montarBanner();
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
   const ses=$('#sesion');
   if(logueado()){
@@ -455,25 +458,23 @@ function fotoHTML(d,cls){
 function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
 function cardHTML(d){
   const esFav=estado.favoritos.includes(String(d.id));
-  const ap=estadoApertura(d);const km=distanciaA(d);const cal=calificacionDe(d);
-  return '<article class="card">'
-    +fotoHTML(d,'foto')+badgeDestacado(d)
-    +'<button class="fav-btn'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'"><span>'+icon('heart')+'</span></button>'
-    +'</div><div class="card-cuerpo">'
-    +'<h3 class="card-nombre">'+esc(d.nombre)+'</h3>'
-    +'<div class="meta"><span>'+esc(etiquetaDe(d))+'</span>'+PTO+califHTML(cal)+(ap?PTO+estadoHTML(ap):'')+'</div>'
-    +'<div class="card-dir">'+icon('map-pin',16)+'<span>'+esc(d.direccion)+(km!=null?' · a '+fmtDist(km):'')+'</span></div>'
-    +'<p class="card-desc">'+esc(d.desc)+'</p>'
-    +'<div class="card-acc">'
-    +'<button class="btn btn-tonal" data-ver="'+esc(d.id)+'">Ver detalles</button>'
-    +'<button class="btn-wa" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'</button>'
-    +'<a class="btn btn-secundario btn-ico" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'</a>'
-    +'</div></div></article>';
+  const ap=estadoApertura(d),km=distanciaA(d),cal=calificacionDe(d),img=imgSegura(d.imagen);
+  return '<article class="card-c">'
+    +'<div class="cc-foto"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d))+'</span>'
+      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.remove()">':'')
+      +(premiumVigente(d)?'<span class="cc-dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'')+'</div>'
+    +'<div class="cc-tx"><h3 class="cc-nombre"><button class="cc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
+      +'<p class="cc-meta">'+esc(etiquetaDe(d))+(cal.total?PTO+califHTML(cal):'')+'</p>'
+      +(ap?'<p class="cc-estado">'+estadoHTML(ap,d.id)+'</p>':'')
+      +'<p class="cc-dir">'+icon('map-pin',14)+'<span>'+esc(d.direccion)+(km!=null?' · a '+fmtDist(km):'')+'</span></p></div>'
+    +'<div class="cc-acc"><button class="cc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',22)+'</button>'
+      +'<button class="btn-wa" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'</button></div>'
+    +'</article>';
 }
 function enlazarTarjetas(){
-  $$('#cuerpo .card [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
+  $$('#cuerpo .cc-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
   $$('#cuerpo [data-wa]').forEach(b=>b.onclick=e=>{e.stopPropagation();abrirWhatsApp(buscar(b.dataset.wa));});
-  $$('#cuerpo .fav-btn').forEach(b=>b.onclick=e=>{
+  $$('#cuerpo .cc-fav').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
     if(!toggleFavorito(b.dataset.fav))return;
     const on=estado.favoritos.includes(b.dataset.fav);
@@ -547,7 +548,9 @@ function renderLista(v){
     +(v.sub?' · '+nombreSub(v.cat,v.sub):'');
   let html;
   if(items.length){
-    html=(v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros()?seccionCuponesHTML():'')+'<div class="head-v"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
+    const enInicio=v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros();
+    html=(enInicio?seccionCuponesHTML()+seccionAbiertosHTML()+seccionPlanesHTML()+tarjetaInstalarHTML():'')
+      +'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else{
@@ -563,7 +566,114 @@ function renderLista(v){
     estado.q='';estado.filtros={abierto:false,cupon:false,municipio:'',orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
-  enlazarTarjetas();enlazarCuponesSemana();enlazarFooter();
+  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
+}
+
+/* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
+   4 diapositivas en HTML/CSS/SVG. Cambia sola cada 5 s; se pausa al tocarla o arrastrarla y
+   se reanuda a los 8 s. Se desliza con el dedo (scroll-snap) o con el mouse (pointer events).
+   Con prefers-reduced-motion no avanza sola. */
+const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
+function formaSVG(cls,x,y,t,giro){return '<svg class="forma '+cls+'" style="left:'+x+'%;top:'+y+'%;width:'+t+'px;height:'+t+'px;transform:rotate('+giro+'deg)" viewBox="0 0 100 100" aria-hidden="true"><path d="'+HOJA_SVG+'"/></svg>';}
+const FOTOS_BANNER=['img/comercios/vivero-de-orquideas-de-fusa.jpg','img/comercios/hacienda-coloma-museo-del-cafe.jpg','img/comercios/cafe-sutagao.jpg'];
+function cuponesActivosTotal(){let n=0;database.forEach(d=>n+=cuponesDe(d).length);return n;}
+function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
+function bannerHTML(){
+  const slide=(i,cls,tag,tit,sub,boton,ilu,extra)=>'<article class="slide '+cls+'" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de 4: '+esc(tit)+'">'
+    +'<div class="slide-ilu" aria-hidden="true">'+ilu+'</div>'
+    +'<span class="slide-tag">'+tag+'</span><h2 class="slide-tit">'+tit+'</h2><p class="slide-sub">'+sub+'</p>'
+    +'<div class="slide-pie">'+boton+(extra||'')+'</div></article>';
+  return '<div class="banner-pista" id="bannerPista">'
+    +slide(0,'s-bienvenida','Bienvenido','Todo Fusa, en tu bolsillo','Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
+      '<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
+      formaSVG('f-menta',44,-18,70,20)+formaSVG('f-menta2',-10,6,46,-30)
+      +'<span class="ilu-logo">'+LOGO_SVG+'</span>'
+      +FOTOS_BANNER.map((f,k)=>'<img class="ilu-foto f'+k+'" src="'+f+'" alt="" loading="lazy" onerror="this.remove()">').join(''))
+    +slide(1,'s-cupones','Ahorra en Fusa','Tu cupón te está esperando','Toma un descuento, muéstralo en caja y ahorra unos pesos.',
+      '<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
+      formaSVG('f-blanca',50,-14,64,40)
+      +'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',
+      '<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>')
+    +slide(2,'s-negocio','Para comerciantes','¿Tienes un negocio? Súmalo gratis','Llega a más vecinos y turistas de la región.',
+      '<button class="slide-btn" data-slide="negocio">Registrar mi negocio</button>',
+      formaSVG('f-menta',46,-10,62,-15)+formaSVG('f-menta3',-4,24,40,60)
+      +'<span class="ilu-circulo c-menta">'+icon('store',30)+'</span><span class="ilu-chispa">'+icon('sparkles',18)+'</span>')
+    +slide(3,'s-opinion','Estamos en pruebas','Tu opinión hace mejor esta app','Cuéntanos qué te gustó y qué cambiarías.',
+      '<button class="slide-btn" data-slide="opinion">Dar mi opinión</button>',
+      formaSVG('f-violeta',48,-12,60,10)+formaSVG('f-menta',-4,26,42,-40)
+      +'<span class="ilu-circulo c-violeta">'+icon('message-circle-heart',30)+'</span>')
+    +'</div><div class="banner-puntos" aria-hidden="true">'+[0,1,2,3].map(i=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>';
+}
+const banner={actual:0,timer:null,pausaHasta:0};
+function montarBanner(){
+  const caja=$('#banner');
+  if(!caja.firstChild){
+    caja.innerHTML=bannerHTML();
+    const pista=$('#bannerPista');
+    const pausar=()=>{banner.pausaHasta=Date.now()+8000;};
+    ['pointerdown','touchstart','wheel','focusin'].forEach(ev=>pista.addEventListener(ev,pausar,{passive:true}));
+    pista.addEventListener('scroll',()=>{
+      const i=Math.round(pista.scrollLeft/(pista.firstChild.offsetWidth+8));
+      if(i!==banner.actual){banner.actual=i;$$('.banner-puntos span').forEach((p,k)=>p.classList.toggle('on',k===i));}
+    },{passive:true});
+    // Arrastre con el mouse en computador (en el celular el dedo usa el desplazamiento nativo)
+    let arr=null;
+    pista.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;arr={x:e.clientX,s:pista.scrollLeft};pista.classList.add('arrastrando');});
+    window.addEventListener('pointermove',e=>{if(arr)pista.scrollLeft=arr.s-(e.clientX-arr.x);});
+    window.addEventListener('pointerup',()=>{if(!arr)return;arr=null;pista.classList.remove('arrastrando');irASlide(Math.round(pista.scrollLeft/(pista.firstChild.offsetWidth+8)));});
+    $$('[data-slide]',caja).forEach(b=>b.onclick=()=>accionSlide(b.dataset.slide));
+    if(!sinMovimiento())banner.timer=setInterval(avanzarBanner,5000);
+  }
+  const c=$('#bannerCupones');if(c)c.textContent=textoCuponesBanner();
+}
+function irASlide(i){
+  const pista=$('#bannerPista');if(!pista)return;
+  i=(i+4)%4;pista.scrollTo({left:i*(pista.firstChild.offsetWidth+8),behavior:sinMovimiento()?'auto':'smooth'});
+}
+function avanzarBanner(){
+  const caja=$('#banner');
+  // Solo avanza si se ve: en el inicio, sin la cabecera plegada y con la app en primer plano
+  if(Date.now()<banner.pausaHasta||document.hidden||!caja.offsetParent||$('#topbar').classList.contains('arriba')||$('.overlay.abierto'))return;
+  irASlide(banner.actual+1);
+}
+function accionSlide(k){
+  banner.pausaHasta=Date.now()+8000;
+  if(k==='explorar'){const t=$('#todoFusa');if(t)t.scrollIntoView({behavior:sinMovimiento()?'auto':'smooth',block:'start'});}
+  else if(k==='cupones'){estado.filtros.cupon=true;render();}
+  else if(k==='negocio')registrarMiNegocio();
+  else if(k==='opinion')abrirOpinion('banner');
+}
+// "Registrar mi negocio": comerciante → asistente; usuario → pasa a productor; invitado → registro de productor
+async function registrarMiNegocio(){
+  if(esComerciante()){abrirFormComercio(null);return;}
+  if(!logueado()){abrirLogin('registro',true,'Crea tu cuenta de productor para registrar tu negocio.');return;}
+  if(!await confirmar('Registrar mi negocio','Tu cuenta pasará a ser de productor y podrás publicar tus comercios.','Continuar','Cancelar','store'))return;
+  try{
+    await db.collection('usuarios').doc(estado.usuario.uid).update({rol:'comerciante'});
+    estado.perfil.rol='comerciante';ls.set('fc_perfil_'+estado.usuario.uid,estado.perfil);
+    escucharMisComercios();navegar({tipo:'dashboard'});abrirFormComercio(null);
+  }catch(e){toast('No se pudo actualizar tu cuenta. Revisa tu conexión.');}
+}
+
+/* ===== SECCIONES DEL INICIO ===== */
+function seccionAbiertosHTML(){
+  const l=itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}).slice(0,10);
+  if(!l.length)return '';
+  return '<section class="seccion-inicio" aria-labelledby="tAbiertos"><div class="head-v"><h2 id="tAbiertos">Abierto ahora</h2><button class="btn-ghost" data-ir="abierto">Ver todos</button></div>'
+    +'<div class="carrusel">'+l.map(d=>'<article class="mini-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
+      +fotoHTML(d,'mini-foto')+'</div><b>'+esc(d.nombre)+'</b><span class="mini-cat">'+esc(etiquetaDe(d))+'</span>'+estadoHTML(estadoApertura(d),d.id)+'</article>').join('')+'</div></section>';
+}
+function seccionPlanesHTML(){
+  const l=database.filter(d=>d.cat==='turismo'&&imgSegura(d.imagen)).sort((a,b)=>calificacionDe(b).prom-calificacionDe(a).prom).slice(0,8);
+  if(!l.length)return '';
+  return '<section class="seccion-inicio" aria-labelledby="tPlanes"><div class="head-v"><h2 id="tPlanes">Planes para el fin de semana</h2><button class="btn-ghost" data-ir="turismo">Ver todos</button></div>'
+    +'<div class="carrusel">'+l.map(d=>{const r=RUTAS[d.id];
+      return '<article class="plan-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
+        +'<img src="'+esc(d.imagen)+'" alt="" loading="lazy" onerror="this.remove()"><div class="plan-tx"><span class="plan-tipo">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+(r?' · '+String(r.distanciaTotal).replace('.',',')+' km':'')+'</span><b>'+esc(d.nombre)+'</b></div></article>';}).join('')+'</div></section>';
+}
+function enlazarSecciones(){
+  $$('#cuerpo .mini-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
+  $$('#cuerpo [data-ir]').forEach(b=>b.onclick=()=>{const k=b.dataset.ir;if(k==='abierto'){estado.filtros.abierto=true;render();}else navegar({tipo:'lista',cat:k});});
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -637,7 +747,7 @@ function abrirDetalle(id){
     +'</div></div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
-    +'<div class="meta">'+califHTML(cal)+(ap?PTO+estadoHTML(ap):'')+'</div>'
+    +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
     +'<div class="datos">'
@@ -1444,11 +1554,13 @@ function renderPerfil(){
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Soy productor / comerciante</button></div></div>'
+      +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
       +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
     const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
     $('#pfRegistro').onclick=()=>abrirLogin('registro');$('#pfIngresar').onclick=()=>abrirLogin('ingresar');
     $('#pfProductor').onclick=()=>abrirLogin('registro',true);$('#pfLegal').onclick=()=>abrir('ovLegal');
+    $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
@@ -1464,6 +1576,7 @@ function renderPerfil(){
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
     +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn '+(esAdmin()?'btn-secundario':'btn-primario')+' btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
+    +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
@@ -1478,12 +1591,9 @@ function renderPerfil(){
   const r=$('#pfReenviar');if(r)r.onclick=()=>auth.currentUser.sendEmailVerification().then(()=>toast('Te enviamos el correo de verificación')).catch(()=>toast('Intenta de nuevo en unos minutos'));
   const pn=$('#pfPanel');if(pn)pn.onclick=()=>navegar({tipo:'dashboard'});
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
-  const sc=$('#pfSerComerciante');if(sc)sc.onclick=async()=>{
-    if(!await confirmar('Registrar mi negocio','Tu cuenta pasará a ser de productor y podrás publicar tus comercios.','Continuar','Cancelar','store'))return;
-    try{await db.collection('usuarios').doc(u.uid).update({rol:'comerciante'});estado.perfil.rol='comerciante';ls.set('fc_perfil_'+u.uid,estado.perfil);navegar({tipo:'dashboard'});}
-    catch(e){toast('No se pudo actualizar tu cuenta. Revisa tu conexión.');}
-  };
+  const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   $('#pfBilletera').onclick=irABilletera;
+  $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfNotif').onchange=async e=>{
     const on=e.target.checked;
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
@@ -2021,7 +2131,7 @@ auth.onAuthStateChanged(user=>{
   if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user);
-  if(!user.isAnonymous&&!$('#splash').classList.contains('oculto'))setTimeout(ocultarSplash,2600);
+  if(!user.isAnonymous&&!$('#splash').classList.contains('oculto'))setTimeout(ocultarSplash,$('#splash').classList.contains('saltar')?300:3000);
 });
 
 /* ===== PROMOCIONES PUSH (RF-18) ===== */
@@ -2168,12 +2278,13 @@ async function cargarAdmin(){
   if(!esAdmin())return;
   estado.admin.cargando=true;
   try{
-    const [com,sol,rep,can,usu]=await Promise.all([
+    const [com,sol,rep,can,usu,opi]=await Promise.all([
       db.collection('comercios').get(),
       db.collection('solicitudes').where('estado','==','pendiente').get(),
       db.collection('reportes').where('estado','==','pendiente').get(),
       db.collection('canjes').where('estado','==','usado').get(),
-      db.collection('usuarios').get()]);
+      db.collection('usuarios').get(),
+      db.collection('opiniones').orderBy('fecha','desc').limit(200).get().catch(()=>({docs:[]}))]);
     const comercios=com.docs.map(x=>({...normalizarNube(x.id,x.data()),_raw:x.data()}));
     const inicioMes=new Date();inicioMes.setDate(1);inicioMes.setHours(0,0,0,0);
     estado.admin.datos={
@@ -2183,7 +2294,8 @@ async function cargarAdmin(){
       solicitudes:sol.docs.map(x=>({id:x.id,...x.data()})),
       reportes:rep.docs.map(x=>({id:x.id,...x.data()})),
       canjesMes:can.docs.filter(x=>(aMs(x.data().fecha_canje)||0)>=inicioMes.getTime()).length,
-      usuarios:usu.size};
+      usuarios:usu.size,
+      opiniones:opi.docs.map(x=>({id:x.id,...x.data()}))};
   }catch(e){console.error(e);toast('No se pudieron cargar los datos del panel');}
   estado.admin.cargando=false;
   if(vistaActual().tipo==='admin')render(true);
@@ -2201,7 +2313,7 @@ function renderAdmin(){
   const A=estado.admin,D=A.datos;
   if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
-  const tabs=[['aprobar','Por aprobar','clipboard-check',D.pendientes.length+reclamos.length],['premium','Premium','star',premium.length],['reportes','Reportes','flag',D.reportes.length],['emergencias','Emergencias','siren',0]];
+  const tabs=[['aprobar','Por aprobar','clipboard-check',D.pendientes.length+reclamos.length],['premium','Premium','star',premium.length],['reportes','Reportes','flag',D.reportes.length],['opiniones','Opiniones','message-circle-heart',0],['emergencias','Emergencias','siren',0]];
   let html='';
   if(A.tab==='aprobar'){
     html=(D.pendientes.length||reclamos.length?'':'<div class="vacio">'+icon('circle-check',48)+'<b>Todo al día</b><p>No hay comercios ni reclamos por revisar.</p></div>')
@@ -2226,6 +2338,8 @@ function renderAdmin(){
       +'<button class="btn btn-secundario btn-sm" data-editarrep="'+esc(r.id)+'">'+icon('pencil',16)+'Editar ficha</button>'
       +'<button class="btn btn-ghost" data-descartar="'+esc(r.id)+'">Descartar</button></div></div>').join('')
       :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
+  }else if(A.tab==='opiniones'){
+    html=opinionesAdminHTML(D.opiniones||[]);
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -2318,15 +2432,116 @@ async function activarPremiumAdmin(s){
   },'Premium activado por 30 días');
 }
 
+/* ===== "AYÚDANOS A MEJORAR": opiniones de la fase de pruebas =====
+   Cualquier visitante (incluso invitado) puede enviar; solo el admin las lee (firestore.rules). */
+const VERSION_APP=(()=>{const s=$('script[src*="app.js"]'),m=s&&s.getAttribute('src').match(/v=(\d+)/);return m?'v'+m[1]:'dev';})();
+const CARAS=[['angry','Muy mala'],['frown','Mala'],['meh','Regular'],['smile','Buena'],['laugh','Excelente']];
+const TEMAS_OPINION=['Diseño','Facilidad de uso','Información de lugares','Cupones','Mapa','Velocidad','Otro'];
+function abrirOpinion(origen){
+  const op={puntaje:0,temas:[]};
+  abrirHoja('<div class="hoja-pad opinion"><h2 class="hoja-tit">Ayúdanos a mejorar</h2>'
+    +'<p class="nota">Estamos en pruebas: tu opinión hace mejor esta app. Solo el equipo de Fusa Conecta la lee.</p>'
+    +'<p class="lbl mt-16" id="lCaras">¿Cómo te pareció la app?</p>'
+    +'<div class="caras" role="radiogroup" aria-labelledby="lCaras">'+CARAS.map(([ic,t],i)=>'<button type="button" class="cara c'+(i+1)+'" role="radio" aria-checked="false" data-cara="'+(i+1)+'"><span class="cara-ic">'+icon(ic,34)+'</span><span>'+t+'</span></button>').join('')+'</div>'
+    +'<p class="lbl mt-16" id="lTemas">¿Qué mejorarías? <span class="opc">(opcional, puedes elegir varias)</span></p>'
+    +'<div class="chips-motivo" role="group" aria-labelledby="lTemas">'+TEMAS_OPINION.map(t=>'<button type="button" class="chip-filtro" data-tema="'+esc(t)+'" aria-pressed="false">'+esc(t)+'</button>').join('')+'</div>'
+    +'<div class="campo mt-16"><label for="opCom">Comentario <span class="opc">(opcional)</span></label><textarea id="opCom" maxlength="500" placeholder="¿Qué te gustó? ¿Qué cambiarías?"></textarea><p class="ayuda cuenta-car" id="opCont">0 / 500</p></div>'
+    +'<div class="campo"><label for="opCorreo">¿Te podemos contactar? <span class="opc">(opcional)</span></label><input type="email" id="opCorreo" maxlength="120" placeholder="tucorreo@email.com" autocomplete="email"></div>'
+    +'<button class="btn btn-primario btn-bloque" id="opEnviar">Enviar opinión</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Ayúdanos a mejorar');
+  $$('[data-cara]').forEach(b=>b.onclick=()=>{
+    op.puntaje=+b.dataset.cara;
+    $$('[data-cara]').forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-checked',on);});
+  });
+  $$('[data-tema]').forEach(b=>b.onclick=()=>{
+    const t=b.dataset.tema,on=!op.temas.includes(t);
+    op.temas=on?[...op.temas,t]:op.temas.filter(x=>x!==t);
+    b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);
+  });
+  $('#opCom').oninput=e=>{$('#opCont').textContent=e.target.value.length+' / 500';};
+  $('#opEnviar').onclick=()=>enviarOpinion(op,origen);
+}
+async function enviarOpinion(op,origen){
+  if(!op.puntaje){toast('Elige una carita para calificar la app');$('.caras').scrollIntoView({block:'center'});return;}
+  const correo=$('#opCorreo').value.trim();
+  if(correo&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){toast('Revisa el correo o déjalo en blanco');return;}
+  const u=auth.currentUser,btn=$('#opEnviar');
+  const datos={puntaje:op.puntaje,temas:op.temas,comentario:$('#opCom').value.trim().slice(0,500),correo,
+    uid:u?u.uid:null,rol:logueado()&&estado.perfil?(estado.perfil.rol||'usuario'):(u?'invitado':'visitante'),
+    pantalla_origen:String(origen||vistaActual().tipo).slice(0,30),version_app:VERSION_APP,dispositivo:navigator.userAgent.slice(0,400),fecha:FV.serverTimestamp()};
+  btn.disabled=true;btn.textContent='Enviando…';
+  // Sin conexión, Firestore la guarda y la envía al volver la señal
+  const envio=db.collection('opiniones').add(datos);
+  try{
+    if(estado.online)await Promise.race([envio,new Promise((_,mal)=>setTimeout(()=>mal(new Error('lento')),10000))]);
+    else envio.catch(()=>{});
+    graciasOpinion();
+  }catch(e){
+    if(e.message==='lento'){graciasOpinion();return;}
+    console.error(e);btn.disabled=false;btn.textContent='Enviar opinión';toast('No se pudo enviar. Intenta de nuevo.');
+  }
+}
+function graciasOpinion(){
+  $('#sheetGen').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="cerrarGen" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="hoja-pad hoja-centro gracias"><span class="logo-gracias">'+LOGO_SVG+'</span><h2>¡Gracias por tu opinión!</h2>'
+    +'<p>'+(estado.online?'La leemos con cuidado para mejorar Fusa Conecta.':'Se enviará apenas tengas conexión.')+'</p>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="opListo">Listo</button></div>';
+  $('#cerrarGen').onclick=()=>cerrar('ovGen');$('#opListo').onclick=()=>cerrar('ovGen');
+  if(!sinMovimiento())confeti();
+}
+function opinionesAdminHTML(l){
+  if(!l.length)return '<div class="vacio">'+icon('message-circle-heart',48)+'<b>Aún no hay opiniones</b><p>Llegarán desde el banner, el pie de página y el Perfil.</p></div>';
+  const prom=l.reduce((a,o)=>a+(+o.puntaje||0),0)/l.length;
+  const temas={};l.forEach(o=>(o.temas||[]).forEach(t=>temas[t]=(temas[t]||0)+1));
+  const max=Math.max(1,...Object.values(temas));
+  return '<div class="op-resumen"><span class="op-prom">'+prom.toFixed(1).replace('.',',')+'</span><div><b>de 5 en promedio</b><span>'+l.length+(l.length===1?' opinión':' opiniones')+'</span></div>'
+    +'<span class="op-cara c'+Math.round(prom)+'">'+icon(CARAS[Math.min(4,Math.max(0,Math.round(prom)-1))][0],32)+'</span></div>'
+    +'<p class="dash-section">Qué mejorarían</p>'
+    +(Object.keys(temas).length?Object.entries(temas).sort((a,b)=>b[1]-a[1]).map(([t,n])=>'<div class="op-tema"><span>'+esc(t)+'</span><div class="barra" role="img" aria-label="'+n+' menciones"><span style="width:'+Math.round(n/max*100)+'%"></span></div><b>'+n+'</b></div>').join('')
+      :'<p class="nota-c izq">Nadie marcó temas todavía.</p>')
+    +'<p class="dash-section">Comentarios</p>'
+    +l.map(o=>'<div class="adm-card op-item"><div class="adm-head"><span class="op-cara c'+o.puntaje+'">'+icon((CARAS[o.puntaje-1]||CARAS[2])[0],24)+'</span><div class="dc-info"><h3>'+esc((CARAS[o.puntaje-1]||['',''])[1])+' · '+o.puntaje+'/5</h3>'
+      +'<p>'+fechaHora(aMs(o.fecha))+' · '+esc(o.rol||'visitante')+' · desde '+esc(o.pantalla_origen||'')+'</p></div></div>'
+      +((o.temas||[]).length?'<div class="chips-car">'+o.temas.map(t=>'<span class="chip-car">'+esc(t)+'</span>').join('')+'</div>':'')
+      +(o.comentario?'<p class="adm-desc">«'+esc(o.comentario)+'»</p>':'')
+      +(o.correo?'<p class="nota-c izq">'+icon('mail',14)+' <a href="mailto:'+esc(o.correo)+'">'+esc(o.correo)+'</a></p>':'')+'</div>').join('');
+}
+
+/* ===== INSTALAR LA APP: tarjeta dentro del inicio (nunca flotante sobre el contenido) =====
+   Aparece después de 30 s de uso o desde la segunda visita, y se puede cerrar por 3 días. */
+const INICIO_SESION=Date.now();
+(function(){try{if(!sessionStorage.getItem('fc_visita')){sessionStorage.setItem('fc_visita','1');ls.set('fc_visitas',ls.get('fc_visitas',0)+1);}}catch(e){}})();
+function mostrarInstalar(){
+  if(appInstalada()||!puedeInstalar())return false;
+  if(Date.now()-ls.get('fc_instalar_cerrado',0)<3*86400000)return false;
+  return ls.get('fc_visitas',1)>=2||Date.now()-INICIO_SESION>=30000;
+}
+function tarjetaInstalarHTML(){
+  if(!mostrarInstalar())return '';
+  return '<div class="tarjeta-instalar" id="tarjetaInstalar"><img src="img/icons/icon-192.png" alt="" width="44" height="44"><div><b>Instala Fusa Conecta</b><span>Úsala como app, sin navegador y sin conexión</span></div>'
+    +'<button class="btn btn-tonal btn-sm" id="tiSi">'+icon('download',18)+'Instalar</button><button class="btn-redondo ti-no" id="tiNo" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button></div>';
+}
+function enlazarInstalar(){
+  const si=$('#tiSi');if(!si)return;
+  si.onclick=instalarApp;
+  $('#tiNo').onclick=()=>{ls.set('fc_instalar_cerrado',Date.now());$('#tarjetaInstalar').remove();};
+}
+setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrarInstalar())render(true);},30500);
+
+/* ===== Estado abierto/cerrado: una sola función (estadoApertura), refrescada cada 60 s ===== */
+setInterval(()=>{
+  $$('[data-estado]').forEach(el=>{const d=buscar(el.dataset.estado),ap=d&&estadoApertura(d);if(ap)el.outerHTML=estadoHTML(ap,d.id);});
+},60000);
+
 /* ===== FOOTER ===== */
 function footerHTML(){
   return '<footer class="footer">'+MARCA_HTML
     +'<p>El directorio digital de Fusagasugá, la Ciudad Jardín del Sumapaz.</p>'
-    +'<div class="f-links"><button id="fApoyo">'+icon('heart',16)+'Apoyar el proyecto</button><button id="fLegal">'+icon('file-text',16)+'Aviso legal</button></div>'
+    +'<div class="f-links"><button id="fApoyo">'+icon('message-circle-heart',16)+'Ayúdanos a mejorar</button><button id="fLegal">'+icon('file-text',16)+'Aviso legal</button></div>'
     +'<p>© 2026 Fusa Conecta · Hecho en Fusagasugá</p></footer>';
 }
 function enlazarFooter(){
-  const fa=$('#fApoyo');if(fa)fa.onclick=()=>abrir('ovApoyo');
+  const fa=$('#fApoyo');if(fa)fa.onclick=()=>abrirOpinion('footer');
   const fl=$('#fLegal');if(fl)fl.onclick=()=>abrir('ovLegal');
 }
 
@@ -2358,6 +2573,18 @@ $('#loginLogo').innerHTML=LOGO_SVG;
 $$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.id!=='ovConsent'&&ov.id!=='ovConfirm')ov.classList.remove('abierto');}));
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function ocultarSplash(){$('#splash').classList.add('oculto');}
+// Animación de entrada: el nombre aparece letra por letra; solo la primera vez por sesión y un toque la salta
+(function(){
+  const sp=$('#splash'),n=$('.splash-nombre');
+  n.innerHTML=[...n.textContent].map((ch,i)=>'<span class="l" style="--i:'+i+'" aria-hidden="true">'+(ch===' '?'&nbsp;':esc(ch))+'</span>').join('');
+  let visto=false;try{visto=!!sessionStorage.getItem('fc_splash');sessionStorage.setItem('fc_splash','1');}catch(e){}
+  if(visto){sp.classList.add('saltar');ocultarSplash();return;}
+  sp.addEventListener('pointerdown',e=>{
+    if(e.target.closest('button'))return;
+    sp.classList.add('saltar');
+    if(auth.currentUser&&!auth.currentUser.isAnonymous)ocultarSplash();
+  });
+})();
 $('#sInvitado').onclick=()=>{
   ocultarSplash();render();toast('Explorando Fusa Conecta');
   if(!auth.currentUser)auth.signInAnonymously().catch(()=>{});
@@ -2372,8 +2599,6 @@ $('#lVerLegal').onclick=()=>abrir('ovLegal');
 $('#cVerLegal').onclick=()=>abrir('ovLegal');
 $('#edadSi').onclick=()=>{estado.mayorEdad=true;cerrar('ovEdad');navegar({tipo:'lista',cat:'bares'});};
 $('#edadNo').onclick=()=>{cerrar('ovEdad');toast('Solo para mayores de 18 años.');};
-$$('.monto').forEach(b=>b.onclick=()=>{$$('.monto').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-pressed','false');});b.classList.add('sel');b.setAttribute('aria-pressed','true');});
-$('#bEnviarApoyo').onclick=()=>{const sel=$('.monto.sel');if(!sel){toast('Selecciona un monto');return;}cerrar('ovApoyo');toast('¡Gracias por apoyar! Monto: $'+sel.dataset.m);};
 $('#bVolver').onclick=volver;
 $('#bFiltros').onclick=abrirFiltros;
 document.addEventListener('click',e=>{const s=e.target.closest&&e.target.closest('[data-sos]');if(!s)return;$$('.overlay.abierto').forEach(o=>cerrar(o.id));if(vistaActual().tipo!=='sos')navegar({tipo:'sos'});});
@@ -2416,10 +2641,9 @@ let avisoInstalar=null;
 const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function appInstalada(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}
 function puedeInstalar(){return !appInstalada()&&(!!avisoInstalar||esIOS||/android/i.test(navigator.userAgent));}
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();avisoInstalar=e;mostrarBannerInstalar();if(vistaActual().tipo==='perfil')render(true);});
-window.addEventListener('appinstalled',()=>{avisoInstalar=null;ocultarBannerInstalar();toast('Fusa Conecta quedó instalada en tu celular');});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();avisoInstalar=e;if(['perfil','lista'].includes(vistaActual().tipo))render(true);});
+window.addEventListener('appinstalled',()=>{avisoInstalar=null;render(true);toast('Fusa Conecta quedó instalada en tu celular');});
 async function instalarApp(){
-  ocultarBannerInstalar();
   if(avisoInstalar){
     avisoInstalar.prompt();
     await avisoInstalar.userChoice.catch(()=>null);
@@ -2433,24 +2657,6 @@ async function instalarApp(){
     +'<p>Quedará en tu pantalla de inicio con su propio ícono y se abrirá como una app, sin la barra del navegador.</p>'
     +'<ol class="inst-pasos">'+pasos+'</ol><p class="nota">Funciona sin internet para emergencias, favoritos y cupones guardados.</p></div>');
 }
-function mostrarBannerInstalar(){
-  if(appInstalada()||!puedeInstalar())return;
-  if(Date.now()-ls.get('fc_instalar_cerrado',0)<3*86400000)return;
-  if(!$('#splash').classList.contains('oculto'))return;
-  let b=$('#bannerInstalar');
-  if(!b){
-    b=document.createElement('div');b.id='bannerInstalar';b.className='banner-instalar';b.setAttribute('role','dialog');b.setAttribute('aria-label','Instalar la app');
-    b.innerHTML='<img src="img/icons/icon-192.png" alt=""><div><b>Instala Fusa Conecta</b><span>Úsala como app, sin navegador</span></div>'
-      +'<button class="btn btn-primario btn-sm bi-si">'+icon('download',18)+'Instalar</button><button class="btn-redondo bi-no" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button>';
-    $('#shell').appendChild(b);
-    b.querySelector('.bi-si').onclick=instalarApp;
-    b.querySelector('.bi-no').onclick=()=>{ls.set('fc_instalar_cerrado',Date.now());ocultarBannerInstalar();};
-  }
-  requestAnimationFrame(()=>b.classList.add('ver'));
-}
-function ocultarBannerInstalar(){const b=$('#bannerInstalar');if(b)b.classList.remove('ver');}
-new MutationObserver(()=>{if($('#splash').classList.contains('oculto'))setTimeout(mostrarBannerInstalar,3800);})
-  .observe($('#splash'),{attributes:true,attributeFilter:['class']});
 
 /* ===== ARRANQUE ===== */
 try{history.replaceState({n:0},'');}catch(e){}
