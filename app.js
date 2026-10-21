@@ -408,7 +408,7 @@ function renderSugerencias(){
   if(q.length<3){box.classList.remove('ver');box.innerHTML='';return;}
   estado.q=q;
   const res=itemsVisibles('todas','',false).slice(0,6);estado.q='';
-  box.innerHTML=res.length?res.map(d=>'<button data-sug="'+esc(d.id)+'"><span class="sg-ic">'+icon(iconoDe(d),16)+'</span><span class="sg-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(etiquetaDe(d))+(premiumVigente(d)?' · Destacado':'')+'</small></span></button>').join('')
+  box.innerHTML=res.length?res.map(d=>'<button data-sug="'+esc(d.id)+'"><span class="sg-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),16)+'</span><span class="sg-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(etiquetaDe(d))+(premiumVigente(d)?' · Destacado':'')+'</small></span></button>').join('')
     :'<p class="sg-vacio">Sin coincidencias para «'+esc(q)+'»</p>';
   box.classList.add('ver');
   $$('#sugerencias [data-sug]').forEach(b=>b.onmousedown=e=>{e.preventDefault();box.classList.remove('ver');abrirDetalle(b.dataset.sug);});
@@ -417,7 +417,7 @@ function renderSugerencias(){
 /* ===== TARJETA DE LUGAR ===== */
 function fotoHTML(d,cls){
   const img=imgSegura(d.imagen);
-  return '<div class="'+cls+'"><span class="fallback-ic">'+icon(iconoDe(d))+'</span>'
+  return '<div class="'+cls+'"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d))+'</span>'
     +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.remove()">':'');
 }
 function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
@@ -433,7 +433,7 @@ function cardHTML(d){
     +'<div class="card-dir">'+icon('map-pin',16)+'<span>'+esc(d.direccion)+(km!=null?' · a '+fmtDist(km):'')+'</span></div>'
     +'<p class="card-desc">'+esc(d.desc)+'</p>'
     +'<div class="card-acc">'
-    +'<button class="btn btn-primario" data-ver="'+esc(d.id)+'">Ver detalles</button>'
+    +'<button class="btn btn-tonal" data-ver="'+esc(d.id)+'">Ver detalles</button>'
     +'<button class="btn btn-secundario btn-ico" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',20,'ic-wa')+'</button>'
     +'<a class="btn btn-secundario btn-ico" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'</a>'
     +'</div></div></article>';
@@ -563,7 +563,7 @@ function abrirDetalle(id){
   const formCalif=logueado()
     ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella':' estrellas')+'">'+icon('star',28)+'</button>').join('')+'</div>'
       +'<div class="campo"><label for="ratingTxt">Tu opinión (opcional)</label><textarea id="ratingTxt" maxlength="500" placeholder="Cuéntanos tu experiencia...">'+esc(miCalif?miCalif.comentario:'')+'</textarea></div>'
-      +'<button class="btn btn-primario btn-bloque" id="bCalificar">'+(miCalif?'Actualizar mi calificación':'Enviar calificación')+'</button>'
+      +'<button class="btn btn-tonal btn-bloque" id="bCalificar">'+(miCalif?'Actualizar mi calificación':'Enviar calificación')+'</button>'
     :'<button class="btn btn-secundario btn-bloque" id="bLoginCalif">Inicia sesión para calificar</button>';
 
   const redes=premium?Object.entries(d.redesSociales||{}).filter(([k,u])=>u&&/^https:\/\//.test(u)).slice(0,5):[];
@@ -577,7 +577,7 @@ function abrirDetalle(id){
     ?'<div class="bloque-tickets"><p class="bloque-tit">'+icon('ticket',18)+'Cupones disponibles</p>'
       +cupones.map(c=>ticketHTML({icono:ICONO_TIPO_CUPON[c.tipo],titulo:c.descripcion,detalle:esc(detalleCupon(c))+(c.terminos?'<br>'+esc(c.terminos):''),
         accion:yaTengoCupon(c.id)?'<button class="btn btn-secundario btn-sm" data-cupon="'+esc(c.id)+'">'+icon('wallet',18)+'Ver en mi billetera</button>'
-          :'<button class="btn btn-primario btn-sm" data-cupon="'+esc(c.id)+'">Obtener cupón</button>'})).join('')
+          :'<button class="btn btn-tonal btn-sm" data-cupon="'+esc(c.id)+'">Obtener cupón</button>'})).join('')
       +'</div>':'';
   const chips=[];
   if(d.cat==='turismo'&&d.tipo)chips.push([ICONO_SUB[d.tipo]||'mountain',nombreSub('turismo',d.tipo)||d.tipo]);
@@ -675,7 +675,7 @@ async function pintarQR(el,texto,tam){
   try{
     await cargarScript('lib/qrcode.min.js');
     el.innerHTML='';
-    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--gray-900'),colorLight:cssVar('--bg'),correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--ink'),colorLight:cssVar('--bg'),correctLevel:QRCode.CorrectLevel.M});
     return true;
   }catch(e){return false;}
 }
@@ -854,7 +854,7 @@ function renderBilletera(){
           +'<p class="cb-estado">'+(est==='activo'?icon('clock',16)+venceEn(c.fecha_vencimiento)+(diasTexto(c.dias)?' · '+diasTexto(c.dias):'')
             :est==='usado'?icon('badge-check',16)+'Canjeado'+(c.fecha_canje?' el '+fechaConHora(c.fecha_canje):'')
             :icon('hourglass',16)+'Venció el '+fechaCorta(c.fecha_vencimiento))+'</p>'
-          +(est==='activo'?'<div class="cb-acc"><button class="btn btn-primario" data-mostrar="'+esc(c.id)+'">'+icon('scan-line')+'Mostrar en caja</button>'
+          +(est==='activo'?'<div class="cb-acc"><button class="btn btn-tonal" data-mostrar="'+esc(c.id)+'">'+icon('scan-line')+'Mostrar en caja</button>'
             +'<a class="btn btn-secundario" href="'+comoLlegarURL(c.comercio_id,c.comercio_nombre)+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a></div>':'')
           +'</article>';
       }).join('')+'</div>'
@@ -1212,32 +1212,33 @@ async function dibujarPoster(d,formato){
   const tamQR=formato==='carta'?760:400;
   await pintarQR(tmp,enlaceFicha(d.id),tamQR);
   const qr=tmp.querySelector('canvas');if(!qr)throw new Error('qr');
-  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,'<path fill="'+c('--primary-700')+'" '));
+  let hoja=0;
+  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,()=>'<path fill="'+c(hoja++===0?'--primary-500':'--green-500')+'" '));
   ctx.fillStyle=c('--bg');ctx.fillRect(0,0,F.w,F.h);
   const texto=(t,x,y,tam,peso,color,alin='center',max=F.w-120)=>{ctx.font=peso+' '+tam+'px '+fuente;ctx.fillStyle=color;ctx.textAlign=alin;ctx.textBaseline='top';
     const ls=lineasTexto(ctx,t,max);ls.forEach((l,i)=>ctx.fillText(l,x,y+i*tam*1.25));return y+ls.length*tam*1.25;};
   if(formato==='carta'){
-    ctx.fillStyle=c('--primary-700');ctx.fillRect(0,0,F.w,24);ctx.fillRect(0,F.h-24,F.w,24);
+    ctx.fillStyle=c('--primary-500');ctx.fillRect(0,0,F.w,24);ctx.fillRect(0,F.h-24,F.w,24);
     const lh=110,lw=lh*200/280;
     ctx.font='600 56px '+fuente;const anchoMarca=lw+20+ctx.measureText('Fusa Conecta').width;
     ctx.drawImage(logo,(F.w-anchoMarca)/2,90,lw,lh);
-    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--gray-900');ctx.fillText('Fusa Conecta',(F.w-anchoMarca)/2+lw+20,90+lh/2);
-    let y=texto(d.nombre,F.w/2,260,84,'700',c('--gray-900'));
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--ink');ctx.fillText('Fusa Conecta',(F.w-anchoMarca)/2+lw+20,90+lh/2);
+    let y=texto(d.nombre,F.w/2,260,84,'700',c('--ink'));
     const qy=y+50;
-    ctx.fillStyle=c('--surface-alt');ctx.strokeStyle=c('--gray-200');ctx.lineWidth=4;
+    ctx.fillStyle=c('--soft');ctx.strokeStyle=c('--line');ctx.lineWidth=4;
     redondeado(ctx,(F.w-tamQR)/2-40,qy-40,tamQR+80,tamQR+80,40);ctx.fill();ctx.stroke();
     ctx.drawImage(qr,(F.w-tamQR)/2,qy,tamQR,tamQR);
-    y=texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',F.w/2,qy+tamQR+90,52,'600',c('--primary-800'),'center',F.w-220);
-    texto('Escanea con la cámara de tu celular',F.w/2,y+24,36,'400',c('--gray-500'));
+    y=texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',F.w/2,qy+tamQR+90,52,'600',c('--primary-700'),'center',F.w-220);
+    texto('Escanea con la cámara de tu celular',F.w/2,y+24,36,'400',c('--ink-2'));
   }else{
-    ctx.fillStyle=c('--primary-700');ctx.fillRect(0,0,18,F.h);
+    ctx.fillStyle=c('--primary-500');ctx.fillRect(0,0,18,F.h);
     const qx=F.w-tamQR-80,qy=(F.h-tamQR)/2;
     ctx.drawImage(qr,qx,qy,tamQR,tamQR);
     const lh=64,lw=lh*200/280;ctx.drawImage(logo,70,70,lw,lh);
-    ctx.font='600 34px '+fuente;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--gray-900');ctx.fillText('Fusa Conecta',70+lw+14,70+lh/2);
+    ctx.font='600 34px '+fuente;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--ink');ctx.fillText('Fusa Conecta',70+lw+14,70+lh/2);
     const max=qx-70-50;
-    let y=texto(d.nombre,70,190,56,'700',c('--gray-900'),'left',max);
-    texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',70,y+24,30,'500',c('--primary-800'),'left',max);
+    let y=texto(d.nombre,70,190,56,'700',c('--ink'),'left',max);
+    texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',70,y+24,30,'500',c('--primary-700'),'left',max);
   }
   return cv;
 }
@@ -1270,7 +1271,7 @@ async function renderMapa(){
     iconCreateFunction:c=>L.divIcon({className:'cluster-fc',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})});
   const items=database.filter(d=>d.lat&&d.lng&&(d.cat!=='bares'||estado.mayorEdad));
   items.forEach(d=>{
-    const mk=L.marker([d.lat,d.lng],{icon:pinIcono(iconoDe(d)),title:d.nombre,alt:d.nombre});
+    const mk=L.marker([d.lat,d.lng],{icon:pinIcono(iconoDe(d),'pin-fc c-'+d.cat),title:d.nombre,alt:d.nombre});
     mk.bindPopup('<b>'+esc(d.nombre)+'</b><br><small>'+esc(etiquetaDe(d))+(d.ubicacion_aprox?' · ubicación aproximada':'')+'</small><br><button class="pop-ver" data-ver="'+esc(d.id)+'">Ver ficha</button>');
     grupo.addLayer(mk);
   });
@@ -1315,7 +1316,7 @@ async function renderRuta(id){
       const linea=L.polyline(r.rutaWaypoints,{color:verde,weight:5,opacity:.9}).addTo(m);
       r.rutaWaypoints.forEach((w,i)=>L.circleMarker(w,{radius:5,color:verde,fillColor:blanco,fillOpacity:1,weight:2}).addTo(m).bindPopup('Punto '+(i+1)));
       r.puntosInteres.forEach(p=>L.marker(r.rutaWaypoints[p.wp],{icon:pinIcono('map-pin'),title:p.nombre}).addTo(m).bindPopup('<b>'+esc(p.nombre)+'</b><br><small>'+esc(p.descripcion)+'</small>'));
-      L.marker(r.puntoLlegada,{icon:pinIcono('flag'),title:'Punto de llegada'}).addTo(m).bindPopup('Punto de llegada');
+      L.marker(r.puntoLlegada,{icon:pinIcono('flag','pin-fc meta'),title:'Punto de llegada'}).addTo(m).bindPopup('Punto de llegada');
       m.fitBounds(linea.getBounds(),{padding:[24,24]});
       setTimeout(()=>m.invalidateSize(),200);
     }catch(e){}
@@ -1688,7 +1689,7 @@ async function montarMapaWiz(){
   const d=wiz.datos,centro=d.lat&&d.lng?[d.lat,d.lng]:PLAZA_FUSA;
   wizMapa=L.map('wMapa').setView(centro,d.lat?17:15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(wizMapa);
-  const pin=L.marker(centro,{draggable:true,icon:pinIcono(d.cat?(ICONO_SUB[d.sub]||ICONO_CAT[d.cat]):'map-pin'),title:'Ubicación del negocio'}).addTo(wizMapa);
+  const pin=L.marker(centro,{draggable:true,icon:pinIcono(d.cat?(ICONO_SUB[d.sub]||ICONO_CAT[d.cat]):'map-pin','pin-fc'+(d.cat?' c-'+d.cat:'')),title:'Ubicación del negocio'}).addTo(wizMapa);
   const fijar=ll=>{d.lat=+ll.lat.toFixed(6);d.lng=+ll.lng.toFixed(6);d.ubicacionExacta=true;$('#wUbicTxt').textContent='Ubicación guardada. Arrastra el pin para ajustarla.';};
   pin.on('dragend',()=>fijar(pin.getLatLng()));
   wizMapa.on('click',e=>{pin.setLatLng(e.latlng);fijar(e.latlng);});
