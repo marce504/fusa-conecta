@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=21">
+<link rel="stylesheet" href="app.css?v=22">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -35,10 +35,12 @@
       <div class="buscador">
         <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="search"></svg>
         <input type="search" id="busqueda" placeholder="Busca comercios, fincas, rutas, trámites..." aria-label="Buscar en Fusa Conecta" autocomplete="off">
+        <button class="btn-filtros" id="bFiltros" aria-label="Filtros"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="sliders-horizontal"></svg><span class="filtros-globo" id="filtrosGlobo" hidden></span></button>
         <div class="sugerencias" id="sugerencias"></div>
       </div>
       <div class="fila-chips"><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
-      <div class="fila-chips fila-sub vacia" id="filaSub"><div class="subcats" id="subcats" aria-label="Filtros y subcategorías"></div></div>
+      <div class="fila-chips fila-sub vacia" id="filaSub"><div class="subcats" id="subcats" aria-label="Subcategorías"></div></div>
+      <div class="filtros-activos" id="filtrosActivos" aria-label="Filtros activos"></div>
     </div>
   </header>
 
@@ -188,12 +190,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=21"></script>
+<script src="icons.js?v=22"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=21"></script>
-<script src="app.js?v=21"></script>
+<script src="datos.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

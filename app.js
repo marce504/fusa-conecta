@@ -93,7 +93,7 @@ const estado={
   pos:null,           // [lat,lng] del usuario si dio permiso
   online:navigator.onLine,
   sosMunicipio:'fusagasuga',
-  filtros:{abierto:false,cupon:false,municipio:''}  // filtros rápidos del listado
+  filtros:{abierto:false,cupon:false,municipio:'',orden:'recomendados'}  // hoja de Filtros del listado
 };
 function logueado(){return !!(estado.usuario&&!estado.usuario.anonimo);}
 function esComerciante(){return logueado()&&estado.perfil&&(estado.perfil.rol==='comerciante'||estado.perfil.rol==='admin');}
@@ -338,37 +338,61 @@ function renderHeader(){
    luego las subcategorías de Comercios (en Todas y Comercios) o de Turismo. */
 function renderSubcategorias(v){
   const fila=$('#subcats'),cont=$('#filaSub');
-  const f=estado.filtros;
-  const rapidos=[
-    {k:'abierto',t:'Abierto ahora',ic:'clock',on:f.abierto},
-    {k:'cupon',t:'Con cupón',ic:'ticket',on:f.cupon},
-    {k:'mun-Fusagasugá',t:'Fusagasugá',ic:'map-pin',on:f.municipio==='Fusagasugá'},
-    {k:'mun-Pasca',t:'Pasca',ic:'map-pin',on:f.municipio==='Pasca'}
-  ];
-  const grupo=v.cat==='todas'?'comercio':v.cat;
-  const subs=v.cat==='favoritos'?[]:(SUBCATS[grupo]||[]).filter(s=>database.some(d=>d.cat===grupo&&subDe(d)===s.k));
-  const enGrupo=v.cat===grupo;
-  fila.innerHTML=rapidos.map(r=>'<button class="chip-filtro'+(r.on?' on':'')+'" data-rapido="'+r.k+'" aria-pressed="'+r.on+'">'+icon(r.ic,16)+r.t+'</button>').join('')
-    +(subs.length?'<span class="sep-chips" aria-hidden="true"></span>'
-      +(enGrupo?'<button class="subcat'+(!v.sub?' activa':'')+'" data-sub="">Todos</button>':'')
-      +subs.map(s=>'<button class="subcat'+(enGrupo&&v.sub===s.k?' activa':'')+'" data-sub="'+s.k+'">'+icon(ICONO_SUB[s.k]||'circle-help',16)+nombreSub(grupo,s.k)+'</button>').join(''):'');
-  cont.classList.remove('vacia');
-  $$('#subcats [data-rapido]').forEach(b=>b.onclick=()=>{
-    const k=b.dataset.rapido;
-    if(k==='abierto')f.abierto=!f.abierto;
-    else if(k==='cupon')f.cupon=!f.cupon;
-    else{const m=k.slice(4);f.municipio=f.municipio===m?'':m;}
-    render();
-  });
+  const subs=['todas','favoritos'].includes(v.cat)?[]:(SUBCATS[v.cat]||[]).filter(s=>database.some(d=>d.cat===v.cat&&subDe(d)===s.k));
+  cont.classList.toggle('vacia',!subs.length);
+  fila.innerHTML=subs.map(s=>'<button class="subcat'+(v.sub===s.k?' activa':'')+'" data-sub="'+s.k+'" aria-pressed="'+(v.sub===s.k)+'">'+icon(ICONO_SUB[s.k]||'circle-help',16)+nombreSub(v.cat,s.k)+'</button>').join('');
+  // Tocar la subcategoría activa la quita; cambiarla no llena el historial del botón Atrás
   $$('#subcats [data-sub]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.sub;
-    if(!enGrupo){navegar({tipo:'lista',cat:grupo,sub:k});return;}
-    if((v.sub||'')===k)return;
-    // Cambiar de subcategoría no llena el historial del botón Atrás
-    stack[stack.length-1]={tipo:'lista',cat:grupo,sub:k};render();
+    stack[stack.length-1]={tipo:'lista',cat:v.cat,sub:v.sub===k?'':k};render();
   });
   const act=$('#subcats .subcat.activa');if(act)act.scrollIntoView({inline:'nearest',block:'nearest'});
+  pintarFiltrosActivos();
 }
+/* ===== FILTROS: hoja inferior y línea de filtros activos ===== */
+const ORDENES=[['recomendados','Recomendados'],['calificados','Mejor calificados'],['cercanos','Más cercanos']];
+function filtrosActivos(f=estado.filtros){
+  const l=[];
+  if(f.abierto)l.push(['abierto','Abierto ahora']);
+  if(f.cupon)l.push(['cupon','Con cupón']);
+  if(f.municipio)l.push(['municipio',f.municipio]);
+  if(f.orden&&f.orden!=='recomendados')l.push(['orden',ORDENES.find(o=>o[0]===f.orden)[1]]);
+  return l;
+}
+function pintarFiltrosActivos(){
+  const l=filtrosActivos(),g=$('#filtrosGlobo');
+  g.hidden=!l.length;g.textContent=l.length;
+  $('#bFiltros').classList.toggle('on',!!l.length);
+  $('#bFiltros').setAttribute('aria-label','Filtros'+(l.length?': '+l.length+(l.length===1?' activo':' activos'):''));
+  $('#filtrosActivos').innerHTML=l.map(([k,t])=>'<button class="fa-pill" data-quitar="'+k+'" aria-label="Quitar filtro '+esc(t)+'">'+esc(t)+icon('x',16)+'</button>').join('');
+  $$('[data-quitar]').forEach(b=>b.onclick=()=>{const k=b.dataset.quitar,f=estado.filtros;if(k==='municipio')f.municipio='';else if(k==='orden')f.orden='recomendados';else f[k]=false;render();});
+}
+function abrirFiltros(){
+  const v=vistaActual(),borrador={...estado.filtros};
+  const contar=()=>itemsVisibles(v.cat,v.sub,true,borrador).length;
+  const pintar=()=>{
+    abrirHoja('<div class="hoja-filtros"><h2 class="hoja-tit">Filtros</h2>'
+      +[['abierto','clock','Abierto ahora'],['cupon','ticket','Con cupón']].map(([k,i,t])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
+      +'<span class="fil-lbl" id="lMun">Municipio</span><div class="seg" role="radiogroup" aria-labelledby="lMun">'+[['','Ambos'],['Fusagasugá','Fusagasugá'],['Pasca','Pasca']].map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.municipio===k)+'" class="'+(borrador.municipio===k?'on':'')+'" data-mun="'+k+'">'+t+'</button>').join('')+'</div>'
+      +'<span class="fil-lbl" id="lOrden">Ordenar por</span><div class="seg" role="radiogroup" aria-labelledby="lOrden">'+ORDENES.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.orden===k)+'" class="'+(borrador.orden===k?'on':'')+'" data-orden="'+k+'">'+t+'</button>').join('')+'</div>'
+      +'</div><div class="fil-pie"><button class="btn btn-ghost" id="filLimpiar">Limpiar</button><button class="btn btn-primario" id="filVer"></button></div>');
+    $('#sheetGen').setAttribute('aria-label','Filtros');
+    const n=contar();$('#filVer').textContent='Ver '+n+(n===1?' lugar':' lugares');
+    $$('[data-fil]').forEach(x=>x.onchange=()=>{borrador[x.dataset.fil]=x.checked;const n=contar();$('#filVer').textContent='Ver '+n+(n===1?' lugar':' lugares');});
+    $$('[data-mun]').forEach(b=>b.onclick=()=>{borrador.municipio=b.dataset.mun;pintar();});
+    $$('[data-orden]').forEach(b=>b.onclick=()=>{borrador.orden=b.dataset.orden;pintar();});
+    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,cupon:false,municipio:'',orden:'recomendados'});pintar();};
+    $('#filVer').onclick=async()=>{
+      if(borrador.orden==='cercanos'&&!estado.pos){
+        const p=await pedirUbicacion();
+        if(!p){toast('Activa tu ubicación para ordenar por cercanía');borrador.orden='recomendados';}
+      }
+      estado.filtros={...borrador};cerrar('ovGen');render();
+    };
+  };
+  pintar();
+}
+
 function subDe(d){return d.cat==='turismo'?(d.tipo||''):(d.sub||'');}
 // Nombre de la subcategoría sin el emoji que trae datos.js
 function nombreSub(cat,k){const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^[^\p{L}]+/u,'').trim():'';}
@@ -388,7 +412,9 @@ function prioridad(d){
   if(!premiumVigente(d)||!(d.prioridadBusqueda>0))return 0;
   const km=distanciaA(d);return (km==null||km<=2)?1:0;
 }
-function ordenar(items){
+function ordenar(items,orden='recomendados'){
+  if(orden==='calificados')return items.sort((a,b)=>{const x=calificacionDe(a),y=calificacionDe(b);return (y.prom-x.prom)||(y.total-x.total);});
+  if(orden==='cercanos')return items.sort((a,b)=>(distanciaA(a)??1e9)-(distanciaA(b)??1e9));
   return items.sort((a,b)=>{
     const p=prioridad(b)-prioridad(a);if(p)return p;
     const da=distanciaA(a),dbb=distanciaA(b);
@@ -396,19 +422,18 @@ function ordenar(items){
     return calificacionDe(b).prom-calificacionDe(a).prom;
   });
 }
-function itemsVisibles(cat,sub,conFiltros=true){
+function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
   let items=[...database];
   if(cat&&cat!=='todas'&&cat!=='favoritos')items=items.filter(d=>d.cat===cat);
   if(sub)items=items.filter(d=>subDe(d)===sub);
   if(cat==='favoritos')items=items.filter(d=>estado.favoritos.includes(String(d.id)));
   if(cat==='todas'&&!estado.mayorEdad)items=items.filter(d=>d.cat!=='bares');
   if(conFiltros){
-    const f=estado.filtros;
     if(f.abierto)items=items.filter(d=>{const a=estadoApertura(d);return a&&a.abierto;});
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
     if(f.municipio)items=items.filter(d=>(d.municipio||'Fusagasugá')===f.municipio);
   }
-  return ordenar(items.filter(d=>coincide(d,estado.q)));
+  return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
 }
 function renderSugerencias(){
   const box=$('#sugerencias');const q=$('#busqueda').value.trim();
@@ -515,7 +540,7 @@ function render(conservarScroll){
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
 }
-function hayFiltros(){const f=estado.filtros;return f.abierto||f.cupon||!!f.municipio;}
+function hayFiltros(){return filtrosActivos().length>0;}
 function renderLista(v){
   const items=itemsVisibles(v.cat,v.sub);
   const titulo=v.cat==='favoritos'?'Mis favoritos':(v.cat==='todas'?'Todo Fusa Conecta':(CAT[v.cat]?CAT[v.cat].label:'Resultados'))
@@ -535,7 +560,7 @@ function renderLista(v){
   }
   $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>b.onclick=()=>{
-    estado.q='';estado.filtros={abierto:false,cupon:false,municipio:''};$('#busqueda').value='';
+    estado.q='';estado.filtros={abierto:false,cupon:false,municipio:'',orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
   enlazarTarjetas();enlazarCuponesSemana();enlazarFooter();
@@ -2350,6 +2375,7 @@ $('#edadNo').onclick=()=>{cerrar('ovEdad');toast('Solo para mayores de 18 años.
 $$('.monto').forEach(b=>b.onclick=()=>{$$('.monto').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-pressed','false');});b.classList.add('sel');b.setAttribute('aria-pressed','true');});
 $('#bEnviarApoyo').onclick=()=>{const sel=$('.monto.sel');if(!sel){toast('Selecciona un monto');return;}cerrar('ovApoyo');toast('¡Gracias por apoyar! Monto: $'+sel.dataset.m);};
 $('#bVolver').onclick=volver;
+$('#bFiltros').onclick=abrirFiltros;
 document.addEventListener('click',e=>{const s=e.target.closest&&e.target.closest('[data-sos]');if(!s)return;$$('.overlay.abierto').forEach(o=>cerrar(o.id));if(vistaActual().tipo!=='sos')navegar({tipo:'sos'});});
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-tel]');if(a)registrarEvento(buscar(a.dataset.tel),'toques_llamar');});
 
