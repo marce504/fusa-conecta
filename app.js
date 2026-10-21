@@ -579,10 +579,10 @@ const FOTOS_BANNER=['img/comercios/vivero-de-orquideas-de-fusa.jpg','img/comerci
 function cuponesActivosTotal(){let n=0;database.forEach(d=>n+=cuponesDe(d).length);return n;}
 function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
 function bannerHTML(){
-  const slide=(i,cls,tag,tit,sub,boton,ilu,extra)=>'<article class="slide '+cls+'" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de 4: '+esc(tit)+'">'
+  const slide=(i,cls,tag,tit,sub,boton,ilu,extra)=>'<div class="slide '+cls+'" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de 4: '+esc(tit)+'">'
     +'<div class="slide-ilu" aria-hidden="true">'+ilu+'</div>'
     +'<span class="slide-tag">'+tag+'</span><h2 class="slide-tit">'+tit+'</h2><p class="slide-sub">'+sub+'</p>'
-    +'<div class="slide-pie">'+boton+(extra||'')+'</div></article>';
+    +'<div class="slide-pie">'+boton+(extra||'')+'</div></div>';
   return '<div class="banner-pista" id="bannerPista">'
     +slide(0,'s-bienvenida','Bienvenido','Todo Fusa, en tu bolsillo','Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
       '<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
@@ -1334,7 +1334,7 @@ async function miCodigoQR(d){
     +'<button class="btn btn-secundario btn-bloque" id="qrCompartir" disabled>'+icon('share-2')+'Compartir</button></div></div>');
   let lienzo=null;
   const pintar=async()=>{
-    $$('[data-pformato]').forEach(b=>{const on=b.dataset.pformato===posterFormato;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
+    $$('[data-pformato]').forEach(b=>{const on=b.dataset.pformato===posterFormato;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
     $('#qrDescargar').disabled=$('#qrCompartir').disabled=true;
     try{
       lienzo=await dibujarPoster(d,posterFormato);
@@ -1944,7 +1944,7 @@ function abrirLogin(modo='ingresar',productor=false,aviso=''){
 function pedirLogin(msg,productor=false){abrirLogin('ingresar',productor,msg);}
 function pintarModoLogin(){
   const reg=modoLogin==='registro';
-  $$('#ovLogin .seg button').forEach(b=>{const on=b.dataset.modo===modoLogin;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
+  $$('#ovLogin .seg button').forEach(b=>{const on=b.dataset.modo===modoLogin;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
   $('#lNombreWrap').style.display=reg?'block':'none';
   $('#lConsentWrap').style.display=reg?'flex':'none';
   $('#lOlvido').style.display=reg?'none':'inline-flex';
@@ -2344,7 +2344,7 @@ function renderAdmin(){
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
     const act=estado.emergencias[mun]&&estado.emergencias[mun].actualizado;
-    html='<div class="seg" role="tablist" aria-label="Municipio"><button data-amun="fusagasuga" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-amun="pasca" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
+    html='<div class="seg" role="group" aria-label="Municipio"><button data-amun="fusagasuga" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-amun="pasca" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
       +'<p class="nota-c izq">'+(act?'Última actualización: '+fechaHora(act):'Aún no se han editado; se muestran los números de la app.')+'</p>'
       +lista.map((e,i)=>'<div class="emg-fila"><div class="emg-campos">'
         +'<input class="input" data-emg="'+i+'" data-k="entidad" value="'+esc(e.entidad)+'" aria-label="Entidad" placeholder="Entidad">'
