@@ -108,10 +108,12 @@ function normalizarNube(id,x){
     tel,whatsapp:x.whatsapp||(esCelular(tel)?tel:''),imagen:x.imagen||'',lat:x.lat,lng:x.lng,ubicacion_aprox:x.ubicacion_aprox!==false,
     esPremium:!!x.esPremium,suscripcion_vigente_hasta:aMs(x.suscripcion_vigente_hasta),prioridadBusqueda:+x.prioridadBusqueda||0,
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
-    tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||''};
+    tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||'',
+    estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada};
 }
 function reconstruirDirectorio(){database=[...COMERCIOS_BASE.map(c=>({...c})),...comerciosNube];}
-db.collection('comercios').onSnapshot(snap=>{
+// La regla pública solo deja leer comercios aprobados; una consulta sin este filtro sería rechazada completa.
+db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapshot(snap=>{
   const lista=[];
   snap.forEach(doc=>{
     const x=doc.data();
@@ -121,6 +123,16 @@ db.collection('comercios').onSnapshot(snap=>{
   });
   comerciosNube=lista;reconstruirDirectorio();refrescarVista();
 },err=>console.warn('Comercios sin conexión:',err.code));
+
+// Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
+let comerciosPropios=[],propiosUnsub=null;
+function escucharMisComercios(){
+  if(propiosUnsub||!esComerciante())return;
+  propiosUnsub=db.collection('comercios').where('propietario_uid','==',estado.usuario.uid).onSnapshot(snap=>{
+    comerciosPropios=snap.docs.map(doc=>normalizarNube(doc.id,doc.data()));refrescarVista();
+  },()=>{propiosUnsub=null;});
+}
+function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];}
 
 db.collection('calificaciones').onSnapshot(snap=>{
   const c={};
@@ -276,14 +288,15 @@ function renderHeader(){
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones"><button class="saludo" id="bPerfilTop" aria-label="Ver mi perfil"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span>'+esc(nom.split(' ')[0])+'</button>'
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+campanaHTML()+'<button class="saludo" id="bPerfilTop" aria-label="Ver mi perfil"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span>'+esc(nom.split(' ')[0])+'</button>'
       +'<button class="btn btn-secundario btn-sm" id="bSalir">Salir</button></div>';
     $('#bSalir').onclick=cerrarSesion;
     $('#bPerfilTop').onclick=()=>navegar({tipo:'perfil'});
   }else{
-    ses.innerHTML=MARCA_HTML+'<button class="btn btn-primario btn-sm" id="bEntrar">Entrar</button>';
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+campanaHTML()+'<button class="btn btn-primario btn-sm" id="bEntrar">Entrar</button></div>';
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
+  $('#bNovedades').onclick=abrirNovedades;
   const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comercios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'" role="tab" aria-selected="'+(v.cat===c.k)+'">'+icon(ICONO_CAT[c.k],18)+c.t+'</button>').join('');
@@ -419,7 +432,7 @@ function enlazarTarjetas(){
     if(vistaActual().cat==='favoritos')render();
   });
 }
-function buscar(id){return database.find(x=>String(x.id)===String(id));}
+function buscar(id){return database.find(x=>String(x.id)===String(id))||comerciosPropios.find(x=>String(x.id)===String(id));}
 
 /* ===== ACCIONES DE CONTACTO (RF-09, RF-13) ===== */
 function abrirWhatsApp(d){
@@ -501,12 +514,12 @@ function renderLista(v){
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
+// Solo comercios con dueño y Premium vigente: un cupón sin dueño nunca podría canjearse
 function cuponesDe(d){
-  if(!premiumVigente(d))return [];
+  if(!d.propietario_uid||!premiumVigente(d))return [];
   const hoy=Date.now();
-  const base=CUPONES_BASE.filter(c=>c.comercio_id===d.id);
-  const nube=estado.cuponesFS.filter(c=>c.comercio_id===d.id&&c.estado!=='inactivo'&&(c.cupo_restante==null||c.cupo_restante>0));
-  return [...base,...nube].filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
+  return estado.cuponesFS.filter(c=>c.comercio_id===d.id&&(c.estado||'activo')==='activo'&&(c.cupo_restante==null||c.cupo_restante>0))
+    .filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
 }
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
 function abrirDetalle(id){
@@ -541,7 +554,7 @@ function abrirDetalle(id){
       +'</div>':'';
   const bloqueCupones=cupones.length
     ?'<div class="bloque bloque-cupon"><p class="bloque-tit">'+icon('ticket',18)+'Cupones disponibles</p>'
-      +cupones.map(c=>'<div class="cupon-item"><div><b>'+esc(c.descripcion)+'</b><small>Vence: '+fechaCorta(aMs(c.vigencia))+(c.cupo_restante!=null?' · quedan '+c.cupo_restante:'')+'</small></div><button class="btn btn-secundario btn-sm" data-cupon="'+esc(c.id)+'">Generar cupón</button></div>').join('')
+      +cupones.map(c=>'<div class="cupon-item"><div><b>'+esc(c.descripcion)+'</b><small>Vence: '+fechaCorta(aMs(c.vigencia))+(c.cupo_restante!=null?' · quedan '+c.cupo_restante:'')+'</small></div><button class="btn btn-secundario btn-sm" data-cupon="'+esc(c.id)+'">Obtener cupón</button></div>').join('')
       +'</div>':'';
   const chips=[];
   if(d.cat==='turismo'&&d.tipo)chips.push([ICONO_SUB[d.tipo]||'mountain',nombreSub('turismo',d.tipo)||d.tipo]);
@@ -633,30 +646,46 @@ function codigoCupon(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';const
 function hoyClave(){const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
 function cuponesLocales(){return ls.get('fc_cupones_'+(estado.usuario?estado.usuario.uid:''),[]);}
 function guardarCuponLocal(c){const l=cuponesLocales().filter(x=>x.id!==c.id);l.unshift(c);ls.set('fc_cupones_'+estado.usuario.uid,l.slice(0,30));}
+// Obtener un cupón (transacción): verifica estado, vigencia y cupo; un cupón por persona (id {cuponId}_{uid});
+// descuenta 1 al cupo y crea el canje "reservado". Las reglas exigen ambas escrituras juntas.
 async function generarCupon(d,cupon){
   if(!cupon)return;
-  if(!logueado()){pedirLogin('Inicia sesión para generar cupones de descuento.');return;}
-  const uid=estado.usuario.uid;const id=cupon.id+'_'+uid+'_'+hoyClave();
+  if(!logueado()){pedirLogin('Inicia sesión para obtener cupones de descuento.');return;}
+  const uid=estado.usuario.uid;const id=cupon.id+'_'+uid;
   const local=cuponesLocales().find(c=>c.id===id);
-  if(local){mostrarCupon(local);return;}
-  if(!estado.online){toast('Necesitas conexión para generar un cupón nuevo');return;}
+  if(local){toast('Ya tienes este cupón');mostrarCupon(local);return;}
+  if(!estado.online){toast('Necesitas conexión para obtener un cupón nuevo');return;}
+  const cuponRef=db.collection('cupones').doc(cupon.id),canjeRef=db.collection('canjes').doc(id);
   try{
-    const mios=await db.collection('canjes').where('usuario_uid','==',uid).get();
-    const previo=mios.docs.find(x=>x.id===id);
-    if(previo){const c={id,...previo.data()};guardarCuponLocal(serializarCupon(c));mostrarCupon(serializarCupon(c));toast('Ya generaste este cupón hoy');return;}
-    const finDia=new Date();finDia.setHours(23,59,59,0);
-    const vence=Math.min(finDia.getTime()+6*86400000,aMs(cupon.vigencia)||Infinity);
-    const datos={cupon_id:cupon.id,comercio_id:String(d.id),comercio_nombre:d.nombre,descripcion:cupon.descripcion,
-      propietario_uid:d.propietario_uid||null,usuario_uid:uid,usuario_nombre:estado.usuario.nombre,codigo:codigoCupon(),
-      estado:'activo',fecha_emision:FV.serverTimestamp(),fecha_vencimiento:TS.fromMillis(vence)};
-    await db.collection('canjes').doc(id).set(datos);
-    const c=serializarCupon({id,...datos,fecha_emision:Date.now()});
+    const r=await db.runTransaction(async tx=>{
+      const cs=await tx.get(cuponRef);const ks=await tx.get(canjeRef);
+      if(ks.exists)return {ya:true,datos:ks.data()};
+      if(!cs.exists)throw new Error('no-existe');
+      const c=cs.data();
+      if((c.estado||'activo')!=='activo')throw new Error('inactivo');
+      const vig=aMs(c.vigencia);if(vig&&vig<Date.now())throw new Error('vencido');
+      if(!(c.cupo_restante>0))throw new Error('agotado');
+      const datos={cupon_id:cupon.id,comercio_id:c.comercio_id,comercio_nombre:c.comercio_nombre||d.nombre,descripcion:c.descripcion,
+        propietario_uid:c.propietario_uid,usuario_uid:uid,usuario_nombre:estado.usuario.nombre,codigo:codigoCupon(),
+        estado:'reservado',fecha_emision:FV.serverTimestamp(),fecha_vencimiento:TS.fromMillis(vig||Date.now()+30*86400000)};
+      tx.update(cuponRef,{cupo_restante:c.cupo_restante-1});
+      tx.set(canjeRef,datos);
+      return {ya:false,datos};
+    });
+    const c=serializarCupon({id,...r.datos,fecha_emision:Date.now()});
     guardarCuponLocal(c);mostrarCupon(c);
-  }catch(e){console.error(e);toast('No se pudo generar el cupón. Intenta de nuevo.');}
+    toast(r.ya?'Ya tienes este cupón':'Cupón guardado en tu billetera');
+  }catch(e){
+    console.warn(e);
+    const m={agotado:'Este cupón ya se agotó',vencido:'Este cupón ya venció',inactivo:'Este cupón no está disponible por ahora','no-existe':'Este cupón ya no existe'};
+    toast(m[e.message]||'No se pudo obtener el cupón. Intenta de nuevo.');
+  }
 }
-function serializarCupon(c){return {id:c.id,codigo:c.codigo,descripcion:c.descripcion,comercio_nombre:c.comercio_nombre,estado:c.estado,fecha_vencimiento:aMs(c.fecha_vencimiento)};}
+function serializarCupon(c){return {id:c.id,comercio_id:c.comercio_id,codigo:c.codigo,descripcion:c.descripcion,comercio_nombre:c.comercio_nombre,estado:c.estado,fecha_vencimiento:aMs(c.fecha_vencimiento)};}
+function estadoCupon(c){if(c.estado==='usado')return 'usado';if(c.fecha_vencimiento&&c.fecha_vencimiento<Date.now())return 'vencido';return 'activo';}
+function fechaHora(ms){return ms?new Date(ms).toLocaleString('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'';}
 async function mostrarCupon(c){
-  const usado=c.estado==='usado';const vencido=c.fecha_vencimiento&&c.fecha_vencimiento<Date.now();
+  const est=estadoCupon(c);const usado=est==='usado';const vencido=est==='vencido';
   abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic ambar">'+icon('ticket',28)+'</div><h2>'+esc(c.comercio_nombre)+'</h2><p>'+esc(c.descripcion)+'</p>'
     +'<div class="qr-box'+(usado||vencido?' apagado':'')+'" id="qrBox" role="img" aria-label="Código QR del cupón"></div>'
     +'<div class="codigo">'+esc(c.codigo)+'</div>'
@@ -832,9 +861,9 @@ function renderPerfil(){
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
     +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn btn-primario btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
-    +(cupones.length?cupones.map(c=>'<button class="pf-cupon" data-mic="'+esc(c.id)+'"><b>'+esc(c.comercio_nombre)+'</b><small>'+esc(c.descripcion)+' · '+esc(c.codigo)+'</small><span class="'+(c.estado==='usado'?'usado':'')+'">'+(c.estado==='usado'?'Canjeado':'Ver QR')+'</span></button>').join(''):'<p class="nota-c izq">Aún no has generado cupones. Búscalos en los comercios destacados.</p>')
+    +(cupones.length?cupones.map(c=>'<button class="pf-cupon" data-mic="'+esc(c.id)+'"><b>'+esc(c.comercio_nombre)+'</b><small>'+esc(c.descripcion)+' · '+esc(c.codigo)+'</small><span class="'+(estadoCupon(c)!=='activo'?'usado':'')+'">'+({usado:'Canjeado',vencido:'Vencido',activo:'Ver QR'})[estadoCupon(c)]+'</span></button>').join(''):'<p class="nota-c izq">Aún no has generado cupones. Búscalos en los comercios destacados.</p>')
     +'</div>'
-    +'<div class="seccion"><h3>'+icon('bell',18)+'Notificaciones</h3><label class="switch-row"><span>Recibir promociones de comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
+    +'<div class="seccion"><h3>'+icon('bell',18)+'Novedades</h3><label class="switch-row"><span>Mostrarme las novedades de los comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
     +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Ver aviso legal y privacidad</button>'
@@ -855,7 +884,7 @@ function renderPerfil(){
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
     db.collection('usuarios').doc(u.uid).update({notificaciones_push:on}).catch(()=>{});
     estado.perfil.notificaciones_push=on;ls.set('fc_perfil_'+u.uid,estado.perfil);
-    toast(on?'Recibirás promociones':'Notificaciones desactivadas');
+    toast(on?'Te mostraremos las novedades':'Novedades desactivadas');
   };
   $('#pfLegal').onclick=()=>abrir('ovLegal');
   const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
@@ -876,40 +905,51 @@ async function sincronizarCupones(){
 }
 
 /* ===== PANEL DEL COMERCIANTE (CU-15, CU-16, CU-17) ===== */
-function misComercios(){return logueado()?database.filter(d=>d.propietario_uid===estado.usuario.uid):[];}
+// Comercios del dueño en cualquier estado (vienen de su propio listener)
+function misComercios(){return logueado()?comerciosPropios:[];}
+let solicitudesPremium=new Set();
+function estadoPublicacionHTML(d){
+  const e=d.estado_publicacion||'pendiente';
+  if(e==='aprobado')return '<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>';
+  if(e==='rechazado')return '<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado'+(d.motivo_rechazo?': '+esc(d.motivo_rechazo):'')+'</span>';
+  return '<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
+}
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
   if(!esComerciante()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de productores</b><p>Inicia sesión con tu cuenta de productor.</p></div>';return;}
   const nom=estado.usuario.nombre;const mis=misComercios();
-  const proms=mis.map(d=>calificacionDe(d)).filter(c=>c.total);
-  const promedio=proms.length?(proms.reduce((a,c)=>a+c.prom,0)/proms.length).toFixed(1).replace('.',','):'—';
+  const publicados=mis.filter(d=>d.estado_publicacion==='aprobado').length;
+  const enRevision=mis.filter(d=>d.estado_publicacion==='pendiente').length;
   const cards=mis.length===0
-    ?'<div class="vacio">'+icon('store',48)+'<b>Aún no tienes comercios registrados</b><p>Toca «Registrar nuevo comercio» para publicar tu primer negocio.</p></div>'
+    ?'<div class="vacio">'+icon('store',48)+'<b>Aún no tienes comercios registrados</b><p>Toca «Registrar nuevo comercio». Un administrador lo revisará antes de publicarlo.</p></div>'
     :mis.map(d=>{
       const prem=premiumVigente(d);const img=imgSegura(d.imagen);const cal=calificacionDe(d);
+      const pedido=solicitudesPremium.has(d.id);
       return '<div class="dash-card"><div class="dc-ico">'+(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'">':icon(iconoDe(d)))+'</div>'
         +'<div class="dc-info"><h3>'+esc(d.nombre)+'</h3><p>'+esc(etiquetaDe(d))+' · '+esc(d.direccion)+'</p>'
-        +'<div class="meta">'+califHTML(cal)+'</div>'
+        +estadoPublicacionHTML(d)
+        +(cal.total?'<div class="meta">'+califHTML(cal)+'</div>':'')
         +'<p class="dc-plan '+(prem?'prem':'')+'">'+(prem?icon('star',14,'ic-fill')+'Premium hasta '+fechaCorta(d.suscripcion_vigente_hasta):'Plan Gratis')+'</p>'
         +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-eid="'+esc(d.id)+'">'+icon('pencil',16)+'Editar</button>'
         +'<button class="btn btn-secundario btn-sm" data-ver="'+esc(d.id)+'">Ver ficha</button>'
-        +(prem?'<button class="btn btn-secundario btn-sm" data-cup="'+esc(d.id)+'">'+icon('ticket',16)+'Cupón</button><button class="btn btn-secundario btn-sm" data-promo="'+esc(d.id)+'">'+icon('megaphone',16)+'Promoción</button>'
-          :'<button class="btn btn-secundario btn-sm" data-prem="'+esc(d.id)+'">'+icon('star',16)+'Activar Premium</button>')
+        +(prem?'<button class="btn btn-secundario btn-sm" data-cup="'+esc(d.id)+'">'+icon('ticket',16)+'Cupón</button><button class="btn btn-secundario btn-sm" data-promo="'+esc(d.id)+'">'+icon('megaphone',16)+'Novedad</button>'
+          :(pedido?'<button class="btn btn-secundario btn-sm" disabled>'+icon('clock',16)+'Premium solicitado</button>'
+                  :'<button class="btn btn-secundario btn-sm" data-prem="'+esc(d.id)+'">'+icon('star',16)+'Solicitar Premium</button>'))
         +'</div></div></div>';
     }).join('');
   cuerpo.innerHTML='<div class="dash-hero"><h2>Mi panel, mi negocio</h2><p>Hola, '+esc(nom)+'. Gestiona tus comercios en Fusa Conecta.</p>'
-    +'<div class="dash-stats"><div class="dash-stat"><div class="ds-n">'+mis.length+'</div><div class="ds-l">Publicados</div></div>'
-    +'<div class="dash-stat"><div class="ds-n">'+promedio+'</div><div class="ds-l">Calificación</div></div>'
+    +'<div class="dash-stats"><div class="dash-stat"><div class="ds-n">'+publicados+'</div><div class="ds-l">Publicados</div></div>'
+    +'<div class="dash-stat"><div class="ds-n">'+enRevision+'</div><div class="ds-l">En revisión</div></div>'
     +'<div class="dash-stat"><div class="ds-n" id="dsCanjes">…</div><div class="ds-l">Cupones canjeados</div></div></div></div>'
     +'<div class="dash-body"><button class="btn btn-primario btn-bloque" id="bDashNuevo">'+icon('plus')+'Registrar nuevo comercio</button>'
     +'<p class="dash-section">Mis negocios</p><div id="dashGrid">'+cards+'</div>'
-    +'<p class="dash-section">Validar cupón de un cliente</p><div class="validar-row"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters"><button class="btn btn-primario" id="vValidar">'+icon('badge-check')+'Validar</button></div><p class="nota-c izq" id="vRes" role="status"></p>'
+    +'<p class="dash-section">Validar cupón de un cliente</p><div class="validar-row"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters"><button class="btn btn-secundario" id="vValidar">'+icon('badge-check')+'Validar</button></div><p class="nota-c izq" id="vRes" role="status"></p>'
     +'<button class="btn btn-secundario btn-bloque mt-16" id="bExplorar">'+icon('search')+'Ver directorio completo</button></div>';
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
   $('#bExplorar').onclick=()=>inicio();
   $$('#dashGrid [data-eid]').forEach(b=>b.onclick=()=>abrirFormComercio(buscar(b.dataset.eid)));
   $$('#dashGrid [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
-  $$('#dashGrid [data-prem]').forEach(b=>b.onclick=()=>activarPremium(buscar(b.dataset.prem)));
+  $$('#dashGrid [data-prem]').forEach(b=>b.onclick=()=>solicitarPremium(buscar(b.dataset.prem)));
   $$('#dashGrid [data-cup]').forEach(b=>b.onclick=()=>formCupon(buscar(b.dataset.cup)));
   $$('#dashGrid [data-promo]').forEach(b=>b.onclick=()=>formPromo(buscar(b.dataset.promo)));
   $('#vValidar').onclick=validarCupon;
@@ -917,31 +957,45 @@ function renderDashboard(){
   db.collection('canjes').where('propietario_uid','==',estado.usuario.uid).get()
     .then(s=>{const el=$('#dsCanjes');if(el)el.textContent=s.docs.filter(x=>x.data().estado==='usado').length;})
     .catch(()=>{const el=$('#dsCanjes');if(el)el.textContent='—';});
+  // Solicitudes de Premium pendientes del comerciante (para no duplicarlas)
+  db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','premium').get().then(s=>{
+    const antes=solicitudesPremium.size;
+    solicitudesPremium=new Set(s.docs.filter(x=>x.data().estado==='pendiente').map(x=>x.data().comercio_id));
+    if(solicitudesPremium.size!==antes&&vistaActual().tipo==='dashboard')render(true);
+  }).catch(()=>{});
 }
-async function activarPremium(d){
+// El Premium ya no se autoactiva: se solicita y lo activa un administrador
+async function solicitarPremium(d){
   if(!d)return;
-  if(!await confirmar('Plan Premium','Activa 30 días de prueba: posición destacada en búsquedas, cupones QR, promociones, redes sociales y sitio web.','Activar','Cancelar','star'))return;
+  if(solicitudesPremium.has(d.id)){toast('Ya enviaste la solicitud. Un administrador activará tu plan.');return;}
+  const prueba=d.prueba_usada?'':' Si es tu primera vez, puede activarte una prueba gratuita de 30 días.';
+  if(!await confirmar('Solicitar Premium','Un administrador revisará tu solicitud. Premium incluye posición destacada, cupones con QR, novedades, redes sociales y sitio web.'+prueba,'Enviar solicitud','Cancelar','star'))return;
   try{
-    await db.collection('comercios').doc(d.id).update({esPremium:true,prioridadBusqueda:1,plan:'premium',
-      suscripcion_vigente_hasta:TS.fromMillis(Date.now()+30*86400000),fecha_modificacion:FV.serverTimestamp()});
-    toast('Plan Premium activado por 30 días');
-  }catch(e){console.error(e);toast('No se pudo activar. Revisa tu conexión.');}
+    await db.collection('solicitudes').add({tipo:'premium',comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
+      usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
+    solicitudesPremium.add(d.id);toast('Solicitud enviada. Te avisaremos cuando se active.');render(true);
+  }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
 }
+// Canjear (transacción): solo el dueño del comercio, una sola vez, de "reservado" a "usado". El cupo ya se descontó al obtenerlo.
 async function validarCupon(){
   const cod=$('#vCodigo').value.trim().toUpperCase();const res=$('#vRes');
   if(!/^FC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(cod)){res.textContent='Escribe el código completo, por ejemplo FC-AB12-CD34.';return;}
   res.textContent='Validando…';
+  const uid=estado.usuario.uid;
   try{
-    const s=await db.collection('canjes').where('propietario_uid','==',estado.usuario.uid).where('codigo','==',cod).get();
-    if(s.empty){res.textContent='Código no encontrado en tus comercios.';return;}
-    const doc=s.docs[0],c=doc.data();
-    if(c.estado==='usado'){res.textContent='Este cupón ya fue canjeado.';return;}
-    if(aMs(c.fecha_vencimiento)<Date.now()){res.textContent='Este cupón está vencido.';return;}
-    await doc.ref.update({estado:'usado',fecha_canje:FV.serverTimestamp()});
-    const cup=estado.cuponesFS.find(x=>x.id===c.cupon_id);
-    if(cup&&cup.cupo_restante>0)db.collection('cupones').doc(cup.id).update({cupo_restante:FV.increment(-1)}).catch(()=>{});
-    res.textContent='Cupón válido y canjeado: '+c.descripcion+' · Cliente: '+c.usuario_nombre;
-    $('#vCodigo').value='';
+    const s=await db.collection('canjes').where('propietario_uid','==',uid).where('codigo','==',cod).get();
+    if(s.empty){res.textContent='Este código no corresponde a un cupón de tus comercios.';return;}
+    const ref=s.docs[0].ref;
+    const r=await db.runTransaction(async tx=>{
+      const k=await tx.get(ref);const c=k.data();
+      if(c.estado==='usado')return {tipo:'usado',c};
+      if((aMs(c.fecha_vencimiento)||Infinity)<Date.now())return {tipo:'vencido',c};
+      tx.update(ref,{estado:'usado',fecha_canje:FV.serverTimestamp(),canjeado_por:uid});
+      return {tipo:'ok',c};
+    });
+    if(r.tipo==='usado')res.textContent='Este cupón ya fue canjeado'+(r.c.fecha_canje?' el '+fechaHora(aMs(r.c.fecha_canje)):'.');
+    else if(r.tipo==='vencido')res.textContent='Este cupón está vencido.';
+    else{res.textContent='Cupón válido y canjeado: '+r.c.descripcion+' · Cliente: '+r.c.usuario_nombre;$('#vCodigo').value='';}
   }catch(e){console.error(e);res.textContent='No se pudo validar. Revisa tu conexión.';}
 }
 function formCupon(d){
@@ -958,28 +1012,28 @@ function formCupon(d){
     if(!desc){toast('Describe el descuento');return;}
     if(!vig||Date.parse(vig)<Date.now()-86400000){toast('Elige una fecha de vigencia futura');return;}
     try{
-      await db.collection('cupones').add({comercio_id:d.id,comercio_nombre:d.nombre,descripcion:desc,porcentajeDescuento:Math.min(100,Math.max(1,parseInt($('#cPct').value,10)||10)),
+      await db.collection('cupones').add({comercio_id:d.id,propietario_uid:estado.usuario.uid,comercio_nombre:d.nombre,descripcion:desc,porcentajeDescuento:Math.min(100,Math.max(1,parseInt($('#cPct').value,10)||10)),
         cupo_total:cupo,cupo_restante:cupo,vigencia:vig,terminos:$('#cTer').value.trim(),estado:'activo',fecha_creacion:FV.serverTimestamp()});
       cerrar('ovGen');toast('Cupón publicado');
     }catch(e){console.error(e);toast('No se pudo publicar el cupón');}
   };
 }
 function formPromo(d){
-  abrirHoja('<div class="form-head"><h2>Enviar promoción</h2><p>'+esc(d.nombre)+' · máximo 3 por semana</p></div><div class="form-body">'
+  abrirHoja('<div class="form-head"><h2>Publicar novedad</h2><p>'+esc(d.nombre)+' · máximo 3 por semana</p></div><div class="form-body">'
     +'<div class="campo"><label for="pTit">Título <span class="req">*</span></label><input id="pTit" maxlength="50" placeholder="Ej: Hoy 2x1 en postres"></div>'
-    +'<div class="campo"><label for="pMsg">Mensaje <span class="req">*</span></label><textarea id="pMsg" maxlength="280" placeholder="Cuéntales a los vecinos tu promoción..."></textarea></div>'
+    +'<div class="campo"><label for="pMsg">Mensaje <span class="req">*</span></label><textarea id="pMsg" maxlength="280" placeholder="Cuéntales a los vecinos tu promoción o anuncio..."></textarea></div>'
     +'<div class="campo"><label for="pSeg">¿A quién se envía?</label><select id="pSeg"><option value="todos">Todos los usuarios</option><option value="favoritos">Usuarios que me tienen en favoritos</option></select></div>'
-    +'<button class="btn btn-primario btn-bloque" id="pEnviar">'+icon('megaphone')+'Enviar promoción</button></div>');
+    +'<button class="btn btn-primario btn-bloque" id="pEnviar">'+icon('megaphone')+'Publicar novedad</button></div>');
   $('#pEnviar').onclick=async()=>{
     const t=$('#pTit').value.trim(),msg=$('#pMsg').value.trim();
     if(!t||!msg){toast('Escribe el título y el mensaje');return;}
     try{
       const s=await db.collection('notificaciones').where('comercio_id','==',d.id).get();
       const semana=s.docs.filter(x=>(aMs(x.data().fecha_envio)||0)>Date.now()-7*86400000).length;
-      if(semana>=3){toast('Ya enviaste 3 promociones esta semana');return;}
+      if(semana>=3){toast('Ya publicaste 3 novedades esta semana');return;}
       await db.collection('notificaciones').add({comercio_id:d.id,comercio_nombre:d.nombre,titulo:t,mensaje:msg,segmento:$('#pSeg').value,fecha_envio:FV.serverTimestamp(),estado:'enviada'});
-      cerrar('ovGen');toast('Promoción enviada ('+(semana+1)+'/3 esta semana)');
-    }catch(e){console.error(e);toast('No se pudo enviar la promoción');}
+      cerrar('ovGen');toast('Novedad publicada ('+(semana+1)+'/3 esta semana)');
+    }catch(e){console.error(e);toast('No se pudo publicar la novedad');}
   };
 }
 /* ===== FORMULARIO: PUBLICAR / EDITAR COMERCIO ===== */
@@ -1051,11 +1105,16 @@ async function publicarComercio(){
     if(ubicacionForm){datos.lat=ubicacionForm[0];datos.lng=ubicacionForm[1];datos.ubicacion_aprox=false;}
     if(img)datos.imagen=img;
     if($('#fPremium').style.display!=='none'){datos.redesSociales=redes;datos.sitioWeb=$('#fWeb').value.trim();}
-    if(editandoId){await db.collection('comercios').doc(editandoId).update(datos);toast('"'+nombre+'" actualizado');}
+    if(editandoId){
+      const actual=buscar(editandoId);const reenviar=actual&&actual.estado_publicacion==='rechazado';
+      if(reenviar){datos.estado_publicacion='pendiente';datos.motivo_rechazo=FV.delete();}
+      await db.collection('comercios').doc(editandoId).update(datos);
+      toast(reenviar?'Cambios enviados a revisión':'"'+nombre+'" actualizado');
+    }
     else{
       if(!ubicacionForm){datos.lat=PLAZA_FUSA[0];datos.lng=PLAZA_FUSA[1];datos.ubicacion_aprox=true;}
-      Object.assign(datos,{rating:0,esPremium:false,prioridadBusqueda:0,redesSociales:{},sitioWeb:'',imagen:img||'',fechaCreacion:FV.serverTimestamp()});
-      await db.collection('comercios').add(datos);toast('"'+nombre+'" publicado en Fusa Conecta');
+      Object.assign(datos,{estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,redesSociales:{},sitioWeb:'',imagen:img||'',fechaCreacion:FV.serverTimestamp()});
+      await db.collection('comercios').add(datos);toast('Tu comercio quedó en revisión. Aparecerá en el directorio cuando un administrador lo apruebe.');
     }
     editandoId=null;cerrar('ovForm');
     if(vistaActual().tipo!=='dashboard')navegar({tipo:'dashboard'});
@@ -1210,7 +1269,7 @@ async function _procesarUsuario(user){
   registroPendiente=null;
   if(quiereProductor&&esComerciante()){stack.length=0;navegar({tipo:'dashboard'});}
   else refrescarTodo();
-  escucharPromociones();sincronizarCupones();
+  escucharPromociones();sincronizarCupones();escucharMisComercios();
 }
 function pedirConsentimiento(rol){
   return new Promise(res=>{
@@ -1256,7 +1315,7 @@ auth.getRedirectResult().catch(async e=>{
   if(e&&e.code)toast(mensajeAuth(e));
 });
 auth.onAuthStateChanged(user=>{
-  if(!user){estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
+  if(!user){dejarDeEscucharMisComercios();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user);
   if(!user.isAnonymous&&!$('#splash').classList.contains('oculto'))setTimeout(ocultarSplash,2600);
@@ -1285,6 +1344,35 @@ function mostrarPromo(n){
   if('Notification'in window&&Notification.permission==='granted'&&navigator.serviceWorker){
     navigator.serviceWorker.ready.then(r=>r.showNotification(n.comercio_nombre+': '+n.titulo,{body:n.mensaje,icon:'img/icons/icon-192.png',tag:'promo'})).catch(()=>{});
   }
+}
+
+/* ===== NOVEDADES: bandeja con punto de no leído (no es push real; FCM queda para otra versión) ===== */
+estado.novedades=[];
+db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapshot(s=>{
+  estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
+},()=>{});
+function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length;}
+function campanaHTML(){
+  const n=noLeidas();
+  return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+'">'+icon('bell')+(n?'<span class="punto-nuevo" aria-hidden="true"></span>':'')+'</button>';
+}
+function actualizarCampana(){
+  const b=$('#bNovedades');if(!b)return;const n=noLeidas();
+  b.setAttribute('aria-label','Novedades'+(n?', '+n+' sin leer':''));
+  const p=b.querySelector('.punto-nuevo');
+  if(n&&!p)b.insertAdjacentHTML('beforeend','<span class="punto-nuevo" aria-hidden="true"></span>');
+  if(!n&&p)p.remove();
+}
+function abrirNovedades(){
+  const visto=ls.get('fc_novedades_leido',0);const lista=estado.novedades;
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2><p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
+    +(lista.length?'<div class="novedades">'+lista.map(n=>'<button class="novedad'+((aMs(n.fecha_envio)||0)>visto?' nueva':'')+'" data-com="'+esc(n.comercio_id)+'">'
+        +'<span class="nv-ic">'+icon('megaphone',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
+        +'<small>'+esc(n.comercio_nombre||'')+' · '+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>'
+      :'<div class="vacio">'+icon('bell',48)+'<b>Aún no hay novedades</b><p>Aquí verás las promociones de los comercios destacados.</p></div>')
+    +'</div>');
+  $$('#sheetGen [data-com]').forEach(b=>b.onclick=()=>{cerrar('ovGen');abrirDetalle(b.dataset.com);});
+  ls.set('fc_novedades_leido',Date.now());actualizarCampana();
 }
 
 /* ===== FOOTER ===== */

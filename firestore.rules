@@ -1,57 +1,87 @@
 rules_version = '2';
 
-// Reglas de seguridad de Fusa Conecta (Documento Técnico v2, cap. 4.8).
-// - El directorio es de lectura pública (RF-03: modo invitado).
-// - Solo usuarios autenticados con cuenta real (no anónima) escriben.
-// - Cada comerciante solo modifica sus propios comercios, cupones y promociones.
+// Reglas de seguridad de Fusa Conecta v3 (Documento Técnico v2, cap. 4.8).
+// Toda la seguridad vive aquí: el cliente no puede saltarse estas reglas.
+// - Directorio público: solo comercios aprobados por un administrador.
+// - Roles: usuario, comerciante y admin (admin solo se asigna a mano en la consola).
+// - Cupones (plan Spark, sin Cloud Functions): obtener un cupón exige, en la MISMA
+//   transacción, descontar 1 al cupo y crear el canje {cuponId}_{uid}.
+//
+// Desplegar:  firebase deploy --only firestore:rules --project fusa-conecta
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function autenticado() {
-      return request.auth != null;
-    }
+    /* ---------- Funciones auxiliares ---------- */
+    function autenticado() { return request.auth != null; }
     function cuentaReal() {
       return autenticado() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
-    function esAdmin() {
-      return cuentaReal()
-        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'admin';
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
     }
+    function tienePerfil() {
+      return cuentaReal() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+    function esAdmin() { return tienePerfil() && perfil().rol == 'admin'; }
+    function esComerciante() { return tienePerfil() && perfil().rol in ['comerciante', 'admin']; }
+    function comercio(id) { return get(/databases/$(database)/documents/comercios/$(id)).data; }
     function duenoDe(comercioId) {
-      return cuentaReal()
-        && get(/databases/$(database)/documents/comercios/$(comercioId)).data.propietario_uid == request.auth.uid;
+      return cuentaReal() && comercio(comercioId).get('propietario_uid', '') == request.auth.uid;
     }
+    function premiumVigente(c) {
+      return c.get('esPremium', false) == true
+        && (c.get('suscripcion_vigente_hasta', null) == null || c.suscripcion_vigente_hasta > request.time);
+    }
+    function duenoPremium(comercioId) { return duenoDe(comercioId) && premiumVigente(comercio(comercioId)); }
+    function cambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos); }
+    function soloCambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos); }
 
-    // Identidad y consentimiento Ley 1581 (RF-02, RNF-05). Nunca guarda contraseñas.
+    /* ---------- Usuarios: identidad y consentimiento Ley 1581 ---------- */
     match /usuarios/{uid} {
       allow read: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
+      // Solo se crea como usuario o comerciante; "admin" se asigna a mano en la consola.
       allow create: if cuentaReal() && request.auth.uid == uid
         && request.resource.data.consentimiento_ley1581 == true
         && request.resource.data.rol in ['usuario', 'comerciante'];
-      allow update: if cuentaReal() && request.auth.uid == uid
-        && request.resource.data.fecha_consentimiento == resource.data.fecha_consentimiento
-        && request.resource.data.consentimiento_ley1581 == true
-        && (request.resource.data.rol == resource.data.rol
-            || (resource.data.rol == 'usuario' && request.resource.data.rol == 'comerciante'));
+      // El propio usuario no puede cambiar su rol (salvo pasar de usuario a comerciante)
+      // ni la fecha de su consentimiento.
+      allow update: if (cuentaReal() && request.auth.uid == uid
+          && request.resource.data.fecha_consentimiento == resource.data.fecha_consentimiento
+          && request.resource.data.consentimiento_ley1581 == true
+          && (request.resource.data.rol == resource.data.rol
+              || (resource.data.rol == 'usuario' && request.resource.data.rol == 'comerciante')))
+        || esAdmin();
       allow delete: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
     }
 
-    // Directorio comercial: fuente de verdad (RF-08, RF-19 a RF-21).
+    /* ---------- Comercios ---------- */
     match /comercios/{id} {
-      allow read: if true;
-      allow create: if cuentaReal()
+      // Público: solo aprobados. El dueño ve los suyos en cualquier estado. El admin, todos.
+      allow read: if resource.data.get('estado_publicacion', '') == 'aprobado'
+        || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid)
+        || esAdmin();
+      // Todo comercio nuevo entra "pendiente" de revisión y sin privilegios Premium.
+      allow create: if esComerciante()
         && request.resource.data.propietario_uid == request.auth.uid
+        && request.resource.data.estado_publicacion == 'pendiente'
+        && request.resource.data.get('esPremium', false) == false
+        && request.resource.data.get('prioridadBusqueda', 0) == 0
+        && !request.resource.data.keys().hasAny(['suscripcion_vigente_hasta', 'prueba_usada', 'fecha_aprobacion', 'motivo_rechazo'])
         && request.resource.data.nombre is string
         && request.resource.data.nombre.size() > 0;
+      // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
+      // Excepción: el dueño puede reenviar a revisión un comercio rechazado.
       allow update: if esAdmin()
-        || (cuentaReal() && resource.data.propietario_uid == request.auth.uid
-            && request.resource.data.propietario_uid == request.auth.uid);
+        || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
+            && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
+            && (!cambia(['estado_publicacion', 'motivo_rechazo'])
+                || (resource.data.get('estado_publicacion', '') == 'rechazado'
+                    && request.resource.data.estado_publicacion == 'pendiente')));
       allow delete: if esAdmin()
-        || (cuentaReal() && resource.data.propietario_uid == request.auth.uid);
+        || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid);
     }
 
-    // Calificaciones: una por usuario y comercio, el id es "<comercio>_<uid>" (RF-12).
+    /* ---------- Calificaciones: una por usuario y comercio (id "<comercio>_<uid>") ---------- */
     match /calificaciones/{id} {
       allow read: if true;
       allow create, update: if cuentaReal()
@@ -66,45 +96,98 @@ service cloud.firestore {
         || (cuentaReal() && resource.data.usuario_uid == request.auth.uid);
     }
 
-    // Cupones publicados por el comerciante Premium (RF-11, CU-16).
+    /* ---------- Cupones ---------- */
     match /cupones/{id} {
       allow read: if true;
-      allow create: if duenoDe(request.resource.data.comercio_id)
-        && request.resource.data.cupo_restante >= 0;
-      allow update: if duenoDe(resource.data.comercio_id)
-        && request.resource.data.comercio_id == resource.data.comercio_id
-        && request.resource.data.cupo_restante >= 0;
+      // Solo el dueño de un comercio con Premium vigente crea cupones.
+      allow create: if duenoPremium(request.resource.data.comercio_id)
+        && request.resource.data.propietario_uid == request.auth.uid
+        && request.resource.data.estado == 'activo'
+        && request.resource.data.cupo_total is int
+        && request.resource.data.cupo_total > 0
+        && request.resource.data.cupo_restante == request.resource.data.cupo_total;
+      allow update: if
+        // El dueño Premium edita su cupón (sin cambiar de comercio ni subir el cupo por encima del total)
+        (duenoPremium(resource.data.comercio_id)
+          && !cambia(['comercio_id', 'propietario_uid'])
+          && request.resource.data.cupo_restante >= 0
+          && request.resource.data.cupo_restante <= request.resource.data.cupo_total)
+        // El dueño siempre puede pausar o finalizar su cupón
+        || (duenoDe(resource.data.comercio_id) && soloCambia(['estado'])
+          && request.resource.data.estado in ['activo', 'pausado', 'finalizado'])
+        // Un cliente "obtiene" el cupón: baja exactamente 1 el cupo y crea su canje en la misma transacción
+        || (cuentaReal()
+          && soloCambia(['cupo_restante'])
+          && resource.data.estado == 'activo'
+          && resource.data.cupo_restante > 0
+          && request.resource.data.cupo_restante == resource.data.cupo_restante - 1
+          && !exists(/databases/$(database)/documents/canjes/$(id + '_' + request.auth.uid))
+          && existsAfter(/databases/$(database)/documents/canjes/$(id + '_' + request.auth.uid)));
       allow delete: if esAdmin() || duenoDe(resource.data.comercio_id);
     }
 
-    // Cupones generados por un usuario. El id "<cupon>_<uid>_<AAAAMMDD>" limita a 1 por día (RF-11).
+    /* ---------- Canjes: un cupón por persona, id "<cuponId>_<uid>" ---------- */
     match /canjes/{id} {
-      allow read: if cuentaReal()
-        && (resource.data.usuario_uid == request.auth.uid
-            || resource.data.propietario_uid == request.auth.uid);
+      // Se permite consultar si existe el propio canje antes de crearlo (dentro de la transacción).
+      allow get: if cuentaReal() && (
+        (resource == null && id.matches('.+_' + request.auth.uid))
+        || (resource != null && (resource.data.usuario_uid == request.auth.uid
+                                 || resource.data.propietario_uid == request.auth.uid))
+        || esAdmin());
+      allow list: if (cuentaReal() && (resource.data.usuario_uid == request.auth.uid
+                                       || resource.data.propietario_uid == request.auth.uid))
+        || esAdmin();
+      // Crear: el propio usuario, en estado "reservado", y solo si el cupo baja 1 en la misma transacción.
       allow create: if cuentaReal()
+        && id == request.resource.data.cupon_id + '_' + request.auth.uid
         && request.resource.data.usuario_uid == request.auth.uid
-        && request.resource.data.estado == 'activo'
-        && id.matches(request.resource.data.cupon_id + '_' + request.auth.uid + '_[0-9]{8}');
-      // Solo el comerciante dueño valida el canje, y solo una vez (activo -> usado).
-      allow update: if cuentaReal()
-        && resource.data.propietario_uid == request.auth.uid
-        && resource.data.estado == 'activo'
+        && request.resource.data.estado == 'reservado'
+        && request.resource.data.comercio_id == get(/databases/$(database)/documents/cupones/$(request.resource.data.cupon_id)).data.comercio_id
+        && request.resource.data.propietario_uid == get(/databases/$(database)/documents/cupones/$(request.resource.data.cupon_id)).data.propietario_uid
+        && getAfter(/databases/$(database)/documents/cupones/$(request.resource.data.cupon_id)).data.cupo_restante
+           == get(/databases/$(database)/documents/cupones/$(request.resource.data.cupon_id)).data.cupo_restante - 1;
+      // Canjear: solo el dueño del comercio (o un admin), una sola vez: reservado -> usado.
+      allow update: if ((cuentaReal() && resource.data.propietario_uid == request.auth.uid) || esAdmin())
+        && resource.data.estado in ['reservado', 'activo']
         && request.resource.data.estado == 'usado'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'fecha_canje']);
+        && request.resource.data.canjeado_por == request.auth.uid
+        && soloCambia(['estado', 'fecha_canje', 'canjeado_por']);
     }
 
-    // Promociones de comercios Premium (RF-18).
+    /* ---------- Novedades de comercios Premium (antes "notificaciones") ---------- */
     match /notificaciones/{id} {
       allow read: if true;
-      allow create: if duenoDe(request.resource.data.comercio_id)
+      allow create: if duenoPremium(request.resource.data.comercio_id)
         && request.resource.data.titulo is string
         && request.resource.data.mensaje is string
         && request.resource.data.mensaje.size() <= 280;
       allow delete: if esAdmin() || duenoDe(resource.data.comercio_id);
     }
 
-    // Moderación de contenido (CU-18).
+    /* ---------- Solicitudes (Premium y reclamos de negocio) ---------- */
+    match /solicitudes/{id} {
+      allow create: if cuentaReal()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.tipo in ['premium', 'reclamo']
+        && request.resource.data.estado == 'pendiente';
+      // El solicitante puede ver el estado de su propia solicitud; el admin las gestiona.
+      allow read: if esAdmin() || (cuentaReal() && resource.data.uid == request.auth.uid);
+      allow update, delete: if esAdmin();
+    }
+
+    /* ---------- Reportes de reseñas o fichas ---------- */
+    match /reportes/{id} {
+      allow create: if cuentaReal() && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if esAdmin();
+    }
+
+    /* ---------- Números de emergencia editables por el admin ---------- */
+    match /emergencias/{id} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
+    /* ---------- Moderación general (CU-18) ---------- */
     match /{document=**} {
       allow read, write: if esAdmin();
     }

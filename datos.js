@@ -291,11 +291,3 @@ const EMERGENCIAS={
   ]
 };
 
-// Cupones de ejemplo de los comercios Premium de demostración (RF-11).
-const CUPONES_BASE=[
-  {id:'demo-c01',comercio_id:'c01',descripcion:'10% en café de origen (bolsa de 500 g)',porcentajeDescuento:10,vigencia:'2026-12-31',terminos:'Un cupón por persona al día.'},
-  {id:'demo-c12',comercio_id:'c12',descripcion:'15% en pizzas medianas de martes a jueves',porcentajeDescuento:15,vigencia:'2026-12-31',terminos:'No acumulable con otras promociones.'},
-  {id:'demo-c30',comercio_id:'c30',descripcion:'15% en la catación guiada de café',porcentajeDescuento:15,vigencia:'2026-12-31',terminos:'Sujeto a disponibilidad de cupos.'},
-  {id:'demo-c32',comercio_id:'c32',descripcion:'10% en tu segunda noche de alojamiento',porcentajeDescuento:10,vigencia:'2026-12-31',terminos:'Aplica para reservas directas.'},
-  {id:'demo-c41',comercio_id:'c41',descripcion:'10% en coctelería de autor de jueves a sábado',porcentajeDescuento:10,vigencia:'2026-12-31',terminos:'Solo mayores de 18 años.'}
-];
