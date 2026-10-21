@@ -434,7 +434,7 @@ function cardHTML(d){
     +'<p class="card-desc">'+esc(d.desc)+'</p>'
     +'<div class="card-acc">'
     +'<button class="btn btn-tonal" data-ver="'+esc(d.id)+'">Ver detalles</button>'
-    +'<button class="btn btn-secundario btn-ico" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',20,'ic-wa')+'</button>'
+    +'<button class="btn-wa" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'</button>'
     +'<a class="btn btn-secundario btn-ico" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'</a>'
     +'</div></div></article>';
 }
@@ -624,7 +624,7 @@ function abrirDetalle(id){
     +'</div>'
     +'<div class="det-acc-fija">'
     +'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
-    +'<button class="btn btn-secundario" id="detWa" aria-label="Escribir por WhatsApp">'+icon('whatsapp',20,'ic-wa')+'WhatsApp</button>'
+    +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
     +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>'
     +'</div>';
 
@@ -713,7 +713,7 @@ function ticketHTML(t){
     +(t.detalle?'<span class="ticket-det">'+t.detalle+'</span>':'')
     +(t.accion||'')+'</div></div>';
 }
-const ICONO_TIPO_CUPON={descuento:'percent','2x1':'copy',regalo:'gift',precio:'tag'};
+const ICONO_TIPO_CUPON={descuento:'percent','2x1':'ticket',regalo:'gift',precio:'tag'};
 function detalleCupon(c){
   const dias=diasTexto(c.dias);
   return 'Vence el '+fechaCorta(aMs(c.vigencia))+(c.cupo_restante!=null?' · quedan '+c.cupo_restante:'')+(dias?' · '+dias:'');
@@ -891,7 +891,7 @@ function enlazarCuponesSemana(){
 /* ---------- El comerciante CREA el cupón: asistente de 3 pasos ---------- */
 const PLANTILLAS_CUPON=[
   {k:'descuento',t:'% de descuento',ic:'percent',texto:'15% de descuento en tu compra'},
-  {k:'2x1',t:'2×1',ic:'copy',texto:'2×1 en tu producto favorito'},
+  {k:'2x1',t:'2×1',ic:'ticket',texto:'2×1 en tu producto favorito'},
   {k:'regalo',t:'Regalo con tu compra',ic:'gift',texto:'Un regalo sorpresa con tu compra'},
   {k:'precio',t:'Precio especial',ic:'tag',texto:'Precio especial para clientes de Fusa Conecta'}
 ];
@@ -1212,8 +1212,8 @@ async function dibujarPoster(d,formato){
   const tamQR=formato==='carta'?760:400;
   await pintarQR(tmp,enlaceFicha(d.id),tamQR);
   const qr=tmp.querySelector('canvas');if(!qr)throw new Error('qr');
-  let hoja=0;
-  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,()=>'<path fill="'+c(hoja++===0?'--primary-500':'--green-500')+'" '));
+  const COLORES_LOGO=['--primary-500','--mint-300','--mint-600','--mint-400'];let hoja=0;
+  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,()=>'<path fill="'+c(COLORES_LOGO[hoja++%4])+'" '));
   ctx.fillStyle=c('--bg');ctx.fillRect(0,0,F.w,F.h);
   const texto=(t,x,y,tam,peso,color,alin='center',max=F.w-120)=>{ctx.font=peso+' '+tam+'px '+fuente;ctx.fillStyle=color;ctx.textAlign=alin;ctx.textBaseline='top';
     const ls=lineasTexto(ctx,t,max);ls.forEach((l,i)=>ctx.fillText(l,x,y+i*tam*1.25));return y+ls.length*tam*1.25;};
