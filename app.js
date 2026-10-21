@@ -111,7 +111,12 @@ function normalizarNube(id,x){
     tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada};
 }
-function reconstruirDirectorio(){database=[...COMERCIOS_BASE.map(c=>({...c})),...comerciosNube];}
+function reconstruirDirectorio(){
+  // Un negocio reclamado o corregido por el admin se guarda en la nube con el mismo id y reemplaza su copia local
+  const porId=new Map(COMERCIOS_BASE.map(c=>[c.id,{...c}]));
+  comerciosNube.forEach(c=>porId.set(c.id,c));
+  database=[...porId.values()];
+}
 // La regla pública solo deja leer comercios aprobados; una consulta sin este filtro sería rechazada completa.
 db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapshot(snap=>{
   const lista=[];
@@ -136,7 +141,7 @@ function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUn
 
 db.collection('calificaciones').onSnapshot(snap=>{
   const c={};
-  snap.forEach(doc=>{const x=doc.data();(c[x.comercio_id]=c[x.comercio_id]||[]).push({...x,_id:doc.id});});
+  snap.forEach(doc=>{const x=doc.data();if(x.estado_moderacion==='oculto')return;(c[x.comercio_id]=c[x.comercio_id]||[]).push({...x,_id:doc.id});});
   Object.values(c).forEach(l=>l.sort((a,b)=>(aMs(b.fecha)||0)-(aMs(a.fecha)||0)));
   estado.califs=c;refrescarVista();
 },err=>console.warn('Calificaciones sin conexión:',err.code));
@@ -144,6 +149,14 @@ db.collection('calificaciones').onSnapshot(snap=>{
 db.collection('cupones').onSnapshot(snap=>{
   estado.cuponesFS=[];snap.forEach(doc=>estado.cuponesFS.push({id:doc.id,...doc.data()}));
 },()=>{});
+
+// Números de emergencia editados por el admin; si no hay, se usan los de datos.js. Copia local para modo avión.
+estado.emergencias=ls.get('fc_emergencias',{});
+db.collection('emergencias').onSnapshot(s=>{
+  const e={};s.forEach(d=>{const x=d.data();e[d.id]={lista:x.lista||[],actualizado:aMs(x.actualizado)};});
+  estado.emergencias=e;ls.set('fc_emergencias',e);if(vistaActual().tipo==='sos')render(true);
+},()=>{});
+function listaEmergencias(mun){const e=estado.emergencias[mun];return e&&e.lista&&e.lista.length?e.lista:EMERGENCIAS[mun];}
 
 function premiumVigente(d){if(!d.esPremium)return false;return !d.suscripcion_vigente_hasta||d.suscripcion_vigente_hasta>Date.now();}
 // Solo cuentan las calificaciones reales de usuarios: sin reseñas no se muestran estrellas
@@ -216,7 +229,7 @@ function estadoApertura(d){
 }
 function estadoHTML(ap){return ap?'<span class="estado '+ap.tipo+'"><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
 function horarioTexto(d){
-  if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+d.abre+' – '+d.cierra;
+  if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra);
   return d.horario||'Consultar directamente';
 }
 
@@ -418,7 +431,7 @@ function cardHTML(d){
     +'<div class="card-acc">'
     +'<button class="btn btn-primario" data-ver="'+esc(d.id)+'">Ver detalles</button>'
     +'<button class="btn btn-secundario btn-ico" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',20,'ic-wa')+'</button>'
-    +'<a class="btn btn-secundario btn-ico" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'</a>'
+    +'<a class="btn btn-secundario btn-ico" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'</a>'
     +'</div></div></article>';
 }
 function enlazarTarjetas(){
@@ -439,6 +452,7 @@ function abrirWhatsApp(d){
   if(!d)return;
   const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
   if(!wa){toast('Este comercio no tiene WhatsApp registrado. Puedes llamar al '+d.tel);return;}
+  registrarEvento(d,'toques_wa');
   const msg='Hola '+d.nombre+', te encontré en Fusa Conecta. Quisiera más información.';
   window.open('https://wa.me/57'+wa+'?text='+encodeURIComponent(msg),'_blank','noopener');
 }
@@ -483,6 +497,7 @@ function render(conservarScroll){
   else if(v.tipo==='sos')renderSOS();
   else if(v.tipo==='mapa')renderMapa();
   else if(v.tipo==='ruta')renderRuta(v.id);
+  else if(v.tipo==='admin')renderAdmin();
   else renderLista(v);
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
@@ -524,6 +539,7 @@ function cuponesDe(d){
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
 function abrirDetalle(id){
   const d=buscar(id);if(!d)return;
+  registrarEvento(d,'vistas');
   const esFav=estado.favoritos.includes(String(d.id));
   const esDueno=logueado()&&d.propietario_uid&&d.propietario_uid===estado.usuario.uid;
   const cal=calificacionDe(d);const ap=estadoApertura(d);const km=distanciaA(d);
@@ -538,7 +554,7 @@ function abrirDetalle(id){
     :califs.map(c=>'<div class="opinion"><div class="op-head"><span class="op-user">'+esc(c.usuario_nombre||'Usuario')+'</span>'
       +'<span class="op-stars" aria-label="'+c.estrellas+' de 5 estrellas">'+estrellasFijas(c.estrellas)+'</span></div>'
       +(c.comentario?'<p class="op-text">'+esc(c.comentario)+'</p>':'')
-      +'<span class="op-fecha">'+fechaCorta(aMs(c.fecha))+(c.fueEditada?' · editada':'')+'</span></div>').join('');
+      +'<span class="op-fecha">'+fechaCorta(aMs(c.fecha))+(c.fueEditada?' · editada':'')+' · <button class="enlace-discreto" data-rep="'+esc(c._id)+'">Reportar</button></span></div>').join('');
   const formCalif=logueado()
     ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella':' estrellas')+'">'+icon('star',28)+'</button>').join('')+'</div>'
       +'<div class="campo"><label for="ratingTxt">Tu opinión (opcional)</label><textarea id="ratingTxt" maxlength="500" placeholder="Cuéntanos tu experiencia...">'+esc(miCalif?miCalif.comentario:'')+'</textarea></div>'
@@ -596,9 +612,11 @@ function abrirDetalle(id){
     +(esDueno?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('pencil')+'Editar mi comercio</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
+    +'<div class="det-pie">'+(!d.propietario_uid?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
+    +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
-    +'<a class="btn btn-primario" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
+    +'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
     +'<button class="btn btn-secundario" id="detWa" aria-label="Escribir por WhatsApp">'+icon('whatsapp',20,'ic-wa')+'WhatsApp</button>'
     +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>'
     +'</div>';
@@ -609,11 +627,14 @@ function abrirDetalle(id){
   abrir('ovDetalle');
   $('#cerrarDet').onclick=()=>cerrar('ovDetalle');
   $('#detWa').onclick=()=>abrirWhatsApp(d);
-  $('#detShare').onclick=()=>compartir(d.nombre,'c/'+d.id);
+  $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
   $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
   $$('#sheetDetalle [data-cupon]').forEach(b=>b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon)));
   if(esDueno)$('#btnEditar').onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
+  const br=$('#bReclamar');if(br)br.onclick=()=>{cerrar('ovDetalle');reclamarNegocio(d);};
+  $('#bReportar').onclick=()=>{cerrar('ovDetalle');reportar(d);};
+  $$('#sheetDetalle [data-rep]').forEach(b=>b.onclick=()=>{cerrar('ovDetalle');reportar(d,califs.find(c=>c._id===b.dataset.rep));});
   if(!logueado()){$('#bLoginCalif').onclick=()=>pedirLogin('Inicia sesión para calificar y comentar.');return;}
   let val=miCalif?miCalif.estrellas:0;
   const stars=$$('#starSel button');
@@ -674,6 +695,7 @@ async function generarCupon(d,cupon){
     });
     const c=serializarCupon({id,...r.datos,fecha_emision:Date.now()});
     guardarCuponLocal(c);mostrarCupon(c);
+    if(!r.ya)registrarEvento(d,'cupones_obtenidos');
     toast(r.ya?'Ya tienes este cupón':'Cupón guardado en tu billetera');
   }catch(e){
     console.warn(e);
@@ -811,8 +833,8 @@ async function renderRuta(id){
 /* ===== EMERGENCIAS SIN CONEXIÓN (RF-16, RNF-02, CU-14) ===== */
 function renderSOS(){
   const cuerpo=$('#cuerpo');
-  const mun=estado.sosMunicipio;const lista=EMERGENCIAS[mun];
-  const sync=ls.get('fc_sos_sync',Date.now());
+  const mun=estado.sosMunicipio;const lista=listaEmergencias(mun);
+  const sync=(estado.emergencias[mun]&&estado.emergencias[mun].actualizado)||ls.get('fc_sos_sync',Date.now());
   ls.set('fc_sos_consulta',Date.now());
   const grupos={};lista.forEach(e=>(grupos[e.tipo]=grupos[e.tipo]||[]).push(e));
   cuerpo.innerHTML='<div class="vista">'
@@ -855,11 +877,15 @@ function renderPerfil(){
   const cupones=cuponesLocales();
   const notifOn=p.notificaciones_push!==false;
   const rol=p.rol==='comerciante'?[ 'store','Productor / comerciante']:p.rol==='admin'?['shield-check','Administrador']:['user','Vecino / turista'];
+  const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
   cuerpo.innerHTML='<div class="vista">'
+    +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
+      +'<small>'+(nPrem?nPrem+' Premium por activar':'Aprueba comercios y activa Premium')+'</small></span>'
+      +(nAprobar?'<span class="globo">'+nAprobar+' por aprobar</span>':'')+icon('chevron-right')+'</button>':'')
     +'<div class="perfil-card"><div class="pf-av">'+esc(u.nombre.charAt(0).toUpperCase())+'</div><h2>'+esc(u.nombre)+'</h2><p>'+esc(u.email)+'</p>'
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
-    +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn btn-primario btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
+    +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn '+(esAdmin()?'btn-secundario':'btn-primario')+' btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +(cupones.length?cupones.map(c=>'<button class="pf-cupon" data-mic="'+esc(c.id)+'"><b>'+esc(c.comercio_nombre)+'</b><small>'+esc(c.descripcion)+' · '+esc(c.codigo)+'</small><span class="'+(estadoCupon(c)!=='activo'?'usado':'')+'">'+({usado:'Canjeado',vencido:'Vencido',activo:'Ver QR'})[estadoCupon(c)]+'</span></button>').join(''):'<p class="nota-c izq">Aún no has generado cupones. Búscalos en los comercios destacados.</p>')
     +'</div>'
@@ -873,6 +899,7 @@ function renderPerfil(){
     +'</div>'+footerHTML();
   const r=$('#pfReenviar');if(r)r.onclick=()=>auth.currentUser.sendEmailVerification().then(()=>toast('Te enviamos el correo de verificación')).catch(()=>toast('Intenta de nuevo en unos minutos'));
   const pn=$('#pfPanel');if(pn)pn.onclick=()=>navegar({tipo:'dashboard'});
+  const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=async()=>{
     if(!await confirmar('Registrar mi negocio','Tu cuenta pasará a ser de productor y podrás publicar tus comercios.','Continuar','Cancelar','store'))return;
     try{await db.collection('usuarios').doc(u.uid).update({rol:'comerciante'});estado.perfil.rol='comerciante';ls.set('fc_perfil_'+u.uid,estado.perfil);navegar({tipo:'dashboard'});}
@@ -904,65 +931,115 @@ async function sincronizarCupones(){
   }catch(e){}
 }
 
-/* ===== PANEL DEL COMERCIANTE (CU-15, CU-16, CU-17) ===== */
+/* ===== PANEL DEL COMERCIANTE "Mi negocio" (Fase 2.2) ===== */
 // Comercios del dueño en cualquier estado (vienen de su propio listener)
 function misComercios(){return logueado()?comerciosPropios:[];}
 let solicitudesPremium=new Set();
+let canjesPropios=[];
 function estadoPublicacionHTML(d){
   const e=d.estado_publicacion||'pendiente';
   if(e==='aprobado')return '<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>';
-  if(e==='rechazado')return '<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado'+(d.motivo_rechazo?': '+esc(d.motivo_rechazo):'')+'</span>';
+  if(e==='rechazado')return '<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>';
   return '<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
+}
+// Estadísticas del mes: comercios/{id}/estadisticas/{aaaa-mm} con incrementos atómicos
+function mesClave(t=new Date()){return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');}
+function registrarEvento(d,campo){
+  if(!d||!d.propietario_uid||!auth.currentUser)return;
+  if(logueado()&&d.propietario_uid===estado.usuario.uid)return; // el dueño no infla sus propias cifras
+  db.collection('comercios').doc(String(d.id)).collection('estadisticas').doc(mesClave()).set({[campo]:FV.increment(1)},{merge:true}).catch(()=>{});
 }
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
   if(!esComerciante()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de productores</b><p>Inicia sesión con tu cuenta de productor.</p></div>';return;}
-  const nom=estado.usuario.nombre;const mis=misComercios();
-  const publicados=mis.filter(d=>d.estado_publicacion==='aprobado').length;
-  const enRevision=mis.filter(d=>d.estado_publicacion==='pendiente').length;
-  const cards=mis.length===0
-    ?'<div class="vacio">'+icon('store',48)+'<b>Aún no tienes comercios registrados</b><p>Toca «Registrar nuevo comercio». Un administrador lo revisará antes de publicarlo.</p></div>'
-    :mis.map(d=>{
-      const prem=premiumVigente(d);const img=imgSegura(d.imagen);const cal=calificacionDe(d);
-      const pedido=solicitudesPremium.has(d.id);
-      return '<div class="dash-card"><div class="dc-ico">'+(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'">':icon(iconoDe(d)))+'</div>'
-        +'<div class="dc-info"><h3>'+esc(d.nombre)+'</h3><p>'+esc(etiquetaDe(d))+' · '+esc(d.direccion)+'</p>'
-        +estadoPublicacionHTML(d)
-        +(cal.total?'<div class="meta">'+califHTML(cal)+'</div>':'')
-        +'<p class="dc-plan '+(prem?'prem':'')+'">'+(prem?icon('star',14,'ic-fill')+'Premium hasta '+fechaCorta(d.suscripcion_vigente_hasta):'Plan Gratis')+'</p>'
-        +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-eid="'+esc(d.id)+'">'+icon('pencil',16)+'Editar</button>'
-        +'<button class="btn btn-secundario btn-sm" data-ver="'+esc(d.id)+'">Ver ficha</button>'
-        +(prem?'<button class="btn btn-secundario btn-sm" data-cup="'+esc(d.id)+'">'+icon('ticket',16)+'Cupón</button><button class="btn btn-secundario btn-sm" data-promo="'+esc(d.id)+'">'+icon('megaphone',16)+'Novedad</button>'
-          :(pedido?'<button class="btn btn-secundario btn-sm" disabled>'+icon('clock',16)+'Premium solicitado</button>'
-                  :'<button class="btn btn-secundario btn-sm" data-prem="'+esc(d.id)+'">'+icon('star',16)+'Solicitar Premium</button>'))
-        +'</div></div></div>';
-    }).join('');
-  cuerpo.innerHTML='<div class="dash-hero"><h2>Mi panel, mi negocio</h2><p>Hola, '+esc(nom)+'. Gestiona tus comercios en Fusa Conecta.</p>'
-    +'<div class="dash-stats"><div class="dash-stat"><div class="ds-n">'+publicados+'</div><div class="ds-l">Publicados</div></div>'
-    +'<div class="dash-stat"><div class="ds-n">'+enRevision+'</div><div class="ds-l">En revisión</div></div>'
-    +'<div class="dash-stat"><div class="ds-n" id="dsCanjes">…</div><div class="ds-l">Cupones canjeados</div></div></div></div>'
-    +'<div class="dash-body"><button class="btn btn-primario btn-bloque" id="bDashNuevo">'+icon('plus')+'Registrar nuevo comercio</button>'
-    +'<p class="dash-section">Mis negocios</p><div id="dashGrid">'+cards+'</div>'
-    +'<p class="dash-section">Validar cupón de un cliente</p><div class="validar-row"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters"><button class="btn btn-secundario" id="vValidar">'+icon('badge-check')+'Validar</button></div><p class="nota-c izq" id="vRes" role="status"></p>'
-    +'<button class="btn btn-secundario btn-bloque mt-16" id="bExplorar">'+icon('search')+'Ver directorio completo</button></div>';
+  const mis=misComercios();
+  if(!mis.length){
+    cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mi negocio</h2></div>'
+      +'<div class="vacio">'+icon('store',48)+'<b>Aún no tienes tu negocio en Fusa Conecta</b><p>Regístralo en 4 pasos. Un administrador lo revisará antes de publicarlo.</p>'
+      +'<button class="btn btn-primario mt-16" id="bDashNuevo">'+icon('plus')+'Registrar mi negocio</button>'
+      +'<p class="nota">¿Ya aparece en el directorio? Ábrelo y toca «¿Es tu negocio? Reclámalo».</p></div></div>'+footerHTML();
+    $('#bDashNuevo').onclick=()=>abrirFormComercio(null);enlazarFooter();return;
+  }
+  if(!mis.some(d=>d.id===estado.comercioSel))estado.comercioSel=mis[0].id;
+  const d=mis.find(x=>x.id===estado.comercioSel);
+  const prem=premiumVigente(d),pedido=solicitudesPremium.has(d.id),e=d.estado_publicacion||'pendiente';
+  const tarjetaEstado=e==='aprobado'
+    ?'<div class="estado-card pub">'+icon('circle-check',22)+'<div><b>Publicado</b><span>Tu negocio aparece en el directorio de Fusa Conecta.</span></div></div>'
+    :e==='rechazado'
+    ?'<div class="estado-card rech">'+icon('circle-alert',22)+'<div><b>Rechazado'+(d.motivo_rechazo?': '+esc(d.motivo_rechazo):'')+'</b><span>Corrige la información y envíala de nuevo a revisión.</span><button class="btn btn-secundario btn-sm mt-8" id="bCorregir">'+icon('pencil',16)+'Corregir y reenviar</button></div></div>'
+    :'<div class="estado-card rev">'+icon('clock',22)+'<div><b>En revisión</b><span>Un administrador revisará tu negocio pronto. Mientras tanto no aparece en el directorio.</span></div></div>';
+  const plan='<div class="plan-fila">'+(prem
+      ?'<span class="dc-plan prem">'+icon('star',14,'ic-fill')+'Premium hasta '+fechaCorta(d.suscripcion_vigente_hasta)+'</span>'
+      :'<span class="dc-plan">Plan Gratis</span>'+(pedido?'<span class="nota-c">Premium solicitado</span>':'<button class="btn btn-ghost" id="bPremium">'+icon('star',16)+'Solicitar Premium</button>'))+'</div>';
+  const cupones=estado.cuponesFS.filter(c=>c.comercio_id===d.id);
+  const canjeadosDe=id=>canjesPropios.filter(k=>k.cupon_id===id&&k.estado==='usado').length;
+  const listaCupones=cupones.length?'<p class="dash-section">Mis cupones</p>'+cupones.map(c=>{
+      const total=c.cupo_total||0,obt=total-(c.cupo_restante||0),can=canjeadosDe(c.id),est=c.estado||'activo';
+      return '<div class="cupon-panel"><div class="cp-tit"><b>'+esc(c.descripcion)+'</b><span class="chip-estado '+(est==='activo'?'pub':'rev')+'">'+({activo:'Activo',pausado:'Pausado',finalizado:'Finalizado'})[est]+'</span></div>'
+        +'<div class="barra" role="progressbar" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+obt+'" aria-label="Cupones obtenidos"><span style="width:'+(total?Math.round(obt/total*100):0)+'%"></span></div>'
+        +'<p class="nota-c izq">'+obt+' de '+total+' obtenidos · '+can+' canjeados · vence '+fechaCorta(aMs(c.vigencia))+'</p>'
+        +(est==='finalizado'?'':'<div class="dc-actions">'+(est==='activo'?'<button class="btn btn-secundario btn-sm" data-cest="pausado" data-cid="'+esc(c.id)+'">Pausar</button>':'<button class="btn btn-secundario btn-sm" data-cest="activo" data-cid="'+esc(c.id)+'">Reanudar</button>')
+          +'<button class="btn btn-ghost" data-cest="finalizado" data-cid="'+esc(c.id)+'">Finalizar</button></div>')+'</div>';
+    }).join(''):'';
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const canjesHoy=canjesPropios.filter(k=>k.comercio_id===d.id&&k.estado==='usado'&&(aMs(k.fecha_canje)||0)>=hoy.getTime())
+    .sort((a,b)=>(aMs(b.fecha_canje)||0)-(aMs(a.fecha_canje)||0));
+  cuerpo.innerHTML='<div class="vista">'
+    +'<div class="dash-top"><h2>Mi negocio</h2>'
+    +(mis.length>1?'<label class="sr-only" for="selComercio">Elegir negocio</label><select class="input" id="selComercio">'+mis.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===d.id?' selected':'')+'>'+esc(x.nombre)+'</option>').join('')+'</select>':'<p class="dash-nombre">'+esc(d.nombre)+'</p>')
+    +'</div>'+tarjetaEstado+plan
+    +'<p class="dash-section">Este mes</p><div class="metricas">'
+    +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar'],['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]
+      .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')+'</div>'
+    +'<div class="acciones-grid">'
+    +'<button class="accion destacada" id="aEscanear">'+icon('qr-code',28)+'<b>Escanear cupón</b><span>Valida el cupón de un cliente</span></button>'
+    +(prem?'<button class="accion" id="aCupon">'+icon('ticket',28)+'<b>Crear cupón</b><span>Atrae clientes con un beneficio</span></button>'
+          :'<button class="accion bloqueada" id="aCupon" aria-label="Crear cupón: disponible con Premium. Solicitar">'+icon('lock',28)+'<b>Crear cupón</b><span>Disponible con Premium · Solicitar</span></button>')
+    +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
+    +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
+    +'</div>'
+    +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>':'')
+    +listaCupones
+    +'<p class="dash-section">Canjes de hoy</p>'
+    +(canjesHoy.length?canjesHoy.map(k=>'<div class="canje-fila">'+icon('badge-check',18)+'<div><b>'+esc(k.descripcion||'Cupón')+'</b><span>'+esc(k.usuario_nombre||'Cliente')+' · '+fechaHora(aMs(k.fecha_canje))+'</span></div></div>').join('')
+      :'<p class="nota-c izq">Hoy aún no has canjeado cupones.</p>')
+    +'<div class="perfil-acc mt-16"><button class="btn btn-secundario btn-bloque" id="bVerFicha">'+icon('eye')+'Ver mi ficha pública</button>'
+    +'<button class="btn btn-ghost" id="bDashNuevo">'+icon('plus',18)+'Registrar otro negocio</button></div>'
+    +'</div>'+footerHTML();
+  const sel=$('#selComercio');if(sel)sel.onchange=()=>{estado.comercioSel=sel.value;render(true);};
+  const bc=$('#bCorregir');if(bc)bc.onclick=()=>abrirFormComercio(d);
+  const bp=$('#bPremium');if(bp)bp.onclick=()=>solicitarPremium(d);
+  $('#aEscanear').onclick=()=>abrirEscaner(d);
+  $('#aCupon').onclick=()=>prem?formCupon(d):solicitarPremium(d);
+  $('#aEditar').onclick=()=>abrirFormComercio(d);
+  $('#aQR').onclick=()=>miCodigoQR(d);
+  const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
+  $('#bVerFicha').onclick=()=>abrirDetalle(d.id);
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
-  $('#bExplorar').onclick=()=>inicio();
-  $$('#dashGrid [data-eid]').forEach(b=>b.onclick=()=>abrirFormComercio(buscar(b.dataset.eid)));
-  $$('#dashGrid [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
-  $$('#dashGrid [data-prem]').forEach(b=>b.onclick=()=>solicitarPremium(buscar(b.dataset.prem)));
-  $$('#dashGrid [data-cup]').forEach(b=>b.onclick=()=>formCupon(buscar(b.dataset.cup)));
-  $$('#dashGrid [data-promo]').forEach(b=>b.onclick=()=>formPromo(buscar(b.dataset.promo)));
-  $('#vValidar').onclick=validarCupon;
-  $('#vCodigo').addEventListener('keydown',e=>{if(e.key==='Enter')validarCupon();});
-  db.collection('canjes').where('propietario_uid','==',estado.usuario.uid).get()
-    .then(s=>{const el=$('#dsCanjes');if(el)el.textContent=s.docs.filter(x=>x.data().estado==='usado').length;})
-    .catch(()=>{const el=$('#dsCanjes');if(el)el.textContent='—';});
-  // Solicitudes de Premium pendientes del comerciante (para no duplicarlas)
-  db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','premium').get().then(s=>{
-    const antes=solicitudesPremium.size;
-    solicitudesPremium=new Set(s.docs.filter(x=>x.data().estado==='pendiente').map(x=>x.data().comercio_id));
-    if(solicitudesPremium.size!==antes&&vistaActual().tipo==='dashboard')render(true);
+  $$('[data-cest]').forEach(b=>b.onclick=()=>cambiarEstadoCupon(b.dataset.cid,b.dataset.cest));
+  enlazarFooter();
+  // Métricas del mes (solo las lee el dueño)
+  db.collection('comercios').doc(d.id).collection('estadisticas').doc(mesClave()).get().then(s=>{
+    const x=s.exists?s.data():{};const pon=(id,v)=>{const el=$('#'+id);if(el)el.textContent=v||0;};
+    pon('mVistas',x.vistas);pon('mToques',(x.toques_wa||0)+(x.toques_llamar||0));pon('mObt',x.cupones_obtenidos);pon('mCanj',x.cupones_canjeados);
+  }).catch(()=>['mVistas','mToques','mObt','mCanj'].forEach(id=>{const el=$('#'+id);if(el)el.textContent='—';}));
+  // Canjes de los cupones del comerciante (para el historial del día y el avance de cada cupón)
+  db.collection('canjes').where('propietario_uid','==',estado.usuario.uid).get().then(s=>{
+    const antes=JSON.stringify(canjesPropios.map(k=>k.id+k.estado));
+    canjesPropios=s.docs.map(x=>({id:x.id,...x.data()}));
+    if(JSON.stringify(canjesPropios.map(k=>k.id+k.estado))!==antes&&vistaActual().tipo==='dashboard')render(true);
   }).catch(()=>{});
+  // Solicitudes de Premium pendientes (para no duplicarlas)
+  db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','premium').get().then(s=>{
+    const antes=[...solicitudesPremium].join();
+    solicitudesPremium=new Set(s.docs.filter(x=>x.data().estado==='pendiente').map(x=>x.data().comercio_id));
+    if([...solicitudesPremium].join()!==antes&&vistaActual().tipo==='dashboard')render(true);
+  }).catch(()=>{});
+}
+async function cambiarEstadoCupon(id,est){
+  if(est==='finalizado'&&!await confirmar('Finalizar cupón','Nadie más podrá obtenerlo. Los clientes que ya lo tienen aún pueden canjearlo.','Finalizar','Cancelar','ticket'))return;
+  try{await db.collection('cupones').doc(id).update({estado:est});toast(est==='pausado'?'Cupón pausado':est==='activo'?'Cupón activo de nuevo':'Cupón finalizado');render(true);}
+  catch(e){console.error(e);toast('No se pudo actualizar el cupón');}
 }
 // El Premium ya no se autoactiva: se solicita y lo activa un administrador
 async function solicitarPremium(d){
@@ -975,6 +1052,15 @@ async function solicitarPremium(d){
       usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
     solicitudesPremium.add(d.id);toast('Solicitud enviada. Te avisaremos cuando se active.');render(true);
   }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
+}
+// Validar un cupón (por ahora con el código escrito; la lectura con cámara llega en la Fase 3)
+function abrirEscaner(d){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Validar cupón</h2><p class="nota">Escribe el código que aparece en el cupón del cliente.</p>'
+    +'<div class="validar-row mt-16"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters" autocomplete="off"><button class="btn btn-primario" id="vValidar">'+icon('badge-check')+'Validar</button></div>'
+    +'<p class="nota-c izq" id="vRes" role="status"></p></div>');
+  $('#vValidar').onclick=validarCupon;
+  $('#vCodigo').addEventListener('keydown',e=>{if(e.key==='Enter')validarCupon();});
+  setTimeout(()=>$('#vCodigo').focus(),250);
 }
 // Canjear (transacción): solo el dueño del comercio, una sola vez, de "reservado" a "usado". El cupo ya se descontó al obtenerlo.
 async function validarCupon(){
@@ -995,9 +1081,37 @@ async function validarCupon(){
     });
     if(r.tipo==='usado')res.textContent='Este cupón ya fue canjeado'+(r.c.fecha_canje?' el '+fechaHora(aMs(r.c.fecha_canje)):'.');
     else if(r.tipo==='vencido')res.textContent='Este cupón está vencido.';
-    else{res.textContent='Cupón válido y canjeado: '+r.c.descripcion+' · Cliente: '+r.c.usuario_nombre;$('#vCodigo').value='';}
+    else{
+      res.textContent='Cupón válido y canjeado: '+r.c.descripcion+' · Cliente: '+r.c.usuario_nombre;$('#vCodigo').value='';
+      canjesPropios=canjesPropios.filter(k=>k.id!==s.docs[0].id).concat([{id:s.docs[0].id,...r.c,estado:'usado',fecha_canje:Date.now()}]);
+      contarCanje(r.c.comercio_id);
+      if(vistaActual().tipo==='dashboard')render(true);
+    }
   }catch(e){console.error(e);res.textContent='No se pudo validar. Revisa tu conexión.';}
 }
+// El canje lo suma el dueño (registrarEvento ignora al dueño, por eso va directo)
+function contarCanje(comercioId){
+  db.collection('comercios').doc(String(comercioId)).collection('estadisticas').doc(mesClave()).set({cupones_canjeados:FV.increment(1)},{merge:true}).catch(()=>{});
+}
+// "Mi código QR": enlace profundo a la ficha para imprimir en el mostrador (el póster completo llega en la Fase 3)
+function enlaceFicha(id){return 'https://fusa-conecta.netlify.app/#/lugar/'+encodeURIComponent(id);}
+async function miCodigoQR(d){
+  const url=enlaceFicha(d.id);
+  abrirHoja('<div class="hoja-pad hoja-centro"><h2>Mi código QR</h2><p>Tus clientes lo escanean y abren tu ficha en Fusa Conecta.</p>'
+    +'<div class="qr-box" id="qrNegocio" role="img" aria-label="Código QR de '+esc(d.nombre)+'"></div><p class="nota">'+esc(d.nombre)+'</p>'
+    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" id="qrDescargar">'+icon('download')+'Descargar</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="qrCompartir">'+icon('share-2')+'Compartir enlace</button></div></div>');
+  try{
+    await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+    new QRCode($('#qrNegocio'),{text:url,width:190,height:190,colorDark:cssVar('--gray-900'),colorLight:cssVar('--bg')});
+  }catch(e){$('#qrNegocio').innerHTML='<p class="nota">'+esc(url)+'</p>';}
+  $('#qrDescargar').onclick=()=>{
+    const c=$('#qrNegocio canvas');if(!c){toast('El código aún se está generando');return;}
+    const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='qr-'+norm(d.nombre).replace(/[^a-z0-9]+/g,'-')+'.png';a.click();
+  };
+  $('#qrCompartir').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
+}
+
 function formCupon(d){
   abrirHoja('<div class="form-head"><h2>Publicar cupón</h2><p>'+esc(d.nombre)+'</p></div><div class="form-body">'
     +'<div class="campo"><label for="cDesc">Descripción del descuento <span class="req">*</span></label><input id="cDesc" maxlength="80" placeholder="Ej: 10% en tu primera compra"></div>'
@@ -1036,91 +1150,179 @@ function formPromo(d){
     }catch(e){console.error(e);toast('No se pudo publicar la novedad');}
   };
 }
-/* ===== FORMULARIO: PUBLICAR / EDITAR COMERCIO ===== */
-let editandoId=null,ubicacionForm=null;
+/* ===== REGISTRO / EDICIÓN DE COMERCIO: asistente de 4 pasos (Fase 2.3) ===== */
+let wiz=null,wizMapa=null;
+const CATS_FORM=[['comercio','Comercios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
+const PASOS_WIZ=['Qué es','Dónde','Cuándo','Cómo se ve'];
 function abrirFormComercio(d){
-  if(!esComerciante()){pedirLogin('Ingresa con tu cuenta de productor para publicar comercios.',true);return;}
-  editandoId=d?d.id:null;ubicacionForm=d&&d.lat?[d.lat,d.lng]:null;
-  $('#fNombre').value=d?d.nombre:'';$('#fCat').value=d?d.cat:'';$('#fDesc').value=d?d.desc:'';
-  $('#fDir').value=d?d.direccion:'';$('#fTel').value=d?d.tel:'';$('#fFoto').value='';
-  pintarSubForm(d?subDe(d):'');
-  $('#fAbre').value=d&&d.abre?d.abre:'08:00';$('#fCierra').value=d&&d.cierra?d.cierra:'18:00';
-  const dias=d&&d.dias?d.dias:[1,2,3,4,5,6];
-  $$('#fDias input').forEach(i=>i.checked=dias.includes(+i.value));
-  $('#fUbicTxt').textContent=ubicacionForm?'Ubicación guardada':'Sin ubicación exacta (se usará la dirección)';
-  const prem=d&&premiumVigente(d);
-  $('#fPremium').style.display=prem?'block':'none';
-  ['instagram','facebook','tiktok','youtube','x'].forEach(k=>{$('#fRed_'+k).value=d&&d.redesSociales&&d.redesSociales[k]||'';});
-  $('#fWeb').value=d?d.sitioWeb||'':'';
-  $('#formIntro h2').textContent=d?'Editar comercio':'Suma tu comercio';
-  $('#formIntro p').textContent=d?'Actualiza la información de tu negocio.':'Publica tu negocio, finca, ruta o servicio en Fusa Conecta.';
-  $('#bPublicar').innerHTML=d?'Guardar cambios':'Publicar';
-  abrir('ovForm');
+  if(!esComerciante()){pedirLogin('Ingresa con tu cuenta de productor para registrar tu negocio.',true);return;}
+  const enNube=d&&(comerciosNube.some(c=>c.id===d.id)||comerciosPropios.some(c=>c.id===d.id));
+  wiz={paso:1,editandoId:d?d.id:null,original:d||null,esSemilla:!!d&&!enNube,
+    datos:{nombre:d?d.nombre:'',cat:d?d.cat:'',sub:d?subDe(d):'',direccion:d?d.direccion:'',tel:d?d.tel:'',
+      lat:d&&d.lat?d.lat:null,lng:d&&d.lng?d.lng:null,ubicacionExacta:!!(d&&d.lat&&!d.ubicacion_aprox),
+      dias:d&&d.dias&&d.dias.length?d.dias.slice():[1,2,3,4,5,6],abre:d&&d.abre?d.abre:'08:00',cierra:d&&d.cierra?d.cierra:'18:00',
+      desc:d?d.desc:'',imagen:d?d.imagen:'',imagenNueva:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':''}};
+  pintarWizard();abrir('ovForm');
 }
-// Subcategoría del formulario: solo para Comercios y Turismo
-function pintarSubForm(valor){
-  const subs=SUBCATS[$('#fCat').value]||[];
-  $('#fSubWrap').style.display=subs.length?'block':'none';
-  $('#fSub').innerHTML='<option value="">Selecciona el tipo</option>'+subs.map(s=>'<option value="'+s.k+'">'+nombreSub($('#fCat').value,s.k)+'</option>').join('');
-  $('#fSub').value=subs.some(s=>s.k===valor)?valor:'';
+function wizPremium(){return wiz.original&&premiumVigente(wiz.original);}
+function pintarWizard(){
+  const w=wiz,d=w.datos,p=w.paso,final=p===5;
+  if(wizMapa){wizMapa.remove();wizMapa=null;}
+  let cuerpo='';
+  if(p===1){
+    const subs=SUBCATS[d.cat]||[];
+    cuerpo='<div class="campo"><label for="wNombre">Nombre del negocio <span class="req">*</span></label><input id="wNombre" maxlength="80" placeholder="Ej: Café de la Abuela" value="'+esc(d.nombre)+'"></div>'
+      +'<p class="lbl">Categoría <span class="req">*</span></p><div class="tiles" role="radiogroup" aria-label="Categoría">'
+      +CATS_FORM.map(([k,t])=>'<button type="button" class="tile cat-'+k+(d.cat===k?' on':'')+'" data-wcat="'+k+'" role="radio" aria-checked="'+(d.cat===k)+'"><span class="tile-ic">'+icon(ICONO_CAT[k],22)+'</span>'+t+'</button>').join('')+'</div>'
+      +(subs.length?'<p class="lbl mt-16">Tipo de negocio <span class="req">*</span></p><div class="tiles tiles-sub" role="radiogroup" aria-label="Tipo de negocio">'
+        +subs.map(s=>'<button type="button" class="tile'+(d.sub===s.k?' on':'')+'" data-wsub="'+s.k+'" role="radio" aria-checked="'+(d.sub===s.k)+'"><span class="tile-ic">'+icon(ICONO_SUB[s.k]||'circle-help',20)+'</span>'+nombreSub(d.cat,s.k)+'</button>').join('')+'</div>':'');
+  }else if(p===2){
+    cuerpo='<div class="campo"><label for="wDir">Dirección</label><input id="wDir" maxlength="120" placeholder="Ej: Cra 7 # 6-32, Centro" value="'+esc(d.direccion)+'"></div>'
+      +'<div class="campo"><label for="wTel">WhatsApp o teléfono</label><input id="wTel" type="tel" maxlength="13" placeholder="Ej: 3001234567" value="'+esc(d.tel)+'"><p class="ayuda">Si es celular, los clientes podrán escribirte por WhatsApp.</p></div>'
+      +'<p class="lbl">Ubicación en el mapa</p><button type="button" class="btn btn-secundario btn-sm" id="wUbicar">'+icon('locate-fixed')+'Usar mi ubicación</button>'
+      +(estado.online?'<div id="wMapa" class="wiz-mapa" role="region" aria-label="Mapa para ubicar tu negocio"></div><p class="ayuda" id="wUbicTxt">'+(d.ubicacionExacta?'Ubicación guardada. Arrastra el pin para ajustarla.':'Toca el mapa o arrastra el pin hasta la puerta de tu negocio.')+'</p>'
+        :'<p class="ayuda" id="wUbicTxt">Sin conexión no se puede mostrar el mapa; usaremos la dirección.</p>');
+  }else if(p===3){
+    const DS=[[1,'Lun'],[2,'Mar'],[3,'Mié'],[4,'Jue'],[5,'Vie'],[6,'Sáb'],[0,'Dom']];
+    cuerpo='<p class="lbl">Días de atención</p><div class="chips-dias" role="group" aria-label="Días de atención">'
+      +DS.map(([i,t])=>'<button type="button" class="chip-dia'+(d.dias.includes(i)?' on':'')+'" data-wdia="'+i+'" aria-pressed="'+d.dias.includes(i)+'">'+t+'</button>').join('')+'</div>'
+      +'<div class="horas-row mt-16"><div class="campo"><label for="wAbre">Abre</label><input type="time" id="wAbre" value="'+esc(d.abre)+'"></div><div class="campo"><label for="wCierra">Cierra</label><input type="time" id="wCierra" value="'+esc(d.cierra)+'"></div></div>'
+      +'<p class="ayuda">Así se verá: '+esc(textoHorarioWiz())+'</p>';
+  }else if(p===4){
+    const img=d.imagenNueva||imgSegura(d.imagen);
+    cuerpo='<p class="lbl">Foto principal</p><div class="foto-wiz">'+(img?'<img src="'+esc(img)+'" alt="Vista previa de la foto">':'<span class="fallback-ic">'+icon('image',22)+'</span>')+'</div>'
+      +'<label class="btn btn-secundario btn-sm mt-16" for="wFoto">'+icon('camera')+(img?'Cambiar foto':'Elegir foto')+'</label><input type="file" id="wFoto" accept="image/*" class="sr-only">'
+      +'<p class="ayuda">La recortamos en cuadrado y la reducimos para que cargue rápido.</p>'
+      +'<div class="campo mt-16"><label for="wDesc">Descripción</label><textarea id="wDesc" maxlength="400" placeholder="Cuenta en pocas líneas qué ofreces...">'+esc(d.desc)+'</textarea><p class="ayuda cuenta-car" id="wCont">'+d.desc.length+' / 400</p></div>'
+      +(wizPremium()?'<div class="bloque-form"><p class="bloque-tit">'+icon('star')+'Opciones Premium</p>'
+        +['instagram','facebook','tiktok','youtube','x'].map(k=>'<div class="campo"><label for="wRed_'+k+'">'+RED_TXT[k]+'</label><input type="url" id="wRed_'+k+'" placeholder="https://..." value="'+esc(d.redes[k]||'')+'"></div>').join('')
+        +'<div class="campo"><label for="wWeb">Sitio web</label><input type="url" id="wWeb" placeholder="https://www.tunegocio.com" value="'+esc(d.web)+'"><p class="ayuda">Debe comenzar con https://</p></div></div>':'');
+  }else{
+    const vista={...(w.original||{}),id:'vista',nombre:d.nombre,cat:d.cat,sub:d.cat==='turismo'?'':d.sub,tipo:d.cat==='turismo'?d.sub:'',
+      direccion:d.direccion||'Fusagasugá',desc:d.desc||'Negocio local de Fusagasugá.',imagen:d.imagenNueva||d.imagen,dias:d.dias,abre:d.abre,cierra:d.cierra,horario:textoHorarioWiz(),tel:d.tel,esPremium:false};
+    cuerpo='<p class="nota">Así verán tu negocio en el directorio:</p><div class="vista-previa" aria-hidden="true">'+cardHTML(vista)+'</div>'
+      +(w.editandoId&&w.original&&w.original.estado_publicacion==='aprobado'?'':'<p class="nota">'+icon('clock',14)+' Un administrador revisará la información antes de publicarla.</p>');
+  }
+  const titulo=w.editandoId?'Editar mi negocio':'Registra tu negocio';
+  const enviar=w.editandoId&&w.original&&w.original.estado_publicacion==='aprobado'?'Guardar cambios':'Enviar a revisión';
+  $('#sheetForm').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="wCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="form-head"><h2>'+titulo+'</h2><p>'+(final?'Vista previa':'Paso '+p+' de 4 · '+PASOS_WIZ[p-1])+'</p>'
+    +'<div class="progreso" role="progressbar" aria-valuemin="0" aria-valuemax="4" aria-valuenow="'+Math.min(p,4)+'"><span style="width:'+Math.min(p,4)*25+'%"></span></div></div>'
+    +'<div class="form-body">'+cuerpo+'</div>'
+    +'<div class="wiz-pie">'+(p>1?'<button class="btn btn-secundario" id="wAtras">'+icon('arrow-left')+'Atrás</button>':'')
+    +(final?'<button class="btn btn-primario" id="wEnviar">'+enviar+'</button>':'<button class="btn btn-primario" id="wSig">'+(p===4?'Ver vista previa':'Siguiente')+'</button>')+'</div>';
+  $('#sheetForm').scrollTop=0;
+  $('#wCerrar').onclick=()=>cerrar('ovForm');
+  const at=$('#wAtras');if(at)at.onclick=()=>{guardarPasoWiz();wiz.paso--;pintarWizard();};
+  const sg=$('#wSig');if(sg)sg.onclick=()=>{guardarPasoWiz();const e=validarPasoWiz();if(e){toast(e);return;}wiz.paso++;pintarWizard();};
+  const en=$('#wEnviar');if(en)en.onclick=publicarComercio;
+  if(p===1){
+    $$('#sheetForm [data-wcat]').forEach(b=>b.onclick=()=>{guardarPasoWiz();if(d.cat!==b.dataset.wcat){d.cat=b.dataset.wcat;d.sub='';}pintarWizard();});
+    $$('#sheetForm [data-wsub]').forEach(b=>b.onclick=()=>{guardarPasoWiz();d.sub=b.dataset.wsub;pintarWizard();});
+  }
+  if(p===2){
+    $('#wUbicar').onclick=async()=>{
+      $('#wUbicTxt').textContent='Obteniendo tu ubicación…';
+      const pos=await pedirUbicacion();
+      if(!pos){$('#wUbicTxt').textContent='No pudimos obtener tu ubicación. Activa el GPS o mueve el pin a mano.';return;}
+      d.lat=pos[0];d.lng=pos[1];d.ubicacionExacta=true;guardarPasoWiz();pintarWizard();
+    };
+    if(estado.online)montarMapaWiz();
+  }
+  if(p===3)$$('#sheetForm [data-wdia]').forEach(b=>b.onclick=()=>{guardarPasoWiz();const i=+b.dataset.wdia;d.dias=d.dias.includes(i)?d.dias.filter(x=>x!==i):[...d.dias,i];pintarWizard();});
+  if(p===4){
+    $('#wFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;guardarPasoWiz();d.imagenNueva=await recortarCuadrado(f);if(!d.imagenNueva)toast('No pudimos leer esa foto. Prueba con otra.');pintarWizard();};
+    $('#wDesc').oninput=e=>{$('#wCont').textContent=e.target.value.length+' / 400';};
+  }
 }
-$('#fCat').addEventListener('change',()=>pintarSubForm(''));
-function comprimirImagen(file){
+async function montarMapaWiz(){
+  try{await cargarLeaflet();}catch(e){return;}
+  if(!wiz||wiz.paso!==2||!$('#wMapa'))return;
+  const d=wiz.datos,centro=d.lat&&d.lng?[d.lat,d.lng]:PLAZA_FUSA;
+  wizMapa=L.map('wMapa').setView(centro,d.lat?17:15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(wizMapa);
+  const pin=L.marker(centro,{draggable:true,icon:pinIcono(d.cat?(ICONO_SUB[d.sub]||ICONO_CAT[d.cat]):'map-pin'),title:'Ubicación del negocio'}).addTo(wizMapa);
+  const fijar=ll=>{d.lat=+ll.lat.toFixed(6);d.lng=+ll.lng.toFixed(6);d.ubicacionExacta=true;$('#wUbicTxt').textContent='Ubicación guardada. Arrastra el pin para ajustarla.';};
+  pin.on('dragend',()=>fijar(pin.getLatLng()));
+  wizMapa.on('click',e=>{pin.setLatLng(e.latlng);fijar(e.latlng);});
+  setTimeout(()=>wizMapa&&wizMapa.invalidateSize(),250);
+}
+function guardarPasoWiz(){
+  const d=wiz.datos,v=id=>{const el=$('#'+id);return el?el.value.trim():null;};
+  if($('#wNombre'))d.nombre=v('wNombre');
+  if($('#wDir'))d.direccion=v('wDir');
+  if($('#wTel'))d.tel=telLimpio(v('wTel'));
+  if($('#wAbre'))d.abre=v('wAbre');
+  if($('#wCierra'))d.cierra=v('wCierra');
+  if($('#wDesc'))d.desc=v('wDesc');
+  ['instagram','facebook','tiktok','youtube','x'].forEach(k=>{if($('#wRed_'+k))d.redes[k]=v('wRed_'+k);});
+  if($('#wWeb'))d.web=v('wWeb');
+}
+function validarPasoWiz(){
+  const d=wiz.datos;
+  if(wiz.paso===1){
+    if(!d.nombre)return 'Escribe el nombre del negocio';
+    if(!d.cat)return 'Elige una categoría';
+    if(SUBCATS[d.cat]&&!d.sub)return 'Elige el tipo de negocio';
+  }
+  if(wiz.paso===2&&d.tel&&!/^\d{7,10}$/.test(d.tel))return 'Revisa el número de teléfono';
+  if(wiz.paso===3){if(!d.dias.length)return 'Elige al menos un día de atención';if(!d.abre||!d.cierra)return 'Indica la hora de apertura y de cierre';}
+  if(wiz.paso===4&&wizPremium()){
+    for(const k of ['instagram','facebook','tiktok','youtube','x'])if(d.redes[k]&&!urlValida(d.redes[k]))return 'El enlace de '+RED_TXT[k]+' debe comenzar con https://';
+    if(d.web&&!urlValida(d.web))return 'El sitio web debe comenzar con https://';
+  }
+  return '';
+}
+function textoHorarioWiz(){const d=wiz.datos;return d.dias.length?d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra):'Consultar directamente';}
+// "08:00" -> "8:00 a. m."
+function formatearHora(hhmm){if(!hhmm)return '';const[h,m]=hhmm.split(':').map(Number);return horaTexto(h*60+(m||0));}
+// Recorta la foto al centro en un cuadrado de 800 px (JPEG liviano para Firestore)
+function recortarCuadrado(file){
   return new Promise(res=>{
-    if(!file)return res('');
     const reader=new FileReader();
     reader.onload=ev=>{const img=new Image();img.onload=()=>{
-      let w=img.width,h=img.height;if(w>800){h=Math.round(h*800/w);w=800;}
-      const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
-      res(cv.toDataURL('image/jpeg',0.6));};img.onerror=()=>res('');img.src=ev.target.result;};
+      const lado=Math.min(img.width,img.height),t=Math.min(800,lado);
+      const cv=document.createElement('canvas');cv.width=t;cv.height=t;
+      cv.getContext('2d').drawImage(img,(img.width-lado)/2,(img.height-lado)/2,lado,lado,0,0,t,t);
+      res(cv.toDataURL('image/jpeg',0.7));};img.onerror=()=>res('');img.src=ev.target.result;};
     reader.onerror=()=>res('');reader.readAsDataURL(file);
   });
 }
 function urlValida(u){return /^https:\/\/[^\s.]+\.[^\s]{2,}$/i.test(u);}
 async function publicarComercio(){
   if(!esComerciante()){cerrar('ovForm');pedirLogin('Ingresa con tu cuenta de productor.',true);return;}
-  const nombre=$('#fNombre').value.trim(),cat=$('#fCat').value,tel=telLimpio($('#fTel').value);
-  if(!nombre){toast('Escribe el nombre del negocio');return;}
-  if(!cat){toast('Selecciona una categoría');return;}
-  const sub=$('#fSub').value;
-  if(SUBCATS[cat]&&!sub){toast('Selecciona el tipo de negocio');return;}
-  if(tel&&!/^\d{7,10}$/.test(tel)){toast('Revisa el número de teléfono');return;}
-  const dias=[...$$('#fDias input:checked')].map(i=>+i.value);
-  const abre=$('#fAbre').value,cierra=$('#fCierra').value;
-  const redes={};let errorRed='';
-  if($('#fPremium').style.display!=='none'){
-    ['instagram','facebook','tiktok','youtube','x'].forEach(k=>{const v=$('#fRed_'+k).value.trim();if(v){if(urlValida(v))redes[k]=v;else errorRed=k;}});
-    const web=$('#fWeb').value.trim();
-    if(web&&!urlValida(web)){toast('El sitio web debe comenzar con https://');return;}
-  }
-  if(errorRed){toast('El enlace de '+RED_TXT[errorRed]+' debe comenzar con https://');return;}
-  const btn=$('#bPublicar'),txt=btn.innerHTML;btn.innerHTML='Guardando...';btn.disabled=true;
+  const w=wiz,d=w.datos,cat=d.cat,sub=d.sub,tel=telLimpio(d.tel);
+  const btn=$('#wEnviar'),txt=btn.innerHTML;btn.innerHTML='Guardando...';btn.disabled=true;
   try{
-    const img=await comprimirImagen($('#fFoto').files[0]);
-    const datos={cat,categoria:cat,emoji:CAT[cat].emoji,nombre,desc:$('#fDesc').value.trim()||'Negocio local de Fusagasugá.',
-      direccion:$('#fDir').value.trim()||'Fusagasugá',tel,whatsapp:esCelular(tel)?tel:'',dias,abre,cierra,
-      horario:dias.length?dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+abre+' – '+cierra:'Consultar directamente',
-      propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,municipio:'Fusagasugá',fecha_modificacion:FV.serverTimestamp()};
+    const datos={cat,categoria:cat,emoji:CAT[cat].emoji,nombre:d.nombre,desc:d.desc||'Negocio local de Fusagasugá.',
+      direccion:d.direccion||'Fusagasugá',tel,whatsapp:esCelular(tel)?tel:'',dias:d.dias,abre:d.abre,cierra:d.cierra,
+      horario:textoHorarioWiz(),municipio:'Fusagasugá',fecha_modificacion:FV.serverTimestamp()};
     if(cat==='turismo'){datos.tipo=sub;datos.sub='';}else datos.sub=SUBCATS[cat]?sub:'';
-    if(ubicacionForm){datos.lat=ubicacionForm[0];datos.lng=ubicacionForm[1];datos.ubicacion_aprox=false;}
-    if(img)datos.imagen=img;
-    if($('#fPremium').style.display!=='none'){datos.redesSociales=redes;datos.sitioWeb=$('#fWeb').value.trim();}
-    if(editandoId){
-      const actual=buscar(editandoId);const reenviar=actual&&actual.estado_publicacion==='rechazado';
+    if(d.lat&&d.lng){datos.lat=d.lat;datos.lng=d.lng;datos.ubicacion_aprox=!d.ubicacionExacta;}
+    if(d.imagenNueva)datos.imagen=d.imagenNueva;
+    if(wizPremium()){datos.redesSociales=Object.fromEntries(Object.entries(d.redes).filter(([k,u])=>u));datos.sitioWeb=d.web;}
+    if(w.editandoId&&w.esSemilla){
+      // Un admin corrige la ficha de un negocio semilla: se crea su documento en la nube con el mismo id
+      Object.assign(datos,{imagen:datos.imagen||w.original.imagen||'',estado_publicacion:'aprobado',propietario_uid:null,esPremium:false,prioridadBusqueda:0,fechaCreacion:FV.serverTimestamp()});
+      await db.collection('comercios').doc(w.editandoId).set(datos,{merge:true});toast('Ficha actualizada');
+    }else if(w.editandoId){
+      const reenviar=w.original&&w.original.estado_publicacion==='rechazado';
       if(reenviar){datos.estado_publicacion='pendiente';datos.motivo_rechazo=FV.delete();}
-      await db.collection('comercios').doc(editandoId).update(datos);
-      toast(reenviar?'Cambios enviados a revisión':'"'+nombre+'" actualizado');
+      await db.collection('comercios').doc(w.editandoId).update(datos);
+      toast(reenviar?'Cambios enviados a revisión':'Cambios guardados');
+    }else{
+      if(!datos.lat){datos.lat=PLAZA_FUSA[0];datos.lng=PLAZA_FUSA[1];datos.ubicacion_aprox=true;}
+      Object.assign(datos,{propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,
+        redesSociales:{},sitioWeb:'',imagen:d.imagenNueva||'',fechaCreacion:FV.serverTimestamp()});
+      const ref=await db.collection('comercios').add(datos);estado.comercioSel=ref.id;
+      toast('Tu negocio quedó en revisión. Aparecerá en el directorio cuando un administrador lo apruebe.');
     }
-    else{
-      if(!ubicacionForm){datos.lat=PLAZA_FUSA[0];datos.lng=PLAZA_FUSA[1];datos.ubicacion_aprox=true;}
-      Object.assign(datos,{estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,redesSociales:{},sitioWeb:'',imagen:img||'',fechaCreacion:FV.serverTimestamp()});
-      await db.collection('comercios').add(datos);toast('Tu comercio quedó en revisión. Aparecerá en el directorio cuando un administrador lo apruebe.');
-    }
-    editandoId=null;cerrar('ovForm');
-    if(vistaActual().tipo!=='dashboard')navegar({tipo:'dashboard'});
-  }catch(e){console.error(e);toast(e.code==='permission-denied'?'No tienes permiso para editar este comercio':'No se pudo guardar. Revisa tu conexión o usa una foto más liviana.');}
-  finally{btn.innerHTML=txt;btn.disabled=false;}
+    cerrar('ovForm');
+    if(!esAdmin()&&vistaActual().tipo!=='dashboard')navegar({tipo:'dashboard'});else render(true);
+  }catch(e){console.error(e);toast(e.code==='permission-denied'?'No tienes permiso para editar este negocio':'No se pudo guardar. Revisa tu conexión o usa una foto más liviana.');}
+  finally{if(btn.isConnected){btn.innerHTML=txt;btn.disabled=false;}}
 }
+
 /* ===== AUTENTICACIÓN REAL CON FIREBASE (RF-02, RF-03, RNF-07) ===== */
 let modoLogin='ingresar',registroPendiente=null,creandoPerfil=null;
 function abrirLogin(modo='ingresar',productor=false,aviso=''){
@@ -1269,7 +1471,8 @@ async function _procesarUsuario(user){
   registroPendiente=null;
   if(quiereProductor&&esComerciante()){stack.length=0;navegar({tipo:'dashboard'});}
   else refrescarTodo();
-  escucharPromociones();sincronizarCupones();escucharMisComercios();
+  escucharPromociones();sincronizarCupones();escucharMisComercios();escucharAdmin();
+  if(typeof adminPendiente!=='undefined'&&adminPendiente&&esAdmin()){adminPendiente=false;ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}
 }
 function pedirConsentimiento(rol){
   return new Promise(res=>{
@@ -1315,7 +1518,7 @@ auth.getRedirectResult().catch(async e=>{
   if(e&&e.code)toast(mensajeAuth(e));
 });
 auth.onAuthStateChanged(user=>{
-  if(!user){dejarDeEscucharMisComercios();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
+  if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user);
   if(!user.isAnonymous&&!$('#splash').classList.contains('oculto'))setTimeout(ocultarSplash,2600);
@@ -1351,7 +1554,7 @@ estado.novedades=[];
 db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapshot(s=>{
   estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
 },()=>{});
-function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length;}
+function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
 function campanaHTML(){
   const n=noLeidas();
   return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+'">'+icon('bell')+(n?'<span class="punto-nuevo" aria-hidden="true"></span>':'')+'</button>';
@@ -1365,14 +1568,254 @@ function actualizarCampana(){
 }
 function abrirNovedades(){
   const visto=ls.get('fc_novedades_leido',0);const lista=estado.novedades;
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2><p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
+  const pa=esAdmin()?porAprobar():0,pp=esAdmin()?premiumPorActivar():0;
+  const bloqueAdmin=(pa||pp)?'<button class="aviso-admin" id="nvAdmin">'+icon('shield-check',22)+'<span><b>'+(pa?pa+' por aprobar':'Nada por aprobar')+'</b>'
+    +'<small>'+(pp?pp+' solicitud'+(pp>1?'es':'')+' de Premium · ':'')+'Toca para abrir el panel</small></span>'+icon('chevron-right')+'</button>':'';
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2>'+bloqueAdmin+'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
     +(lista.length?'<div class="novedades">'+lista.map(n=>'<button class="novedad'+((aMs(n.fecha_envio)||0)>visto?' nueva':'')+'" data-com="'+esc(n.comercio_id)+'">'
         +'<span class="nv-ic">'+icon('megaphone',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
         +'<small>'+esc(n.comercio_nombre||'')+' · '+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>'
       :'<div class="vacio">'+icon('bell',48)+'<b>Aún no hay novedades</b><p>Aquí verás las promociones de los comercios destacados.</p></div>')
     +'</div>');
   $$('#sheetGen [data-com]').forEach(b=>b.onclick=()=>{cerrar('ovGen');abrirDetalle(b.dataset.com);});
+  const na=$('#nvAdmin');if(na)na.onclick=irAlPanelAdmin;
   ls.set('fc_novedades_leido',Date.now());actualizarCampana();
+}
+
+/* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
+let adminUnsubs=[];
+estado.adminPend={comercios:[],solicitudes:[]};
+function escucharAdmin(){
+  if(adminUnsubs.length||!esAdmin())return;
+  adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.comercios=s.docs.map(d=>{const x=d.data();return {id:d.id,nombre:x.nombre,fecha:aMs(x.fecha_modificacion)||aMs(x.fechaCreacion)||0};});
+    avisosAdminCambiaron();
+  },()=>{}));
+  adminUnsubs.push(db.collection('solicitudes').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.solicitudes=s.docs.map(d=>({id:d.id,...d.data(),fecha:aMs(d.data().fecha)||0}));
+    avisosAdminCambiaron();
+  },()=>{}));
+}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[]};}
+// "Por aprobar" = comercios nuevos + reclamos de negocio
+function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
+function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
+// Avisos del admin que llegaron después de la última vez que abrió la campana
+function avisosAdminNuevos(){
+  if(!esAdmin())return 0;
+  const v=ls.get('fc_novedades_leido',0);
+  return estado.adminPend.comercios.filter(c=>c.fecha>v).length+estado.adminPend.solicitudes.filter(x=>x.fecha>v).length;
+}
+function avisosAdminCambiaron(){
+  actualizarCampana();
+  const v=vistaActual().tipo;
+  if(v==='perfil')render(true);
+  if(v==='admin')cargarAdmin();
+}
+function irAlPanelAdmin(){
+  cerrar('ovGen');
+  if(location.hash==='#/admin'){estado.admin.datos=null;navegar({tipo:'admin'});}
+  else location.hash='#/admin';
+}
+
+/* ===== RECLAMAR UN NEGOCIO EXISTENTE (Fase 2.4) ===== */
+async function reclamarNegocio(d){
+  if(!logueado()){pedirLogin('Inicia sesión para reclamar tu negocio.',true);return;}
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reclamar «'+esc(d.nombre)+'»</h2>'
+    +'<p class="nota">Un administrador te contactará para confirmar que eres el dueño. Cuando lo apruebe, podrás editar la ficha desde «Mi negocio».</p>'
+    +'<div class="campo mt-16"><label for="rTel">Teléfono de contacto <span class="req">*</span></label><input id="rTel" type="tel" maxlength="13" placeholder="Ej: 3001234567"></div>'
+    +'<div class="campo"><label for="rMsg">¿Cómo podemos confirmarlo? (opcional)</label><textarea id="rMsg" maxlength="300" placeholder="Ej: soy la propietaria desde 2019, mi NIT es..."></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="rEnviar">Enviar solicitud</button></div>');
+  $('#rEnviar').onclick=async()=>{
+    const tel=telLimpio($('#rTel').value);
+    if(!/^\d{7,10}$/.test(tel)){toast('Escribe un teléfono válido');return;}
+    try{
+      const prev=await db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','reclamo').get();
+      if(prev.docs.some(x=>x.data().comercio_id===d.id&&x.data().estado==='pendiente')){cerrar('ovGen');toast('Ya enviaste una solicitud para este negocio');return;}
+      await db.collection('solicitudes').add({tipo:'reclamo',comercio_id:String(d.id),comercio_nombre:d.nombre,telefono:tel,mensaje:$('#rMsg').value.trim().slice(0,300),
+        uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
+      cerrar('ovGen');toast('Solicitud enviada. Te contactaremos pronto.');
+    }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
+  };
+}
+
+/* ===== REPORTAR UN PROBLEMA (ficha o reseña) ===== */
+function reportar(d,resena){
+  if(!logueado()){pedirLogin('Inicia sesión para reportar un problema.');return;}
+  const motivos=resena?['Contenido ofensivo','Información falsa','No es una experiencia real','Otro']
+    :['Información incorrecta','Cerró definitivamente','Fotos inapropiadas','Otro'];
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reportar '+(resena?'una reseña':'un problema')+'</h2><p class="nota">'+esc(d.nombre)+'</p>'
+    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+motivos.map(m=>'<button type="button" class="chip-filtro" data-mot="'+esc(m)+'" role="radio" aria-checked="false">'+esc(m)+'</button>').join('')+'</div>'
+    +'<div class="campo mt-16"><label for="repTxt">Detalles (opcional)</label><textarea id="repTxt" maxlength="300" placeholder="Cuéntanos qué está mal..."></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="repEnviar">Enviar reporte</button></div>');
+  let motivo='';
+  $$('#sheetGen [data-mot]').forEach(b=>b.onclick=()=>{motivo=b.dataset.mot;$$('#sheetGen [data-mot]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});});
+  $('#repEnviar').onclick=async()=>{
+    if(!motivo){toast('Elige un motivo');return;}
+    try{
+      await db.collection('reportes').add({tipo:resena?'resena':'ficha',comercio_id:String(d.id),comercio_nombre:d.nombre,calificacion_id:resena?resena._id:null,
+        resena_texto:resena?(resena.comentario||''):null,motivo,detalle:$('#repTxt').value.trim().slice(0,300),
+        uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,estado:'pendiente',fecha:FV.serverTimestamp()});
+      cerrar('ovGen');toast('Gracias. Un administrador revisará tu reporte.');
+    }catch(e){console.error(e);toast('No se pudo enviar el reporte');}
+  };
+}
+
+/* ===== PANEL DE ADMINISTRACIÓN (Fase 2.1) — ruta #/admin, solo rol admin ===== */
+function esAdmin(){return logueado()&&estado.perfil&&estado.perfil.rol==='admin';}
+estado.admin={tab:'aprobar',datos:null,cargando:false};
+async function cargarAdmin(){
+  if(!esAdmin())return;
+  estado.admin.cargando=true;
+  try{
+    const [com,sol,rep,can,usu]=await Promise.all([
+      db.collection('comercios').get(),
+      db.collection('solicitudes').where('estado','==','pendiente').get(),
+      db.collection('reportes').where('estado','==','pendiente').get(),
+      db.collection('canjes').where('estado','==','usado').get(),
+      db.collection('usuarios').get()]);
+    const comercios=com.docs.map(x=>({...normalizarNube(x.id,x.data()),_raw:x.data()}));
+    const inicioMes=new Date();inicioMes.setDate(1);inicioMes.setHours(0,0,0,0);
+    estado.admin.datos={
+      pendientes:comercios.filter(c=>c.propietario_uid&&!['aprobado','rechazado'].includes(c._raw.estado_publicacion)),
+      premiumActivos:comercios.filter(c=>premiumVigente(c)).sort((a,b)=>(a.suscripcion_vigente_hasta||0)-(b.suscripcion_vigente_hasta||0)),
+      comercios,
+      solicitudes:sol.docs.map(x=>({id:x.id,...x.data()})),
+      reportes:rep.docs.map(x=>({id:x.id,...x.data()})),
+      canjesMes:can.docs.filter(x=>(aMs(x.data().fecha_canje)||0)>=inicioMes.getTime()).length,
+      usuarios:usu.size};
+  }catch(e){console.error(e);toast('No se pudieron cargar los datos del panel');}
+  estado.admin.cargando=false;
+  if(vistaActual().tipo==='admin')render(true);
+}
+function tarjetaComercioAdmin(c,extra){
+  const img=imgSegura(c.imagen);
+  return '<div class="adm-card"><div class="adm-head"><div class="dc-ico">'+(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(c.nombre)+'">':icon(iconoDe(c)))+'</div>'
+    +'<div class="dc-info"><h3>'+esc(c.nombre)+'</h3><p>'+esc(etiquetaDe(c))+' · '+esc(c.direccion)+'</p></div></div>'
+    +(c.desc?'<p class="adm-desc">'+esc(c.desc)+'</p>':'')
+    +'<p class="nota-c izq">'+icon('phone',14)+' '+esc(c.tel||'Sin teléfono')+' · '+icon('clock',14)+' '+esc(horarioTexto(c))+'</p>'+(extra||'')+'</div>';
+}
+function renderAdmin(){
+  const cuerpo=$('#cuerpo');
+  if(!esAdmin()){cuerpo.innerHTML='<div class="vacio">'+icon('shield-check',48)+'<b>Panel de administración</b><p>Solo disponible para administradores.</p></div>';return;}
+  const A=estado.admin,D=A.datos;
+  if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
+  const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
+  const tabs=[['aprobar','Por aprobar','clipboard-check',D.pendientes.length+reclamos.length],['premium','Premium','star',premium.length],['reportes','Reportes','flag',D.reportes.length],['emergencias','Emergencias','siren',0]];
+  let html='';
+  if(A.tab==='aprobar'){
+    html=(D.pendientes.length||reclamos.length?'':'<div class="vacio">'+icon('circle-check',48)+'<b>Todo al día</b><p>No hay comercios ni reclamos por revisar.</p></div>')
+      +(D.pendientes.length?'<p class="dash-section">Comercios nuevos</p>'+D.pendientes.map(c=>tarjetaComercioAdmin(c,
+        '<p class="nota-c izq">Registrado por '+esc(c._raw.propietario||'un comerciante')+'</p><div class="dc-actions"><button class="btn btn-primario btn-sm" data-aprobar="'+esc(c.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-rechazar="'+esc(c.id)+'">Rechazar</button></div>')).join(''):'')
+      +(reclamos.length?'<p class="dash-section">Reclamos de negocio</p>'+reclamos.map(s=>'<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3>'
+        +'<p class="nota-c izq">Lo reclama '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · Tel. '+esc(s.telefono||'')+'</p>'+(s.mensaje?'<p class="adm-desc">'+esc(s.mensaje)+'</p>':'')
+        +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okreclamo="'+esc(s.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div></div>').join(''):'');
+  }else if(A.tab==='premium'){
+    html=(premium.length?'<p class="dash-section">Solicitudes</p>'+premium.map(s=>{const c=D.comercios.find(x=>x.id===s.comercio_id);
+        return '<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3><p class="nota-c izq">Lo pide '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · '+fechaCorta(aMs(s.fecha))+'</p>'
+          +(c&&c.prueba_usada?'<p class="nota-c izq">'+icon('info',14)+' Ya usó su prueba gratuita.</p>':'<p class="nota-c izq">'+icon('info',14)+' Aún no ha usado la prueba gratuita.</p>')
+          +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okprem="'+esc(s.id)+'">'+icon('star',16)+'Activar 30 días</button><button class="btn btn-secundario btn-sm" data-noprem="'+esc(s.id)+'">Rechazar</button></div></div>';}).join('')
+        :'<div class="vacio">'+icon('star',48)+'<b>Sin solicitudes de Premium</b></div>')
+      +'<p class="dash-section">Premium activos ('+D.premiumActivos.length+')</p>'
+      +(D.premiumActivos.length?D.premiumActivos.map(c=>'<div class="canje-fila">'+icon('star',18)+'<div><b>'+esc(c.nombre)+'</b><span>Vence '+fechaCorta(c.suscripcion_vigente_hasta)+'</span></div></div>').join(''):'<p class="nota-c izq">Ninguno por ahora.</p>');
+  }else if(A.tab==='reportes'){
+    html=D.reportes.length?D.reportes.map(r=>'<div class="adm-card"><h3>'+(r.tipo==='resena'?'Reseña en ':'Ficha de ')+esc(r.comercio_nombre)+'</h3>'
+      +'<p class="nota-c izq">'+esc(r.motivo)+' · reportado por '+esc(r.usuario_nombre||'')+' · '+fechaCorta(aMs(r.fecha))+'</p>'
+      +(r.resena_texto?'<p class="adm-desc">«'+esc(r.resena_texto)+'»</p>':'')+(r.detalle?'<p class="adm-desc">'+esc(r.detalle)+'</p>':'')
+      +'<div class="dc-actions">'+(r.tipo==='resena'&&r.calificacion_id?'<button class="btn btn-primario btn-sm" data-ocultar="'+esc(r.id)+'">'+icon('eye-off',16)+'Ocultar reseña</button>':'')
+      +'<button class="btn btn-secundario btn-sm" data-editarrep="'+esc(r.id)+'">'+icon('pencil',16)+'Editar ficha</button>'
+      +'<button class="btn btn-ghost" data-descartar="'+esc(r.id)+'">Descartar</button></div></div>').join('')
+      :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
+  }else{
+    const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
+    A.borrador=A.borrador||{};A.borrador[mun]=lista;
+    const act=estado.emergencias[mun]&&estado.emergencias[mun].actualizado;
+    html='<div class="seg" role="tablist" aria-label="Municipio"><button data-amun="fusagasuga" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-amun="pasca" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
+      +'<p class="nota-c izq">'+(act?'Última actualización: '+fechaHora(act):'Aún no se han editado; se muestran los números de la app.')+'</p>'
+      +lista.map((e,i)=>'<div class="emg-fila"><div class="emg-campos">'
+        +'<input class="input" data-emg="'+i+'" data-k="entidad" value="'+esc(e.entidad)+'" aria-label="Entidad" placeholder="Entidad">'
+        +'<input class="input" data-emg="'+i+'" data-k="numero" value="'+esc(e.numero)+'" aria-label="Número" placeholder="Número" inputmode="tel">'
+        +'<input class="input" data-emg="'+i+'" data-k="detalle" value="'+esc(e.detalle)+'" aria-label="Descripción" placeholder="Descripción">'
+        +'<select class="input" data-emg="'+i+'" data-k="tipo" aria-label="Tipo">'+['Seguridad','Salud','Rescate','Atención ciudadana'].map(t=>'<option'+(e.tipo===t?' selected':'')+'>'+t+'</option>').join('')+'</select>'
+        +'</div><button class="btn-redondo" data-emgdel="'+i+'" aria-label="Quitar '+esc(e.entidad)+'">'+icon('trash-2')+'</button></div>').join('')
+      +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
+      +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>';
+  }
+  cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
+    +'<div class="metricas">'+[['store',database.length,'Comercios publicados'],['clock',D.pendientes.length,'Pendientes'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
+      .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'
+    +'<div class="adm-tabs" role="tablist">'+tabs.map(([k,t,ic,n])=>'<button role="tab" aria-selected="'+(A.tab===k)+'" class="'+(A.tab===k?'on':'')+'" data-atab="'+k+'">'+icon(ic,18)+t+(n?'<span class="contador">'+n+'</span>':'')+'</button>').join('')+'</div>'
+    +'<div class="adm-cuerpo">'+html+'</div></div>';
+  $('#admRecargar').onclick=()=>{toast('Actualizando…');cargarAdmin();};
+  $$('[data-atab]').forEach(b=>b.onclick=()=>{A.tab=b.dataset.atab;render(true);});
+  const pend=id=>D.pendientes.find(c=>c.id===id),sol=id=>D.solicitudes.find(s=>s.id===id),rep=id=>D.reportes.find(r=>r.id===id);
+  $$('[data-aprobar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Comercio aprobado y publicado'));
+  $$('[data-rechazar]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Comercio rechazado. El comerciante verá el motivo.')));
+  $$('[data-okreclamo]').forEach(b=>b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo)));
+  $$('[data-noreclamo]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado')));
+  $$('[data-okprem]').forEach(b=>b.onclick=()=>activarPremiumAdmin(sol(b.dataset.okprem)));
+  $$('[data-noprem]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada')));
+  $$('[data-ocultar]').forEach(b=>b.onclick=()=>{const r=rep(b.dataset.ocultar);adminAccion(async()=>{
+    const bt=db.batch();bt.update(db.collection('calificaciones').doc(r.calificacion_id),{estado_moderacion:'oculto'});
+    bt.update(db.collection('reportes').doc(r.id),{estado:'resuelto',accion:'resena_oculta',fecha_respuesta:FV.serverTimestamp()});await bt.commit();},'Reseña oculta');});
+  $$('[data-editarrep]').forEach(b=>b.onclick=()=>{const r=rep(b.dataset.editarrep);const c=buscar(r.comercio_id)||D.comercios.find(x=>x.id===r.comercio_id);
+    if(!c){toast('No encontramos ese comercio');return;}
+    db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
+  $$('[data-descartar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('reportes').doc(b.dataset.descartar).update({estado:'descartado',fecha_respuesta:FV.serverTimestamp()}),'Reporte descartado'));
+  // Editor de emergencias
+  $$('[data-amun]').forEach(b=>b.onclick=()=>{A.mun=b.dataset.amun;render(true);});
+  const mun=A.mun||'fusagasuga';
+  $$('[data-emg]').forEach(el=>el.oninput=el.onchange=()=>{A.borrador[mun][+el.dataset.emg][el.dataset.k]=el.value;});
+  $$('[data-emgdel]').forEach(b=>b.onclick=()=>{A.borrador[mun].splice(+b.dataset.emgdel,1);render(true);});
+  const ag=$('#emgAgregar');if(ag)ag.onclick=()=>{A.borrador[mun].push({entidad:'',numero:'',detalle:'',tipo:'Seguridad',emoji:''});render(true);};
+  const gu=$('#emgGuardar');if(gu)gu.onclick=()=>{
+    const lista=A.borrador[mun].map(e=>({entidad:(e.entidad||'').trim(),numero:telLimpio(e.numero),detalle:(e.detalle||'').trim(),tipo:e.tipo||'Seguridad'})).filter(e=>e.entidad&&e.numero);
+    if(!lista.length){toast('Agrega al menos un número');return;}
+    adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
+  };
+}
+async function adminAccion(fn,msg){
+  try{await fn();toast(msg);await cargarAdmin();}
+  catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');}
+}
+function pedirMotivo(titulo,cb){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">'+esc(titulo)+'</h2><p class="nota">El motivo es obligatorio: el comerciante lo verá en su panel.</p>'
+    +'<div class="campo mt-16"><label for="motTxt">Motivo <span class="req">*</span></label><textarea id="motTxt" maxlength="200" placeholder="Ej: falta la dirección exacta del local"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="motOk">Confirmar</button></div>');
+  $('#motOk').onclick=()=>{const m=$('#motTxt').value.trim();if(m.length<4){toast('Escribe el motivo');return;}cerrar('ovGen');cb(m);};
+}
+// Aprobar un reclamo: el negocio queda con dueño (si era una copia local, se crea en la nube con el mismo id)
+async function aprobarReclamo(s){
+  if(!s)return;
+  if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.','Aprobar','Cancelar','store'))return;
+  adminAccion(async()=>{
+    const ref=db.collection('comercios').doc(s.comercio_id);const snap=await ref.get();
+    const bt=db.batch();
+    if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp()});
+    else{
+      const b=COMERCIOS_BASE.find(c=>c.id===s.comercio_id);if(!b)throw new Error('sin-datos');
+      bt.set(ref,{cat:b.cat,categoria:b.cat,emoji:b.emoji,nombre:b.nombre,desc:b.desc,horario:b.horario,direccion:b.direccion,tel:b.tel,whatsapp:b.whatsapp||'',
+        imagen:b.imagen||'',lat:b.lat,lng:b.lng,ubicacion_aprox:!!b.ubicacion_aprox,sub:b.sub||'',tipo:b.tipo||'',nivelDificultad:b.nivelDificultad||'',
+        municipio:b.municipio||'Fusagasugá',redesSociales:{},sitioWeb:b.sitioWeb||'',esPremium:false,prioridadBusqueda:0,
+        propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),fechaCreacion:FV.serverTimestamp()});
+    }
+    const u=await db.collection('usuarios').doc(s.uid).get();
+    if(u.exists&&u.data().rol==='usuario')bt.update(u.ref,{rol:'comerciante'});
+    bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
+    await bt.commit();
+  },'Reclamo aprobado: el comerciante ya ve el negocio en su panel');
+}
+// Activar Premium 30 días (la prueba gratuita se marca como usada una sola vez por comercio)
+async function activarPremiumAdmin(s){
+  if(!s)return;
+  if(!await confirmar('Activar Premium','«'+s.comercio_nombre+'» tendrá Premium durante 30 días.','Activar','Cancelar','star'))return;
+  adminAccion(async()=>{
+    const bt=db.batch();
+    bt.update(db.collection('comercios').doc(s.comercio_id),{esPremium:true,plan:'premium',prioridadBusqueda:1,prueba_usada:true,
+      suscripcion_vigente_hasta:TS.fromMillis(Date.now()+30*86400000)});
+    bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
+    await bt.commit();
+  },'Premium activado por 30 días');
 }
 
 /* ===== FOOTER ===== */
@@ -1393,7 +1836,7 @@ function renderBottomNav(){
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='sos'&&v.tipo==='sos')||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&(v.tipo==='perfil'||v.tipo==='dashboard'));
+      ||(bn==='sos'&&v.tipo==='sos')||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&(v.tipo==='perfil'||v.tipo==='dashboard'||v.tipo==='admin'));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
@@ -1428,16 +1871,10 @@ $('#lVerLegal').onclick=()=>abrir('ovLegal');
 $('#cVerLegal').onclick=()=>abrir('ovLegal');
 $('#edadSi').onclick=()=>{estado.mayorEdad=true;cerrar('ovEdad');navegar({tipo:'lista',cat:'bares'});};
 $('#edadNo').onclick=()=>{cerrar('ovEdad');toast('Solo para mayores de 18 años.');};
-$('#bPublicar').onclick=publicarComercio;
-$('#fUbicar').onclick=async()=>{
-  $('#fUbicTxt').textContent='Obteniendo ubicación…';
-  const p=await pedirUbicacion();
-  if(p){ubicacionForm=p;$('#fUbicTxt').textContent='Ubicación guardada ('+p[0].toFixed(5)+', '+p[1].toFixed(5)+')';}
-  else $('#fUbicTxt').textContent='No pudimos obtener tu ubicación. Activa el GPS.';
-};
 $$('.monto').forEach(b=>b.onclick=()=>{$$('.monto').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-pressed','false');});b.classList.add('sel');b.setAttribute('aria-pressed','true');});
 $('#bEnviarApoyo').onclick=()=>{const sel=$('.monto.sel');if(!sel){toast('Selecciona un monto');return;}cerrar('ovApoyo');toast('¡Gracias por apoyar! Monto: $'+sel.dataset.m);};
 $('#bVolver').onclick=volver;
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-tel]');if(a)registrarEvento(buscar(a.dataset.tel),'toques_llamar');});
 
 let _deb;
 $('#busqueda').addEventListener('input',e=>{
@@ -1520,5 +1957,12 @@ if(navigator.geolocation&&navigator.permissions){
 }
 // Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa
 (function(){const ir=new URLSearchParams(location.search).get('ir');if(ir==='sos'||ir==='mapa'){ocultarSplash();navegar({tipo:ir});}})();
-// Enlace compartido: #c/<id> abre la ficha del lugar
-if(/^#c\//.test(location.hash)){const id=decodeURIComponent(location.hash.slice(3));ocultarSplash();setTimeout(()=>abrirDetalle(id),300);}
+// Rutas profundas: #/lugar/<id> (QR del comercio), #c/<id> (enlaces antiguos) y #/admin
+let adminPendiente=false;
+function rutaHash(){
+  const h=location.hash,m=h.match(/^#\/lugar\/(.+)$/)||h.match(/^#c\/(.+)$/);
+  if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
+  if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
+}
+window.addEventListener('hashchange',rutaHash);
+rutaHash();

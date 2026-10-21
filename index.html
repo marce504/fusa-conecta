@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=16">
+<link rel="stylesheet" href="app.css?v=17">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -86,35 +86,7 @@
 <!-- HOJAS Y MODALES -->
 <div class="overlay" id="ovDetalle"><div class="sheet" id="sheetDetalle" role="dialog" aria-modal="true" aria-label="Ficha del lugar"></div></div>
 
-<div class="overlay" id="ovForm">
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="formTitulo">
-    <div class="grab"></div>
-    <button class="btn-redondo cerrar" data-cerrar="ovForm" aria-label="Cerrar"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="x"></svg></button>
-    <div class="form-head" id="formIntro"><h2 id="formTitulo">Suma tu comercio</h2><p>Publica tu negocio, finca, ruta o servicio en Fusa Conecta.</p></div>
-    <div class="form-body">
-      <div class="campo"><label for="fNombre">Nombre del negocio <span class="req">*</span></label><input type="text" id="fNombre" maxlength="80" placeholder="Ej: Café de la Abuela"></div>
-      <div class="campo"><label for="fCat">Categoría <span class="req">*</span></label><select id="fCat"><option value="">Selecciona una categoría</option><option value="comercio">Comercios</option><option value="campo">Vitrina del Campo</option><option value="turismo">Turismo y Rutas</option><option value="hospedaje">Hospedaje</option><option value="bares">Bares y Licores</option><option value="tramite">Trámites Municipales</option></select></div>
-      <div class="campo" id="fSubWrap" style="display:none"><label for="fSub">Tipo de negocio</label><select id="fSub"></select></div>
-      <div class="campo"><label for="fDesc">Descripción</label><textarea id="fDesc" maxlength="400" placeholder="Cuenta en pocas líneas qué ofreces..."></textarea></div>
-      <div class="campo"><label for="fDir">Dirección</label><input type="text" id="fDir" maxlength="120" placeholder="Ej: Cra 7 # 6-32, Centro"></div>
-      <div class="campo"><span class="lbl">Ubicación en el mapa</span><button type="button" class="btn btn-secundario btn-sm" id="fUbicar"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="locate-fixed"></svg>Usar mi ubicación actual</button><p class="ayuda" id="fUbicTxt"></p></div>
-      <div class="campo"><label for="fTel">WhatsApp / Teléfono</label><input type="tel" id="fTel" maxlength="13" placeholder="Ej: 3001234567"><p class="ayuda">Si es celular, los clientes podrán escribirte por WhatsApp.</p></div>
-      <div class="campo"><span class="lbl">Días de atención</span><div class="dias-sel" id="fDias"><label><input type="checkbox" value="1">Lun</label><label><input type="checkbox" value="2">Mar</label><label><input type="checkbox" value="3">Mié</label><label><input type="checkbox" value="4">Jue</label><label><input type="checkbox" value="5">Vie</label><label><input type="checkbox" value="6">Sáb</label><label><input type="checkbox" value="0">Dom</label></div></div>
-      <div class="campo horas-row"><div><label for="fAbre">Abre</label><input type="time" id="fAbre" value="08:00"></div><div><label for="fCierra">Cierra</label><input type="time" id="fCierra" value="18:00"></div></div>
-      <div class="campo"><label for="fFoto">Foto del negocio</label><input type="file" id="fFoto" accept="image/*"><p class="ayuda">Opcional · se reduce automáticamente para cargar rápido.</p></div>
-      <div id="fPremium" class="bloque-form" style="display:none">
-        <p class="bloque-tit"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="star"></svg>Opciones Premium</p>
-        <div class="campo"><label for="fRed_instagram">Instagram</label><input type="url" id="fRed_instagram" placeholder="https://instagram.com/tunegocio"></div>
-        <div class="campo"><label for="fRed_facebook">Facebook</label><input type="url" id="fRed_facebook" placeholder="https://facebook.com/tunegocio"></div>
-        <div class="campo"><label for="fRed_tiktok">TikTok</label><input type="url" id="fRed_tiktok" placeholder="https://tiktok.com/@tunegocio"></div>
-        <div class="campo"><label for="fRed_youtube">YouTube</label><input type="url" id="fRed_youtube" placeholder="https://youtube.com/@tunegocio"></div>
-        <div class="campo"><label for="fRed_x">X</label><input type="url" id="fRed_x" placeholder="https://x.com/tunegocio"></div>
-        <div class="campo"><label for="fWeb">Sitio web</label><input type="url" id="fWeb" placeholder="https://www.tunegocio.com"><p class="ayuda">Debe comenzar con https://</p></div>
-      </div>
-      <button class="btn btn-primario btn-bloque" id="bPublicar">Publicar</button>
-    </div>
-  </div>
-</div>
+<div class="overlay" id="ovForm"><div class="sheet" id="sheetForm" role="dialog" aria-modal="true" aria-label="Registro de negocio"></div></div>
 
 <div class="overlay" id="ovLogin">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="loginTitulo">
@@ -212,12 +184,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=16"></script>
+<script src="icons.js?v=17"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=16"></script>
-<script src="app.js?v=16"></script>
+<script src="datos.js?v=17"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

@@ -79,6 +79,29 @@ service cloud.firestore {
                     && request.resource.data.estado_publicacion == 'pendiente')));
       allow delete: if esAdmin()
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid);
+
+      // Estadísticas del mes (comercios/{id}/estadisticas/{aaaa-mm}): cualquier visitante con sesión
+      // (incluido el invitado) solo puede sumar 1 a UN contador; las leen el dueño y el admin.
+      match /estadisticas/{mes} {
+        function contadores() { return ['vistas', 'toques_wa', 'toques_llamar', 'cupones_obtenidos', 'cupones_canjeados']; }
+        function sube(campo) {
+          return request.resource.data.get(campo, 0) == resource.data.get(campo, 0)
+            || request.resource.data.get(campo, 0) == resource.data.get(campo, 0) + 1;
+        }
+        allow read: if esAdmin()
+          || (cuentaReal() && get(/databases/$(database)/documents/comercios/$(id)).data.get('propietario_uid', '') == request.auth.uid);
+        allow create: if autenticado()
+          && request.resource.data.keys().hasOnly(contadores())
+          && request.resource.data.keys().size() == 1
+          && request.resource.data.get('vistas', 1) == 1 && request.resource.data.get('toques_wa', 1) == 1
+          && request.resource.data.get('toques_llamar', 1) == 1 && request.resource.data.get('cupones_obtenidos', 1) == 1
+          && request.resource.data.get('cupones_canjeados', 1) == 1;
+        allow update: if autenticado()
+          && request.resource.data.keys().hasOnly(contadores())
+          && request.resource.data.diff(resource.data).affectedKeys().size() == 1
+          && sube('vistas') && sube('toques_wa') && sube('toques_llamar')
+          && sube('cupones_obtenidos') && sube('cupones_canjeados');
+      }
     }
 
     /* ---------- Calificaciones: una por usuario y comercio (id "<comercio>_<uid>") ---------- */
