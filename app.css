@@ -38,6 +38,7 @@
   --shadow-sm:0 1px 2px rgba(27,31,59,.06);
   --shadow-md:0 6px 20px rgba(27,31,59,.08);
   --shadow-primary:0 8px 20px rgba(107,78,255,.28);   /* solo botón principal y FAB */
+  --shadow-nav:0 -4px 16px rgba(27,31,59,.05);
   --ease-out:cubic-bezier(.22,1,.36,1);--ease-spring:cubic-bezier(.34,1.56,.64,1);
   --dur-fast:150ms;--dur-base:250ms;
   --t:var(--dur-fast) var(--ease-out);
@@ -51,7 +52,7 @@
   --google-azul:#4285F4;--google-verde:#34A853;--google-amarillo:#FBBC05;--google-rojo:#EA4335;
   /* Tipografía (Poppins): pantalla 26 px, sección 18 px, texto 16 px, metadatos 13 px, números 30 px */
   --font:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --text-xs:13px;--text-sm:14px;--text-base:16px;--text-lg:18px;--text-xl:22px;--text-2xl:26px;--text-num:30px;
+  --text-2xs:11px;--text-xs:13px;--text-sm:14px;--text-base:16px;--text-lg:18px;--text-xl:22px;--text-2xl:26px;--text-num:30px;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
 }
@@ -112,16 +113,18 @@ button:disabled{opacity:.6;pointer-events:none}
 .enlace{color:var(--primary-700);text-decoration:underline;font-weight:500;font-size:inherit;padding:0}
 
 /* ---------- Cabecera ---------- */
-.topbar{background:var(--bg);flex-shrink:0;z-index:20;border-bottom:1px solid var(--line);overflow:hidden;max-height:420px;transition:max-height .25s ease-out;padding-top:var(--safe-t)}
-.topbar.arriba{max-height:0;border-bottom-color:transparent}
+.topbar{background:var(--bg);flex-shrink:0;z-index:20;border-bottom:1px solid var(--line);overflow:hidden;padding-top:var(--safe-t)}
+.plegable{max-height:260px;overflow:hidden;transition:max-height var(--dur-base) var(--ease-out),opacity var(--dur-base) var(--ease-out)}
+.topbar.arriba .plegable{max-height:0;opacity:0}
 .topbar:focus-within{overflow:visible}
-.nav-row{padding:12px 16px 0}
-.nav-row:has(.nav-btn.invisible){display:none}
+.nav-row{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px}
+.topbar.en-lista .nav-row{display:none}
 .nav-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm);font-weight:500;transition:background var(--t)}
 .nav-btn:hover{background:var(--line)}
 .nav-btn.invisible{display:none}
 .descubre{padding:12px 16px}
-.sesion{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-bottom:12px}
+.sesion{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin-bottom:8px}
+.sesion .marca{font-size:17px;white-space:nowrap}
 .marca{display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:600;font-size:var(--text-lg);line-height:1.25}
 .logo-svg{display:block;width:auto;height:32px}
 /* Logo: hoja superior violeta, izquierda menta 300, derecha menta 600, inferior menta 400 */
@@ -129,7 +132,19 @@ button:disabled{opacity:.6;pointer-events:none}
 .logo-svg path:nth-of-type(2),.splash-logo-svg .h2{fill:var(--mint-300)}
 .logo-svg path:nth-of-type(3),.splash-logo-svg .h3{fill:var(--mint-600)}
 .logo-svg path:nth-of-type(4),.splash-logo-svg .h4{fill:var(--mint-400)}
-.sesion-acciones{display:flex;align-items:center;gap:8px}
+.sesion-acciones{display:flex;align-items:center;gap:6px}
+/* SOS siempre visible: píldora roja en la cabecera (36 px de alto, 44 px de área táctil) */
+.sos-pill{position:relative;display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 12px 0 10px;border-radius:var(--radius-full);background:var(--danger-50);color:var(--danger-700);font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;flex-shrink:0;transition:transform var(--t)}
+.sos-pill::before{content:"";position:absolute;inset:-4px -2px}
+.sos-pill:active{transform:scale(.96)}
+.sos-pill .ic{color:var(--danger-700)}
+.btn-cuenta{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;flex-shrink:0}
+.btn-cuenta .av,.btn-cuenta>.ic{width:36px;height:36px}
+.btn-cuenta>.ic{padding:7px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700)}
+/* Saludo según la hora del día */
+.saludo-hora{padding:4px 0 12px}
+.saludo-hora b{display:block;font-size:var(--text-xl);font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.2}
+.saludo-hora span{display:block;font-size:var(--text-sm);color:var(--ink-2);margin-top:2px}
 .saludo{display:flex;align-items:center;gap:8px;min-height:44px;color:var(--ink-2);font-size:var(--text-sm);font-weight:500}
 .av{width:32px;height:32px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;font-weight:600;font-size:var(--text-sm)}
 .buscador{position:relative}
@@ -423,14 +438,22 @@ button:disabled{opacity:.6;pointer-events:none}
 .hoja-acc{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 
 /* ---------- Barra inferior ---------- */
-.bottom-nav{display:flex;flex-shrink:0;background:var(--bg);border-top:1px solid var(--line);padding:0 4px var(--safe-b);z-index:25}
-.bn-btn{position:relative;flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink-2);font-size:var(--text-xs);font-weight:400;transition:color var(--t)}
-.bn-btn::before{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:transparent;transition:background var(--t)}
-.bn-btn.bn-active{color:var(--primary-700);font-weight:600}
-.bn-btn.bn-active::before{background:var(--primary-500)}
-.bn-btn.bn-sos .ic{color:var(--danger-600)}
-.bn-btn.bn-sos.bn-active{color:var(--danger-600)}
-.bn-btn.bn-sos.bn-active::before{background:var(--danger-600)}
+.bottom-nav{position:relative;display:flex;align-items:stretch;flex-shrink:0;background:var(--bg);border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:var(--shadow-nav);padding:0 4px var(--safe-b);z-index:25}
+.bn-btn{position:relative;flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink-2);font-size:var(--text-2xs);font-weight:500;transition:color var(--dur-base) var(--ease-out)}
+.bn-btn::before{content:"";position:absolute;top:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:var(--radius-full);background:var(--primary-500);transform:scale(0);transition:transform var(--dur-base) var(--ease-spring)}
+.bn-btn .ic{transition:transform var(--dur-base) var(--ease-spring)}
+.bn-btn.bn-active{color:var(--primary-500);font-weight:600}
+.bn-btn.bn-active::before{transform:scale(1)}
+.bn-btn.bn-active .ic{transform:translateY(1px)}
+/* Botón central: círculo de 60 px elevado la mitad sobre la barra, anillo blanco de 4 px */
+.bn-centro{justify-content:flex-end;padding-bottom:7px}
+.bn-centro::before{display:none}
+.bn-fab{position:relative;width:60px;height:60px;margin-top:-30px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--bg);border:4px solid var(--bg);box-shadow:var(--shadow-primary);display:grid;place-items:center;transition:transform var(--dur-base) var(--ease-spring),background var(--t)}
+.bn-centro:active .bn-fab{transform:scale(.94)}
+.bn-centro.bn-active .bn-fab{background:var(--primary-600)}
+.bn-centro .bn-fab .ic{transform:none}
+.bn-badge{position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--sun-400);color:var(--ink);border:2px solid var(--bg);font-size:var(--text-2xs);font-weight:700;display:grid;place-items:center}
+.bn-badge[hidden]{display:none}
 
 /* ---------- Mapa ---------- */
 .vista-mapa{flex:1;display:flex;flex-direction:column;min-height:440px}
@@ -664,7 +687,6 @@ button:disabled{opacity:.6;pointer-events:none}
 .ticket-vuelo{position:fixed;z-index:200;width:56px;height:40px;border-radius:var(--radius-sm);background:var(--sun-400);color:var(--ink);display:grid;place-items:center;box-shadow:var(--shadow-md);pointer-events:none}
 .pulso{animation:pulso .45s ease-out}
 @keyframes pulso{50%{transform:scale(1.18)}}
-.contador-hd{position:absolute;top:-4px;right:-4px;font-weight:700;background:var(--sun-400);color:var(--ink);border:2px solid var(--bg)}
 .contador.gris{background:var(--soft);color:var(--ink-2)}
 /* Billetera "Mis cupones" */
 .billetera{display:flex;flex-direction:column;gap:16px}
@@ -752,3 +774,11 @@ button:disabled{opacity:.6;pointer-events:none}
 .poster-prev{max-width:320px;margin:12px auto}
 .poster-prev img{display:block;width:100%;height:auto;min-height:120px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:var(--shadow-md)}
 .poster-prev img:not([src]){visibility:hidden}
+/* Cupones disponibles */
+.aviso-suave{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:16px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700);font-size:var(--text-sm)}
+.aviso-suave>span{flex:1}
+.lista-tickets{display:flex;flex-direction:column;gap:12px}
+.lista-tickets .ticket+.ticket{margin-top:0}
+.ticket-acc{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px}
+.ticket-acc .btn{margin-top:0}
+.conteo.izq{display:block;margin:-8px 0 12px}

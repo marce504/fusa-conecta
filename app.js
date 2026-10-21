@@ -294,23 +294,30 @@ const LOGO_SVG=(()=>{
   return c.outerHTML;
 })();
 const MARCA_HTML='<span class="marca">'+LOGO_SVG+'<span>Fusa Conecta</span></span>';
+const SOS_HTML='<button class="sos-pill" data-sos aria-label="Emergencias: números de ayuda">'+icon('siren',18)+'SOS</button>';
+// Saludo según la hora: "Buenos días / Buenas tardes / Buenas noches" (+ nombre si hay sesión)
+function saludoDeHora(h=new Date().getHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
+function pintarSaludo(){
+  const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
+  $('#saludoHora').innerHTML='<b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en Fusa?</span>';
+}
 function renderHeader(){
   const v=vistaActual();
-  $('#bVolver').classList.toggle('invisible',stack.length<=1);
   const enLista=v.tipo==='lista';
+  // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
+  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista);
+  $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
+  pintarSaludo();
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+billeteraHTML()+campanaHTML()+'<button class="saludo" id="bPerfilTop" aria-label="Ver mi perfil"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span><span class="saludo-nom">'+esc(nom.split(' ')[0])+'</span></button>'
-      +'<button class="btn btn-secundario btn-sm" id="bSalir">Salir</button></div>';
-    $('#bSalir').onclick=cerrarSesion;
-    $('#bBilletera').onclick=irABilletera;
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+campanaHTML()+'<button class="btn-cuenta" id="bPerfilTop" aria-label="Mi perfil: '+esc(nom)+'"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span></button></div>';
     $('#bPerfilTop').onclick=()=>navegar({tipo:'perfil'});
   }else{
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+campanaHTML()+'<button class="btn btn-primario btn-sm" id="bEntrar">Entrar</button></div>';
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+campanaHTML()+'<button class="btn-cuenta" id="bEntrar" aria-label="Entrar o crear cuenta">'+icon('user',22)+'</button></div>';
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
   $('#bNovedades').onclick=abrirNovedades;
@@ -488,7 +495,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard','billetera'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera','cupones'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -503,6 +510,7 @@ function render(conservarScroll){
   else if(v.tipo==='ruta')renderRuta(v.id);
   else if(v.tipo==='admin')renderAdmin();
   else if(v.tipo==='billetera')renderBilletera();
+  else if(v.tipo==='cupones')renderCuponesDisponibles();
   else renderLista(v);
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
@@ -767,7 +775,7 @@ async function generarCupon(d,cupon,boton){
 // Animación: el ticket se desliza desde el botón hasta la billetera de la cabecera
 function volarABilletera(desde){
   if(sinMovimiento()||!desde.animate)return;
-  const destino=$('#bBilletera')||$('.bn-btn[data-bn="perfil"]');
+  const destino=$('.bn-fab');
   if(!destino)return;
   const a=desde.getBoundingClientRect(),b=destino.getBoundingClientRect();
   const v=document.createElement('div');v.className='ticket-vuelo';v.innerHTML=icon('ticket',22);
@@ -818,13 +826,13 @@ function irABilletera(){
   if(!logueado()){pedirLogin('Inicia sesión para ver tus cupones.');return;}
   if(vistaActual().tipo!=='billetera')navegar({tipo:'billetera'});
 }
-function billeteraHTML(){
-  const n=cuponesActivos();
-  return '<button class="btn-redondo campana" id="bBilletera" aria-label="Mis cupones'+(n?', '+n+(n===1?' activo':' activos'):'')+'">'+icon('ticket')+(n?'<span class="contador contador-hd" aria-hidden="true">'+n+'</span>':'')+'</button>';
+function pintarGloboCupones(){
+  const n=cuponesActivos(),b=$('#bnBadge');
+  b.hidden=!n;b.textContent=n>9?'9+':n;
+  $('.bn-centro').setAttribute('aria-label','Cupones'+(n?': '+n+(n===1?' activo':' activos'):''));
 }
 function actualizarBilletera(){
-  const b=$('#bBilletera');if(b)b.outerHTML=billeteraHTML();
-  const nb=$('#bBilletera');if(nb)nb.onclick=irABilletera;
+  pintarGloboCupones();
   if(vistaActual().tipo==='billetera')render(true);
 }
 function renderBilletera(){
@@ -844,7 +852,8 @@ function renderBilletera(){
   const vacio={activo:['ticket','No tienes cupones activos','Busca los lugares con cupón y guárdalos aquí.'],
     usado:['badge-check','Aún no has usado cupones','Cuando el vendedor escanee un cupón, aparecerá aquí.'],
     vencido:['hourglass','No tienes cupones vencidos','Los cupones que no alcances a usar aparecerán aquí.']}[tab];
-  cuerpo.innerHTML='<div class="vista"><div class="head-v"><h2>Mis cupones</h2><span class="conteo">'+(estado.online?'':icon('wifi-off',14)+' ')+'Disponibles sin conexión</span></div>'
+  cuerpo.innerHTML='<div class="vista"><div class="head-v"><h2>Mis cupones</h2><button class="btn-ghost" id="bwMas">'+icon('plus',18)+'Más cupones</button></div>'
+    +'<p class="conteo izq">'+(estado.online?'':icon('wifi-off',14)+' ')+'Disponibles sin conexión</p>'
     +'<div class="adm-tabs" role="tablist" aria-label="Estado de los cupones">'+tabs.map(([k,t])=>'<button role="tab" aria-selected="'+(tab===k)+'" class="'+(tab===k?'on':'')+'" data-wtab="'+k+'">'+t+(grupos[k].length?' <span class="contador gris">'+grupos[k].length+'</span>':'')+'</button>').join('')+'</div>'
     +(lista.length?'<div class="billetera">'+lista.map(c=>{
         const est=estadoCupon(c);
@@ -862,10 +871,28 @@ function renderBilletera(){
     +'</div>'+footerHTML();
   $$('[data-wtab]').forEach(b=>b.onclick=()=>{estado.tabBilletera=b.dataset.wtab;render();});
   $$('[data-mostrar]').forEach(b=>b.onclick=()=>mostrarCupon(todos.find(c=>c.id===b.dataset.mostrar)));
-  const bb=$('#bwBuscar');if(bb)bb.onclick=()=>{estado.filtros.cupon=true;estado.q='';navegar({tipo:'lista',cat:'todas'});};
+  const bb=$('#bwBuscar');if(bb)bb.onclick=()=>navegar({tipo:'cupones'});
+  $('#bwMas').onclick=()=>navegar({tipo:'cupones'});
   $$('[data-qr]').forEach(el=>pintarQR(el,'FUSACONECTA:'+el.dataset.qr,160));
   enlazarFooter();
   sincronizarCupones();
+}
+
+/* ---------- Cupones disponibles (botón central sin sesión) ---------- */
+function renderCuponesDisponibles(){
+  const l=[];database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
+  l.sort((a,b)=>(aMs(a.c.vigencia)||0)-(aMs(b.c.vigencia)||0));
+  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>Cupones</h2><span class="conteo">'+l.length+(l.length===1?' disponible':' disponibles')+'</span></div>'
+    +(logueado()?'':'<div class="aviso-suave">'+icon('wallet',20)+'<span>Inicia sesión para guardar cupones en tu billetera y mostrarlos en caja, incluso sin conexión.</span><button class="btn btn-tonal btn-sm" id="bcEntrar">Entrar</button></div>')
+    +(l.length?'<div class="lista-tickets">'+l.map(({d,c})=>ticketHTML({icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c)),
+        accion:'<div class="ticket-acc"><button class="btn btn-tonal btn-sm" data-obtener="'+esc(c.id)+'" data-com="'+esc(d.id)+'">'+(yaTengoCupon(c.id)?icon('wallet',18)+'Ver en mi billetera':'Obtener cupón')+'</button>'
+          +'<button class="btn btn-ghost" data-vercom="'+esc(d.id)+'">Ver lugar</button></div>'})).join('')+'</div>'
+      :'<div class="vacio">'+icon('ticket',48)+'<b>Aún no hay cupones activos</b><p>Los comercios destacados publican cupones nuevos cada semana.</p></div>')
+    +'</div>'+footerHTML();
+  const be=$('#bcEntrar');if(be)be.onclick=()=>abrirLogin('ingresar',false,'Inicia sesión para guardar tus cupones.');
+  $$('[data-obtener]').forEach(b=>b.onclick=()=>{const d=buscar(b.dataset.com);generarCupon(d,cuponesDe(d).find(c=>c.id===b.dataset.obtener),b);});
+  $$('[data-vercom]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.vercom));
+  enlazarFooter();
 }
 
 /* ---------- "Cupones de la semana" en el inicio ---------- */
@@ -2281,10 +2308,11 @@ function enlazarFooter(){
 /* ===== BARRA INFERIOR (RF-04) ===== */
 function renderBottomNav(){
   const v=vistaActual();
+  pintarGloboCupones();
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='sos'&&v.tipo==='sos')||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin','billetera'].includes(v.tipo));
+      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin'].includes(v.tipo));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
@@ -2294,7 +2322,7 @@ $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     if(bn==='inicio'){inicio();return;}
     if(bn==='favoritos'){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}navegar({tipo:'lista',cat:'favoritos'});return;}
-    if(bn==='sos'){navegar({tipo:'sos'});return;}
+    if(bn==='cupones'){const t=logueado()?'billetera':'cupones';if(vistaActual().tipo!==t)navegar({tipo:t});return;}
     if(bn==='mapa'){navegar({tipo:'mapa'});return;}
     if(bn==='perfil'){navegar({tipo:'perfil'});}
   };
@@ -2322,6 +2350,7 @@ $('#edadNo').onclick=()=>{cerrar('ovEdad');toast('Solo para mayores de 18 años.
 $$('.monto').forEach(b=>b.onclick=()=>{$$('.monto').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-pressed','false');});b.classList.add('sel');b.setAttribute('aria-pressed','true');});
 $('#bEnviarApoyo').onclick=()=>{const sel=$('.monto.sel');if(!sel){toast('Selecciona un monto');return;}cerrar('ovApoyo');toast('¡Gracias por apoyar! Monto: $'+sel.dataset.m);};
 $('#bVolver').onclick=volver;
+document.addEventListener('click',e=>{const s=e.target.closest&&e.target.closest('[data-sos]');if(!s)return;$$('.overlay.abierto').forEach(o=>cerrar(o.id));if(vistaActual().tipo!=='sos')navegar({tipo:'sos'});});
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-tel]');if(a)registrarEvento(buscar(a.dataset.tel),'toques_llamar');});
 
 let _deb;
