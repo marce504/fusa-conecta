@@ -45,7 +45,8 @@ const ls={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},
   del(k){try{localStorage.removeItem(k);}catch(e){}}
 };
-function toast(msg){const t=$('#toast'),tb=$('#topbar');t.style.top=Math.max(8,(tb?tb.getBoundingClientRect().bottom:0)+8)+'px';t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2500);}
+// Aviso arriba, justo bajo la fila del logo (no tapa títulos ni tarjetas)
+function toast(msg,ms=2500){const t=$('#toast'),ref=vistaActual().tipo==='lista'?$('#sesion'):$('#topbar');t.style.top=Math.max(8,(ref?ref.getBoundingClientRect().bottom:0)+6)+'px';t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),ms);}
 function abrir(id){$('#'+id).classList.add('abierto');}
 // Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
 const alCerrar={};
@@ -284,16 +285,48 @@ window.addEventListener('popstate',()=>{
 });
 
 /* ===== CABECERA ===== */
-// Logo vectorial: copia estática (sin animación) de las hojas del logo de bienvenida
-const LOGO_SVG=(()=>{
-  const s=$('#splash .splash-logo-svg');if(!s)return '';
-  const c=s.cloneNode(true);
-  c.querySelectorAll('style,defs').forEach(x=>x.remove());
-  c.querySelectorAll('path').forEach(p=>p.removeAttribute('class'));
-  c.setAttribute('class','logo-svg');c.setAttribute('aria-hidden','true');c.removeAttribute('role');c.removeAttribute('aria-label');
-  return c.outerHTML;
-})();
-const MARCA_HTML='<span class="marca">'+LOGO_SVG+'<span>Fusa Conecta</span></span>';
+/* ===== LOGO DE FUSA CONECTA: un solo componente para todas las pantallas =====
+   logo(variante,tema,opc) → HTML listo para insertar.
+   variante: 'horizontal' (header, footer) | 'vertical' (splash, póster) | 'iso' (solo las 4 hojas)
+   tema: 'claro' (fondos blancos) | 'lila' (fondo --primary-500) | 'oscuro' (fondo --ink)
+   Medidas de Poppins (por em): alto de la "F" 0,71 · altura de la "x" 0,55 · ascendente 1,05 · descendente 0,35.
+   Con line-height 0,92 la parte superior de la "F" queda a 0,10 em del borde de la línea y la línea base a 0,81 em. */
+const LOGO_VB='102.46 0 194.02 275.6';            // caja exacta de las 4 hojas
+const LOGO_PROP=194.02/275.6;                      // ancho / alto del isotipo
+const LOGO_ANCHO_NOMBRE=6.842;                     // "Fusa Conecta" en una línea, en em (con -0.02em por letra)
+const LOGO_HOJAS=[ // superior (la del circuito), izquierda, derecha, inferior
+  'M265.05,59.24c.94,1.25,1.78,3.19.85,4.61-1.59,2.45-4.07,6.91-6.46,9.9-2.77,3.46-6.2,6.19-10.31,8.2-.73.35-1.51.59-2.33.7-.95.12-1.43.19-1.44.19-5.09,1.04-8.92,3.8-11.51,8.3-2.46,4.28-2.76,9.65-1.11,14.13.33.91.48,1.58.43,2.01-.22,1.89-1.24,3.39-2.52,4.76-6.43,6.89-12.93,13.83-19.49,20.8-.55.58-1.33.93-2.33,1.04-1.86.21-3.47-1.27-3.73-3.03-.2-1.35-.29-2.97-.28-4.88.2-32.66.33-50.96.4-54.9.02-1.19.48-2.4,1.4-3.61.19-.25.94-.84,2.25-1.77,8.39-5.96,9.66-17.82,2.36-25.2-9.6-9.71-25.68-4.1-27.79,9.27-.49,3.12-.04,6.2,1.35,9.25,1.7,3.73,4.32,6.13,7.75,8.26.12.07.23.17.32.28.81,1.02,1.21,2.22,1.2,3.62-.03,6.14-.05,17.29-.07,33.45,0,.29-.05.82-.16,1.6-.59,4.27-5.2,5.21-8.2,2.54-4.84-4.32-11.42-10.38-19.77-18.2-.67-.62-1.08-1.32-1.22-2.08-.09-.44-.01-1.23.22-2.35,1.14-5.54-.09-10.38-3.69-14.54-3.37-3.89-7.78-5.79-13.23-5.71-2.59.04-5.12,1.73-7.15-.94-2.36-3.1-2.96-6.18-.89-9.63.53-.88,1.77-2.48,3.73-4.8,8.62-10.22,18.21-20.17,28.79-29.83,7.31-6.67,15-12.98,23.06-18.93,2.36-1.74,5.6-2.34,8.26-1.12,2.54,1.16,4,2.47,7.17,4.84,1.53,1.15,2.84,2.16,3.93,3.03,11.89,9.6,23.16,20,33.81,31.21,2.59,2.73,4.89,5.42,7.62,8.52,2.26,2.56,5.2,6.23,8.8,11h0Z',
+  'M125.2,74.73c1.21-1.71,3.59-2.23,5.27-.95,1.97,1.51,2.68,2.94,2.07,5.59-1.02,4.42.17,9.16,2.63,12.71.77,1.11,1.93,2.29,3.45,3.53,4.4,3.56,10.3,4.3,15.65,2.55,1.11-.36,1.82-.52,2.11-.46.58.11,1.23.45,1.94,1.03.65.53,2.12,1.86,4.43,4,2.89,2.69,4.44,3.96,6.56,6.14,1.52,1.57,3.72,3.27,5.45,5.01,1.58,1.6,2.4,2.28,3.91,3.66.73.67,1.22,1.15,1.49,1.46,3.23,3.73,5.66,7.18,7.3,10.37,2.33,4.55,3.69,9.38,4.07,14.51.59,7.95.36,13.74.35,27.98,0,2.81-.29,5.54-.87,8.19-.64,2.91-2.75,5.58-6.01,4.61-.78-.23-1.95-1.06-3.52-2.49-2.95-2.69-5.86-5.41-8.75-8.17-3.67-3.51-7.44-7.11-11.32-10.83-1.68-1.61-1.63-2.82-1.35-5.24.31-2.69.09-5.12-.65-7.29-1.63-4.72-4.73-8.11-9.3-10.18-3.44-1.56-7.74-1.81-11.1-.67-.53.18-1.14.36-1.83.54-1.21.32-2.53-.49-3.49-1.3-1.82-1.53-7.47-6.25-16.97-14.17-1.4-1.16-2.97-2.53-4.72-4.09-2.17-1.94-3.92-4.76-3.79-7.69.05-1.02.23-2.14.56-3.35,3.43-12.71,8.92-24.37,16.46-34.99h0Z',
+  'M262.57,90.62c.06-.61.27-1.16.62-1.65.72-1.01,3.27-4.48,7.64-10.41,1.25-1.68,2.77-3.02,4.95-2.05.61.27,1.2.85,1.76,1.74,1.17,1.84,1.8,2.82,1.87,2.94,2.88,4.58,5.62,9.96,8.22,16.13,4.15,9.85,6.82,20.05,8.02,30.61.54,4.79.98,9.99.78,15.02-.35,8.64-1.27,16.33-2.77,23.05-4.83,21.66-15.89,41.49-32.11,56.92-6.46,6.15-12.96,11.05-20.04,16.01-3.07,2.15-6.04,4.48-8.92,7-8.15,7.11-14.68,16.11-19.36,25.84-.74,1.53-1.83,3.51-3.73,3.74-1.8.23-2.98-.58-3.53-2.41-.4-1.32-.67-2.88-.84-4.69-.14-1.53-.26-4.38-.37-8.54-.07-2.91-.06-7.38.05-13.43.08-4.79.97-9.68,2.67-14.66,1.78-5.26,4.2-10.17,7.25-14.73,2.06-3.08,3.43-5.02,4.12-5.84,2.47-2.93,4.21-5.2,6.71-7.77,5.75-5.93,10.26-10.56,13.53-13.91,1.32-1.36,2.83-1.84,4.53-1.44,1.05.25,1.58.37,1.59.37,1.83.21,3.16.29,3.98.23,4.63-.3,8.47-2.14,11.52-5.55,3.23-3.62,4.86-8.59,4.1-13.42-.93-5.83-4.71-10.65-10.12-12.88-6.07-2.5-12.99-1.01-17.57,3.58-3.46,3.47-5.11,7.82-4.96,13.06.02.59.24,1.73.67,3.43.45,1.81.11,3.18-1.15,4.48-10.51,10.88-17.42,18.06-20.71,21.54-1.24,1.31-3.4,1.54-4.73.3-.76-.71-1.17-1.67-1.23-2.87-.41-8.05-.15-18.38-.21-23.49-.04-3.51.13-6.35.51-8.54,2.18-12.48,8.76-22.45,17.21-31.51,7.54-8.09,13.66-14.58,18.36-19.46,1.52-1.59,2.98-1.77,5.34-1.59,1.81.13,3.31.11,4.49-.08,4.77-.75,8.49-3.18,11.17-7.29,2.62-4.02,3.37-8.43,2.25-13.23-.31-1.31-1.13-2.87-1.46-3.83-.08-.23-.11-.48-.08-.72h0Z',
+  'M150.76,170.79c1.49-.64,3.57.78,4.67,1.81,3.92,3.63,7.77,7.22,11.55,10.78,2.8,2.64,5.21,5.1,7.24,7.39,2.54,2.86,4.69,5.54,6.46,8.05,5.84,8.28,9.07,18.17,10.2,28.1.58,5.07.9,10.58.96,15.58.1,9.01-.16,18.15-.75,27.41-.1,1.54-.23,3.9-1.56,4.95-2.06,1.63-4.09.3-4.96-1.87-1.53-3.85-2.73-6.64-3.58-8.37-3.01-6.11-6.84-11.34-11.51-15.68-3.49-3.25-7.65-6.3-12.48-9.16-.04-.02-.88-.54-2.53-1.54-9.65-5.87-18.29-13.1-25.91-21.69-8.27-9.33-14.69-19.91-19.23-31.73-3.63-9.42-5.81-19.07-6.55-28.93-.44-5.81-.43-11.94.02-18.39.12-1.67.4-2.78.84-3.33,1.55-1.93,4.05-1.51,5.99-.07,6.64,4.91,12.4,9.52,17.29,13.84,1.24,1.1,1.14,2.47.81,4.25-.47,2.47-.52,4.61-.16,6.42.82,4.11,2.68,7.36,5.57,9.76,5.02,4.17,11.65,5.04,17.64,2.43h0Z'];
+// Colores de las hojas por tema (variables de :root)
+const LOGO_COLORES={claro:['--primary-500','--mint-300','--mint-600','--mint-400'],lila:['--bg','--teal-300','--mint-300','--teal-200'],oscuro:['--bg','--teal-300','--mint-300','--teal-200']};
+function isoSVG(clase,tema,enLinea){
+  // enLinea: rellenos escritos en el SVG (para dibujarlo fuera de la página: póster, ícono)
+  const col=LOGO_COLORES[tema]||LOGO_COLORES.claro;
+  return '<svg class="'+clase+'" viewBox="'+LOGO_VB+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">'
+    +LOGO_HOJAS.map((d,i)=>'<path class="h'+(i+1)+'"'+(enLinea?' fill="'+cssVar(col[i])+'"':'')+' d="'+d+'"/>').join('')+'</svg>';
+}
+function logo(variante='horizontal',tema='claro',opc={}){
+  const alto=opc.alto||36;
+  // Por debajo de 32 px el nombre no se lee: solo el isotipo
+  if(variante==='horizontal'&&alto<32)variante='iso';
+  const t=' t-'+(LOGO_COLORES[tema]?tema:'claro')+(opc.clase?' '+opc.clase:'');
+  if(variante==='iso')
+    return '<span class="logo logo-i'+t+'" style="--alto:'+alto+'px"'+(opc.decorativo?' aria-hidden="true"':' role="img" aria-label="Fusa Conecta"')+'>'+isoSVG('logo-iso',tema)+'</span>';
+  if(variante==='vertical'){
+    // Isotipo arriba; nombre en una línea ≈ 2,2 × ancho del isotipo; separación = 0,2 × alto del isotipo
+    const W=alto*LOGO_PROP,f=2.2*W/LOGO_ANCHO_NOMBRE;
+    return '<span class="logo logo-v'+t+'" role="img" aria-label="Fusa Conecta'+(opc.lema?'. Todo Fusa, en tu bolsillo':'')+'" style="--alto:'+alto+'px;--f:'+f.toFixed(2)+'px">'
+      +'<span class="logo-caja">'+isoSVG('logo-iso',tema)+(opc.extraIso||'')+'</span>'
+      +'<span class="logo-nom" aria-hidden="true"><b>Fusa</b> <span>Conecta</span></span>'
+      +(opc.lema?'<span class="logo-lema" aria-hidden="true">Todo Fusa, en tu bolsillo</span>':'')+'</span>';
+  }
+  // Horizontal: "Fusa" y "Conecta" apilados; el isotipo mide lo mismo que de la parte superior de la "F" a la línea base de "Conecta"
+  return '<span class="logo logo-h'+t+'" role="img" aria-label="Fusa Conecta" style="font-size:'+(alto/1.84).toFixed(2)+'px">'
+    +isoSVG('logo-iso',tema)+'<span class="logo-nom" aria-hidden="true"><b>Fusa</b><span>Conecta</span></span></span>';
+}
+const MARCA_HTML=logo('horizontal','claro',{alto:36});
 const SOS_HTML='<button class="sos-pill" data-sos aria-label="Emergencias: números de ayuda">'+icon('siren',18)+'SOS</button>';
 // Saludo según la hora: "Buenos días / Buenas tardes / Buenas noches" (+ nombre si hay sesión)
 function saludoDeHora(h=new Date().getHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
@@ -587,7 +620,7 @@ function bannerHTML(){
     +slide(0,'s-bienvenida','Bienvenido','Todo Fusa, en tu bolsillo','Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
       '<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
       formaSVG('f-menta',44,-18,70,20)+formaSVG('f-menta2',-10,6,46,-30)
-      +'<span class="ilu-logo">'+LOGO_SVG+'</span>'
+      +'<span class="ilu-logo">'+logo('iso','lila',{alto:48,decorativo:true})+'</span>'
       +FOTOS_BANNER.map((f,k)=>'<img class="ilu-foto f'+k+'" src="'+f+'" alt="" loading="lazy" onerror="this.remove()">').join(''))
     +slide(1,'s-cupones','Ahorra en Fusa','Tu cupón te está esperando','Toma un descuento, muéstralo en caja y ahorra unos pesos.',
       '<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
@@ -1374,18 +1407,16 @@ async function dibujarPoster(d,formato){
   const tamQR=formato==='carta'?760:400;
   await pintarQR(tmp,enlaceFicha(d.id),tamQR);
   const qr=tmp.querySelector('canvas');if(!qr)throw new Error('qr');
-  const COLORES_LOGO=['--primary-500','--mint-300','--mint-600','--mint-400'];let hoja=0;
-  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,()=>'<path fill="'+c(COLORES_LOGO[hoja++%4])+'" '));
+  await Promise.all(['800','500','600','700','400'].map(p=>document.fonts.load(p+' 40px Poppins').catch(()=>{})));
+  const iso=await imagenDeSVG(isoSVG('','claro',true).replace('<svg ','<svg width="194" height="276" '));
   ctx.fillStyle=c('--bg');ctx.fillRect(0,0,F.w,F.h);
   const texto=(t,x,y,tam,peso,color,alin='center',max=F.w-120)=>{ctx.font=peso+' '+tam+'px '+fuente;ctx.fillStyle=color;ctx.textAlign=alin;ctx.textBaseline='top';
     const ls=lineasTexto(ctx,t,max);ls.forEach((l,i)=>ctx.fillText(l,x,y+i*tam*1.25));return y+ls.length*tam*1.25;};
   if(formato==='carta'){
     ctx.fillStyle=c('--primary-500');ctx.fillRect(0,0,F.w,24);ctx.fillRect(0,F.h-24,F.w,24);
-    const lh=110,lw=lh*200/280;
-    ctx.font='600 56px '+fuente;const anchoMarca=lw+20+ctx.measureText('Fusa Conecta').width;
-    ctx.drawImage(logo,(F.w-anchoMarca)/2,90,lw,lh);
-    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--ink');ctx.fillText('Fusa Conecta',(F.w-anchoMarca)/2+lw+20,90+lh/2);
-    let y=texto(d.nombre,F.w/2,260,84,'700',c('--ink'));
+    // Logo vertical: isotipo arriba y "Fusa Conecta" en una línea (≈ 2,2 × ancho del isotipo)
+    const ancho=marcaPoster(ctx,iso,'vertical',F.w/2,70,120,fuente);
+    let y=texto(d.nombre,F.w/2,70+120+ancho.alto+40,84,'700',c('--ink'));
     const qy=y+50;
     ctx.fillStyle=c('--soft');ctx.strokeStyle=c('--line');ctx.lineWidth=4;
     redondeado(ctx,(F.w-tamQR)/2-40,qy-40,tamQR+80,tamQR+80,40);ctx.fill();ctx.stroke();
@@ -1396,13 +1427,32 @@ async function dibujarPoster(d,formato){
     ctx.fillStyle=c('--primary-500');ctx.fillRect(0,0,18,F.h);
     const qx=F.w-tamQR-80,qy=(F.h-tamQR)/2;
     ctx.drawImage(qr,qx,qy,tamQR,tamQR);
-    const lh=64,lw=lh*200/280;ctx.drawImage(logo,70,70,lw,lh);
-    ctx.font='600 34px '+fuente;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--ink');ctx.fillText('Fusa Conecta',70+lw+14,70+lh/2);
+    marcaPoster(ctx,iso,'horizontal',70,64,64,fuente);
     const max=qx-70-50;
     let y=texto(d.nombre,70,190,56,'700',c('--ink'),'left',max);
     texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',70,y+24,30,'500',c('--primary-700'),'left',max);
   }
   return cv;
+}
+// Logo en el lienzo del póster con las proporciones de logo(): vertical (x = centro) u horizontal (x = borde izquierdo)
+function marcaPoster(ctx,iso,variante,x,y,alto,fuente){
+  const pinta=(t,peso,tam,color,px,py)=>{ctx.font=peso+' '+tam+'px '+fuente;ctx.fillStyle=color;if('letterSpacing' in ctx)ctx.letterSpacing=(-.02*tam)+'px';ctx.fillText(t,px,py);return ctx.measureText(t).width;};
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  if(variante==='vertical'){
+    const H=alto,W=H*LOGO_PROP,f=2.2*W/LOGO_ANCHO_NOMBRE;
+    ctx.drawImage(iso,x-W/2,y,W,H);
+    ctx.font='800 '+f+'px '+fuente;const a=ctx.measureText('Fusa ').width;ctx.font='500 '+f+'px '+fuente;const b=ctx.measureText('Conecta').width;
+    const base=y+H+.2*H+.71*f,x0=x-(a+b)/2;
+    pinta('Fusa ','800',f,cssVar('--ink'),x0,base);pinta('Conecta','500',f,cssVar('--primary-500'),x0+a,base);
+    if('letterSpacing' in ctx)ctx.letterSpacing='0px';
+    return {alto:.2*H+.71*f+.4*f};
+  }
+  const em=alto/1.84,H=1.63*em,W=H*LOGO_PROP;
+  ctx.drawImage(iso,x,y+.10*em,W,H);
+  const tx=x+W+.35*W;
+  pinta('Fusa','800',em,cssVar('--ink'),tx,y+.81*em);pinta('Conecta','500',em,cssVar('--primary-500'),tx,y+1.73*em);
+  if('letterSpacing' in ctx)ctx.letterSpacing='0px';
+  return {alto};
 }
 function redondeado(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
@@ -2096,7 +2146,7 @@ async function cerrarSesion(){
   if(!await confirmar('Cerrar sesión','¿Quieres salir de tu cuenta?','Salir','Cancelar','log-out'))return;
   await auth.signOut();
   estado.usuario=null;estado.perfil=null;estado.favoritos=[];
-  stack.length=0;$('#splash').classList.remove('oculto');
+  stack.length=0;mostrarSplash();
   inicio();toast('Hasta pronto');
 }
 // Derecho de supresión (Ley 1581): borra datos personales y anonimiza las calificaciones
@@ -2111,7 +2161,7 @@ async function eliminarCuenta(){
     ['fc_fav_','fc_perfil_','fc_cupones_'].forEach(k=>ls.del(k+user.uid));
     await user.delete();
     estado.usuario=null;estado.perfil=null;estado.favoritos=[];
-    stack.length=0;$('#splash').classList.remove('oculto');inicio();
+    stack.length=0;mostrarSplash();inicio();
     toast('Tu cuenta y tus datos fueron eliminados');
   }catch(e){
     console.error(e);
@@ -2483,7 +2533,7 @@ async function enviarOpinion(op,origen){
 }
 function graciasOpinion(){
   $('#sheetGen').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="cerrarGen" aria-label="Cerrar">'+icon('x')+'</button>'
-    +'<div class="hoja-pad hoja-centro gracias"><span class="logo-gracias">'+LOGO_SVG+'</span><h2>¡Gracias por tu opinión!</h2>'
+    +'<div class="hoja-pad hoja-centro gracias"><span class="logo-gracias">'+logo('iso','claro',{alto:56,decorativo:true})+'</span><h2>¡Gracias por tu opinión!</h2>'
     +'<p>'+(estado.online?'La leemos con cuidado para mejorar Fusa Conecta.':'Se enviará apenas tengas conexión.')+'</p>'
     +'<button class="btn btn-primario btn-bloque mt-16" id="opListo">Listo</button></div>';
   $('#cerrarGen').onclick=()=>cerrar('ovGen');$('#opListo').onclick=()=>cerrar('ovGen');
@@ -2535,7 +2585,7 @@ setInterval(()=>{
 
 /* ===== FOOTER ===== */
 function footerHTML(){
-  return '<footer class="footer">'+MARCA_HTML
+  return '<footer class="footer">'+logo('horizontal','claro',{alto:32})
     +'<p>El directorio digital de Fusagasugá, la Ciudad Jardín del Sumapaz.</p>'
     +'<div class="f-links"><button id="fApoyo">'+icon('message-circle-heart',16)+'Ayúdanos a mejorar</button><button id="fLegal">'+icon('file-text',16)+'Aviso legal</button></div>'
     +'<p>© 2026 Fusa Conecta · Hecho en Fusagasugá</p></footer>';
@@ -2569,14 +2619,19 @@ $$('.bn-btn').forEach(b=>{
 });
 
 /* ===== EVENTOS DE LA INTERFAZ ===== */
-$('#loginLogo').innerHTML=LOGO_SVG;
+$('#loginLogo').innerHTML=logo('iso','claro',{alto:44});
 $$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.id!=='ovConsent'&&ov.id!=='ovConfirm')ov.classList.remove('abierto');}));
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
-function ocultarSplash(){$('#splash').classList.add('oculto');}
+function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
+function ocultarSplash(){$('#splash').classList.add('oculto');colorBarra('--bg');}
+function mostrarSplash(){$('#splash').classList.remove('oculto');colorBarra('--primary-500');}
 // Animación de entrada: el nombre aparece letra por letra; solo la primera vez por sesión y un toque la salta
 (function(){
-  const sp=$('#splash'),n=$('.splash-nombre');
-  n.innerHTML=[...n.textContent].map((ch,i)=>'<span class="l" style="--i:'+i+'" aria-hidden="true">'+(ch===' '?'&nbsp;':esc(ch))+'</span>').join('');
+  const sp=$('#splash');
+  // Arco (de izquierda a derecha): mascotas, compras, rutas, campo y hospedaje; el punto más bajo es la mitad del isotipo
+  const ICONOS_ARCO=[['paw-print',-118,-22],['shopping-bag',-90,-92],['mountain',0,-124],['apple',90,-92],['bed-double',118,-22]];
+  const arco=ICONOS_ARCO.map(([n,x,y],i)=>'<span class="splash-ico" style="--x:'+x+'px;--y:'+y+'px;--i:'+i+'" aria-hidden="true"><span>'+icon(n,20)+'</span></span>').join('');
+  $('#splashMarca').innerHTML=logo('vertical','lila',{alto:120,lema:true,extraIso:arco});
   let visto=false;try{visto=!!sessionStorage.getItem('fc_splash');sessionStorage.setItem('fc_splash','1');}catch(e){}
   if(visto){sp.classList.add('saltar');ocultarSplash();return;}
   sp.addEventListener('pointerdown',e=>{
@@ -2586,7 +2641,7 @@ function ocultarSplash(){$('#splash').classList.add('oculto');}
   });
 })();
 $('#sInvitado').onclick=()=>{
-  ocultarSplash();render();toast('Explorando Fusa Conecta');
+  ocultarSplash();render();toast('Explorando Fusa Conecta',2000);
   if(!auth.currentUser)auth.signInAnonymously().catch(()=>{});
 };
 $('#sRegistrar').onclick=()=>abrirLogin('registro');
