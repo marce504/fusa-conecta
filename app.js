@@ -47,7 +47,9 @@ const ls={
 };
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2500);}
 function abrir(id){$('#'+id).classList.add('abierto');}
-function cerrar(id){$('#'+id).classList.remove('abierto');}
+// Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
+const alCerrar={};
+function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');if(alCerrar[id])alCerrar[id]();}
 function aMs(v){
   if(!v)return null;if(typeof v==='number')return v;if(v.toMillis)return v.toMillis();
   // Fechas "AAAA-MM-DD" valen hasta el final de ese día en hora local
@@ -148,6 +150,7 @@ db.collection('calificaciones').onSnapshot(snap=>{
 
 db.collection('cupones').onSnapshot(snap=>{
   estado.cuponesFS=[];snap.forEach(doc=>estado.cuponesFS.push({id:doc.id,...doc.data()}));
+  refrescarVista();
 },()=>{});
 
 // Números de emergencia editados por el admin; si no hay, se usan los de datos.js. Copia local para modo avión.
@@ -272,7 +275,7 @@ function inicio(){stack.length=0;navegar({tipo:'lista',cat:'todas'});}
 window.addEventListener('popstate',()=>{
   if(saliendo){history.back();return;}
   const ab=$('.overlay.abierto');
-  if(ab){ab.classList.remove('abierto');history.pushState({n:stack.length},'');return;}
+  if(ab){cerrar(ab.id);history.pushState({n:stack.length},'');return;}
   if(stack.length>1){stack.pop();render();return;}
   history.pushState({n:stack.length},'');
   confirmar('Salir de Fusa Conecta','¿Estás seguro que deseas salir de Fusa Conecta?','Sí, salir','No','log-out').then(si=>{
@@ -301,9 +304,10 @@ function renderHeader(){
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+campanaHTML()+'<button class="saludo" id="bPerfilTop" aria-label="Ver mi perfil"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span>'+esc(nom.split(' ')[0])+'</button>'
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+billeteraHTML()+campanaHTML()+'<button class="saludo" id="bPerfilTop" aria-label="Ver mi perfil"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span><span class="saludo-nom">'+esc(nom.split(' ')[0])+'</span></button>'
       +'<button class="btn btn-secundario btn-sm" id="bSalir">Salir</button></div>';
     $('#bSalir').onclick=cerrarSesion;
+    $('#bBilletera').onclick=irABilletera;
     $('#bPerfilTop').onclick=()=>navegar({tipo:'perfil'});
   }else{
     ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+campanaHTML()+'<button class="btn btn-primario btn-sm" id="bEntrar">Entrar</button></div>';
@@ -484,7 +488,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -498,6 +502,7 @@ function render(conservarScroll){
   else if(v.tipo==='mapa')renderMapa();
   else if(v.tipo==='ruta')renderRuta(v.id);
   else if(v.tipo==='admin')renderAdmin();
+  else if(v.tipo==='billetera')renderBilletera();
   else renderLista(v);
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
@@ -509,7 +514,7 @@ function renderLista(v){
     +(v.sub?' · '+nombreSub(v.cat,v.sub):'');
   let html;
   if(items.length){
-    html='<div class="head-v"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
+    html=(v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros()?seccionCuponesHTML():'')+'<div class="head-v"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else{
@@ -525,7 +530,7 @@ function renderLista(v){
     estado.q='';estado.filtros={abierto:false,cupon:false,municipio:''};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
-  enlazarTarjetas();enlazarFooter();
+  enlazarTarjetas();enlazarCuponesSemana();enlazarFooter();
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -569,8 +574,10 @@ function abrirDetalle(id){
       +(webOk?'<a class="btn btn-secundario btn-bloque" href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+icon('globe')+'Visitar sitio web'+icon('external-link',16)+'</a>':'')
       +'</div>':'';
   const bloqueCupones=cupones.length
-    ?'<div class="bloque bloque-cupon"><p class="bloque-tit">'+icon('ticket',18)+'Cupones disponibles</p>'
-      +cupones.map(c=>'<div class="cupon-item"><div><b>'+esc(c.descripcion)+'</b><small>Vence: '+fechaCorta(aMs(c.vigencia))+(c.cupo_restante!=null?' · quedan '+c.cupo_restante:'')+'</small></div><button class="btn btn-secundario btn-sm" data-cupon="'+esc(c.id)+'">Obtener cupón</button></div>').join('')
+    ?'<div class="bloque-tickets"><p class="bloque-tit">'+icon('ticket',18)+'Cupones disponibles</p>'
+      +cupones.map(c=>ticketHTML({icono:ICONO_TIPO_CUPON[c.tipo],titulo:c.descripcion,detalle:esc(detalleCupon(c))+(c.terminos?'<br>'+esc(c.terminos):''),
+        accion:yaTengoCupon(c.id)?'<button class="btn btn-secundario btn-sm" data-cupon="'+esc(c.id)+'">'+icon('wallet',18)+'Ver en mi billetera</button>'
+          :'<button class="btn btn-primario btn-sm" data-cupon="'+esc(c.id)+'">Obtener cupón</button>'})).join('')
       +'</div>':'';
   const chips=[];
   if(d.cat==='turismo'&&d.tipo)chips.push([ICONO_SUB[d.tipo]||'mountain',nombreSub('turismo',d.tipo)||d.tipo]);
@@ -630,7 +637,7 @@ function abrirDetalle(id){
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
   $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
-  $$('#sheetDetalle [data-cupon]').forEach(b=>b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon)));
+  $$('#sheetDetalle [data-cupon]').forEach(b=>b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b));
   if(esDueno)$('#btnEditar').onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
   const br=$('#bReclamar');if(br)br.onclick=()=>{cerrar('ovDetalle');reclamarNegocio(d);};
   $('#bReportar').onclick=()=>{cerrar('ovDetalle');reportar(d);};
@@ -662,20 +669,66 @@ async function enviarCalificacion(d,estrellasSel,comentario,editada){
   }catch(e){console.error(e);toast('No se pudo guardar la calificación. Intenta de nuevo.');btn.disabled=false;btn.textContent='Enviar calificación';}
 }
 
-/* ===== CUPONES CON QR (RF-11) ===== */
+/* ===== CUPONES CON QR (RF-11, Fase 3) ===== */
+// Librería de QR copiada en lib/: la billetera funciona sin conexión
+async function pintarQR(el,texto,tam){
+  try{
+    await cargarScript('lib/qrcode.min.js');
+    el.innerHTML='';
+    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--gray-900'),colorLight:cssVar('--bg'),correctLevel:QRCode.CorrectLevel.M});
+    return true;
+  }catch(e){return false;}
+}
+// Chrome solo permite vibrar después de que la persona tocó la pantalla
+function vibrar(ms=30){try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(ms);}catch(e){}}
+function sinMovimiento(){return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}
 function codigoCupon(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';const r=crypto.getRandomValues(new Uint8Array(8));r.forEach(n=>s+=a[n%a.length]);return 'FC-'+s.slice(0,4)+'-'+s.slice(4);}
-function hoyClave(){const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
 function cuponesLocales(){return ls.get('fc_cupones_'+(estado.usuario?estado.usuario.uid:''),[]);}
 function guardarCuponLocal(c){const l=cuponesLocales().filter(x=>x.id!==c.id);l.unshift(c);ls.set('fc_cupones_'+estado.usuario.uid,l.slice(0,30));}
+function cuponesActivos(){return logueado()?cuponesLocales().filter(c=>estadoCupon(c)==='activo').length:0;}
+function yaTengoCupon(cuponId){return logueado()&&cuponesLocales().some(c=>c.id===cuponId+'_'+estado.usuario.uid);}
+// Días en que aplica un cupón (vacío = todos los días)
+function diasTexto(dias){return dias&&dias.length&&dias.length<7?dias.slice().sort((a,b)=>((a+6)%7)-((b+6)%7)).map(i=>DIAS_TXT[i]).join(', '):'';}
+function venceEn(ms){
+  if(!ms)return '';
+  const h=Math.floor((ms-Date.now())/3600000);
+  if(h<0)return 'Vencido';
+  if(h<1)return 'Vence en menos de 1 hora';
+  if(h<24)return 'Vence en '+h+(h===1?' hora':' horas');
+  const d=Math.floor(h/24);return 'Vence en '+d+(d===1?' día':' días');
+}
+// "12 oct a las 3:40 p. m."
+function fechaConHora(ms){
+  if(!ms)return '';const t=new Date(ms);
+  return t.getDate()+' '+t.toLocaleDateString('es-CO',{month:'short'}).replace('.','')+' a las '+formatearHora(t.getHours()+':'+t.getMinutes());
+}
+// "Ana María Gómez" -> "Ana M."
+function nombreCorto(n){const p=String(n||'Cliente').trim().split(/\s+/);return p[0]+(p[1]?' '+p[1].charAt(0).toUpperCase()+'.':'');}
+
+// Ticket amarillo con borde troquelado: el mismo en la ficha, el inicio, la vista previa y la billetera
+function ticketHTML(t){
+  return '<div class="ticket'+(t.clase?' '+t.clase:'')+'"'+(t.attrs||'')+'><div class="ticket-lado">'+icon(t.icono||'ticket',24)+'</div>'
+    +'<div class="ticket-cuerpo">'+(t.comercio?'<small class="ticket-com">'+esc(t.comercio)+'</small>':'')
+    +'<b class="ticket-tit">'+esc(t.titulo)+'</b>'
+    +(t.detalle?'<span class="ticket-det">'+t.detalle+'</span>':'')
+    +(t.accion||'')+'</div></div>';
+}
+const ICONO_TIPO_CUPON={descuento:'percent','2x1':'copy',regalo:'gift',precio:'tag'};
+function detalleCupon(c){
+  const dias=diasTexto(c.dias);
+  return 'Vence el '+fechaCorta(aMs(c.vigencia))+(c.cupo_restante!=null?' · quedan '+c.cupo_restante:'')+(dias?' · '+dias:'');
+}
+
 // Obtener un cupón (transacción): verifica estado, vigencia y cupo; un cupón por persona (id {cuponId}_{uid});
 // descuenta 1 al cupo y crea el canje "reservado". Las reglas exigen ambas escrituras juntas.
-async function generarCupon(d,cupon){
+async function generarCupon(d,cupon,boton){
   if(!cupon)return;
   if(!logueado()){pedirLogin('Inicia sesión para obtener cupones de descuento.');return;}
   const uid=estado.usuario.uid;const id=cupon.id+'_'+uid;
   const local=cuponesLocales().find(c=>c.id===id);
-  if(local){toast('Ya tienes este cupón');mostrarCupon(local);return;}
+  if(local){cerrar('ovDetalle');irABilletera();return;}
   if(!estado.online){toast('Necesitas conexión para obtener un cupón nuevo');return;}
+  if(boton){boton.disabled=true;boton.textContent='Guardando…';}
   const cuponRef=db.collection('cupones').doc(cupon.id),canjeRef=db.collection('canjes').doc(id);
   try{
     const r=await db.runTransaction(async tx=>{
@@ -687,36 +740,508 @@ async function generarCupon(d,cupon){
       const vig=aMs(c.vigencia);if(vig&&vig<Date.now())throw new Error('vencido');
       if(!(c.cupo_restante>0))throw new Error('agotado');
       const datos={cupon_id:cupon.id,comercio_id:c.comercio_id,comercio_nombre:c.comercio_nombre||d.nombre,descripcion:c.descripcion,
+        tipo:c.tipo||'',terminos:c.terminos||'',dias:c.dias||null,
         propietario_uid:c.propietario_uid,usuario_uid:uid,usuario_nombre:estado.usuario.nombre,codigo:codigoCupon(),
         estado:'reservado',fecha_emision:FV.serverTimestamp(),fecha_vencimiento:TS.fromMillis(vig||Date.now()+30*86400000)};
       tx.update(cuponRef,{cupo_restante:c.cupo_restante-1});
       tx.set(canjeRef,datos);
       return {ya:false,datos};
     });
-    const c=serializarCupon({id,...r.datos,fecha_emision:Date.now()});
-    guardarCuponLocal(c);mostrarCupon(c);
+    guardarCuponLocal(serializarCupon({id,...r.datos,fecha_emision:Date.now()}));
     if(!r.ya)registrarEvento(d,'cupones_obtenidos');
+    vibrar(30);
+    if(boton){
+      volarABilletera(boton);
+      boton.disabled=false;boton.className='btn btn-secundario btn-sm';boton.innerHTML=icon('wallet',18)+'Ver en mi billetera';
+      boton.onclick=()=>{cerrar('ovDetalle');irABilletera();};
+    }
+    actualizarBilletera();
     toast(r.ya?'Ya tienes este cupón':'Cupón guardado en tu billetera');
   }catch(e){
     console.warn(e);
+    if(boton){boton.disabled=false;boton.textContent='Obtener cupón';}
     const m={agotado:'Este cupón ya se agotó',vencido:'Este cupón ya venció',inactivo:'Este cupón no está disponible por ahora','no-existe':'Este cupón ya no existe'};
     toast(m[e.message]||'No se pudo obtener el cupón. Intenta de nuevo.');
   }
 }
-function serializarCupon(c){return {id:c.id,comercio_id:c.comercio_id,codigo:c.codigo,descripcion:c.descripcion,comercio_nombre:c.comercio_nombre,estado:c.estado,fecha_vencimiento:aMs(c.fecha_vencimiento)};}
+// Animación: el ticket se desliza desde el botón hasta la billetera de la cabecera
+function volarABilletera(desde){
+  if(sinMovimiento()||!desde.animate)return;
+  const destino=$('#bBilletera')||$('.bn-btn[data-bn="perfil"]');
+  if(!destino)return;
+  const a=desde.getBoundingClientRect(),b=destino.getBoundingClientRect();
+  const v=document.createElement('div');v.className='ticket-vuelo';v.innerHTML=icon('ticket',22);
+  v.style.left=(a.left+a.width/2-28)+'px';v.style.top=(a.top+a.height/2-20)+'px';
+  document.body.appendChild(v);
+  const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+  v.animate([{transform:'translate(0,0) rotate(0) scale(1)',opacity:1},{transform:'translate('+dx*.4+'px,'+(dy*.4-60)+'px) rotate(-12deg) scale(.9)',opacity:1,offset:.45},{transform:'translate('+dx+'px,'+dy+'px) rotate(-20deg) scale(.3)',opacity:.4}],
+    {duration:750,easing:'cubic-bezier(.45,0,.55,1)'}).onfinish=()=>{v.remove();destino.classList.add('pulso');setTimeout(()=>destino.classList.remove('pulso'),450);};
+}
+function serializarCupon(c){
+  return {id:c.id,cupon_id:c.cupon_id||'',comercio_id:c.comercio_id,codigo:c.codigo,descripcion:c.descripcion,comercio_nombre:c.comercio_nombre,
+    tipo:c.tipo||'',terminos:c.terminos||'',dias:c.dias||null,estado:c.estado,
+    fecha_vencimiento:aMs(c.fecha_vencimiento),fecha_canje:aMs(c.fecha_canje),fecha_emision:aMs(c.fecha_emision)};
+}
 function estadoCupon(c){if(c.estado==='usado')return 'usado';if(c.fecha_vencimiento&&c.fecha_vencimiento<Date.now())return 'vencido';return 'activo';}
 function fechaHora(ms){return ms?new Date(ms).toLocaleString('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'';}
-async function mostrarCupon(c){
-  const est=estadoCupon(c);const usado=est==='usado';const vencido=est==='vencido';
-  abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic ambar">'+icon('ticket',28)+'</div><h2>'+esc(c.comercio_nombre)+'</h2><p>'+esc(c.descripcion)+'</p>'
-    +'<div class="qr-box'+(usado||vencido?' apagado':'')+'" id="qrBox" role="img" aria-label="Código QR del cupón"></div>'
-    +'<div class="codigo">'+esc(c.codigo)+'</div>'
-    +'<p class="nota">'+(usado?'Este cupón ya fue canjeado.':vencido?'Este cupón está vencido.':'Presenta este código en el establecimiento. Vence el '+fechaCorta(c.fecha_vencimiento)+'. También queda disponible sin conexión en tu Perfil.')+'</p></div>');
-  try{
-    await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
-    new QRCode($('#qrBox'),{text:'FUSACONECTA:'+c.codigo,width:190,height:190,colorDark:cssVar('--gray-900'),colorLight:cssVar('--bg')});
-  }catch(e){$('#qrBox').innerHTML='<p class="nota">Muestra el código alfanumérico.</p>';}
+function comoLlegarURL(comercioId,nombre){
+  const d=buscar(comercioId);
+  const destino=d?((d.lat&&d.lng&&!d.ubicacion_aprox)?d.lat+','+d.lng:d.direccion+', Fusagasugá, Cundinamarca'):(nombre||'')+', Fusagasugá';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino);
 }
+
+/* ---------- Mostrar en caja: pantalla blanca completa, QR de 240 px ---------- */
+let bloqueoPantalla=null;
+async function mostrarCupon(c){
+  if(!c)return;
+  const est=estadoCupon(c);
+  $('#pantallaCupon').innerHTML='<button class="btn-redondo cerrar" id="pcCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="pc-centro">'
+    +'<p class="pc-com">'+esc(c.comercio_nombre)+'</p><h2 class="pc-tit">'+esc(c.descripcion)+'</h2>'
+    +'<div class="pc-qr'+(est!=='activo'?' apagado':'')+'" id="pcQR" role="img" aria-label="Código QR del cupón '+esc(c.codigo)+'"></div>'
+    +'<div class="codigo">'+esc(c.codigo)+'</div>'
+    +(est==='activo'
+      ?'<p class="pc-instr">'+icon('scan-line',20)+'Muéstrale este código al vendedor</p><p class="pc-vence">'+venceEn(c.fecha_vencimiento)+(diasTexto(c.dias)?' · Válido: '+diasTexto(c.dias):'')+'</p>'
+      :'<p class="pc-instr apagado">'+(est==='usado'?'Este cupón ya fue canjeado'+(c.fecha_canje?' el '+fechaConHora(c.fecha_canje):''):'Este cupón está vencido')+'</p>')
+    +(c.terminos?'<p class="pc-vence">'+esc(c.terminos)+'</p>':'')
+    +'</div>';
+  abrir('ovCupon');
+  $('#pcCerrar').onclick=()=>cerrar('ovCupon');
+  if(!await pintarQR($('#pcQR'),'FUSACONECTA:'+c.codigo,240))$('#pcQR').innerHTML='<p class="nota">Muestra el código escrito.</p>';
+  // Mantiene la pantalla encendida mientras el vendedor escanea
+  try{if(est==='activo'&&navigator.wakeLock)bloqueoPantalla=await navigator.wakeLock.request('screen');}catch(e){}
+}
+alCerrar.ovCupon=()=>{if(bloqueoPantalla){bloqueoPantalla.release().catch(()=>{});bloqueoPantalla=null;}};
+
+/* ---------- Billetera "Mis cupones": Activos, Usados y Vencidos ---------- */
+function irABilletera(){
+  if(!logueado()){pedirLogin('Inicia sesión para ver tus cupones.');return;}
+  if(vistaActual().tipo!=='billetera')navegar({tipo:'billetera'});
+}
+function billeteraHTML(){
+  const n=cuponesActivos();
+  return '<button class="btn-redondo campana" id="bBilletera" aria-label="Mis cupones'+(n?', '+n+(n===1?' activo':' activos'):'')+'">'+icon('ticket')+(n?'<span class="contador contador-hd" aria-hidden="true">'+n+'</span>':'')+'</button>';
+}
+function actualizarBilletera(){
+  const b=$('#bBilletera');if(b)b.outerHTML=billeteraHTML();
+  const nb=$('#bBilletera');if(nb)nb.onclick=irABilletera;
+  if(vistaActual().tipo==='billetera')render(true);
+}
+function renderBilletera(){
+  const cuerpo=$('#cuerpo');
+  if(!logueado()){
+    cuerpo.innerHTML='<div class="vista"><div class="vacio">'+icon('wallet',48)+'<b>Tus cupones viven aquí</b><p>Inicia sesión para guardar cupones y mostrarlos en caja, incluso sin conexión.</p><button class="btn btn-primario mt-16" id="bwEntrar">Iniciar sesión</button></div></div>'+footerHTML();
+    $('#bwEntrar').onclick=()=>abrirLogin('ingresar');enlazarFooter();return;
+  }
+  const todos=cuponesLocales();
+  const grupos={activo:[],usado:[],vencido:[]};
+  todos.forEach(c=>grupos[estadoCupon(c)].push(c));
+  grupos.activo.sort((a,b)=>(a.fecha_vencimiento||0)-(b.fecha_vencimiento||0));
+  grupos.usado.sort((a,b)=>(b.fecha_canje||0)-(a.fecha_canje||0));
+  const tab=estado.tabBilletera||'activo';
+  const tabs=[['activo','Activos'],['usado','Usados'],['vencido','Vencidos']];
+  const lista=grupos[tab];
+  const vacio={activo:['ticket','No tienes cupones activos','Busca los lugares con cupón y guárdalos aquí.'],
+    usado:['badge-check','Aún no has usado cupones','Cuando el vendedor escanee un cupón, aparecerá aquí.'],
+    vencido:['hourglass','No tienes cupones vencidos','Los cupones que no alcances a usar aparecerán aquí.']}[tab];
+  cuerpo.innerHTML='<div class="vista"><div class="head-v"><h2>Mis cupones</h2><span class="conteo">'+(estado.online?'':icon('wifi-off',14)+' ')+'Disponibles sin conexión</span></div>'
+    +'<div class="adm-tabs" role="tablist" aria-label="Estado de los cupones">'+tabs.map(([k,t])=>'<button role="tab" aria-selected="'+(tab===k)+'" class="'+(tab===k?'on':'')+'" data-wtab="'+k+'">'+t+(grupos[k].length?' <span class="contador gris">'+grupos[k].length+'</span>':'')+'</button>').join('')+'</div>'
+    +(lista.length?'<div class="billetera">'+lista.map(c=>{
+        const est=estadoCupon(c);
+        return '<article class="cupon-bill '+est+'"><div class="cb-cab"><span class="cb-ic">'+icon(ICONO_TIPO_CUPON[c.tipo]||'ticket',22)+'</span><div><small>'+esc(c.comercio_nombre)+'</small><b>'+esc(c.descripcion)+'</b></div></div>'
+          +'<button class="cb-qr" data-mostrar="'+esc(c.id)+'" aria-label="Mostrar el cupón '+esc(c.codigo)+' en pantalla completa"><span class="cb-qr-img" data-qr="'+esc(c.codigo)+'"></span></button>'
+          +'<div class="codigo">'+esc(c.codigo)+'</div>'
+          +'<p class="cb-estado">'+(est==='activo'?icon('clock',16)+venceEn(c.fecha_vencimiento)+(diasTexto(c.dias)?' · '+diasTexto(c.dias):'')
+            :est==='usado'?icon('badge-check',16)+'Canjeado'+(c.fecha_canje?' el '+fechaConHora(c.fecha_canje):'')
+            :icon('hourglass',16)+'Venció el '+fechaCorta(c.fecha_vencimiento))+'</p>'
+          +(est==='activo'?'<div class="cb-acc"><button class="btn btn-primario" data-mostrar="'+esc(c.id)+'">'+icon('scan-line')+'Mostrar en caja</button>'
+            +'<a class="btn btn-secundario" href="'+comoLlegarURL(c.comercio_id,c.comercio_nombre)+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a></div>':'')
+          +'</article>';
+      }).join('')+'</div>'
+      :'<div class="vacio">'+icon(vacio[0],48)+'<b>'+vacio[1]+'</b><p>'+vacio[2]+'</p>'+(tab==='activo'?'<button class="btn btn-primario mt-16" id="bwBuscar">'+icon('ticket')+'Ver lugares con cupón</button>':'')+'</div>')
+    +'</div>'+footerHTML();
+  $$('[data-wtab]').forEach(b=>b.onclick=()=>{estado.tabBilletera=b.dataset.wtab;render();});
+  $$('[data-mostrar]').forEach(b=>b.onclick=()=>mostrarCupon(todos.find(c=>c.id===b.dataset.mostrar)));
+  const bb=$('#bwBuscar');if(bb)bb.onclick=()=>{estado.filtros.cupon=true;estado.q='';navegar({tipo:'lista',cat:'todas'});};
+  $$('[data-qr]').forEach(el=>pintarQR(el,'FUSACONECTA:'+el.dataset.qr,160));
+  enlazarFooter();
+  sincronizarCupones();
+}
+
+/* ---------- "Cupones de la semana" en el inicio ---------- */
+function cuponesDeLaSemana(){
+  const l=[];
+  database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
+  return l.sort((a,b)=>(aMs(b.c.fecha_creacion)||0)-(aMs(a.c.fecha_creacion)||0)).slice(0,10);
+}
+function seccionCuponesHTML(){
+  const l=cuponesDeLaSemana();if(!l.length)return '';
+  return '<section class="cupones-semana" aria-labelledby="tCupSem"><div class="head-v"><h2 id="tCupSem">Cupones de la semana</h2><button class="btn-ghost" id="bConCupon">Ver todos</button></div>'
+    +'<div class="carrusel">'+l.map(({d,c})=>ticketHTML({clase:'ticket-mini',attrs:' role="button" tabindex="0" data-ver-cupon="'+esc(d.id)+'" aria-label="'+esc(c.descripcion+' en '+d.nombre)+'"',
+      icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c))})).join('')+'</div></section>';
+}
+function enlazarCuponesSemana(){
+  $$('[data-ver-cupon]').forEach(t=>{
+    const ir=()=>abrirDetalle(t.dataset.verCupon);
+    t.onclick=ir;t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ir();}};
+  });
+  const b=$('#bConCupon');if(b)b.onclick=()=>{estado.filtros.cupon=true;render();};
+}
+
+/* ---------- El comerciante CREA el cupón: asistente de 3 pasos ---------- */
+const PLANTILLAS_CUPON=[
+  {k:'descuento',t:'% de descuento',ic:'percent',texto:'15% de descuento en tu compra'},
+  {k:'2x1',t:'2×1',ic:'copy',texto:'2×1 en tu producto favorito'},
+  {k:'regalo',t:'Regalo con tu compra',ic:'gift',texto:'Un regalo sorpresa con tu compra'},
+  {k:'precio',t:'Precio especial',ic:'tag',texto:'Precio especial para clientes de Fusa Conecta'}
+];
+const VIGENCIAS=[['1s','1 semana',7],['2s','2 semanas',14],['1m','1 mes',30],['fecha','Elegir fecha',0]];
+let cw=null;
+function isoLocal(ms){const t=new Date(ms);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
+function vigenciaCW(){const v=VIGENCIAS.find(x=>x[0]===cw.vig);return v[2]?isoLocal(Date.now()+v[2]*86400000):cw.fecha;}
+function formCupon(d){
+  cw={d,paso:1,tipo:'descuento',texto:PLANTILLAS_CUPON[0].texto,pct:15,cupo:50,vig:'1m',fecha:isoLocal(Date.now()+30*86400000),dias:[],terminos:''};
+  pintarCuponWiz();abrir('ovForm');
+}
+function guardarCuponWiz(){
+  const v=id=>{const el=$('#'+id);return el?el.value.trim():null;};
+  if($('#cwTexto'))cw.texto=v('cwTexto');
+  if($('#cwCupo'))cw.cupo=Math.max(1,Math.min(1000,parseInt(v('cwCupo'),10)||1));
+  if($('#cwFecha'))cw.fecha=v('cwFecha');
+  if($('#cwTer'))cw.terminos=v('cwTer');
+}
+function validarCuponWiz(){
+  if(cw.paso===1&&cw.texto.length<4)return 'Escribe el beneficio del cupón';
+  if(cw.paso===2){
+    const f=vigenciaCW();
+    if(!f||aMs(f)<Date.now())return 'Elige una fecha de vencimiento futura';
+    if(aMs(f)>Date.now()+366*86400000)return 'El cupón puede durar máximo un año';
+  }
+  return '';
+}
+function pintarCuponWiz(){
+  const p=cw.paso,PASOS=['Tipo de beneficio','Reglas','Vista previa'];
+  let cuerpo='';
+  if(p===1){
+    cuerpo='<p class="lbl">¿Qué le vas a ofrecer a tus clientes?</p><div class="tiles tiles-cupon" role="radiogroup" aria-label="Tipo de beneficio">'
+      +PLANTILLAS_CUPON.map(t=>'<button type="button" class="tile'+(cw.tipo===t.k?' on':'')+'" data-ctipo="'+t.k+'" role="radio" aria-checked="'+(cw.tipo===t.k)+'"><span class="tile-ic">'+icon(t.ic,22)+'</span>'+t.t+'</button>').join('')+'</div>'
+      +(cw.tipo==='descuento'?'<p class="lbl mt-16" id="lPct">Porcentaje</p><div class="stepper" role="group" aria-labelledby="lPct"><button type="button" class="btn-redondo" data-pct="-5" aria-label="Menos 5%">'+icon('minus')+'</button><output id="cwPct">'+cw.pct+'%</output><button type="button" class="btn-redondo" data-pct="5" aria-label="Más 5%">'+icon('plus')+'</button></div>':'')
+      +'<div class="campo mt-16"><label for="cwTexto">Texto del cupón <span class="req">*</span></label><input id="cwTexto" maxlength="60" value="'+esc(cw.texto)+'"><p class="ayuda">Puedes editarlo. Ej: «15% en tu catación guiada».</p></div>';
+  }else if(p===2){
+    cuerpo='<p class="lbl" id="lCupo">¿Cuántos cupones en total?</p><div class="stepper" role="group" aria-labelledby="lCupo"><button type="button" class="btn-redondo" data-cupo="-1" aria-label="Uno menos">'+icon('minus')+'</button>'
+      +'<input id="cwCupo" type="number" inputmode="numeric" min="1" max="1000" value="'+cw.cupo+'" aria-label="Cantidad de cupones"><button type="button" class="btn-redondo" data-cupo="1" aria-label="Uno más">'+icon('plus')+'</button></div>'
+      +'<div class="chips-dias mt-8">'+[20,50,100].map(n=>'<button type="button" class="chip-dia'+(cw.cupo===n?' on':'')+'" data-cupo-n="'+n+'" aria-pressed="'+(cw.cupo===n)+'">'+n+'</button>').join('')+'</div>'
+      +'<p class="lbl mt-16">¿Hasta cuándo?</p><div class="chips-dias" role="radiogroup" aria-label="Vigencia">'
+      +VIGENCIAS.map(([k,t])=>'<button type="button" class="chip-dia'+(cw.vig===k?' on':'')+'" data-vig="'+k+'" role="radio" aria-checked="'+(cw.vig===k)+'">'+t+'</button>').join('')+'</div>'
+      +(cw.vig==='fecha'?'<div class="campo mt-8"><label for="cwFecha">Vence el</label><input type="date" id="cwFecha" min="'+isoLocal(Date.now())+'" value="'+esc(cw.fecha)+'"></div>'
+        :'<p class="ayuda">Vence el '+fechaCorta(aMs(vigenciaCW()))+'</p>')
+      +'<p class="lbl mt-16">Días válidos <span class="opc">(opcional)</span></p><div class="chips-dias" role="group" aria-label="Días válidos">'
+      +[[1,'Lun'],[2,'Mar'],[3,'Mié'],[4,'Jue'],[5,'Vie'],[6,'Sáb'],[0,'Dom']].map(([i,t])=>'<button type="button" class="chip-dia'+(cw.dias.includes(i)?' on':'')+'" data-cdia="'+i+'" aria-pressed="'+cw.dias.includes(i)+'">'+t+'</button>').join('')+'</div>'
+      +'<p class="ayuda">'+(cw.dias.length&&cw.dias.length<7?'Solo se podrá canjear: '+diasTexto(cw.dias):'Si no eliges ninguno, vale todos los días.')+'</p>'
+      +'<div class="campo mt-16"><label for="cwTer">Condiciones</label><input id="cwTer" maxlength="100" placeholder="Ej: No acumulable con otras promociones" value="'+esc(cw.terminos)+'"></div>';
+  }else{
+    cuerpo='<p class="nota">Así verán tu cupón los clientes:</p>'
+      +ticketHTML({clase:'ticket-grande',icono:ICONO_TIPO_CUPON[cw.tipo],comercio:cw.d.nombre,titulo:cw.texto,
+        detalle:esc('Vence el '+fechaCorta(aMs(vigenciaCW()))+' · '+cw.cupo+' disponibles'+(diasTexto(cw.dias)?' · '+diasTexto(cw.dias):''))+(cw.terminos?'<br>'+esc(cw.terminos):''),
+        accion:'<span class="btn btn-secundario btn-sm ticket-btn" aria-hidden="true">Obtener cupón</span>'})
+      +'<p class="nota">'+icon('info',14)+' Cada persona puede obtenerlo una vez. Lo canjeas escaneando su código QR desde «Escanear cupón».</p>';
+  }
+  $('#sheetForm').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="cwCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="form-head"><h2>Crear cupón</h2><p>Paso '+p+' de 3 · '+PASOS[p-1]+'</p>'
+    +'<div class="progreso" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="'+p+'"><span style="width:'+Math.round(p/3*100)+'%"></span></div></div>'
+    +'<div class="form-body">'+cuerpo+'</div>'
+    +'<div class="wiz-pie">'+(p>1?'<button class="btn btn-secundario" id="cwAtras">'+icon('arrow-left')+'Atrás</button>':'')
+    +(p===3?'<button class="btn btn-primario" id="cwPublicar">'+icon('ticket')+'Publicar cupón</button>':'<button class="btn btn-primario" id="cwSig">'+(p===2?'Ver vista previa':'Siguiente')+'</button>')+'</div>';
+  $('#sheetForm').setAttribute('aria-label','Crear cupón');
+  $('#sheetForm').scrollTop=0;
+  $('#cwCerrar').onclick=()=>cerrar('ovForm');
+  const at=$('#cwAtras');if(at)at.onclick=()=>{guardarCuponWiz();cw.paso--;pintarCuponWiz();};
+  const sg=$('#cwSig');if(sg)sg.onclick=()=>{guardarCuponWiz();const e=validarCuponWiz();if(e){toast(e);return;}cw.paso++;pintarCuponWiz();};
+  const pb=$('#cwPublicar');if(pb)pb.onclick=publicarCupon;
+  $$('[data-ctipo]').forEach(b=>b.onclick=()=>{guardarCuponWiz();const t=PLANTILLAS_CUPON.find(x=>x.k===b.dataset.ctipo);cw.tipo=t.k;cw.texto=t.k==='descuento'?t.texto.replace(/^\d+%/,cw.pct+'%'):t.texto;pintarCuponWiz();});
+  $$('[data-pct]').forEach(b=>b.onclick=()=>{
+    guardarCuponWiz();cw.pct=Math.max(5,Math.min(90,cw.pct+(+b.dataset.pct)));
+    if(/^\d{1,2}%/.test(cw.texto))cw.texto=cw.texto.replace(/^\d{1,2}%/,cw.pct+'%');
+    $('#cwPct').textContent=cw.pct+'%';$('#cwTexto').value=cw.texto;
+  });
+  $$('[data-cupo]').forEach(b=>b.onclick=()=>{guardarCuponWiz();cw.cupo=Math.max(1,Math.min(1000,cw.cupo+(+b.dataset.cupo)));pintarCuponWiz();});
+  $$('[data-cupo-n]').forEach(b=>b.onclick=()=>{guardarCuponWiz();cw.cupo=+b.dataset.cupoN;pintarCuponWiz();});
+  $$('[data-vig]').forEach(b=>b.onclick=()=>{guardarCuponWiz();cw.vig=b.dataset.vig;pintarCuponWiz();});
+  $$('[data-cdia]').forEach(b=>b.onclick=()=>{guardarCuponWiz();const i=+b.dataset.cdia;cw.dias=cw.dias.includes(i)?cw.dias.filter(x=>x!==i):[...cw.dias,i];pintarCuponWiz();});
+}
+async function publicarCupon(){
+  const d=cw.d,btn=$('#cwPublicar');
+  if(!estado.online){toast('Necesitas conexión para publicar el cupón');return;}
+  btn.disabled=true;btn.textContent='Publicando…';
+  try{
+    await db.collection('cupones').add({comercio_id:d.id,propietario_uid:estado.usuario.uid,comercio_nombre:d.nombre,descripcion:cw.texto,tipo:cw.tipo,
+      porcentajeDescuento:cw.tipo==='descuento'?cw.pct:null,cupo_total:cw.cupo,cupo_restante:cw.cupo,vigencia:vigenciaCW(),
+      dias:cw.dias.length&&cw.dias.length<7?cw.dias:null,terminos:cw.terminos,estado:'activo',fecha_creacion:FV.serverTimestamp()});
+    $('#sheetForm').innerHTML='<div class="grab"></div><div class="hoja-pad hoja-centro listo-cupon"><div class="mc-ic ambar">'+icon('sparkles',28)+'</div>'
+      +'<h2>¡Cupón publicado!</h2><p>Tu cupón ya está visible en tu ficha y en «Cupones de la semana».</p>'
+      +ticketHTML({icono:ICONO_TIPO_CUPON[cw.tipo],comercio:d.nombre,titulo:cw.texto,detalle:esc('Vence el '+fechaCorta(aMs(vigenciaCW())))})
+      +'<button class="btn btn-primario btn-bloque mt-16" id="cwListo">Listo</button></div>';
+    $('#cwListo').onclick=()=>{cerrar('ovForm');if(vistaActual().tipo==='dashboard')render(true);};
+    confeti();vibrar(30);
+  }catch(e){console.error(e);toast('No se pudo publicar el cupón. Revisa que tu plan Premium esté vigente.');btn.disabled=false;btn.innerHTML=icon('ticket')+'Publicar cupón';}
+}
+// Confeti suave: pocas piezas, solo transform/opacity; no aparece si el usuario pidió menos movimiento
+function confeti(){
+  if(sinMovimiento())return;
+  const capa=document.createElement('div');capa.className='confeti';capa.setAttribute('aria-hidden','true');
+  for(let i=0;i<28;i++){
+    const s=document.createElement('span');
+    s.style.left=(Math.random()*100)+'%';s.style.animationDelay=(Math.random()*.35)+'s';s.style.animationDuration=(1.4+Math.random()*.9)+'s';
+    s.style.setProperty('--giro',(Math.random()*720-360)+'deg');s.style.setProperty('--deriva',(Math.random()*80-40)+'px');
+    s.className='c'+(i%4);capa.appendChild(s);
+  }
+  document.body.appendChild(capa);setTimeout(()=>capa.remove(),2600);
+}
+
+/* ---------- El comerciante CANJEA escaneando ---------- */
+// Lector: BarcodeDetector nativo (Android/Chrome) o, de respaldo, jsQR local (iPhone y navegadores sin la API)
+const lector={stream:null,raf:0,detector:null,comercio:null,leyendo:false,canvas:null};
+function abrirEscaner(d){
+  lector.comercio=d;
+  abrir('ovEscaner');
+  iniciarCamara();
+}
+function marcoEscaner(){
+  return '<video id="escVideo" playsinline muted autoplay aria-hidden="true"></video>'
+    +'<div class="esc-marco" aria-hidden="true"><span></span></div>'
+    +'<div class="esc-top"><button class="btn-redondo" id="escCerrar" aria-label="Cerrar escáner">'+icon('x')+'</button><p>Apunta al código QR del cupón de tu cliente</p></div>'
+    +'<div class="esc-pie"><p id="escEstado" role="status">Abriendo la cámara…</p>'
+    +'<button class="btn btn-secundario btn-bloque" id="escManual">'+icon('keyboard')+'Escribir el código a mano</button></div>';
+}
+function enlazarEscaner(){
+  $('#escCerrar').onclick=()=>cerrar('ovEscaner');
+  $('#escManual').onclick=codigoManual;
+}
+async function iniciarCamara(){
+  detenerCamara();
+  $('#escaner').className='escaner';
+  $('#escaner').innerHTML=marcoEscaner();enlazarEscaner();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){sinCamara('no-api');return;}
+  try{
+    lector.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
+  }catch(e){sinCamara(e.name);return;}
+  if(!$('#ovEscaner').classList.contains('abierto')){detenerCamara();return;}
+  const v=$('#escVideo');v.srcObject=lector.stream;
+  try{await v.play();}catch(e){}
+  lector.detector=null;
+  try{
+    if('BarcodeDetector' in window&&(await BarcodeDetector.getSupportedFormats()).includes('qr_code'))lector.detector=new BarcodeDetector({formats:['qr_code']});
+  }catch(e){}
+  if(!lector.detector){
+    try{await cargarScript('lib/jsQR.js');}catch(e){$('#escEstado').textContent='No se pudo cargar el lector. Escribe el código a mano.';return;}
+  }
+  $('#escEstado').textContent='Buscando el código…';
+  lector.leyendo=true;buscarQR();
+}
+let ultimaLectura=0;
+function buscarQR(){
+  if(!lector.leyendo)return;
+  lector.raf=requestAnimationFrame(async()=>{
+    const v=$('#escVideo');
+    // Una lectura cada ~200 ms es suficiente y cuida la batería
+    if(!v||v.readyState<2||Date.now()-ultimaLectura<200){buscarQR();return;}
+    ultimaLectura=Date.now();
+    let texto=null;
+    try{
+      if(lector.detector){const r=await lector.detector.detect(v);if(r.length)texto=r[0].rawValue;}
+      else{
+        const w=Math.min(640,v.videoWidth),h=Math.round(v.videoHeight*w/v.videoWidth);
+        const cv=lector.canvas||(lector.canvas=document.createElement('canvas'));cv.width=w;cv.height=h;
+        const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(v,0,0,w,h);
+        const r=jsQR(ctx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'dontInvert'});if(r)texto=r.data;
+      }
+    }catch(e){}
+    if(texto&&lector.leyendo){lector.leyendo=false;vibrar(60);detenerCamara();leerTextoQR(texto);return;}
+    buscarQR();
+  });
+}
+function detenerCamara(){
+  lector.leyendo=false;cancelAnimationFrame(lector.raf);
+  if(lector.stream){lector.stream.getTracks().forEach(t=>t.stop());lector.stream=null;}
+}
+alCerrar.ovEscaner=detenerCamara;
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&lector.stream)detenerCamara();else if(!document.hidden&&$('#ovEscaner').classList.contains('abierto')&&$('#escVideo'))iniciarCamara();});
+function sinCamara(motivo){
+  const permiso=motivo==='NotAllowedError'||motivo==='SecurityError';
+  const tit=permiso?'Necesitamos permiso para usar la cámara':motivo==='NotFoundError'||motivo==='OverconstrainedError'?'No encontramos una cámara':motivo==='no-api'?'Este navegador no deja usar la cámara aquí':'No pudimos abrir la cámara';
+  $('#escaner').className='escaner claro';
+  $('#escaner').innerHTML='<button class="btn-redondo cerrar" id="escCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="esc-ayuda"><div class="mc-ic peligro">'+icon('camera',28)+'</div><h2>'+tit+'</h2>'
+    +(permiso?'<ol class="pasos"><li>Toca el candado o el ícono que está a la izquierda de la dirección (en la app instalada: mantén presionado el ícono de Fusa Conecta → Información de la app).</li>'
+      +'<li>Entra a <b>Permisos</b> → <b>Cámara</b> y elige <b>Permitir</b>.</li>'
+      +'<li>En iPhone: Ajustes → Safari → Cámara → Permitir.</li><li>Vuelve aquí y toca «Intentar de nuevo».</li></ol>'
+      :'<p>Puedes validar el cupón escribiendo el código que aparece debajo del QR.</p>')
+    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" id="escManual">'+icon('keyboard')+'Escribir el código a mano</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="escReintentar">'+icon('refresh-cw')+'Intentar de nuevo</button></div></div>';
+  enlazarEscaner();$('#escReintentar').onclick=iniciarCamara;
+}
+function codigoManual(){
+  detenerCamara();
+  $('#escaner').className='escaner claro';
+  $('#escaner').innerHTML='<button class="btn-redondo cerrar" id="escCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="esc-ayuda"><div class="mc-ic">'+icon('keyboard',28)+'</div><h2>Escribe el código</h2><p>Está debajo del QR en el celular del cliente.</p>'
+    +'<div class="validar-row mt-16"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false">'
+    +'<button class="btn btn-primario" id="vValidar">Revisar</button></div><p class="nota-c izq" id="vRes" role="status"></p>'
+    +'<button class="btn btn-ghost mt-16" id="escCamara">'+icon('camera',18)+'Usar la cámara</button></div>';
+  $('#escCerrar').onclick=()=>cerrar('ovEscaner');
+  $('#escCamara').onclick=iniciarCamara;
+  const ir=()=>{
+    const cod=$('#vCodigo').value.trim().toUpperCase().replace(/\s+/g,'');
+    if(!/^FC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(cod)){$('#vRes').textContent='Escribe el código completo, por ejemplo FC-AB12-CD34.';return;}
+    revisarCupon(cod);
+  };
+  $('#vValidar').onclick=ir;
+  $('#vCodigo').addEventListener('keydown',e=>{if(e.key==='Enter')ir();});
+  setTimeout(()=>$('#vCodigo').focus(),250);
+}
+function leerTextoQR(texto){
+  const m=String(texto).trim().match(/^FUSACONECTA:(FC-[A-Z0-9]{4}-[A-Z0-9]{4})$/i);
+  if(m){revisarCupon(m[1].toUpperCase());return;}
+  if(/#\/lugar\//.test(texto)){resultadoEscaner('rojo','Este no es un cupón','Es el código QR de un negocio. Pídele al cliente que abra el cupón en «Mis cupones».');return;}
+  resultadoEscaner('rojo','Este código no es de Fusa Conecta','Pídele al cliente que abra su cupón en «Mis cupones».');
+}
+// Pantalla de resultado a pantalla completa: verde (válido), ámbar (ya canjeado), rojo (vencido / otro comercio)
+function resultadoEscaner(color,titulo,texto,extra){
+  const ic={verde:'circle-check',ambar:'circle-alert',rojo:'circle-x'}[color];
+  $('#escaner').className='escaner resultado '+color;
+  $('#escaner').innerHTML='<button class="btn-redondo cerrar" id="escCerrar" aria-label="Cerrar">'+icon('x')+'</button>'
+    +'<div class="esc-res" role="alert">'+icon(ic,72)+'<h2>'+titulo+'</h2>'+(texto?'<p>'+texto+'</p>':'')+'</div>'
+    +'<div class="esc-res-acc">'+(extra||'<button class="btn btn-claro btn-bloque" id="escOtro">'+icon('scan-line')+'Escanear otro cupón</button>')
+    +'<button class="enlace-claro" id="escManual">Escribir el código a mano</button></div>';
+  $('#escCerrar').onclick=()=>cerrar('ovEscaner');
+  $('#escManual').onclick=codigoManual;
+  const o=$('#escOtro');if(o)o.onclick=iniciarCamara;
+}
+async function revisarCupon(cod){
+  const d=lector.comercio,uid=estado.usuario.uid;
+  const res=$('#vRes');if(res)res.textContent='Revisando…';
+  if(!estado.online){resultadoEscaner('rojo','Sin conexión','Para canjear un cupón necesitas internet. Revisa tu conexión e intenta de nuevo.');return;}
+  try{
+    const s=await db.collection('canjes').where('propietario_uid','==',uid).where('codigo','==',cod).limit(1).get();
+    if(s.empty){resultadoEscaner('rojo','Este cupón es de otro comercio','O el código no existe. Revisa que el cliente te muestre un cupón de '+esc(d.nombre)+'.');return;}
+    const doc=s.docs[0],k=doc.data();
+    if(k.comercio_id!==d.id){resultadoEscaner('rojo','Este cupón es de otro comercio','Es de '+esc(k.comercio_nombre||'otro negocio')+'. Escanéalo desde el panel de ese negocio.');return;}
+    if(k.estado==='usado'){resultadoEscaner('ambar','Ya fue canjeado',k.fecha_canje?'El '+fechaConHora(aMs(k.fecha_canje)):'Este cupón ya se usó.');return;}
+    const vence=aMs(k.fecha_vencimiento);
+    if(vence&&vence<Date.now()){resultadoEscaner('rojo','Vencido','Este cupón venció el '+fechaCorta(vence)+'.');return;}
+    if(k.dias&&k.dias.length&&!k.dias.includes(new Date().getDay())){resultadoEscaner('rojo','Hoy no aplica','Este cupón solo vale: '+diasTexto(k.dias)+'.');return;}
+    resultadoEscaner('verde','Cupón válido',esc(k.descripcion)+'<br>Cliente: '+esc(nombreCorto(k.usuario_nombre))+(k.terminos?'<br><small>'+esc(k.terminos)+'</small>':''),
+      '<button class="btn btn-claro btn-bloque btn-xl" id="escConfirmar">'+icon('badge-check',22)+'Confirmar canje</button><button class="btn btn-ghost-claro btn-bloque" id="escCancelar">Cancelar</button>');
+    $('#escCancelar').onclick=()=>cerrar('ovEscaner');
+    $('#escConfirmar').onclick=()=>confirmarCanje(doc.ref,k);
+  }catch(e){console.error(e);resultadoEscaner('rojo','No se pudo revisar','Revisa tu conexión e intenta de nuevo.');}
+}
+// Canjear (transacción): solo el dueño del comercio, una sola vez, de "reservado" a "usado". El cupo ya se descontó al obtenerlo.
+async function confirmarCanje(ref,k){
+  const uid=estado.usuario.uid,btn=$('#escConfirmar');
+  btn.disabled=true;btn.textContent='Confirmando…';
+  try{
+    const r=await db.runTransaction(async tx=>{
+      const s=await tx.get(ref);const c=s.data();
+      if(c.estado==='usado')return {tipo:'usado',c};
+      tx.update(ref,{estado:'usado',fecha_canje:FV.serverTimestamp(),canjeado_por:uid});
+      return {tipo:'ok',c};
+    });
+    if(r.tipo==='usado'){resultadoEscaner('ambar','Ya fue canjeado',r.c.fecha_canje?'El '+fechaConHora(aMs(r.c.fecha_canje)):'');return;}
+    vibrar([40,60,40]);
+    canjesPropios=canjesPropios.filter(x=>x.id!==ref.id).concat([{id:ref.id,...k,estado:'usado',fecha_canje:Date.now()}]);
+    contarCanje(k.comercio_id);
+    resultadoEscaner('verde','Canje confirmado',esc(k.descripcion)+'<br>Cliente: '+esc(nombreCorto(k.usuario_nombre)));
+    if(vistaActual().tipo==='dashboard')render(true);
+  }catch(e){console.error(e);btn.disabled=false;btn.innerHTML=icon('badge-check',22)+'Confirmar canje';toast('No se pudo confirmar. Revisa tu conexión.');}
+}
+// El canje lo suma el dueño (registrarEvento ignora al dueño, por eso va directo)
+function contarCanje(comercioId){
+  db.collection('comercios').doc(String(comercioId)).collection('estadisticas').doc(mesClave()).set({cupones_canjeados:FV.increment(1)},{merge:true}).catch(()=>{});
+}
+
+/* ---------- "Mi código QR": póster para el mostrador (carta y tarjeta) ---------- */
+function enlaceFicha(id){return 'https://fusa-conecta.netlify.app/#/lugar/'+encodeURIComponent(id);}
+const FORMATOS_POSTER={carta:{w:1275,h:1650,t:'Tamaño carta'},tarjeta:{w:1050,h:600,t:'Tamaño tarjeta'}};
+let posterFormato='carta';
+async function miCodigoQR(d){
+  abrirHoja('<div class="hoja-pad hoja-centro"><h2>Mi código QR</h2><p>Imprímelo y pégalo en tu mostrador: tus clientes lo escanean y abren tu ficha.</p>'
+    +'<div class="adm-tabs centro" role="tablist" aria-label="Tamaño del póster">'+Object.entries(FORMATOS_POSTER).map(([k,f])=>'<button role="tab" data-pformato="'+k+'" aria-selected="'+(posterFormato===k)+'" class="'+(posterFormato===k?'on':'')+'">'+f.t+'</button>').join('')+'</div>'
+    +'<div class="poster-prev"><img id="posterImg" alt="Póster con el código QR de '+esc(d.nombre)+'"><p class="nota" id="posterEstado">Preparando el póster…</p></div>'
+    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" id="qrDescargar" disabled>'+icon('image-down')+'Descargar</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="qrCompartir" disabled>'+icon('share-2')+'Compartir</button></div></div>');
+  let lienzo=null;
+  const pintar=async()=>{
+    $$('[data-pformato]').forEach(b=>{const on=b.dataset.pformato===posterFormato;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
+    $('#qrDescargar').disabled=$('#qrCompartir').disabled=true;
+    try{
+      lienzo=await dibujarPoster(d,posterFormato);
+      $('#posterImg').src=lienzo.toDataURL('image/png');$('#posterEstado').textContent=FORMATOS_POSTER[posterFormato].t+' · listo para imprimir';
+      $('#qrDescargar').disabled=$('#qrCompartir').disabled=false;
+    }catch(e){console.error(e);$('#posterEstado').textContent='No se pudo generar el póster. Enlace: '+enlaceFicha(d.id);}
+  };
+  $$('[data-pformato]').forEach(b=>b.onclick=()=>{posterFormato=b.dataset.pformato;pintar();});
+  const nombreArchivo=()=>'fusa-conecta-'+norm(d.nombre).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+posterFormato+'.png';
+  $('#qrDescargar').onclick=()=>{if(!lienzo)return;const a=document.createElement('a');a.href=lienzo.toDataURL('image/png');a.download=nombreArchivo();a.click();};
+  $('#qrCompartir').onclick=()=>{
+    if(!lienzo)return;
+    lienzo.toBlob(async b=>{
+      const f=b&&new File([b],nombreArchivo(),{type:'image/png'});
+      const texto='Encuéntranos, guárdanos y obtén cupones en Fusa Conecta: '+enlaceFicha(d.id);
+      try{
+        if(f&&navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],title:d.nombre,text:texto});
+        else compartir(d.nombre,'/lugar/'+d.id);
+      }catch(e){}
+    },'image/png');
+  };
+  pintar();
+}
+function imagenDeSVG(svg){
+  return new Promise((ok,mal)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=mal;i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});
+}
+// Ajusta un texto a un ancho máximo partiéndolo en líneas
+function lineasTexto(ctx,txt,max){
+  const palabras=String(txt).split(/\s+/),l=[];let act='';
+  palabras.forEach(p=>{const prueba=act?act+' '+p:p;if(ctx.measureText(prueba).width>max&&act){l.push(act);act=p;}else act=prueba;});
+  if(act)l.push(act);return l;
+}
+async function dibujarPoster(d,formato){
+  const F=FORMATOS_POSTER[formato],cv=document.createElement('canvas');cv.width=F.w;cv.height=F.h;
+  const ctx=cv.getContext('2d'),c=n=>cssVar(n),fuente=getComputedStyle(document.body).fontFamily;
+  const tmp=document.createElement('div');
+  const tamQR=formato==='carta'?760:400;
+  await pintarQR(tmp,enlaceFicha(d.id),tamQR);
+  const qr=tmp.querySelector('canvas');if(!qr)throw new Error('qr');
+  const logo=await imagenDeSVG(LOGO_SVG.replace('<svg','<svg width="200" height="280"').replace(/<path /g,'<path fill="'+c('--primary-700')+'" '));
+  ctx.fillStyle=c('--bg');ctx.fillRect(0,0,F.w,F.h);
+  const texto=(t,x,y,tam,peso,color,alin='center',max=F.w-120)=>{ctx.font=peso+' '+tam+'px '+fuente;ctx.fillStyle=color;ctx.textAlign=alin;ctx.textBaseline='top';
+    const ls=lineasTexto(ctx,t,max);ls.forEach((l,i)=>ctx.fillText(l,x,y+i*tam*1.25));return y+ls.length*tam*1.25;};
+  if(formato==='carta'){
+    ctx.fillStyle=c('--primary-700');ctx.fillRect(0,0,F.w,24);ctx.fillRect(0,F.h-24,F.w,24);
+    const lh=110,lw=lh*200/280;
+    ctx.font='600 56px '+fuente;const anchoMarca=lw+20+ctx.measureText('Fusa Conecta').width;
+    ctx.drawImage(logo,(F.w-anchoMarca)/2,90,lw,lh);
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--gray-900');ctx.fillText('Fusa Conecta',(F.w-anchoMarca)/2+lw+20,90+lh/2);
+    let y=texto(d.nombre,F.w/2,260,84,'700',c('--gray-900'));
+    const qy=y+50;
+    ctx.fillStyle=c('--surface-alt');ctx.strokeStyle=c('--gray-200');ctx.lineWidth=4;
+    redondeado(ctx,(F.w-tamQR)/2-40,qy-40,tamQR+80,tamQR+80,40);ctx.fill();ctx.stroke();
+    ctx.drawImage(qr,(F.w-tamQR)/2,qy,tamQR,tamQR);
+    y=texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',F.w/2,qy+tamQR+90,52,'600',c('--primary-800'),'center',F.w-220);
+    texto('Escanea con la cámara de tu celular',F.w/2,y+24,36,'400',c('--gray-500'));
+  }else{
+    ctx.fillStyle=c('--primary-700');ctx.fillRect(0,0,18,F.h);
+    const qx=F.w-tamQR-80,qy=(F.h-tamQR)/2;
+    ctx.drawImage(qr,qx,qy,tamQR,tamQR);
+    const lh=64,lw=lh*200/280;ctx.drawImage(logo,70,70,lw,lh);
+    ctx.font='600 34px '+fuente;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=c('--gray-900');ctx.fillText('Fusa Conecta',70+lw+14,70+lh/2);
+    const max=qx-70-50;
+    let y=texto(d.nombre,70,190,56,'700',c('--gray-900'),'left',max);
+    texto('Encuéntranos, guárdanos y obtén cupones en Fusa Conecta',70,y+24,30,'500',c('--primary-800'),'left',max);
+  }
+  return cv;
+}
+function redondeado(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
 /* ===== HOJA GENÉRICA ===== */
 function abrirHoja(html){
@@ -874,7 +1399,7 @@ function renderPerfil(){
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
-  const cupones=cuponesLocales();
+  const cupones=cuponesLocales().filter(c=>estadoCupon(c)==='activo');
   const notifOn=p.notificaciones_push!==false;
   const rol=p.rol==='comerciante'?[ 'store','Productor / comerciante']:p.rol==='admin'?['shield-check','Administrador']:['user','Vecino / turista'];
   const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
@@ -887,8 +1412,8 @@ function renderPerfil(){
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
     +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn '+(esAdmin()?'btn-secundario':'btn-primario')+' btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
-    +(cupones.length?cupones.map(c=>'<button class="pf-cupon" data-mic="'+esc(c.id)+'"><b>'+esc(c.comercio_nombre)+'</b><small>'+esc(c.descripcion)+' · '+esc(c.codigo)+'</small><span class="'+(estadoCupon(c)!=='activo'?'usado':'')+'">'+({usado:'Canjeado',vencido:'Vencido',activo:'Ver QR'})[estadoCupon(c)]+'</span></button>').join(''):'<p class="nota-c izq">Aún no has generado cupones. Búscalos en los comercios destacados.</p>')
-    +'</div>'
+    +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
+    +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Novedades</h3><label class="switch-row"><span>Mostrarme las novedades de los comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
@@ -905,7 +1430,7 @@ function renderPerfil(){
     try{await db.collection('usuarios').doc(u.uid).update({rol:'comerciante'});estado.perfil.rol='comerciante';ls.set('fc_perfil_'+u.uid,estado.perfil);navegar({tipo:'dashboard'});}
     catch(e){toast('No se pudo actualizar tu cuenta. Revisa tu conexión.');}
   };
-  $$('[data-mic]').forEach(b=>b.onclick=()=>mostrarCupon(cupones.find(c=>c.id===b.dataset.mic)));
+  $('#pfBilletera').onclick=irABilletera;
   $('#pfNotif').onchange=async e=>{
     const on=e.target.checked;
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
@@ -927,7 +1452,8 @@ async function sincronizarCupones(){
     const antes=JSON.stringify(cuponesLocales());
     const l=s.docs.map(x=>serializarCupon({id:x.id,...x.data()})).sort((a,b)=>(b.fecha_vencimiento||0)-(a.fecha_vencimiento||0));
     ls.set('fc_cupones_'+estado.usuario.uid,l.slice(0,30));
-    if(JSON.stringify(l.slice(0,30))!==antes&&vistaActual().tipo==='perfil')render(true);
+    if(JSON.stringify(l.slice(0,30))===antes)return;
+    if(vistaActual().tipo==='perfil')render(true);else actualizarBilletera();
   }catch(e){}
 }
 
@@ -992,17 +1518,17 @@ function renderDashboard(){
     +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar'],['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]
       .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')+'</div>'
     +'<div class="acciones-grid">'
-    +'<button class="accion destacada" id="aEscanear">'+icon('qr-code',28)+'<b>Escanear cupón</b><span>Valida el cupón de un cliente</span></button>'
+    +'<button class="accion destacada" id="aEscanear">'+icon('scan-line',28)+'<b>Escanear cupón</b><span>Valida el cupón de un cliente</span></button>'
     +(prem?'<button class="accion" id="aCupon">'+icon('ticket',28)+'<b>Crear cupón</b><span>Atrae clientes con un beneficio</span></button>'
           :'<button class="accion bloqueada" id="aCupon" aria-label="Crear cupón: disponible con Premium. Solicitar">'+icon('lock',28)+'<b>Crear cupón</b><span>Disponible con Premium · Solicitar</span></button>')
     +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
     +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
     +'</div>'
-    +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>':'')
-    +listaCupones
     +'<p class="dash-section">Canjes de hoy</p>'
     +(canjesHoy.length?canjesHoy.map(k=>'<div class="canje-fila">'+icon('badge-check',18)+'<div><b>'+esc(k.descripcion||'Cupón')+'</b><span>'+esc(k.usuario_nombre||'Cliente')+' · '+fechaHora(aMs(k.fecha_canje))+'</span></div></div>').join('')
       :'<p class="nota-c izq">Hoy aún no has canjeado cupones.</p>')
+    +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>':'')
+    +listaCupones
     +'<div class="perfil-acc mt-16"><button class="btn btn-secundario btn-bloque" id="bVerFicha">'+icon('eye')+'Ver mi ficha pública</button>'
     +'<button class="btn btn-ghost" id="bDashNuevo">'+icon('plus',18)+'Registrar otro negocio</button></div>'
     +'</div>'+footerHTML();
@@ -1052,85 +1578,6 @@ async function solicitarPremium(d){
       usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
     solicitudesPremium.add(d.id);toast('Solicitud enviada. Te avisaremos cuando se active.');render(true);
   }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
-}
-// Validar un cupón (por ahora con el código escrito; la lectura con cámara llega en la Fase 3)
-function abrirEscaner(d){
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Validar cupón</h2><p class="nota">Escribe el código que aparece en el cupón del cliente.</p>'
-    +'<div class="validar-row mt-16"><label for="vCodigo" class="sr-only">Código del cupón</label><input class="input" id="vCodigo" placeholder="FC-XXXX-XXXX" maxlength="12" autocapitalize="characters" autocomplete="off"><button class="btn btn-primario" id="vValidar">'+icon('badge-check')+'Validar</button></div>'
-    +'<p class="nota-c izq" id="vRes" role="status"></p></div>');
-  $('#vValidar').onclick=validarCupon;
-  $('#vCodigo').addEventListener('keydown',e=>{if(e.key==='Enter')validarCupon();});
-  setTimeout(()=>$('#vCodigo').focus(),250);
-}
-// Canjear (transacción): solo el dueño del comercio, una sola vez, de "reservado" a "usado". El cupo ya se descontó al obtenerlo.
-async function validarCupon(){
-  const cod=$('#vCodigo').value.trim().toUpperCase();const res=$('#vRes');
-  if(!/^FC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(cod)){res.textContent='Escribe el código completo, por ejemplo FC-AB12-CD34.';return;}
-  res.textContent='Validando…';
-  const uid=estado.usuario.uid;
-  try{
-    const s=await db.collection('canjes').where('propietario_uid','==',uid).where('codigo','==',cod).get();
-    if(s.empty){res.textContent='Este código no corresponde a un cupón de tus comercios.';return;}
-    const ref=s.docs[0].ref;
-    const r=await db.runTransaction(async tx=>{
-      const k=await tx.get(ref);const c=k.data();
-      if(c.estado==='usado')return {tipo:'usado',c};
-      if((aMs(c.fecha_vencimiento)||Infinity)<Date.now())return {tipo:'vencido',c};
-      tx.update(ref,{estado:'usado',fecha_canje:FV.serverTimestamp(),canjeado_por:uid});
-      return {tipo:'ok',c};
-    });
-    if(r.tipo==='usado')res.textContent='Este cupón ya fue canjeado'+(r.c.fecha_canje?' el '+fechaHora(aMs(r.c.fecha_canje)):'.');
-    else if(r.tipo==='vencido')res.textContent='Este cupón está vencido.';
-    else{
-      res.textContent='Cupón válido y canjeado: '+r.c.descripcion+' · Cliente: '+r.c.usuario_nombre;$('#vCodigo').value='';
-      canjesPropios=canjesPropios.filter(k=>k.id!==s.docs[0].id).concat([{id:s.docs[0].id,...r.c,estado:'usado',fecha_canje:Date.now()}]);
-      contarCanje(r.c.comercio_id);
-      if(vistaActual().tipo==='dashboard')render(true);
-    }
-  }catch(e){console.error(e);res.textContent='No se pudo validar. Revisa tu conexión.';}
-}
-// El canje lo suma el dueño (registrarEvento ignora al dueño, por eso va directo)
-function contarCanje(comercioId){
-  db.collection('comercios').doc(String(comercioId)).collection('estadisticas').doc(mesClave()).set({cupones_canjeados:FV.increment(1)},{merge:true}).catch(()=>{});
-}
-// "Mi código QR": enlace profundo a la ficha para imprimir en el mostrador (el póster completo llega en la Fase 3)
-function enlaceFicha(id){return 'https://fusa-conecta.netlify.app/#/lugar/'+encodeURIComponent(id);}
-async function miCodigoQR(d){
-  const url=enlaceFicha(d.id);
-  abrirHoja('<div class="hoja-pad hoja-centro"><h2>Mi código QR</h2><p>Tus clientes lo escanean y abren tu ficha en Fusa Conecta.</p>'
-    +'<div class="qr-box" id="qrNegocio" role="img" aria-label="Código QR de '+esc(d.nombre)+'"></div><p class="nota">'+esc(d.nombre)+'</p>'
-    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" id="qrDescargar">'+icon('download')+'Descargar</button>'
-    +'<button class="btn btn-secundario btn-bloque" id="qrCompartir">'+icon('share-2')+'Compartir enlace</button></div></div>');
-  try{
-    await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
-    new QRCode($('#qrNegocio'),{text:url,width:190,height:190,colorDark:cssVar('--gray-900'),colorLight:cssVar('--bg')});
-  }catch(e){$('#qrNegocio').innerHTML='<p class="nota">'+esc(url)+'</p>';}
-  $('#qrDescargar').onclick=()=>{
-    const c=$('#qrNegocio canvas');if(!c){toast('El código aún se está generando');return;}
-    const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='qr-'+norm(d.nombre).replace(/[^a-z0-9]+/g,'-')+'.png';a.click();
-  };
-  $('#qrCompartir').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
-}
-
-function formCupon(d){
-  abrirHoja('<div class="form-head"><h2>Publicar cupón</h2><p>'+esc(d.nombre)+'</p></div><div class="form-body">'
-    +'<div class="campo"><label for="cDesc">Descripción del descuento <span class="req">*</span></label><input id="cDesc" maxlength="80" placeholder="Ej: 10% en tu primera compra"></div>'
-    +'<div class="campo"><label for="cPct">Porcentaje de descuento</label><input id="cPct" type="number" min="1" max="100" value="10"></div>'
-    +'<div class="campo"><label for="cCupo">Cupos disponibles</label><input id="cCupo" type="number" min="1" max="10000" value="50"></div>'
-    +'<div class="campo"><label for="cVig">Válido hasta <span class="req">*</span></label><input id="cVig" type="date"></div>'
-    +'<div class="campo"><label for="cTer">Términos y condiciones</label><input id="cTer" maxlength="140" placeholder="Ej: Un cupón por persona al día"></div>'
-    +'<button class="btn btn-primario btn-bloque" id="cGuardar">Publicar cupón</button></div>');
-  const m=new Date(Date.now()+30*86400000);$('#cVig').value=m.toISOString().slice(0,10);
-  $('#cGuardar').onclick=async()=>{
-    const desc=$('#cDesc').value.trim(),vig=$('#cVig').value,cupo=Math.max(1,parseInt($('#cCupo').value,10)||1);
-    if(!desc){toast('Describe el descuento');return;}
-    if(!vig||Date.parse(vig)<Date.now()-86400000){toast('Elige una fecha de vigencia futura');return;}
-    try{
-      await db.collection('cupones').add({comercio_id:d.id,propietario_uid:estado.usuario.uid,comercio_nombre:d.nombre,descripcion:desc,porcentajeDescuento:Math.min(100,Math.max(1,parseInt($('#cPct').value,10)||10)),
-        cupo_total:cupo,cupo_restante:cupo,vigencia:vig,terminos:$('#cTer').value.trim(),estado:'activo',fecha_creacion:FV.serverTimestamp()});
-      cerrar('ovGen');toast('Cupón publicado');
-    }catch(e){console.error(e);toast('No se pudo publicar el cupón');}
-  };
 }
 function formPromo(d){
   abrirHoja('<div class="form-head"><h2>Publicar novedad</h2><p>'+esc(d.nombre)+' · máximo 3 por semana</p></div><div class="form-body">'
@@ -1836,7 +2283,7 @@ function renderBottomNav(){
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='sos'&&v.tipo==='sos')||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&(v.tipo==='perfil'||v.tipo==='dashboard'||v.tipo==='admin'));
+      ||(bn==='sos'&&v.tipo==='sos')||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin','billetera'].includes(v.tipo));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=17">
+<link rel="stylesheet" href="app.css?v=18">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -135,6 +135,8 @@
 </div>
 
 <div class="overlay" id="ovGen"><div class="sheet" id="sheetGen" role="dialog" aria-modal="true"></div></div>
+<div class="overlay pantalla" id="ovCupon"><div class="pantalla-cupon" id="pantallaCupon" role="dialog" aria-modal="true" aria-label="Cupón para mostrar en caja"></div></div>
+<div class="overlay pantalla" id="ovEscaner"><div class="escaner" id="escaner" role="dialog" aria-modal="true" aria-label="Escanear cupón"></div></div>
 
 <div class="overlay" id="ovApoyo">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="apoyoTit">
@@ -184,12 +186,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=17"></script>
+<script src="icons.js?v=18"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="datos.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
