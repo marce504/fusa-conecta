@@ -1,5 +1,41 @@
 {
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "firestore.rules",
+      "_redirects",
+      "__/**",
+      "**/.*",
+      "**/node_modules/**",
+      "CLAUDE.md",
+      "*.txt",
+      "*.ai",
+      "*.md",
+      "logo whatsapp.jpg",
+      "nuevo logo Fusa conecta.svg"
+    ],
+    "headers": [
+      {
+        "source": "/@(sw.js|index.html|manifest.json)",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|webp|svg)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      },
+      {
+        "source": "/",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
   }
 }

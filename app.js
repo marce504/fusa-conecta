@@ -13,9 +13,9 @@
 /* ===== FIREBASE (Singleton) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDUz1Mcf0m4A4L5ohsaQ8WWMeOeItrxhZk",
-  // En el sitio publicado el ingreso con Google vuelve al mismo dominio de la app
-  // (Netlify reenvía /__/auth/* a Firebase); así Chrome no bloquea el regreso de la sesión.
-  authDomain: location.hostname==='fusa-conecta.netlify.app'?'fusa-conecta.netlify.app':'fusa-conecta.firebaseapp.com',
+  // En el sitio publicado el ingreso con Google vuelve al mismo dominio de la app (Firebase Hosting sirve /__/auth;
+  // en Netlify, _redirects lo reenvía); así Chrome y Safari no bloquean el regreso de la sesión.
+  authDomain: ['fusa-conecta.web.app','fusa-conecta.netlify.app'].includes(location.hostname)?location.hostname:'fusa-conecta.firebaseapp.com',
   projectId: "fusa-conecta",
   storageBucket: "fusa-conecta.firebasestorage.app",
   messagingSenderId: "1045068656562",
@@ -271,12 +271,12 @@ const PTO='<span class="pto" aria-hidden="true">·</span>';
 /* ===== ANALÍTICA CON UMAMI (sin cookies ni datos personales) =====
    Solo en el sitio publicado y solo si hay un Website ID. Cada pantalla cuenta como una página
    (la app vive en una sola dirección) y se miden acciones clave sin nombres, correos ni ids de usuario. */
-const UMAMI={id:'62b419e4-bcfa-465f-b47b-c617aa6392e6',script:'https://cloud.umami.is/script.js',dominio:'fusa-conecta.netlify.app'};
+const UMAMI={id:'62b419e4-bcfa-465f-b47b-c617aa6392e6',script:'https://cloud.umami.is/script.js',dominios:['fusa-conecta.web.app','fusa-conecta.netlify.app']};
 const analitica={cola:[],ultima:''};
 (function(){
-  if(!UMAMI.id||location.hostname!==UMAMI.dominio)return;
+  if(!UMAMI.id||!UMAMI.dominios.includes(location.hostname))return;
   const s=document.createElement('script');
-  s.defer=true;s.src=UMAMI.script;s.dataset.websiteId=UMAMI.id;s.dataset.autoTrack='false';s.dataset.domains=UMAMI.dominio;
+  s.defer=true;s.src=UMAMI.script;s.dataset.websiteId=UMAMI.id;s.dataset.autoTrack='false';s.dataset.domains=UMAMI.dominios.join(',');
   s.onload=()=>{analitica.cola.splice(0).forEach(f=>f());};
   document.head.appendChild(s);
 })();
@@ -1389,7 +1389,9 @@ function contarCanje(comercioId){
 }
 
 /* ---------- "Mi código QR": póster para el mostrador (carta y tarjeta) ---------- */
-function enlaceFicha(id){return 'https://fusa-conecta.netlify.app/#/lugar/'+encodeURIComponent(id);}
+// Dirección oficial de la app (Firebase Hosting) para los QR del mostrador
+const SITIO_URL='https://fusa-conecta.web.app';
+function enlaceFicha(id){return SITIO_URL+'/#/lugar/'+encodeURIComponent(id);}
 const FORMATOS_POSTER={carta:{w:1275,h:1650,t:'Tamaño carta'},tarjeta:{w:1050,h:600,t:'Tamaño tarjeta'}};
 let posterFormato='carta';
 async function miCodigoQR(d){
