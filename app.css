@@ -935,6 +935,10 @@ button:disabled{opacity:.6;pointer-events:none}
 @keyframes subir{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 /* Un toque salta la animación (o ya se vio en esta sesión): todo queda en su estado final */
 .splash.saltar,.splash.saltar *{animation-delay:0s!important;animation-duration:1ms!important}
+/* ...pero el flotar de los íconos sigue a su ritmo (con 1 ms parpadeaban) */
+.splash.saltar .splash-ico-in{animation-duration:1ms,4s!important;animation-delay:0s,0s!important}
+/* Para repetir la animación sin regenerar el HTML */
+.splash.reinicio,.splash.reinicio *{animation:none!important}
 /* ---------- Logo: un solo componente, logo(variante, tema) ----------
    Logotipo en Poppins con letter-spacing -0.02em y line-height 0.92: "Fusa" 800 (el lugar) y "Conecta" 500 (la acción).
    Área de protección = alto de la "F" (0,71 em); tamaño mínimo horizontal: 96 px de ancho. */
@@ -981,11 +985,14 @@ button:disabled{opacity:.6;pointer-events:none}
 /* 1,35 s: squash & stretch del isotipo */
 .splash .logo-v .logo-iso{transform-origin:50% 100%;animation:aplastar .5s var(--ease-out) 1.35s both}
 @keyframes aplastar{0%{transform:none}30%{transform:scale(1.15,.88)}65%{transform:scale(.95,1.06)}100%{transform:none}}
-/* 1,4 s: 5 íconos salen del centro y quedan flotando en arco por encima y a los lados (nunca a la altura del nombre) */
-.splash-ico{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;opacity:.85;transform:translate(var(--x),var(--y));animation:salirIco .6s var(--ease-spring) both;animation-delay:calc(1.4s + var(--i) * 60ms)}
-.splash-ico span{display:grid;place-items:center;width:100%;height:100%;border-radius:var(--radius-full);background:var(--blanco-14);color:var(--bg);animation:flotarIco 3s ease-in-out 2.2s infinite}
-@keyframes salirIco{from{opacity:0;transform:translate(0,0) scale(.2)}to{opacity:.85;transform:translate(var(--x),var(--y)) scale(1)}}
-@keyframes flotarIco{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+/* 1,4 s: 5 íconos salen del centro y quedan flotando (±4 px en 4 s) en arco por encima y a los lados (nunca a la altura del nombre).
+   Un solo elemento animado por ícono: salir usa translate/scale y flotar usa transform, así no se pisan. */
+.splash-ico{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;transform:translate(var(--x),var(--y))}
+.splash-ico-in{display:grid;place-items:center;width:100%;height:100%;border-radius:var(--radius-full);background:var(--blanco-14);color:var(--bg);opacity:.85;
+  will-change:transform,translate,scale,opacity;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  animation:salirIco .6s var(--ease-spring) calc(1.4s + var(--i) * 60ms) both,flotarIco 4s ease-in-out calc(2.1s + var(--i) * 60ms) infinite both}
+@keyframes salirIco{from{opacity:0;translate:calc(var(--x) * -1) calc(var(--y) * -1);scale:.2}to{opacity:.85;translate:0 0;scale:1}}
+@keyframes flotarIco{0%,100%{transform:translateY(0)}25%{transform:translateY(-4px)}75%{transform:translateY(4px)}}
 /* 1,9 s "Fusa" y 2,05 s "Conecta" suben con rebote; 2,5 s el lema; 2,8 s los botones */
 .splash .logo-nom b,.splash .logo-nom>span{display:inline-block}
 .splash .logo-nom b{animation:subirRebote .55s var(--ease-spring) 1.9s both}
@@ -1129,3 +1136,13 @@ button:disabled{opacity:.6;pointer-events:none}
 .bloque-premium-cerrado .chip-premium{flex:none}
 .bloque-premium-cerrado b{display:block;color:var(--ink);font-size:var(--text-sm)}
 .bloque-premium-cerrado small{font-size:var(--text-xs)}
+/* ---------- v4 · Fase 4: entrada corta con sesión (1,2 s, solo el logo) ---------- */
+.splash.corto .splash-cta,.splash.corto .splash-ico,.splash.corto .logo-lema{display:none}
+.splash.corto .logo-iso .h1{animation-duration:.45s;animation-delay:0s}
+.splash.corto .logo-iso .h2{animation-duration:.45s;animation-delay:.08s}
+.splash.corto .logo-iso .h3{animation-duration:.45s;animation-delay:.16s}
+.splash.corto .logo-iso .h4{animation-duration:.45s;animation-delay:.24s}
+.splash.corto .logo-v .logo-iso{animation:none}
+.splash.corto .logo-nom b{animation-delay:.45s}
+.splash.corto .logo-nom>span{animation-delay:.55s}
+.pf-suelto{margin-top:12px;padding:0 16px;border:1px solid var(--line);border-radius:var(--radius-lg)}

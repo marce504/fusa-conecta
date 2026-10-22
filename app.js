@@ -1663,7 +1663,8 @@ function renderPerfil(){
   cuerpo.innerHTML='<div class="vista">'
     +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
       +'<small>'+(nPrem?nPrem+' Premium por activar':'Aprueba comercios y activa Premium')+'</small></span>'
-      +(nAprobar||nPrem?'<span class="globo alerta"><span class="punto-alerta" aria-hidden="true"></span>'+(nAprobar+nPrem)+' por aprobar</span>':'')+icon('chevron-right')+'</button>':'')
+      +(nAprobar||nPrem?'<span class="globo alerta"><span class="punto-alerta" aria-hidden="true"></span>'+(nAprobar+nPrem)+' por aprobar</span>':'')+icon('chevron-right')+'</button>'
+      +'<button class="pf-item pf-suelto" id="pfSplash">'+icon('play')+'<span class="flex-1">Ver animación de entrada</span>'+icon('chevron-right')+'</button>':'')
     +'<div class="perfil-card"><div class="pf-av">'+esc(u.nombre.charAt(0).toUpperCase())+'</div><h2>'+esc(u.nombre)+'</h2><p>'+esc(u.email)+'</p>'
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
@@ -1687,6 +1688,7 @@ function renderPerfil(){
   const r=$('#pfReenviar');if(r)r.onclick=()=>auth.currentUser.sendEmailVerification().then(()=>toast('Te enviamos el correo de verificación')).catch(()=>toast('Intenta de nuevo en unos minutos'));
   const pn=$('#pfPanel');if(pn)pn.onclick=()=>navegar({tipo:'dashboard'});
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
+  const ps=$('#pfSplash');if(ps)ps.onclick=verAnimacionEntrada;
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
@@ -2418,7 +2420,7 @@ async function _procesarUsuario(user){
   estado.usuario={uid:user.uid,anonimo:user.isAnonymous,nombre:(registroPendiente&&registroPendiente.nombre)||user.displayName||(user.email?user.email.split('@')[0]:'Invitado'),
     email:user.email||'',verificado:user.emailVerified,proveedor:(user.providerData[0]||{}).providerId||''};
   if(user.isAnonymous){estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
-  cerrar('ovLogin');ocultarSplash();
+  cerrar('ovLogin');ocultarSplashSesion();
   estado.favoritos=ls.get(claveFav(),[]);
   estado.perfil=ls.get('fc_perfil_'+user.uid,null);
   let snap=null,cuentaNueva=false;
@@ -2492,10 +2494,12 @@ auth.getRedirectResult().catch(async e=>{
   if(e&&e.code)toast(mensajeAuth(e));
 });
 auth.onAuthStateChanged(user=>{
+  marcarSesion(user&&!user.isAnonymous);
+  // Se esperaba una sesión que ya no existe: se muestra la entrada completa con sus botones
+  if((!user||user.isAnonymous)&&$('#splash').classList.contains('corto'))mostrarSplash();
   if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user);
-  if(!user.isAnonymous&&!$('#splash').classList.contains('oculto'))setTimeout(ocultarSplash,$('#splash').classList.contains('saltar')?300:3000);
 });
 
 /* ===== PROMOCIONES PUSH (RF-18) ===== */
@@ -3144,27 +3148,49 @@ $$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
 function ocultarSplash(){$('#splash').classList.add('oculto');colorBarra('--bg');}
-function mostrarSplash(){$('#splash').classList.remove('oculto');colorBarra('--primary-500');}
-// Animación de entrada: el nombre aparece letra por letra; solo la primera vez por sesión y un toque la salta
+// Al volver a la pantalla de entrada (p. ej. al cerrar sesión) se ve completa y quieta, con sus botones
+function mostrarSplash(){$('#splash').classList.remove('oculto','corto','demo');$('#splash').classList.add('saltar');colorBarra('--primary-500');}
+/* Pantalla de entrada (v4 · Fase 4). Su HTML se pinta una sola vez y nunca se vuelve a generar.
+   Invitados: animación completa en cada arranque en frío; la pantalla con botones no avanza sola.
+   Con sesión: versión corta de 1,2 s, solo el logo. ?demo=1 siempre muestra la completa. */
+// Se cuenta desde que se abrió la página (performance.now() empieza en 0 al navegar), no desde que cargó este archivo
+const SPLASH_CORTO=1200,faltaSplash=()=>SPLASH_CORTO-performance.now();
+function marcarSesion(on){try{on?localStorage.setItem('fc_con_sesion','1'):localStorage.removeItem('fc_con_sesion');}catch(e){}}
+// Con sesión, la entrada se queda al menos 1,2 s desde el arranque (salvo en modo demostración)
+function ocultarSplashSesion(){
+  const sp=$('#splash');if(sp.classList.contains('oculto')||sp.classList.contains('demo'))return;
+  const falta=faltaSplash();
+  if(falta>0)setTimeout(()=>{if(!sp.classList.contains('demo'))ocultarSplash();},falta);else ocultarSplash();
+}
+// Vuelve a reproducir la animación completa sin regenerar el HTML (botón del admin en Perfil)
+function verAnimacionEntrada(){
+  const sp=$('#splash');
+  sp.classList.remove('corto','saltar','oculto');sp.classList.add('demo','reinicio');
+  void sp.offsetWidth;sp.classList.remove('reinicio');colorBarra('--primary-500');
+}
 (function(){
   const sp=$('#splash');
   // Arco (de izquierda a derecha): mascotas, compras, rutas, campo y hospedaje; el punto más bajo es la mitad del isotipo
   const ICONOS_ARCO=[['paw-print',-118,-22],['shopping-bag',-90,-92],['mountain',0,-124],['apple',90,-92],['bed-double',118,-22]];
-  const arco=ICONOS_ARCO.map(([n,x,y],i)=>'<span class="splash-ico" style="--x:'+x+'px;--y:'+y+'px;--i:'+i+'" aria-hidden="true"><span>'+icon(n,20)+'</span></span>').join('');
+  // Un solo elemento animado por ícono (.splash-ico-in); el contenedor solo lo ubica en el arco
+  const arco=ICONOS_ARCO.map(([n,x,y],i)=>'<span class="splash-ico" style="--x:'+x+'px;--y:'+y+'px;--i:'+i+'" aria-hidden="true"><span class="splash-ico-in">'+icon(n,20)+'</span></span>').join('');
   $('#splashMarca').innerHTML=logo('vertical','lila',{alto:120,lema:true,extraIso:arco});
-  let visto=false;try{visto=!!sessionStorage.getItem('fc_splash');sessionStorage.setItem('fc_splash','1');}catch(e){}
-  if(visto){sp.classList.add('saltar');ocultarSplash();return;}
+  if(sp.classList.contains('corto'))setTimeout(()=>{if(sp.classList.contains('corto'))ocultarSplash();},Math.max(0,faltaSplash()));
+  // Un toque salta la animación: el invitado ve de una vez los botones; con sesión, entra
   sp.addEventListener('pointerdown',e=>{
     if(e.target.closest('button'))return;
+    if(auth.currentUser&&!auth.currentUser.isAnonymous&&!sp.classList.contains('demo')){ocultarSplash();return;}
     sp.classList.add('saltar');
-    if(auth.currentUser&&!auth.currentUser.isAnonymous)ocultarSplash();
   });
 })();
+const conCuenta=()=>!!(auth.currentUser&&!auth.currentUser.isAnonymous);
 $('#sInvitado').onclick=()=>{
-  ocultarSplash();render();toast('Explorando Fusa Conecta',2000);
+  ocultarSplash();if(conCuenta())return;
+  render();toast('Explorando Fusa Conecta',2000);
   if(!auth.currentUser)auth.signInAnonymously().catch(()=>{});
 };
-$('#sRegistrar').onclick=()=>abrirLogin('registro');
+// "Registrarse" abre la hoja de registro encima; al cerrarla se vuelve a esta pantalla
+$('#sRegistrar').onclick=()=>{$('#splash').classList.remove('demo');if(conCuenta())ocultarSplash();else abrirLogin('registro');};
 $$('#ovLogin .seg button').forEach(b=>b.onclick=()=>{modoLogin=b.dataset.modo;pintarModoLogin();});
 $('#formLogin').addEventListener('submit',enviarLogin);
 $('#lGoogle').onclick=ingresarGoogle;
