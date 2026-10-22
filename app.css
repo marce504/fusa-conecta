@@ -998,3 +998,31 @@ button:disabled{opacity:.6;pointer-events:none}
 .slide-tag,.slide-tit,.slide-sub,.slide-pie{max-width:62%}
 .slide-ilu{position:absolute;right:12px;top:50%;margin-top:-37px}
 .slide-pie{align-self:flex-start;flex-wrap:wrap;gap:6px 10px;margin-top:auto;padding-top:10px}
+/* ---------- Radio en vivo ---------- */
+/* Tarjeta del inicio */
+.tarjeta-radio{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;margin-bottom:24px;border-radius:var(--radius-lg);background:var(--ink);color:var(--bg)}
+.tr-ic{width:48px;height:48px;border-radius:var(--radius-md);background:var(--primary-500);display:grid;place-items:center;flex-shrink:0}
+.tr-tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.tr-tx small{font-size:var(--text-2xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-200)}
+.tr-tx b{font-size:var(--text-base);font-weight:600;line-height:1.25}
+.tr-estado{font-size:var(--text-xs);color:var(--blanco-92)}
+.tr-play,.rb-play{width:48px;height:48px;border-radius:var(--radius-full);background:var(--bg);color:var(--primary-700);display:grid;place-items:center;flex-shrink:0;transition:transform var(--t)}
+.tr-play:active,.rb-play:active{transform:scale(.94)}
+/* Mini reproductor: tarjeta flotante sobre la barra inferior; deja libre el botón central de Cupones */
+.radio-barra{position:relative;z-index:24;display:flex;align-items:center;gap:10px;margin:0 12px 34px;padding:8px 6px 8px 10px;border-radius:var(--radius-lg);background:var(--ink);color:var(--bg);box-shadow:var(--shadow-md);flex-shrink:0}
+.radio-barra[hidden]{display:none}
+.rb-ic{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--primary-500);display:grid;place-items:center;flex-shrink:0}
+.rb-tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.rb-tx b{font-size:var(--text-sm);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-tx small{font-size:var(--text-2xs);color:var(--blanco-92)}
+.radio-barra.error .rb-tx small{color:var(--sun-400)}
+.rb-play{width:44px;height:44px}
+.rb-cerrar{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--blanco-92);flex-shrink:0}
+/* Ecualizador mientras suena; ícono que gira mientras conecta (sin movimiento si se pidió) */
+.ecualizador{display:flex;align-items:flex-end;gap:2px;height:16px}
+.ecualizador i{width:3px;height:100%;border-radius:2px;background:var(--bg);transform-origin:bottom;animation:barraEq .9s ease-in-out infinite alternate}
+.ecualizador i:nth-child(2){animation-delay:-.3s}
+.ecualizador i:nth-child(3){animation-delay:-.6s}
+@keyframes barraEq{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+.gira{animation:girar 1s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}

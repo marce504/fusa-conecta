@@ -582,7 +582,7 @@ function renderLista(v){
   let html;
   if(items.length){
     const enInicio=v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros();
-    html=(enInicio?seccionCuponesHTML()+seccionAbiertosHTML()+seccionPlanesHTML()+tarjetaInstalarHTML():'')
+    html=(enInicio?seccionCuponesHTML()+seccionRadioHTML()+seccionAbiertosHTML()+seccionPlanesHTML()+tarjetaInstalarHTML():'')
       +'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
@@ -599,7 +599,7 @@ function renderLista(v){
     estado.q='';estado.filtros={abierto:false,cupon:false,municipio:'',orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
-  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
+  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarRadio();enlazarFooter();
 }
 
 /* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
@@ -2582,6 +2582,71 @@ setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrar
 setInterval(()=>{
   $$('[data-estado]').forEach(el=>{const d=buscar(el.dataset.estado),ap=d&&estadoApertura(d);if(ap)el.outerHTML=estadoHTML(ap,d.id);});
 },60000);
+
+/* ===== RADIO EN VIVO: Vive Fusagasugá 88.1 FM (emisora de la Alcaldía) =====
+   Transmisión Icecast en MP3 a 64 kbps (≈ 29 MB por hora). Sigue sonando mientras se navega
+   y se controla desde la pantalla de bloqueo (Media Session). Necesita conexión. */
+const EMISORA={nombre:'Vive Fusagasugá',frecuencia:'88.1 FM',de:'Emisora de la Alcaldía de Fusagasugá',
+  url:'https://estructuraweb.com.co:9372/live',web:'https://vivefusagasuga.gov.co/'};
+const radio={audio:null,estado:'apagada'}; // apagada | conectando | sonando | pausada | error
+function radioEstado(e){radio.estado=e;pintarRadio();}
+function radioReproducir(){
+  if(!estado.online){toast('La radio necesita conexión a internet');return;}
+  if(!radio.audio){
+    radio.audio=new Audio();radio.audio.preload='none';
+    radio.audio.addEventListener('playing',()=>radioEstado('sonando'));
+    radio.audio.addEventListener('waiting',()=>{if(radio.estado==='sonando')radioEstado('conectando');});
+    radio.audio.addEventListener('error',()=>{if(radio.estado!=='apagada'&&radio.estado!=='pausada')radioEstado('error');});
+  }
+  // Siempre la señal en vivo: al reanudar se reconecta en lugar de seguir con audio viejo del búfer
+  radio.audio.src=EMISORA.url+'?t='+Date.now();
+  radioEstado('conectando');
+  radio.audio.play().catch(()=>radioEstado('error'));
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata=new MediaMetadata({title:EMISORA.nombre+' '+EMISORA.frecuencia,artist:'En vivo · '+EMISORA.de,album:'Fusa Conecta',
+      artwork:[{src:'img/icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'img/icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
+    navigator.mediaSession.setActionHandler('play',radioReproducir);
+    navigator.mediaSession.setActionHandler('pause',radioPausar);
+    navigator.mediaSession.setActionHandler('stop',radioApagar);
+  }
+}
+// Pausar suelta la conexión (no se gastan datos mientras está en pausa)
+function radioPausar(){if(radio.audio){radio.audio.pause();radio.audio.removeAttribute('src');radio.audio.load();}radioEstado('pausada');}
+function radioApagar(){radioPausar();radioEstado('apagada');}
+function radioAlternar(){['sonando','conectando'].includes(radio.estado)?radioPausar():radioReproducir();}
+function botonRadioHTML(id,clase){
+  const on=['sonando','conectando'].includes(radio.estado);
+  return '<button class="'+clase+'" id="'+id+'" aria-label="'+(on?'Pausar':'Escuchar')+' '+EMISORA.nombre+' en vivo">'
+    +(radio.estado==='conectando'?icon('loader-circle',22,'gira'):icon(on?'pause':'play',22))+'</button>';
+}
+function textoRadio(){
+  return {conectando:'Conectando…',sonando:'En vivo',pausada:'En pausa',error:'Sin señal. Toca para reintentar',apagada:'En vivo'}[radio.estado];
+}
+function pintarRadio(){
+  const b=$('#radioBarra');
+  b.hidden=radio.estado==='apagada';
+  if(!b.hidden){
+    b.className='radio-barra '+radio.estado;
+    b.innerHTML='<span class="rb-ic" aria-hidden="true">'+(radio.estado==='sonando'?'<span class="ecualizador"><i></i><i></i><i></i></span>':icon('radio',20))+'</span>'
+      +'<span class="rb-tx"><b>'+EMISORA.nombre+' '+EMISORA.frecuencia+'</b><small role="status">'+textoRadio()+'</small></span>'
+      +botonRadioHTML('rbPlay','rb-play')+'<button class="rb-cerrar" id="rbCerrar" aria-label="Cerrar la radio">'+icon('x',20)+'</button>';
+    $('#rbPlay').onclick=radioAlternar;$('#rbCerrar').onclick=radioApagar;
+  }
+  // La tarjeta del inicio refleja el mismo estado
+  const t=$('#tarjetaRadio');
+  if(t){t.querySelector('.tr-estado').textContent=radio.estado==='apagada'?'La emisora de la Alcaldía, en vivo':textoRadio();
+    t.querySelector('#trPlay').outerHTML=botonRadioHTML('trPlay','tr-play');$('#trPlay').onclick=radioAlternar;
+    t.classList.toggle('sonando',radio.estado==='sonando');}
+  if('mediaSession' in navigator)navigator.mediaSession.playbackState=radio.estado==='sonando'?'playing':radio.estado==='apagada'?'none':'paused';
+}
+function seccionRadioHTML(){
+  return '<section class="tarjeta-radio'+(radio.estado==='sonando'?' sonando':'')+'" id="tarjetaRadio" aria-label="Radio en vivo">'
+    +'<span class="tr-ic" aria-hidden="true">'+icon('radio',26)+'</span>'
+    +'<span class="tr-tx"><small>Radio en vivo</small><b>'+EMISORA.nombre+' '+EMISORA.frecuencia+'</b><span class="tr-estado">'+(radio.estado==='apagada'?'La emisora de la Alcaldía, en vivo':textoRadio())+'</span></span>'
+    +botonRadioHTML('trPlay','tr-play')+'</section>';
+}
+function enlazarRadio(){const p=$('#trPlay');if(p)p.onclick=radioAlternar;}
+window.addEventListener('offline',()=>{if(['sonando','conectando'].includes(radio.estado))radioEstado('error');});
 
 /* ===== FOOTER ===== */
 function footerHTML(){
