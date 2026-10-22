@@ -131,6 +131,9 @@ ICONOS.whatsapp="<path fill=\"currentColor\" stroke=\"none\" d=\"M17.47 14.38c-.
 ICONOS["arrow-up"]="<path d=\"m5 12 7-7 7 7\" /><path d=\"M12 19V5\" />";
 ICONOS["arrow-down"]="<path d=\"M12 5v14\" /><path d=\"m19 12-7 7-7-7\" />";
 
+ICONOS["smartphone"]="<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /><path d=\"M12 18h.01\" />";
+ICONOS["sun-moon"]="<path d=\"M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4\" /><path d=\"M12 2v2\" /><path d=\"M12 20v2\" /><path d=\"m4.9 4.9 1.4 1.4\" /><path d=\"m17.7 17.7 1.4 1.4\" /><path d=\"M2 12h2\" /><path d=\"M20 12h2\" /><path d=\"m6.3 17.7-1.4 1.4\" /><path d=\"m19.1 4.9-1.4 1.4\" />";
+
 function icon(nombre,tam=20,clase=''){
   const c=ICONOS[nombre]||ICONOS["circle-help"];
   return '<svg class="ic'+(clase?' '+clase:'')+'" width="'+tam+'" height="'+tam+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+c+'</svg>';

@@ -40,6 +40,33 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;',
 function norm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
 // Lee un color del sistema de diseño (para librerías que no aceptan variables CSS)
 function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+// Valor del tema claro aunque la app esté en oscuro (póster para imprimir, logo dibujado en canvas)
+let refClaro=null;
+function cssVarClaro(n){
+  if(!refClaro){refClaro=document.createElement('div');refClaro.dataset.tema='claro';refClaro.hidden=true;document.body.appendChild(refClaro);}
+  return getComputedStyle(refClaro).getPropertyValue(n).trim();
+}
+/* ===== TEMA: Sistema / Claro / Oscuro (v4 · Fase 6). index.html ya lo puso antes del primer pintado ===== */
+function temaElegido(){try{return localStorage.getItem('fc_tema')||'sistema';}catch(e){return 'sistema';}}
+const temaOscuro=()=>document.documentElement.dataset.tema==='oscuro';
+const consultaOscuro=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
+function aplicarTema(pref=temaElegido()){
+  const o=pref==='oscuro'||(pref==='sistema'&&!!consultaOscuro&&consultaOscuro.matches);
+  if(o===temaOscuro())return;
+  document.documentElement.dataset.tema=o?'oscuro':'claro';
+  // Barra del sistema y mapas con los colores del tema nuevo
+  const sp=document.getElementById('splash');colorBarra(sp&&!sp.classList.contains('oculto')?'--primary-500':'--bg');
+  if(typeof render==='function'&&['mapa','ruta'].includes(vistaActual().tipo))render(true);
+}
+function elegirTema(pref){try{localStorage.setItem('fc_tema',pref);}catch(e){}aplicarTema(pref);medir('tema',{tema:pref});}
+if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
+// Teselas del mapa: OpenStreetMap en claro, CARTO Dark Matter en oscuro
+function capaBase(){
+  const o=temaOscuro();
+  return L.tileLayer(o?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:19,subdomains:o?'abcd':'abc',attribution:o?'© OpenStreetMap © CARTO':'© OpenStreetMap'});
+}
+function urlTesela(z,x,y){return temaOscuro()?'https://a.basemaps.cartocdn.com/dark_all/'+z+'/'+x+'/'+y+'.png':'https://tile.openstreetmap.org/'+z+'/'+x+'/'+y+'.png';}
 const ls={
   get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},
@@ -344,12 +371,12 @@ const LOGO_HOJAS=[ // superior (la del circuito), izquierda, derecha, inferior
   'M262.57,90.62c.06-.61.27-1.16.62-1.65.72-1.01,3.27-4.48,7.64-10.41,1.25-1.68,2.77-3.02,4.95-2.05.61.27,1.2.85,1.76,1.74,1.17,1.84,1.8,2.82,1.87,2.94,2.88,4.58,5.62,9.96,8.22,16.13,4.15,9.85,6.82,20.05,8.02,30.61.54,4.79.98,9.99.78,15.02-.35,8.64-1.27,16.33-2.77,23.05-4.83,21.66-15.89,41.49-32.11,56.92-6.46,6.15-12.96,11.05-20.04,16.01-3.07,2.15-6.04,4.48-8.92,7-8.15,7.11-14.68,16.11-19.36,25.84-.74,1.53-1.83,3.51-3.73,3.74-1.8.23-2.98-.58-3.53-2.41-.4-1.32-.67-2.88-.84-4.69-.14-1.53-.26-4.38-.37-8.54-.07-2.91-.06-7.38.05-13.43.08-4.79.97-9.68,2.67-14.66,1.78-5.26,4.2-10.17,7.25-14.73,2.06-3.08,3.43-5.02,4.12-5.84,2.47-2.93,4.21-5.2,6.71-7.77,5.75-5.93,10.26-10.56,13.53-13.91,1.32-1.36,2.83-1.84,4.53-1.44,1.05.25,1.58.37,1.59.37,1.83.21,3.16.29,3.98.23,4.63-.3,8.47-2.14,11.52-5.55,3.23-3.62,4.86-8.59,4.1-13.42-.93-5.83-4.71-10.65-10.12-12.88-6.07-2.5-12.99-1.01-17.57,3.58-3.46,3.47-5.11,7.82-4.96,13.06.02.59.24,1.73.67,3.43.45,1.81.11,3.18-1.15,4.48-10.51,10.88-17.42,18.06-20.71,21.54-1.24,1.31-3.4,1.54-4.73.3-.76-.71-1.17-1.67-1.23-2.87-.41-8.05-.15-18.38-.21-23.49-.04-3.51.13-6.35.51-8.54,2.18-12.48,8.76-22.45,17.21-31.51,7.54-8.09,13.66-14.58,18.36-19.46,1.52-1.59,2.98-1.77,5.34-1.59,1.81.13,3.31.11,4.49-.08,4.77-.75,8.49-3.18,11.17-7.29,2.62-4.02,3.37-8.43,2.25-13.23-.31-1.31-1.13-2.87-1.46-3.83-.08-.23-.11-.48-.08-.72h0Z',
   'M150.76,170.79c1.49-.64,3.57.78,4.67,1.81,3.92,3.63,7.77,7.22,11.55,10.78,2.8,2.64,5.21,5.1,7.24,7.39,2.54,2.86,4.69,5.54,6.46,8.05,5.84,8.28,9.07,18.17,10.2,28.1.58,5.07.9,10.58.96,15.58.1,9.01-.16,18.15-.75,27.41-.1,1.54-.23,3.9-1.56,4.95-2.06,1.63-4.09.3-4.96-1.87-1.53-3.85-2.73-6.64-3.58-8.37-3.01-6.11-6.84-11.34-11.51-15.68-3.49-3.25-7.65-6.3-12.48-9.16-.04-.02-.88-.54-2.53-1.54-9.65-5.87-18.29-13.1-25.91-21.69-8.27-9.33-14.69-19.91-19.23-31.73-3.63-9.42-5.81-19.07-6.55-28.93-.44-5.81-.43-11.94.02-18.39.12-1.67.4-2.78.84-3.33,1.55-1.93,4.05-1.51,5.99-.07,6.64,4.91,12.4,9.52,17.29,13.84,1.24,1.1,1.14,2.47.81,4.25-.47,2.47-.52,4.61-.16,6.42.82,4.11,2.68,7.36,5.57,9.76,5.02,4.17,11.65,5.04,17.64,2.43h0Z'];
 // Colores de las hojas por tema (variables de :root)
-const LOGO_COLORES={claro:['--primary-500','--mint-300','--mint-600','--mint-400'],lila:['--bg','--teal-300','--mint-300','--teal-200'],oscuro:['--bg','--teal-300','--mint-300','--teal-200']};
+const LOGO_COLORES={claro:['--primary-500','--mint-300','--mint-600','--mint-400'],lila:['--sobre-color','--teal-300','--mint-300','--teal-200'],oscuro:['--sobre-color','--teal-300','--mint-300','--teal-200']};
 function isoSVG(clase,tema,enLinea){
   // enLinea: rellenos escritos en el SVG (para dibujarlo fuera de la página: póster, ícono)
   const col=LOGO_COLORES[tema]||LOGO_COLORES.claro;
   return '<svg class="'+clase+'" viewBox="'+LOGO_VB+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">'
-    +LOGO_HOJAS.map((d,i)=>'<path class="h'+(i+1)+'"'+(enLinea?' fill="'+cssVar(col[i])+'"':'')+' d="'+d+'"/>').join('')+'</svg>';
+    +LOGO_HOJAS.map((d,i)=>'<path class="h'+(i+1)+'"'+(enLinea?' fill="'+cssVarClaro(col[i])+'"':'')+' d="'+d+'"/>').join('')+'</svg>';
 }
 function logo(variante='horizontal',tema='claro',opc={}){
   const alto=opc.alto||36;
@@ -941,7 +968,7 @@ async function pintarQR(el,texto,tam){
   try{
     await cargarScript('lib/qrcode.min.js');
     el.innerHTML='';
-    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--ink'),colorLight:cssVar('--bg'),correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--tinta-fija'),colorLight:cssVar('--sobre-color'),correctLevel:QRCode.CorrectLevel.M});
     return true;
   }catch(e){return false;}
 }
@@ -1494,7 +1521,7 @@ function lineasTexto(ctx,txt,max){
 }
 async function dibujarPoster(d,formato){
   const F=FORMATOS_POSTER[formato],cv=document.createElement('canvas');cv.width=F.w;cv.height=F.h;
-  const ctx=cv.getContext('2d'),c=n=>cssVar(n),fuente=getComputedStyle(document.body).fontFamily;
+  const ctx=cv.getContext('2d'),c=n=>cssVarClaro(n),fuente=getComputedStyle(document.body).fontFamily;
   const tmp=document.createElement('div');
   const tamQR=formato==='carta'?760:400;
   await pintarQR(tmp,enlaceFicha(d.id),tamQR);
@@ -1535,14 +1562,14 @@ function marcaPoster(ctx,iso,variante,x,y,alto,fuente){
     ctx.drawImage(iso,x-W/2,y,W,H);
     ctx.font='800 '+f+'px '+fuente;const a=ctx.measureText('Fusa ').width;ctx.font='500 '+f+'px '+fuente;const b=ctx.measureText('Conecta').width;
     const base=y+H+.2*H+.71*f,x0=x-(a+b)/2;
-    pinta('Fusa ','800',f,cssVar('--ink'),x0,base);pinta('Conecta','500',f,cssVar('--primary-500'),x0+a,base);
+    pinta('Fusa ','800',f,cssVarClaro('--ink'),x0,base);pinta('Conecta','500',f,cssVarClaro('--primary-500'),x0+a,base);
     if('letterSpacing' in ctx)ctx.letterSpacing='0px';
     return {alto:.2*H+.71*f+.4*f};
   }
   const em=alto/1.84,H=1.63*em,W=H*LOGO_PROP;
   ctx.drawImage(iso,x,y+.10*em,W,H);
   const tx=x+W+.35*W;
-  pinta('Fusa','800',em,cssVar('--ink'),tx,y+.81*em);pinta('Conecta','500',em,cssVar('--primary-500'),tx,y+1.73*em);
+  pinta('Fusa','800',em,cssVarClaro('--ink'),tx,y+.81*em);pinta('Conecta','500',em,cssVarClaro('--primary-500'),tx,y+1.73*em);
   if('letterSpacing' in ctx)ctx.letterSpacing='0px';
   return {alto};
 }
@@ -1570,7 +1597,7 @@ async function renderMapa(){
   try{await cargarLeaflet();}catch(e){$('#mapaInfo').textContent='No se pudo cargar el mapa.';return;}
   if(vistaActual().tipo!=='mapa'||!$('#mapaGeneral'))return;
   const m=L.map('mapaGeneral',{zoomControl:true}).setView(PLAZA_FUSA,14);mapaActivo=m;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);
+  capaBase().addTo(m);
   const grupo=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,
     iconCreateFunction:c=>L.divIcon({className:'cluster-fc',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})});
   const items=database.filter(d=>d.lat&&d.lng&&(d.cat!=='bares'||estado.mayorEdad));
@@ -1615,7 +1642,7 @@ async function renderRuta(id){
       await cargarLeaflet();
       if(vistaActual().tipo!=='ruta'||!$('#mapaRuta'))return;
       m=L.map('mapaRuta');mapaActivo=m;
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);
+      capaBase().addTo(m);
       const verde=cssVar('--primary-700'),blanco=cssVar('--bg');
       const linea=L.polyline(r.rutaWaypoints,{color:verde,weight:5,opacity:.9}).addTo(m);
       r.rutaWaypoints.forEach((w,i)=>L.circleMarker(w,{radius:5,color:verde,fillColor:blanco,fillOpacity:1,weight:2}).addTo(m).bindPopup('Punto '+(i+1)));
@@ -1727,6 +1754,9 @@ function renderPerfil(){
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
+    +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
+      +[['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
+      +'</div><p class="nota-c izq">«Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Novedades</h3><label class="switch-row"><span>Mostrarme las novedades de los comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
@@ -1739,6 +1769,7 @@ function renderPerfil(){
   const pn=$('#pfPanel');if(pn)pn.onclick=()=>navegar({tipo:'dashboard'});
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
   const ps=$('#pfSplash');if(ps)ps.onclick=verAnimacionEntrada;
+  $$('[data-tema-op]').forEach(b=>b.onclick=()=>{elegirTema(b.dataset.temaOp);render(true);const n=$('[data-tema-op="'+b.dataset.temaOp+'"]');if(n)n.focus();});
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
@@ -2276,7 +2307,7 @@ async function montarMapaWiz(){
   if(!wiz||wiz.paso!==2||!$('#wMapa'))return;
   const d=wiz.datos,centro=d.lat&&d.lng?[d.lat,d.lng]:PLAZA_FUSA;
   wizMapa=L.map('wMapa').setView(centro,d.lat?17:15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(wizMapa);
+  capaBase().addTo(wizMapa);
   const pin=L.marker(centro,{draggable:true,icon:pinIcono(d.cat?(ICONO_SUB[d.sub]||ICONO_CAT[d.cat]):'map-pin','pin-fc'+(d.cat?' c-'+d.cat:'')),title:'Ubicación del negocio'}).addTo(wizMapa);
   const fijar=ll=>{d.lat=+ll.lat.toFixed(6);d.lng=+ll.lng.toFixed(6);d.ubicacionExacta=true;$('#wUbicTxt').textContent='Ubicación guardada. Arrastra el pin para ajustarla.';};
   pin.on('dragend',()=>fijar(pin.getLatLng()));
@@ -2729,9 +2760,9 @@ function miniMapaHTML(lat,lng){
   const z=17,n=2**z,r=lat*Math.PI/180;
   const fx=(lng+180)/360*n,fy=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n;
   const tx=Math.floor(fx),ty=Math.floor(fy),px=(fx-tx)*256,py=(fy-ty)*256;
-  let t='';for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)t+='<img src="https://tile.openstreetmap.org/'+z+'/'+(tx+dx)+'/'+(ty+dy)+'.png" alt="" loading="lazy" style="left:'+((dx+1)*256)+'px;top:'+((dy+1)*256)+'px">';
+  let t='';for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)t+='<img src="'+urlTesela(z,tx+dx,ty+dy)+'" alt="" loading="lazy" style="left:'+((dx+1)*256)+'px;top:'+((dy+1)*256)+'px">';
   return '<div class="mini-mapa" role="img" aria-label="Ubicación en el mapa"><div class="mm-teselas" style="left:calc(50% - '+(256+px).toFixed(1)+'px);top:calc(50% - '+(256+py).toFixed(1)+'px)">'+t+'</div>'
-    +'<span class="mm-pin">'+icon('map-pin',30)+'</span><span class="mm-atrib">© OpenStreetMap</span></div>';
+    +'<span class="mm-pin">'+icon('map-pin',30)+'</span><span class="mm-atrib">© OpenStreetMap'+(temaOscuro()?' © CARTO':'')+'</span></div>';
 }
 // Vista previa real de la ficha para decidir: fotos, datos, horario, teléfono para llamar y mini mapa
 function vistaPreviaAdminHTML(c,acciones){

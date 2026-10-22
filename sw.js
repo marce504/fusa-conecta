@@ -1,7 +1,7 @@
 // Service Worker de Fusa Conecta: app instalable y disponible sin conexión (RNF-02).
 // - La interfaz, los datos base y las emergencias se guardan al instalar.
 // - Las fotos, mapas y librerías se guardan la primera vez que se ven.
-const VERSION = 'fusa-v28';
+const VERSION = 'fusa-v29';
 const CACHE_APP = VERSION + '-app';
 const CACHE_RUNTIME = VERSION + '-runtime';
 const CACHE_MAPAS = VERSION + '-mapas';
@@ -77,7 +77,7 @@ self.addEventListener('fetch', (e) => {
   }
 
   // Teselas del mapa: caché primero, con límite de tamaño
-  if (url.hostname.endsWith('tile.openstreetmap.org')) {
+  if (url.hostname.endsWith('tile.openstreetmap.org') || url.hostname.endsWith('basemaps.cartocdn.com')) {
     e.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((r) => {
         guardar(CACHE_MAPAS, req, r);
