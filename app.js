@@ -102,6 +102,7 @@ function esComerciante(){return logueado()&&(esAdmin()||comerciosPropios.some(c=
 
 /* ===== REPOSITORIO DE COMERCIOS ===== */
 const nombresBase=new Set(COMERCIOS_BASE.map(c=>norm(c.nombre).trim()));
+const idsBase=new Set(COMERCIOS_BASE.map(c=>c.id));
 let comerciosNube=[];
 let database=COMERCIOS_BASE.map(c=>({...c}));
 function normalizarNube(id,x){
@@ -116,9 +117,10 @@ function normalizarNube(id,x){
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
     fotos:Array.isArray(x.fotos)?x.fotos:[]};
 }
+estado.ocultos=new Set(ls.get('fc_ocultos',[]));
 function reconstruirDirectorio(){
   // Un negocio reclamado o corregido por el admin se guarda en la nube con el mismo id y reemplaza su copia local
-  const porId=new Map(COMERCIOS_BASE.map(c=>[c.id,{...c}]));
+  const porId=new Map(COMERCIOS_BASE.filter(c=>!estado.ocultos.has(c.id)).map(c=>[c.id,{...c}]));
   comerciosNube.forEach(c=>porId.set(c.id,c));
   database=[...porId.values()];
 }
@@ -128,11 +130,15 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
   snap.forEach(doc=>{
     const x=doc.data();
     // Los registros antiguos de la carga inicial ya están en la copia local (datos.js)
-    if(!x.propietario_uid&&nombresBase.has(norm(x.nombre).trim()))return;
+    if(!x.propietario_uid&&nombresBase.has(norm(x.nombre).trim())&&!idsBase.has(doc.id))return;
     lista.push(normalizarNube(doc.id,x));
   });
   comerciosNube=lista;reconstruirDirectorio();refrescarVista();
 },err=>console.warn('Comercios sin conexión:',err.code));
+// Negocios de muestra que el admin ocultó (los de la nube se ocultan con estado "oculto" y ya no llegan al directorio)
+db.collection('config').doc('directorio').onSnapshot(s=>{
+  const l=(s.exists&&s.data().ocultos)||[];estado.ocultos=new Set(l);ls.set('fc_ocultos',l);reconstruirDirectorio();refrescarVista();
+},()=>{});
 
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
@@ -1656,7 +1662,7 @@ function renderPerfil(){
   cuerpo.innerHTML='<div class="vista">'
     +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
       +'<small>'+(nPrem?nPrem+' Premium por activar':'Aprueba comercios y activa Premium')+'</small></span>'
-      +(nAprobar?'<span class="globo">'+nAprobar+' por aprobar</span>':'')+icon('chevron-right')+'</button>':'')
+      +(nAprobar||nPrem?'<span class="globo alerta"><span class="punto-alerta" aria-hidden="true"></span>'+(nAprobar+nPrem)+' por aprobar</span>':'')+icon('chevron-right')+'</button>':'')
     +'<div class="perfil-card"><div class="pf-av">'+esc(u.nombre.charAt(0).toUpperCase())+'</div><h2>'+esc(u.nombre)+'</h2><p>'+esc(u.email)+'</p>'
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
@@ -1827,14 +1833,18 @@ async function cambiarEstadoCupon(id,est){
 // El Premium ya no se autoactiva: se solicita y lo activa un administrador
 async function solicitarPremium(d){
   if(!d)return;
-  if(solicitudesPremium.has(d.id)){toast('Ya enviaste la solicitud. Un administrador activará tu plan.');return;}
-  const prueba=d.prueba_usada?'':' Si es tu primera vez, puede activarte una prueba gratuita de 30 días.';
-  if(!await confirmar('Solicitar Premium','Un administrador revisará tu solicitud. Premium incluye posición destacada, cupones con QR, novedades, redes sociales y sitio web.'+prueba,'Enviar solicitud','Cancelar','star'))return;
-  try{
-    await db.collection('solicitudes').add({tipo:'premium',comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
-      usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
-    solicitudesPremium.add(d.id);toast('Solicitud enviada. Te avisaremos cuando se active.');render(true);
-  }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
+  if(solicitudesPremium.has(d.id)){toast('Solicitud enviada, te avisaremos cuando se active.');return;}
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Solicitar Premium</h2><p class="nota">Premium es gratis durante la fase de pruebas. Incluye cupones con QR, 10 fotos, posición destacada, novedades, redes sociales y sitio web.</p>'
+    +'<div class="campo mt-16"><label for="premMsg">Mensaje para el administrador <span class="opc">(opcional)</span></label><textarea id="premMsg" maxlength="300" placeholder="Ej: queremos publicar cupones para la temporada de fin de año"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="premEnviar">'+icon('star',18)+'Enviar solicitud</button></div>');
+  $('#premEnviar').onclick=async()=>{
+    const b=$('#premEnviar');b.disabled=true;
+    try{
+      await db.collection('solicitudes').add({tipo:'premium',plan:'premium',mensaje:$('#premMsg').value.trim().slice(0,300),comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
+        usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
+      solicitudesPremium.add(d.id);cerrar('ovGen');toast('Solicitud enviada, te avisaremos.');render(true);
+    }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
+  };
 }
 function formPromo(d){
   abrirHoja('<div class="form-head"><h2>Publicar novedad</h2><p>'+esc(d.nombre)+' · máximo 3 por semana</p></div><div class="form-body">'
@@ -2019,10 +2029,12 @@ async function migrarFotosAntiguas(lista){
    no hay que elegir nada al registrarse ni cambiar de cuenta. */
 function misNegociosHTML(){
   const l=comerciosPropios;if(!l.length)return '';
-  const chip=c=>({aprobado:'<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>',rechazado:'<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>'})[c.estado_publicacion]||'<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
+  const chip=c=>({aprobado:'<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>',rechazado:'<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>',
+    oculto:'<span class="chip-estado rech">'+icon('eye-off',14)+'Oculto por el administrador</span>'})[c.estado_publicacion]||'<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
   return '<div class="seccion"><h3>'+icon('store',18)+'Mis negocios</h3>'+l.map(c=>'<div class="mi-negocio">'
       +'<button class="pf-item" data-minegocio="'+esc(c.id)+'"><span class="mn-tx"><b>'+esc(c.nombre)+'</b>'+chip(c)+'</span>'+icon('chevron-right')+'</button>'
       +(c.estado_publicacion==='rechazado'?'<p class="mn-motivo">'+icon('info',14)+(c.motivo_rechazo?'Motivo: '+esc(c.motivo_rechazo):'Revisa los datos y envíalo de nuevo.')+'</p><button class="btn btn-tonal btn-sm" data-corregir="'+esc(c.id)+'">'+icon('pencil',16)+'Corregir y reenviar</button>'
+        :c.estado_publicacion==='oculto'?'<p class="mn-motivo">'+icon('info',14)+'No aparece en el directorio. Escríbenos desde «Ayúdanos a mejorar» si crees que es un error.</p>'
         :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
       +'</div>').join('')+'</div>';
 }
@@ -2450,17 +2462,12 @@ db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapsh
   estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
 },()=>{});
 function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
+function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar():0;}
 function campanaHTML(){
-  const n=noLeidas();
-  return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+'">'+icon('bell')+(n?'<span class="punto-nuevo" aria-hidden="true"></span>':'')+'</button>';
+  const n=noLeidas(),p=pendientesAdmin();
+  return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
 }
-function actualizarCampana(){
-  const b=$('#bNovedades');if(!b)return;const n=noLeidas();
-  b.setAttribute('aria-label','Novedades'+(n?', '+n+' sin leer':''));
-  const p=b.querySelector('.punto-nuevo');
-  if(n&&!p)b.insertAdjacentHTML('beforeend','<span class="punto-nuevo" aria-hidden="true"></span>');
-  if(!n&&p)p.remove();
-}
+function actualizarCampana(){const b=$('#bNovedades');if(b)b.outerHTML=campanaHTML();const nb=$('#bNovedades');if(nb)nb.onclick=abrirNovedades;}
 function abrirNovedades(){
   const visto=ls.get('fc_novedades_leido',0);const lista=estado.novedades;
   const pa=esAdmin()?porAprobar():0,pp=esAdmin()?premiumPorActivar():0;
@@ -2573,7 +2580,7 @@ async function cargarAdmin(){
     const comercios=com.docs.map(x=>({...normalizarNube(x.id,x.data()),_raw:x.data()}));
     const inicioMes=new Date();inicioMes.setDate(1);inicioMes.setHours(0,0,0,0);
     estado.admin.datos={
-      pendientes:comercios.filter(c=>c.propietario_uid&&!['aprobado','rechazado'].includes(c._raw.estado_publicacion)),
+      pendientes:comercios.filter(c=>c.propietario_uid&&!['aprobado','rechazado','oculto'].includes(c._raw.estado_publicacion)),
       premiumActivos:comercios.filter(c=>premiumVigente(c)).sort((a,b)=>(a.suscripcion_vigente_hasta||0)-(b.suscripcion_vigente_hasta||0)),
       comercios,
       solicitudes:sol.docs.map(x=>({id:x.id,...x.data()})),
@@ -2592,34 +2599,150 @@ function tarjetaComercioAdmin(c,extra){
     +(c.desc?'<p class="adm-desc">'+esc(c.desc)+'</p>':'')
     +'<p class="nota-c izq">'+icon('phone',14)+' '+esc(c.tel||'Sin teléfono')+' · '+icon('clock',14)+' '+esc(horarioTexto(c))+'</p>'+(extra||'')+'</div>';
 }
+/* ===== PANEL DE ADMINISTRACIÓN (v4 · Fase 2) — ruta #/admin, solo rol admin =====
+   Pestañas: Por aprobar (Negocios nuevos · Solicitudes Premium), Negocios, Reportes, Opiniones y Emergencias. */
+const MOTIVOS_RECHAZO=['Datos incompletos','Fotos inadecuadas','Duplicado','No está en Fusagasugá o Pasca','Otro'];
+// Mini mapa sin librerías: 3 × 3 teselas de OpenStreetMap centradas en el negocio, con un pin
+function miniMapaHTML(lat,lng){
+  if(!lat||!lng)return '<div class="mini-mapa sin">'+icon('map-pin',20)+'Sin ubicación en el mapa</div>';
+  const z=17,n=2**z,r=lat*Math.PI/180;
+  const fx=(lng+180)/360*n,fy=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n;
+  const tx=Math.floor(fx),ty=Math.floor(fy),px=(fx-tx)*256,py=(fy-ty)*256;
+  let t='';for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)t+='<img src="https://tile.openstreetmap.org/'+z+'/'+(tx+dx)+'/'+(ty+dy)+'.png" alt="" loading="lazy" style="left:'+((dx+1)*256)+'px;top:'+((dy+1)*256)+'px">';
+  return '<div class="mini-mapa" role="img" aria-label="Ubicación en el mapa"><div class="mm-teselas" style="left:calc(50% - '+(256+px).toFixed(1)+'px);top:calc(50% - '+(256+py).toFixed(1)+'px)">'+t+'</div>'
+    +'<span class="mm-pin">'+icon('map-pin',30)+'</span><span class="mm-atrib">© OpenStreetMap</span></div>';
+}
+// Vista previa real de la ficha para decidir: fotos, datos, horario, teléfono para llamar y mini mapa
+function vistaPreviaAdminHTML(c,acciones){
+  const tel=telLimpio(c.tel),n=(c.fotos||[]).length;
+  return '<article class="adm-card adm-preview">'
+    +'<div class="adm-fotos" data-fotosde="'+esc(c.id)+'">'+(imgSegura(c.imagen)?'<img src="'+esc(c.imagen)+'" alt="Portada de '+esc(c.nombre)+'">':'<span class="foto-cargando">'+icon(iconoDe(c),32)+'</span>')
+      +'<span class="gal-contador">'+(n?n+(n===1?' foto':' fotos'):'Sin fotos')+'</span></div>'
+    +'<div class="adm-pv-cuerpo"><h3>'+esc(c.nombre)+'</h3><p class="nota-c izq">'+esc(etiquetaDe(c))+' · '+esc(c.municipio||'Fusagasugá')+'</p>'
+    +(c.desc?'<p class="adm-desc">'+esc(c.desc)+'</p>':'')
+    +'<div class="datos">'+filaDato('map-pin','Dirección',esc(c.direccion))+filaDato('clock','Horario',esc(horarioTexto(c)))
+      +filaDato('phone','Teléfono',tel?esc(c.tel)+' <a class="btn btn-secundario btn-sm adm-llamar" href="tel:'+esc(tel)+'">'+icon('phone',16)+'Llamar para verificar</a>':'Sin teléfono')+'</div>'
+    +miniMapaHTML(c.lat,c.lng)
+    +(acciones||'')+'</div></article>';
+}
+// Las fotos de la vista previa se cargan después (solo el admin y el dueño pueden leerlas antes de aprobar)
+function cargarFotosPreview(){
+  $$('[data-fotosde]').forEach(async caja=>{
+    const c=estado.admin.datos.comercios.find(x=>x.id===caja.dataset.fotosde);
+    if(!c||!(c.fotos||[]).length)return;
+    try{
+      const m=await cargarFotosDe(c.id,c.fotos);
+      const imgs=c.fotos.filter(id=>m[id]).map((id,i)=>'<img src="'+m[id]+'" alt="Foto '+(i+1)+' de '+esc(c.nombre)+'">');
+      if(imgs.length)caja.innerHTML='<div class="adm-fotos-pista">'+imgs.join('')+'</div><span class="gal-contador">'+imgs.length+(imgs.length===1?' foto':' fotos')+' · desliza</span>';
+    }catch(e){}
+  });
+}
+// Rechazo con motivo obligatorio: opciones rápidas + detalle (obligatorio si es "Otro")
+function pedirMotivo(titulo,cb,opciones=MOTIVOS_RECHAZO){
+  let elegido='';
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">'+esc(titulo)+'</h2><p class="nota">El motivo es obligatorio: la persona lo verá en su perfil.</p>'
+    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+opciones.map(m=>'<button type="button" class="chip-filtro" role="radio" aria-checked="false" data-motivo="'+esc(m)+'">'+esc(m)+'</button>').join('')+'</div>'
+    +'<div class="campo mt-16"><label for="motTxt">Detalle <span class="opc" id="motOpc">(opcional)</span></label><textarea id="motTxt" maxlength="200" placeholder="Ej: falta la dirección exacta del local"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="motOk">Confirmar</button></div>');
+  $$('[data-motivo]').forEach(b=>b.onclick=()=>{
+    elegido=b.dataset.motivo;$$('[data-motivo]').forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-checked',on);});
+    $('#motOpc').textContent=elegido==='Otro'?'(obligatorio)':'(opcional)';
+  });
+  $('#motOk').onclick=()=>{
+    const d=$('#motTxt').value.trim();
+    if(!elegido){toast('Elige un motivo');return;}
+    if(elegido==='Otro'&&d.length<4){toast('Escribe el motivo');return;}
+    cerrar('ovGen');cb(elegido==='Otro'?d:elegido+(d?': '+d:''));
+  };
+}
+// Datos de un negocio de muestra (datos.js) para crear su documento en la nube con el mismo id
+function datosSemilla(b,extra){
+  return {cat:b.cat,categoria:b.cat,emoji:b.emoji||'',nombre:b.nombre,desc:b.desc||'',horario:b.horario||'',direccion:b.direccion||'',tel:b.tel||'',whatsapp:b.whatsapp||'',
+    imagen:b.imagen||'',lat:b.lat||null,lng:b.lng||null,ubicacion_aprox:!!b.ubicacion_aprox,sub:b.sub||'',tipo:b.tipo||'',nivelDificultad:b.nivelDificultad||'',
+    municipio:b.municipio||'Fusagasugá',redesSociales:{},sitioWeb:b.sitioWeb||'',esPremium:false,prioridadBusqueda:0,fotos:[],
+    propietario_uid:null,estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),fechaCreacion:FV.serverTimestamp(),...(extra||{})};
+}
+// Premium: por defecto sin fecha de fin mientras dure la fase de pruebas; vencimiento opcional
+function pedirPremium(nombre,cb){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Activar Premium</h2><p class="nota">«'+esc(nombre)+'» tendrá cupones, 10 fotos, posición destacada, novedades y redes en su ficha.</p>'
+    +'<label class="fil-fila"><span class="fil-tx">'+icon('infinity',20)+'Sin fecha de fin (fase de pruebas)</span><input type="checkbox" role="switch" class="interruptor" id="premSinFin" checked></label>'
+    +'<div class="campo mt-16" id="premFechaCaja" hidden><label for="premFecha">Vence el</label><input type="date" id="premFecha" min="'+isoLocal(Date.now()+86400000)+'" value="'+isoLocal(Date.now()+30*86400000)+'"></div>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="premOk">'+icon('star',18)+'Activar Premium</button></div>');
+  $('#premSinFin').onchange=e=>{$('#premFechaCaja').hidden=e.target.checked;};
+  $('#premOk').onclick=()=>{
+    const sinFin=$('#premSinFin').checked,f=$('#premFecha').value;
+    if(!sinFin&&(!f||aMs(f)<Date.now())){toast('Elige una fecha futura');return;}
+    cerrar('ovGen');cb(sinFin?null:aMs(f));
+  };
+}
+function cambiosPremium(hasta){
+  return {esPremium:true,plan:'premium',prioridadBusqueda:1,prueba_usada:true,suscripcion_vigente_hasta:hasta?TS.fromMillis(hasta):FV.delete()};
+}
+function textoVencePremium(c){return c.suscripcion_vigente_hasta?'Vence el '+fechaCorta(c.suscripcion_vigente_hasta):'Sin fecha de fin';}
+// Lista de la pestaña Negocios: los de la nube (todos los estados) + los de muestra que aún no están en la nube
+function negociosAdmin(D){
+  const nube=new Map(D.comercios.map(c=>[c.id,c]));
+  const semillas=COMERCIOS_BASE.filter(b=>!nube.has(b.id)).map(b=>({...b,_semilla:true,estado_publicacion:estado.ocultos.has(b.id)?'oculto':'aprobado'}));
+  return [...D.comercios,...semillas].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+}
+function chipEstadoAdmin(c){
+  const e=c.estado_publicacion;
+  return e==='aprobado'?'<span class="chip-estado pub">Publicado</span>':e==='oculto'?'<span class="chip-estado rech">Oculto</span>'
+    :e==='rechazado'?'<span class="chip-estado rech">Rechazado</span>':'<span class="chip-estado rev">En revisión</span>';
+}
 function renderAdmin(){
   const cuerpo=$('#cuerpo');
   if(!esAdmin()){cuerpo.innerHTML='<div class="vacio">'+icon('shield-check',48)+'<b>Panel de administración</b><p>Solo disponible para administradores.</p></div>';return;}
   const A=estado.admin,D=A.datos;
   if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
-  const tabs=[['aprobar','Por aprobar','clipboard-check',D.pendientes.length+reclamos.length],['premium','Premium','star',premium.length],['reportes','Reportes','flag',D.reportes.length],['opiniones','Opiniones','message-circle-heart',0],['emergencias','Emergencias','siren',0]];
+  const nNegocios=D.pendientes.length+reclamos.length;
+  const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
+    ['opiniones','Opiniones','message-circle-heart',0],['emergencias','Emergencias','siren',0]];
+  if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
-    html=(D.pendientes.length||reclamos.length?'':'<div class="vacio">'+icon('circle-check',48)+'<b>Todo al día</b><p>No hay comercios ni reclamos por revisar.</p></div>')
-      +(D.pendientes.length?'<p class="dash-section">Comercios nuevos</p>'+D.pendientes.map(c=>tarjetaComercioAdmin(c,
-        '<p class="nota-c izq">Registrado por '+esc(c._raw.propietario||'un comerciante')+'</p><div class="dc-actions"><button class="btn btn-primario btn-sm" data-aprobar="'+esc(c.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-rechazar="'+esc(c.id)+'">Rechazar</button></div>')).join(''):'')
-      +(reclamos.length?'<p class="dash-section">Reclamos de negocio</p>'+reclamos.map(s=>'<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3>'
-        +'<p class="nota-c izq">Lo reclama '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · Tel. '+esc(s.telefono||'')+'</p>'+(s.mensaje?'<p class="adm-desc">'+esc(s.mensaje)+'</p>':'')
-        +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okreclamo="'+esc(s.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div></div>').join(''):'');
-  }else if(A.tab==='premium'){
-    html=(premium.length?'<p class="dash-section">Solicitudes</p>'+premium.map(s=>{const c=D.comercios.find(x=>x.id===s.comercio_id);
-        return '<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3><p class="nota-c izq">Lo pide '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · '+fechaCorta(aMs(s.fecha))+'</p>'
-          +(c&&c.prueba_usada?'<p class="nota-c izq">'+icon('info',14)+' Ya usó su prueba gratuita.</p>':'<p class="nota-c izq">'+icon('info',14)+' Aún no ha usado la prueba gratuita.</p>')
-          +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okprem="'+esc(s.id)+'">'+icon('star',16)+'Activar 30 días</button><button class="btn btn-secundario btn-sm" data-noprem="'+esc(s.id)+'">Rechazar</button></div></div>';}).join('')
-        :'<div class="vacio">'+icon('star',48)+'<b>Sin solicitudes de Premium</b></div>')
-      +'<p class="dash-section">Premium activos ('+D.premiumActivos.length+')</p>'
-      +(D.premiumActivos.length?D.premiumActivos.map(c=>'<div class="canje-fila">'+icon('star',18)+'<div><b>'+esc(c.nombre)+'</b><span>Vence '+fechaCorta(c.suscripcion_vigente_hasta)+'</span></div></div>').join(''):'<p class="nota-c izq">Ninguno por ahora.</p>');
+    html='<div class="seg" role="tablist" aria-label="Qué aprobar">'
+      +[['negocios','Negocios nuevos',nNegocios],['premium','Solicitudes Premium',premium.length]].map(([k,t,n])=>'<button role="tab" aria-selected="'+(A.subtab===k)+'" class="'+(A.subtab===k?'on':'')+'" data-asub="'+k+'">'+t+(n?' <span class="contador">'+n+'</span>':'')+'</button>').join('')+'</div>';
+    if(A.subtab==='negocios'){
+      html+=(nNegocios?'':'<div class="vacio">'+icon('circle-check',48)+'<b>Todo al día</b><p>No hay negocios ni reclamos por revisar.</p></div>')
+        +(D.pendientes.length?'<p class="dash-section">Negocios nuevos ('+D.pendientes.length+')</p>'+D.pendientes.map(c=>vistaPreviaAdminHTML(c,
+          '<p class="nota-c izq">Registrado por '+esc(c._raw.propietario||'un usuario')+' · '+(c.esPremium?'Premium':'Gratis')+' · '+fechaCorta(aMs(c._raw.fecha_modificacion)||aMs(c._raw.fechaCreacion))+'</p>'
+          +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-aprobar="'+esc(c.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-rechazar="'+esc(c.id)+'">Rechazar</button></div>')).join(''):'')
+        +(reclamos.length?'<p class="dash-section">Reclamos de negocios existentes ('+reclamos.length+')</p>'+reclamos.map(s=>{const c=buscar(s.comercio_id)||D.comercios.find(x=>x.id===s.comercio_id);
+            return c?vistaPreviaAdminHTML(c,'<p class="nota-c izq">'+icon('user',14)+' Lo reclama '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · Tel. '+esc(s.telefono||'')+'</p>'+(s.mensaje?'<p class="adm-desc">«'+esc(s.mensaje)+'»</p>':'')
+              +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okreclamo="'+esc(s.id)+'">'+icon('check',16)+'Aprobar reclamo</button><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div>')
+              :'<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3><p class="nota-c izq">Lo reclama '+esc(s.usuario_nombre||'')+'</p><div class="dc-actions"><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div></div>';}).join(''):'');
+    }else{
+      html+=(premium.length?premium.map(s=>{const c=D.comercios.find(x=>x.id===s.comercio_id);
+          return '<div class="adm-card"><div class="adm-head"><div class="dc-ico">'+(c&&imgSegura(c.imagen)?'<img src="'+esc(c.imagen)+'" alt="">':icon('store'))+'</div><div class="dc-info"><h3>'+esc(s.comercio_nombre)+'</h3>'
+            +'<p>Plan solicitado: <b>'+(s.plan==='premium'||!s.plan?'Premium':esc(s.plan))+'</b> · '+fechaCorta(aMs(s.fecha))+'</p></div></div>'
+            +'<p class="nota-c izq">'+icon('user',14)+' '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+'</p>'
+            +(s.mensaje?'<p class="adm-desc">«'+esc(s.mensaje)+'»</p>':'<p class="nota-c izq">Sin mensaje.</p>')
+            +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okprem="'+esc(s.id)+'">'+icon('star',16)+'Activar Premium</button><button class="btn btn-secundario btn-sm" data-noprem="'+esc(s.id)+'">Rechazar</button></div></div>';}).join('')
+          :'<div class="vacio">'+icon('star',48)+'<b>Sin solicitudes de Premium</b></div>')
+        +'<p class="dash-section">Premium activos ('+D.premiumActivos.length+')</p>'
+        +(D.premiumActivos.length?D.premiumActivos.map(c=>'<div class="canje-fila">'+icon('star',18)+'<div><b>'+esc(c.nombre)+'</b><span>'+textoVencePremium(c)+'</span></div></div>').join(''):'<p class="nota-c izq">Ninguno por ahora.</p>');
+    }
+  }else if(A.tab==='negocios'){
+    const q=norm(A.busca||'').trim(),todos=negociosAdmin(D),lista=todos.filter(c=>!q||norm(c.nombre+' '+etiquetaDe(c)+' '+(c.direccion||'')).includes(q));
+    const max=A.max||25;
+    html='<div class="campo"><label for="admBuscar" class="sr-only">Buscar negocio</label><input class="input" type="search" id="admBuscar" placeholder="Buscar por nombre, categoría o dirección" value="'+esc(A.busca||'')+'"></div>'
+      +'<p class="nota-c izq">'+lista.length+' de '+todos.length+' negocios</p>'
+      +lista.slice(0,max).map(c=>'<div class="adm-fila"><div class="dc-info"><b>'+esc(c.nombre)+'</b><span>'+esc(etiquetaDe(c))+(c._semilla?' · de muestra':c.propietario_uid?' · con dueño':'')+'</span>'
+        +'<div class="adm-chips">'+chipEstadoAdmin(c)+(premiumVigente(c)?'<span class="chip-estado rev">'+icon('star',12,'ic-fill')+'Premium · '+textoVencePremium(c)+'</span>':'')+'</div></div>'
+        +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" data-neditar="'+esc(c.id)+'">'+icon('pencil',16)+'Editar</button>'
+        +(c.estado_publicacion==='oculto'?'<button class="btn btn-secundario btn-sm" data-nmostrar="'+esc(c.id)+'">'+icon('eye',16)+'Mostrar</button>'
+          :c.estado_publicacion==='aprobado'?'<button class="btn btn-secundario btn-sm" data-nocultar="'+esc(c.id)+'">'+icon('eye-off',16)+'Ocultar</button>':'')
+        +(c.propietario_uid?(premiumVigente(c)?'<button class="btn btn-ghost" data-nquitarprem="'+esc(c.id)+'">Quitar Premium</button>':'<button class="btn btn-ghost" data-nactivarprem="'+esc(c.id)+'">'+icon('star',16)+'Activar Premium</button>'):'')
+        +'</div></div>').join('')
+      +(lista.length>max?'<button class="btn btn-ghost btn-bloque" id="admMas">Mostrar más</button>':'');
   }else if(A.tab==='reportes'){
     html=D.reportes.length?D.reportes.map(r=>'<div class="adm-card"><h3>'+(r.tipo==='resena'?'Reseña en ':'Ficha de ')+esc(r.comercio_nombre)+'</h3>'
       +'<p class="nota-c izq">'+esc(r.motivo)+' · reportado por '+esc(r.usuario_nombre||'')+' · '+fechaCorta(aMs(r.fecha))+'</p>'
       +(r.resena_texto?'<p class="adm-desc">«'+esc(r.resena_texto)+'»</p>':'')+(r.detalle?'<p class="adm-desc">'+esc(r.detalle)+'</p>':'')
-      +'<div class="dc-actions">'+(r.tipo==='resena'&&r.calificacion_id?'<button class="btn btn-primario btn-sm" data-ocultar="'+esc(r.id)+'">'+icon('eye-off',16)+'Ocultar reseña</button>':'')
+      +'<div class="dc-actions">'+(r.tipo==='resena'&&r.calificacion_id?'<button class="btn btn-primario btn-sm" data-ocultar="'+esc(r.id)+'">'+icon('eye-off',16)+'Ocultar reseña</button>'
+        :'<button class="btn btn-primario btn-sm" data-ocultarneg="'+esc(r.id)+'">'+icon('eye-off',16)+'Ocultar negocio</button>')
       +'<button class="btn btn-secundario btn-sm" data-editarrep="'+esc(r.id)+'">'+icon('pencil',16)+'Editar ficha</button>'
       +'<button class="btn btn-ghost" data-descartar="'+esc(r.id)+'">Descartar</button></div></div>').join('')
       :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
@@ -2642,26 +2765,42 @@ function renderAdmin(){
   }
   const fotosAntiguas=D.comercios.filter(c=>/^data:image\//.test(c._raw.imagen||'')&&!(c._raw.fotos||[]).length);
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
-    +'<div class="metricas">'+[['store',database.length,'Comercios publicados'],['clock',D.pendientes.length,'Pendientes'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
+    +'<div class="metricas">'+[['store',database.length,'Negocios publicados'],['clock',nNegocios+premium.length,'Por aprobar'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
       .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'
     +(fotosAntiguas.length?'<button class="btn btn-tonal btn-bloque mt-16" id="admMigrar">'+icon('images',18)+'Pasar '+fotosAntiguas.length+(fotosAntiguas.length===1?' foto antigua':' fotos antiguas')+' a la galería</button>':'')
-    +'<div class="adm-tabs" role="tablist">'+tabs.map(([k,t,ic,n])=>'<button role="tab" aria-selected="'+(A.tab===k)+'" class="'+(A.tab===k?'on':'')+'" data-atab="'+k+'">'+icon(ic,18)+t+(n?'<span class="contador">'+n+'</span>':'')+'</button>').join('')+'</div>'
+    +'<div class="adm-tabs" role="tablist">'+tabs.map(([k,t,ic,n])=>'<button role="tab" aria-selected="'+(A.tab===k)+'" class="'+(A.tab===k?'on':'')+'" data-atab="'+k+'">'+icon(ic,18)+t+(n?'<span class="contador alerta">'+n+'</span>':'')+'</button>').join('')+'</div>'
     +'<div class="adm-cuerpo">'+html+'</div></div>';
   $('#admRecargar').onclick=()=>{toast('Actualizando…');cargarAdmin();};
   const mg=$('#admMigrar');if(mg)mg.onclick=async()=>{mg.disabled=true;mg.textContent='Pasando fotos…';
     const n=await migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen})));
     toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();};
   $$('[data-atab]').forEach(b=>b.onclick=()=>{A.tab=b.dataset.atab;render(true);});
+  $$('[data-asub]').forEach(b=>b.onclick=()=>{A.subtab=b.dataset.asub;render(true);});
   const pend=id=>D.pendientes.find(c=>c.id===id),sol=id=>D.solicitudes.find(s=>s.id===id),rep=id=>D.reportes.find(r=>r.id===id);
-  $$('[data-aprobar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Comercio aprobado y publicado'));
-  $$('[data-rechazar]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Comercio rechazado. El comerciante verá el motivo.')));
+  const negocio=id=>negociosAdmin(D).find(c=>c.id===id);
+  $$('[data-aprobar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Negocio aprobado y publicado'));
+  $$('[data-rechazar]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.')));
   $$('[data-okreclamo]').forEach(b=>b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo)));
-  $$('[data-noreclamo]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado')));
+  $$('[data-noreclamo]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado'),['No se pudo verificar que sea el dueño','Duplicado','Otro']));
   $$('[data-okprem]').forEach(b=>b.onclick=()=>activarPremiumAdmin(sol(b.dataset.okprem)));
-  $$('[data-noprem]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada')));
+  $$('[data-noprem]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada'),['Negocio aún en revisión','Datos incompletos','Otro']));
+  // Negocios: buscar, editar, ocultar/mostrar y Premium
+  const bu=$('#admBuscar');if(bu){bu.oninput=()=>{A.busca=bu.value;A.max=25;clearTimeout(A._t);A._t=setTimeout(()=>{render(true);const n=$('#admBuscar');n.focus();n.setSelectionRange(n.value.length,n.value.length);},250);};}
+  const mas=$('#admMas');if(mas)mas.onclick=()=>{A.max=(A.max||25)+25;render(true);};
+  $$('[data-neditar]').forEach(b=>b.onclick=()=>{const c=negocio(b.dataset.neditar);abrirFormComercio(c._semilla?buscar(c.id)||c:c);});
+  $$('[data-nocultar]').forEach(b=>b.onclick=()=>ocultarNegocio(negocio(b.dataset.nocultar)));
+  $$('[data-nmostrar]').forEach(b=>b.onclick=()=>mostrarNegocio(negocio(b.dataset.nmostrar)));
+  $$('[data-nquitarprem]').forEach(b=>b.onclick=async()=>{const c=negocio(b.dataset.nquitarprem);
+    if(!await confirmar('Quitar Premium','«'+c.nombre+'» vuelve al plan Gratis: se pausan sus cupones y sale de Destacados.','Quitar','Cancelar','star',true))return;
+    adminAccion(()=>db.collection('comercios').doc(c.id).update({esPremium:false,plan:'gratis',prioridadBusqueda:0,suscripcion_vigente_hasta:FV.delete()}),'Premium quitado');});
+  $$('[data-nactivarprem]').forEach(b=>b.onclick=()=>{const c=negocio(b.dataset.nactivarprem);pedirPremium(c.nombre,h=>adminAccion(()=>db.collection('comercios').doc(c.id).update(cambiosPremium(h)),'Premium activado'));});
+  // Reportes
   $$('[data-ocultar]').forEach(b=>b.onclick=()=>{const r=rep(b.dataset.ocultar);adminAccion(async()=>{
     const bt=db.batch();bt.update(db.collection('calificaciones').doc(r.calificacion_id),{estado_moderacion:'oculto'});
     bt.update(db.collection('reportes').doc(r.id),{estado:'resuelto',accion:'resena_oculta',fecha_respuesta:FV.serverTimestamp()});await bt.commit();},'Reseña oculta');});
+  $$('[data-ocultarneg]').forEach(b=>b.onclick=()=>{const r=rep(b.dataset.ocultarneg),c=negocio(r.comercio_id);
+    if(!c){toast('No encontramos ese negocio');return;}
+    ocultarNegocio(c,()=>db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'negocio_oculto',fecha_respuesta:FV.serverTimestamp()}));});
   $$('[data-editarrep]').forEach(b=>b.onclick=()=>{const r=rep(b.dataset.editarrep);const c=buscar(r.comercio_id)||D.comercios.find(x=>x.id===r.comercio_id);
     if(!c){toast('No encontramos ese comercio');return;}
     db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
@@ -2677,18 +2816,30 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
+  cargarFotosPreview();
+}
+// Ocultar: los de la nube pasan a "oculto"; los de muestra se anotan en config/directorio (lista pública de ocultos)
+async function ocultarNegocio(c,despues){
+  if(!c)return;
+  if(!await confirmar('Ocultar negocio','«'+c.nombre+'» dejará de aparecer en el directorio. Puedes mostrarlo de nuevo desde la pestaña Negocios.','Ocultar','Cancelar','eye-off',true))return;
+  adminAccion(async()=>{
+    if(c._semilla||!estado.admin.datos.comercios.some(x=>x.id===c.id))await db.collection('config').doc('directorio').set({ocultos:FV.arrayUnion(c.id)},{merge:true});
+    else await db.collection('comercios').doc(c.id).update({estado_publicacion:'oculto'});
+    if(despues)await despues();
+  },'Negocio oculto');
+}
+function mostrarNegocio(c){
+  if(!c)return;
+  adminAccion(async()=>{
+    if(c._semilla)await db.collection('config').doc('directorio').set({ocultos:FV.arrayRemove(c.id)},{merge:true});
+    else await db.collection('comercios').doc(c.id).update({estado_publicacion:'aprobado'});
+  },'El negocio vuelve a aparecer en el directorio');
 }
 async function adminAccion(fn,msg){
   try{await fn();toast(msg);await cargarAdmin();}
   catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');}
 }
-function pedirMotivo(titulo,cb){
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">'+esc(titulo)+'</h2><p class="nota">El motivo es obligatorio: el comerciante lo verá en su panel.</p>'
-    +'<div class="campo mt-16"><label for="motTxt">Motivo <span class="req">*</span></label><textarea id="motTxt" maxlength="200" placeholder="Ej: falta la dirección exacta del local"></textarea></div>'
-    +'<button class="btn btn-primario btn-bloque" id="motOk">Confirmar</button></div>');
-  $('#motOk').onclick=()=>{const m=$('#motTxt').value.trim();if(m.length<4){toast('Escribe el motivo');return;}cerrar('ovGen');cb(m);};
-}
-// Aprobar un reclamo: el negocio queda con dueño (si era una copia local, se crea en la nube con el mismo id)
+// Aprobar un reclamo: el negocio queda con dueño (si era de muestra, se crea en la nube con el mismo id)
 async function aprobarReclamo(s){
   if(!s)return;
   if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.','Aprobar','Cancelar','store'))return;
@@ -2698,28 +2849,21 @@ async function aprobarReclamo(s){
     if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp()});
     else{
       const b=COMERCIOS_BASE.find(c=>c.id===s.comercio_id);if(!b)throw new Error('sin-datos');
-      bt.set(ref,{cat:b.cat,categoria:b.cat,emoji:b.emoji,nombre:b.nombre,desc:b.desc,horario:b.horario,direccion:b.direccion,tel:b.tel,whatsapp:b.whatsapp||'',
-        imagen:b.imagen||'',lat:b.lat,lng:b.lng,ubicacion_aprox:!!b.ubicacion_aprox,sub:b.sub||'',tipo:b.tipo||'',nivelDificultad:b.nivelDificultad||'',
-        municipio:b.municipio||'Fusagasugá',redesSociales:{},sitioWeb:b.sitioWeb||'',esPremium:false,prioridadBusqueda:0,
-        propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),fechaCreacion:FV.serverTimestamp()});
+      bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||''}));
     }
-    const u=await db.collection('usuarios').doc(s.uid).get();
-    if(u.exists&&u.data().rol==='usuario')bt.update(u.ref,{rol:'comerciante'});
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
     await bt.commit();
-  },'Reclamo aprobado: el comerciante ya ve el negocio en su panel');
+  },'Reclamo aprobado: la persona ya ve el negocio en su perfil');
 }
-// Activar Premium 30 días (la prueba gratuita se marca como usada una sola vez por comercio)
-async function activarPremiumAdmin(s){
+// Activar Premium desde una solicitud (sin fecha de fin por defecto durante la fase de pruebas)
+function activarPremiumAdmin(s){
   if(!s)return;
-  if(!await confirmar('Activar Premium','«'+s.comercio_nombre+'» tendrá Premium durante 30 días.','Activar','Cancelar','star'))return;
-  adminAccion(async()=>{
+  pedirPremium(s.comercio_nombre,h=>adminAccion(async()=>{
     const bt=db.batch();
-    bt.update(db.collection('comercios').doc(s.comercio_id),{esPremium:true,plan:'premium',prioridadBusqueda:1,prueba_usada:true,
-      suscripcion_vigente_hasta:TS.fromMillis(Date.now()+30*86400000)});
+    bt.update(db.collection('comercios').doc(s.comercio_id),cambiosPremium(h));
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
     await bt.commit();
-  },'Premium activado por 30 días');
+  },h?'Premium activado hasta el '+fechaCorta(h):'Premium activado sin fecha de fin'));
 }
 
 /* ===== "AYÚDANOS A MEJORAR": opiniones de la fase de pruebas =====

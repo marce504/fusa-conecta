@@ -251,6 +251,12 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    /* ---------- Configuración pública del directorio (negocios de muestra ocultos por el admin) ---------- */
+    match /config/{id} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
     /* ---------- Moderación general (CU-18) ---------- */
     match /{document=**} {
       allow read, write: if esAdmin();
