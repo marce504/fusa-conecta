@@ -60,8 +60,9 @@ service cloud.firestore {
       allow read: if resource.data.get('estado_publicacion', '') == 'aprobado'
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid)
         || esAdmin();
-      // Todo comercio nuevo entra "pendiente" de revisión y sin privilegios Premium.
-      allow create: if esComerciante()
+      // Cualquier persona con cuenta registra un negocio: entra "pendiente" de revisión, sin Premium y con máx. 4 fotos.
+      allow create: if tienePerfil()
+        && request.resource.data.get('fotos', []).size() <= 4
         && request.resource.data.propietario_uid == request.auth.uid
         && request.resource.data.estado_publicacion == 'pendiente'
         && request.resource.data.get('esPremium', false) == false
@@ -74,11 +75,26 @@ service cloud.firestore {
       allow update: if esAdmin()
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
             && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
+            && request.resource.data.get('fotos', []).size() <= (premiumVigente(resource.data) ? 10 : 4)
             && (!cambia(['estado_publicacion', 'motivo_rechazo'])
                 || (resource.data.get('estado_publicacion', '') == 'rechazado'
                     && request.resource.data.estado_publicacion == 'pendiente')));
       allow delete: if esAdmin()
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid);
+
+      // Fotos (comercios/{id}/fotos/{foto}): una por documento, máx. ~360 000 caracteres (≈ 250 KB en WebP).
+      // Se crean en el mismo lote que el negocio y solo si su id está en la lista "fotos" del negocio.
+      match /fotos/{foto} {
+        function negocioDespues() { return getAfter(/databases/$(database)/documents/comercios/$(id)).data; }
+        allow read: if comercio(id).get('estado_publicacion', '') == 'aprobado' || duenoDe(id) || esAdmin();
+        allow create: if (esAdmin() || (cuentaReal() && negocioDespues().get('propietario_uid', '') == request.auth.uid))
+          && foto in negocioDespues().get('fotos', [])
+          && request.resource.data.keys().hasOnly(['data', 'ancho', 'alto', 'bytes', 'fecha'])
+          && request.resource.data.data is string
+          && request.resource.data.data.size() <= 360000;
+        allow update: if false;
+        allow delete: if esAdmin() || duenoDe(id);
+      }
 
       // Estadísticas del mes (comercios/{id}/estadisticas/{aaaa-mm}): cualquier visitante con sesión
       // (incluido el invitado) solo puede sumar 1 a UN contador; las leen el dueño y el admin.

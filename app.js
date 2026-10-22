@@ -97,7 +97,8 @@ const estado={
   filtros:{abierto:false,cupon:false,municipio:'',orden:'recomendados'}  // hoja de Filtros del listado
 };
 function logueado(){return !!(estado.usuario&&!estado.usuario.anonimo);}
-function esComerciante(){return logueado()&&estado.perfil&&(estado.perfil.rol==='comerciante'||estado.perfil.rol==='admin');}
+// Ser comerciante ya no se elige al registrarse: se deriva de tener al menos un negocio aprobado (o ser admin)
+function esComerciante(){return logueado()&&(esAdmin()||comerciosPropios.some(c=>c.estado_publicacion==='aprobado'));}
 
 /* ===== REPOSITORIO DE COMERCIOS ===== */
 const nombresBase=new Set(COMERCIOS_BASE.map(c=>norm(c.nombre).trim()));
@@ -112,7 +113,8 @@ function normalizarNube(id,x){
     esPremium:!!x.esPremium,suscripcion_vigente_hasta:aMs(x.suscripcion_vigente_hasta),prioridadBusqueda:+x.prioridadBusqueda||0,
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
     tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||'',
-    estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada};
+    estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
+    fotos:Array.isArray(x.fotos)?x.fotos:[]};
 }
 function reconstruirDirectorio(){
   // Un negocio reclamado o corregido por el admin se guarda en la nube con el mismo id y reemplaza su copia local
@@ -135,7 +137,7 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
 function escucharMisComercios(){
-  if(propiosUnsub||!esComerciante())return;
+  if(propiosUnsub||!logueado())return;
   propiosUnsub=db.collection('comercios').where('propietario_uid','==',estado.usuario.uid).onSnapshot(snap=>{
     comerciosPropios=snap.docs.map(doc=>normalizarNube(doc.id,doc.data()));refrescarVista();
   },()=>{propiosUnsub=null;});
@@ -708,16 +710,11 @@ function accionSlide(k){
   else if(k==='negocio')registrarMiNegocio();
   else if(k==='opinion')abrirOpinion('banner');
 }
-// "Registrar mi negocio": comerciante → asistente; usuario → pasa a productor; invitado → registro de productor
-async function registrarMiNegocio(){
-  if(esComerciante()){abrirFormComercio(null);return;}
-  if(!logueado()){abrirLogin('registro',true,'Crea tu cuenta de productor para registrar tu negocio.');return;}
-  if(!await confirmar('Registrar mi negocio','Tu cuenta pasará a ser de productor y podrás publicar tus comercios.','Continuar','Cancelar','store'))return;
-  try{
-    await db.collection('usuarios').doc(estado.usuario.uid).update({rol:'comerciante'});
-    estado.perfil.rol='comerciante';ls.set('fc_perfil_'+estado.usuario.uid,estado.perfil);
-    escucharMisComercios();navegar({tipo:'dashboard'});abrirFormComercio(null);
-  }catch(e){toast('No se pudo actualizar tu cuenta. Revisa tu conexión.');}
+// "Registrar mi negocio": cualquier persona con cuenta; sin cuenta, primero se registra y luego sigue al asistente
+function registrarMiNegocio(){
+  if(logueado()){abrirFormComercio(null);return;}
+  guardarAccionPendiente('negocio');
+  abrirLogin('registro',false,'Crea tu cuenta gratis y registra tu negocio enseguida.');
 }
 
 /* ===== SECCIONES DEL INICIO ===== */
@@ -804,7 +801,7 @@ function abrirDetalle(id){
     :'<div class="mapa-off">'+icon('wifi-off',24)+'El mapa no está disponible sin conexión. La dirección sigue disponible arriba.</div>';
 
   const html='<div class="grab"></div>'
-    +fotoHTML(d,'det-hero')
+    +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
     +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
     +badgeDestacado(d)
     +'<div class="det-top-acc">'
@@ -843,6 +840,7 @@ function abrirDetalle(id){
   $('#sheetDetalle').setAttribute('aria-label','Ficha de '+d.nombre);
   $('#sheetDetalle').scrollTop=0;
   abrir('ovDetalle');
+  enlazarGaleriaFicha(d);
   $('#cerrarDet').onclick=()=>cerrar('ovDetalle');
   $('#detWa').onclick=()=>abrirWhatsApp(d);
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
@@ -1638,20 +1636,20 @@ function renderPerfil(){
     cuerpo.innerHTML='<div class="vista"><div class="perfil-card"><div class="pf-av">'+icon('user',28)+'</div><h2>Estás explorando como invitado</h2>'
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
-      +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Soy productor / comerciante</button></div></div>'
+      +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Tengo un negocio</button></div></div>'
       +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
       +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
     const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
     $('#pfRegistro').onclick=()=>abrirLogin('registro');$('#pfIngresar').onclick=()=>abrirLogin('ingresar');
-    $('#pfProductor').onclick=()=>abrirLogin('registro',true);$('#pfLegal').onclick=()=>abrir('ovLegal');
+    $('#pfProductor').onclick=registrarMiNegocio;$('#pfLegal').onclick=()=>abrir('ovLegal');
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
   const cupones=cuponesLocales().filter(c=>estadoCupon(c)==='activo');
   const notifOn=p.notificaciones_push!==false;
-  const rol=p.rol==='comerciante'?[ 'store','Productor / comerciante']:p.rol==='admin'?['shield-check','Administrador']:['user','Vecino / turista'];
+  const rol=esAdmin()?['shield-check','Administrador']:esComerciante()?['store','Vecino con negocio']:['user','Vecino / turista'];
   const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
   cuerpo.innerHTML='<div class="vista">'
     +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
@@ -1660,7 +1658,11 @@ function renderPerfil(){
     +'<div class="perfil-card"><div class="pf-av">'+esc(u.nombre.charAt(0).toUpperCase())+'</div><h2>'+esc(u.nombre)+'</h2><p>'+esc(u.email)+'</p>'
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
-    +'<div class="perfil-acc">'+(esComerciante()?'<button class="btn '+(esAdmin()?'btn-secundario':'btn-primario')+' btn-bloque" id="pfPanel">'+icon('store')+'Mi panel, mi negocio</button>':'<button class="btn btn-secundario btn-bloque" id="pfSerComerciante">'+icon('store')+'Registrar mi negocio</button>')+'</div></div>'
+    +'</div>'
+    +(comerciosPropios.some(c=>c.estado_publicacion==='aprobado')?'<button class="negocio-card" id="pfPanel"><span class="admin-ic">'+icon('store',24)+'</span><span class="admin-tx"><b>Panel de mi negocio</b>'
+      +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
+    +misNegociosHTML()
+    +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
@@ -1677,6 +1679,7 @@ function renderPerfil(){
   const pn=$('#pfPanel');if(pn)pn.onclick=()=>navegar({tipo:'dashboard'});
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
+  enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfNotif').onchange=async e=>{
@@ -1725,7 +1728,7 @@ function registrarEvento(d,campo){
 }
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
-  if(!esComerciante()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de productores</b><p>Inicia sesión con tu cuenta de productor.</p></div>';return;}
+  if(!logueado()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de mi negocio</b><p>Inicia sesión para ver y administrar tu negocio.</p></div>';return;}
   const mis=misComercios();
   if(!mis.length){
     cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mi negocio</h2></div>'
@@ -1771,6 +1774,8 @@ function renderDashboard(){
           :'<button class="accion bloqueada" id="aCupon" aria-label="Crear cupón: disponible con Premium. Solicitar">'+icon('lock',28)+'<b>Crear cupón</b><span>Disponible con Premium · Solicitar</span></button>')
     +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
     +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
+    +'<button class="accion" id="aFotos">'+icon('images',28)+'<b>Fotos</b><span>'+(d.fotos||[]).length+' de '+limiteFotos(d)+' · la primera es la portada</span></button>'
+    +'<button class="accion" id="aPlan">'+icon('star',28)+'<b>Mi plan</b><span>'+(prem?'Premium activo':'Gratis · ver Premium')+'</span></button>'
     +'</div>'
     +'<p class="dash-section">Canjes de hoy</p>'
     +(canjesHoy.length?canjesHoy.map(k=>'<div class="canje-fila">'+icon('badge-check',18)+'<div><b>'+esc(k.descripcion||'Cupón')+'</b><span>'+esc(k.usuario_nombre||'Cliente')+' · '+fechaHora(aMs(k.fecha_canje))+'</span></div></div>').join('')
@@ -1787,6 +1792,8 @@ function renderDashboard(){
   $('#aCupon').onclick=()=>prem?formCupon(d):solicitarPremium(d);
   $('#aEditar').onclick=()=>abrirFormComercio(d);
   $('#aQR').onclick=()=>miCodigoQR(d);
+  $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
+  $('#aPlan').onclick=()=>prem?toast('Tu plan Premium está activo hasta el '+fechaCorta(d.suscripcion_vigente_hasta)):solicitarPremium(d);
   const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
   $('#bVerFicha').onclick=()=>abrirDetalle(d.id);
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
@@ -1845,18 +1852,222 @@ function formPromo(d){
     }catch(e){console.error(e);toast('No se pudo publicar la novedad');}
   };
 }
+/* ===== FOTOS DE LOS NEGOCIOS (v4) =====
+   Plan Spark: cada foto va en su propio documento comercios/{id}/fotos/{fotoId} (WebP, lado mayor 1280 px,
+   calidad 0,8, máx. ~250 KB). El documento del negocio solo guarda el orden (fotos: [ids]) y una miniatura
+   de portada de ~20 KB en "imagen" para la tarjeta del directorio. Gratis: 4 fotos · Premium: 10. */
+const FOTOS_MAX={gratis:4,premium:10};
+function limiteFotos(d){return d&&premiumVigente(d)?FOTOS_MAX.premium:FOTOS_MAX.gratis;}
+function bytesDataURL(u){return Math.round((u.length-u.indexOf(',')-1)*3/4);}
+function cargarImagen(src){return new Promise((ok,mal)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=mal;i.src=src;});}
+// Comprime a WebP (o JPEG si el navegador no sabe codificar WebP, como Safari) bajando calidad y tamaño hasta caber
+async function comprimirFoto(origen,lado=1280,maxBytes=250000,calidad=.8){
+  const url=typeof origen==='string'?origen:URL.createObjectURL(origen);
+  try{
+    const img=await cargarImagen(url);
+    let esc=Math.min(1,lado/Math.max(img.naturalWidth,img.naturalHeight));
+    for(let intento=0;intento<4;intento++){
+      const w=Math.max(1,Math.round(img.naturalWidth*esc)),h=Math.max(1,Math.round(img.naturalHeight*esc));
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
+      let tipo='image/webp',q=calidad,dato=cv.toDataURL(tipo,q);
+      if(!dato.startsWith('data:image/webp')){tipo='image/jpeg';dato=cv.toDataURL(tipo,q);}
+      while(bytesDataURL(dato)>maxBytes&&q>.5){q=Math.round((q-.1)*10)/10;dato=cv.toDataURL(tipo,q);}
+      if(bytesDataURL(dato)<=maxBytes)return {src:dato,ancho:w,alto:h,bytes:bytesDataURL(dato)};
+      esc*=.8;
+    }
+    throw new Error('muy-grande');
+  }finally{if(typeof origen!=='string')URL.revokeObjectURL(url);}
+}
+function miniatura(src){return comprimirFoto(src,320,25000,.7).then(r=>r.src);}
+function idFoto(){return 'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+async function cargarFotosDe(cid,ids){
+  if(!ids||!ids.length)return {};
+  const s=await db.collection('comercios').doc(String(cid)).collection('fotos').get();
+  const m={};s.forEach(x=>{m[x.id]=x.data().data;});return m;
+}
+
+/* ---------- Editor de fotos del asistente (paso 4) ---------- */
+function galeriaEditHTML(){
+  const f=wiz.datos.fotos,lim=limiteFotos(wiz.original);
+  return '<div class="galeria-edit" id="wGaleria" role="list" aria-label="Fotos del negocio">'
+    +f.map((x,i)=>'<div class="foto-tile" role="listitem" tabindex="0" data-i="'+i+'" aria-label="Foto '+(i+1)+' de '+f.length+(i===0?', portada':'')+'. Flechas para moverla">'
+      +(x.src||x.thumb?'<img src="'+esc(x.src||x.thumb)+'" alt="">':'<span class="foto-cargando">'+icon('loader-circle',22,'gira')+'</span>')
+      +(i===0?'<span class="foto-portada">Portada</span>':'')
+      +'<button type="button" class="foto-mover" data-mover="'+i+'" aria-label="Arrastrar la foto '+(i+1)+' para cambiar el orden">'+icon('grip',18)+'</button>'
+      +'<button type="button" class="foto-quitar" data-quitar-foto="'+i+'" aria-label="Eliminar la foto '+(i+1)+'">'+icon('x',16)+'</button></div>').join('')
+    +(f.length<lim?'<label class="foto-agregar" for="wFotos">'+icon('image-plus',26)+'<span>Agregar</span></label>':'')
+    +'</div><input type="file" id="wFotos" accept="image/*" multiple class="sr-only">'
+    +'<p class="ayuda">'+f.length+' de '+lim+' fotos · '+(lim===FOTOS_MAX.gratis?'Con Premium puedes subir hasta '+FOTOS_MAX.premium+'. ':'')+'La primera es la portada; arrastra para cambiar el orden.</p>';
+}
+function pintarGaleriaEdit(){const g=$('#wGaleriaCaja');if(!g)return;g.innerHTML=galeriaEditHTML();enlazarGaleriaEdit();}
+function moverFoto(de,a){
+  const f=wiz.datos.fotos;if(a<0||a>=f.length||de===a)return;
+  const [x]=f.splice(de,1);f.splice(a,0,x);
+}
+function enlazarGaleriaEdit(){
+  const f=wiz.datos.fotos;
+  $('#wFotos').onchange=async e=>{
+    const lim=limiteFotos(wiz.original),archivos=[...e.target.files];e.target.value='';
+    if(f.length+archivos.length>lim)toast(lim===FOTOS_MAX.gratis?'El plan Gratis permite hasta '+lim+' fotos. Con Premium, hasta '+FOTOS_MAX.premium+'.':'Puedes subir hasta '+lim+' fotos.');
+    for(const a of archivos.slice(0,lim-f.length)){
+      const n={id:idFoto(),src:'',nueva:true};f.push(n);pintarGaleriaEdit();
+      try{const r=await comprimirFoto(a);Object.assign(n,{src:r.src,ancho:r.ancho,alto:r.alto,bytes:r.bytes});}
+      catch(err){f.splice(f.indexOf(n),1);toast('No pudimos leer una de las fotos. Prueba con otra.');}
+      pintarGaleriaEdit();
+    }
+  };
+  $$('[data-quitar-foto]').forEach(b=>b.onclick=()=>{const [x]=f.splice(+b.dataset.quitarFoto,1);if(!x.nueva)wiz.fotosQuitadas.push(x.id);pintarGaleriaEdit();});
+  // Teclado: flechas mueven la foto enfocada
+  $$('.foto-tile').forEach(t=>t.onkeydown=e=>{
+    const i=+t.dataset.i,a=e.key==='ArrowLeft'||e.key==='ArrowUp'?i-1:e.key==='ArrowRight'||e.key==='ArrowDown'?i+1:null;
+    if(a==null)return;e.preventDefault();moverFoto(i,a);pintarGaleriaEdit();const n=$('.foto-tile[data-i="'+Math.max(0,Math.min(f.length-1,a))+'"]');if(n)n.focus();
+  });
+  // Arrastrar desde la manija (el resto de la foto deja desplazar la hoja normalmente)
+  $$('[data-mover]').forEach(h=>h.onpointerdown=e=>{
+    e.preventDefault();h.setPointerCapture(e.pointerId);
+    let i=+h.dataset.mover;const tile=h.closest('.foto-tile');tile.classList.add('arrastrando');
+    h.onpointermove=ev=>{
+      tile.style.transform='translate('+(ev.clientX-e.clientX)+'px,'+(ev.clientY-e.clientY)+'px)';
+      const debajo=document.elementsFromPoint(ev.clientX,ev.clientY).find(x=>x.classList&&x.classList.contains('foto-tile')&&x!==tile);
+      $$('.foto-tile').forEach(x=>x.classList.toggle('destino',x===debajo));
+    };
+    h.onpointerup=h.onpointercancel=ev=>{
+      h.onpointermove=h.onpointerup=h.onpointercancel=null;
+      const debajo=document.elementsFromPoint(ev.clientX,ev.clientY).find(x=>x.classList&&x.classList.contains('foto-tile')&&x!==tile);
+      if(debajo)moverFoto(i,+debajo.dataset.i);
+      pintarGaleriaEdit();
+    };
+  });
+}
+// Fotos actuales del negocio al abrir el asistente (las de la nube y, si no hay, la foto antigua para migrarla)
+function fotosIniciales(d){
+  if(!d)return [];
+  if(d.fotos&&d.fotos.length){
+    const l=d.fotos.map((id,i)=>({id,src:'',thumb:i===0?imgSegura(d.imagen):''}));
+    cargarFotosDe(d.id,d.fotos).then(m=>{l.forEach(x=>{if(m[x.id])x.src=m[x.id];});if(wiz&&wiz.datos.fotos===l)pintarGaleriaEdit();}).catch(()=>{});
+    return l;
+  }
+  const img=imgSegura(d.imagen);
+  if(!img)return [];
+  // Foto antigua (base64 en el documento o archivo de la app): se convierte en la primera foto de la galería
+  const x={id:idFoto(),src:'',nueva:true};
+  comprimirFoto(img).then(r=>{Object.assign(x,r);if(wiz)pintarGaleriaEdit();}).catch(()=>{});
+  return [x];
+}
+// Escrituras de fotos dentro del mismo lote que el negocio (las reglas las validan juntas)
+async function prepararFotos(ref,lote){
+  const f=wiz.datos.fotos.filter(x=>x.src||!x.nueva);
+  if(f.some(x=>x.nueva&&!x.src))throw new Error('fotos-cargando');
+  f.filter(x=>x.nueva).forEach(x=>lote.set(ref.collection('fotos').doc(x.id),{data:x.src,ancho:x.ancho||0,alto:x.alto||0,bytes:x.bytes||bytesDataURL(x.src),fecha:FV.serverTimestamp()}));
+  wiz.fotosQuitadas.forEach(id=>lote.delete(ref.collection('fotos').doc(id)));
+  let portada='';
+  if(f.length){
+    const p=f[0];
+    portada=p.src?await miniatura(p.src):(p.thumb||imgSegura(wiz.original&&wiz.original.imagen));
+  }
+  return {fotos:f.map(x=>x.id),imagen:portada};
+}
+
+/* ---------- Galería de la ficha: deslizable, contador "1/4" y pantalla completa ---------- */
+function galeriaFichaHTML(d){
+  const n=d.fotos&&d.fotos.length;
+  if(!n)return '';
+  return '<div class="galeria" id="galeriaFicha" aria-label="Fotos de '+esc(d.nombre)+'">'
+    +d.fotos.map((id,i)=>'<button type="button" class="gal-foto" data-gal="'+i+'" aria-label="Ver la foto '+(i+1)+' de '+n+' en pantalla completa">'
+      +(i===0&&imgSegura(d.imagen)?'<img src="'+esc(d.imagen)+'" alt="">':'<span class="foto-cargando">'+icon('image',28)+'</span>')+'</button>').join('')
+    +'</div>'+(n>1?'<span class="gal-contador" id="galContador" aria-live="polite">1/'+n+'</span>':'');
+}
+function enlazarGaleriaFicha(d){
+  const g=$('#galeriaFicha');if(!g)return;
+  const n=d.fotos.length;let srcs={};
+  g.addEventListener('scroll',()=>{const i=Math.round(g.scrollLeft/g.clientWidth);const c=$('#galContador');if(c)c.textContent=(i+1)+'/'+n;},{passive:true});
+  $$('[data-gal]',g).forEach(b=>b.onclick=()=>abrirVisor(d,+b.dataset.gal,srcs));
+  cargarFotosDe(d.id,d.fotos).then(m=>{
+    srcs=m;
+    d.fotos.forEach((id,i)=>{const b=$('[data-gal="'+i+'"]',g);if(b&&m[id])b.innerHTML='<img src="'+m[id]+'" alt="Foto '+(i+1)+' de '+esc(d.nombre)+'"'+(i?' loading="lazy"':'')+'>';});
+  }).catch(()=>{});
+}
+function abrirVisor(d,inicio,srcs){
+  const n=d.fotos.length;
+  $('#visorFotos').innerHTML='<button class="btn-redondo cerrar" id="visorCerrar" aria-label="Cerrar fotos">'+icon('x')+'</button>'
+    +'<div class="visor-pista" id="visorPista">'+d.fotos.map((id,i)=>'<div class="visor-foto">'+(srcs[id]?'<img src="'+srcs[id]+'" alt="Foto '+(i+1)+' de '+esc(d.nombre)+'">':(i===0&&imgSegura(d.imagen)?'<img src="'+esc(d.imagen)+'" alt="">':icon('loader-circle',32,'gira')))+'</div>').join('')+'</div>'
+    +'<span class="visor-contador" id="visorContador" aria-live="polite">'+(inicio+1)+'/'+n+'</span>';
+  abrir('ovVisor');
+  const p=$('#visorPista');p.scrollLeft=inicio*p.clientWidth;
+  p.addEventListener('scroll',()=>{$('#visorContador').textContent=(Math.round(p.scrollLeft/p.clientWidth)+1)+'/'+n;},{passive:true});
+  $('#visorCerrar').onclick=()=>cerrar('ovVisor');
+}
+
+/* ---------- Migrar fotos antiguas (base64 dentro del documento) a la galería ---------- */
+async function migrarFotosAntiguas(lista){
+  let ok=0;
+  for(const c of lista){
+    try{
+      const r=await comprimirFoto(c.imagen),thumb=await miniatura(r.src),id=idFoto(),ref=db.collection('comercios').doc(c.id),lote=db.batch();
+      lote.set(ref.collection('fotos').doc(id),{data:r.src,ancho:r.ancho,alto:r.alto,bytes:r.bytes,fecha:FV.serverTimestamp()});
+      lote.update(ref,{fotos:[id],imagen:thumb});
+      await lote.commit();ok++;
+    }catch(e){console.error('No se pudo migrar',c.nombre,e);}
+  }
+  return ok;
+}
+
+/* ===== UNA SOLA CUENTA PARA TODOS (v4) =====
+   Todos se registran como "usuario". Ser comerciante se deriva de tener un negocio aprobado (o ser admin):
+   no hay que elegir nada al registrarse ni cambiar de cuenta. */
+function misNegociosHTML(){
+  const l=comerciosPropios;if(!l.length)return '';
+  const chip=c=>({aprobado:'<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>',rechazado:'<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>'})[c.estado_publicacion]||'<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
+  return '<div class="seccion"><h3>'+icon('store',18)+'Mis negocios</h3>'+l.map(c=>'<div class="mi-negocio">'
+      +'<button class="pf-item" data-minegocio="'+esc(c.id)+'"><span class="mn-tx"><b>'+esc(c.nombre)+'</b>'+chip(c)+'</span>'+icon('chevron-right')+'</button>'
+      +(c.estado_publicacion==='rechazado'?'<p class="mn-motivo">'+icon('info',14)+(c.motivo_rechazo?'Motivo: '+esc(c.motivo_rechazo):'Revisa los datos y envíalo de nuevo.')+'</p><button class="btn btn-tonal btn-sm" data-corregir="'+esc(c.id)+'">'+icon('pencil',16)+'Corregir y reenviar</button>'
+        :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
+      +'</div>').join('')+'</div>';
+}
+function enlazarMisNegocios(){
+  $$('[data-minegocio]').forEach(b=>b.onclick=()=>{estado.comercioSel=b.dataset.minegocio;navegar({tipo:'dashboard'});});
+  $$('[data-corregir]').forEach(b=>b.onclick=()=>abrirFormComercio(comerciosPropios.find(c=>c.id===b.dataset.corregir)));
+}
+// Acción que se retoma después de crear la cuenta (por ejemplo, registrar un negocio)
+// Vence a los 15 minutos: si la persona cancela el registro, no se le abre el asistente por sorpresa otro día
+function guardarAccionPendiente(a){ls.set('fc_accion_pendiente',{a,t:Date.now()});}
+function retomarAccionPendiente(){
+  const p=ls.get('fc_accion_pendiente',null);ls.del('fc_accion_pendiente');
+  if(p&&p.a==='negocio'&&Date.now()-p.t<15*60000&&logueado())abrirFormComercio(null);
+}
+
+/* ---------- Bienvenida después del primer registro: "¿Qué te gusta de Fusa?" (saltable) ---------- */
+const INTERESES=[['comida','Comida','utensils'],['cafe','Café','coffee'],['campo','Productos del campo','sprout'],['senderos','Senderos','footprints'],
+  ['hospedaje','Hospedaje','bed-double'],['cultura','Cultura','landmark'],['compras','Compras','shopping-bag'],['mascotas','Mascotas','paw-print'],['noche','Vida nocturna','music']];
+function mostrarBienvenida(){
+  const sel=new Set();
+  abrirHoja('<div class="hoja-pad bienvenida"><span class="bv-logo">'+logo('iso','claro',{alto:44,decorativo:true})+'</span>'
+    +'<h2 class="hoja-tit">¡Bienvenida/o, '+esc(estado.usuario.nombre.split(' ')[0])+'!</h2><p class="nota">¿Qué te gusta de Fusa? Así te mostramos primero lo que más te interesa.</p>'
+    +'<div class="chips-motivo mt-16" role="group" aria-label="Intereses">'+INTERESES.map(([k,t,i])=>'<button type="button" class="chip-filtro" data-interes="'+k+'" aria-pressed="false">'+icon(i,16)+t+'</button>').join('')+'</div>'
+    +'<div class="bv-acc"><button class="btn btn-ghost" id="bvSaltar">Saltar</button><button class="btn btn-primario" id="bvListo">Listo</button></div></div>');
+  $('#sheetGen').setAttribute('aria-label','Bienvenida');
+  $$('[data-interes]').forEach(b=>b.onclick=()=>{const k=b.dataset.interes,on=!sel.has(k);on?sel.add(k):sel.delete(k);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  const fin=()=>{cerrar('ovGen');retomarAccionPendiente();};
+  $('#bvSaltar').onclick=fin;
+  $('#bvListo').onclick=()=>{
+    if(sel.size){const i=[...sel];estado.perfil.intereses=i;db.collection('usuarios').doc(estado.usuario.uid).update({intereses:i}).catch(()=>{});}
+    toast(sel.size?'¡Listo! Ya sabemos qué te gusta':'Puedes elegir tus intereses más tarde');fin();
+  };
+}
+
 /* ===== REGISTRO / EDICIÓN DE COMERCIO: asistente de 4 pasos (Fase 2.3) ===== */
 let wiz=null,wizMapa=null;
 const CATS_FORM=[['comercio','Comercios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
-const PASOS_WIZ=['Qué es','Dónde','Cuándo','Cómo se ve'];
-function abrirFormComercio(d){
-  if(!esComerciante()){pedirLogin('Ingresa con tu cuenta de productor para registrar tu negocio.',true);return;}
+const PASOS_WIZ=['Qué es','Dónde','Cuándo','Fotos y descripción'];
+function abrirFormComercio(d,opc={}){
+  if(!logueado()){guardarAccionPendiente('negocio');pedirLogin('Inicia sesión para registrar tu negocio.');return;}
   const enNube=d&&(comerciosNube.some(c=>c.id===d.id)||comerciosPropios.some(c=>c.id===d.id));
-  wiz={paso:1,editandoId:d?d.id:null,original:d||null,esSemilla:!!d&&!enNube,
+  wiz={paso:opc.paso||1,editandoId:d?d.id:null,original:d||null,esSemilla:!!d&&!enNube,fotosQuitadas:[],
     datos:{nombre:d?d.nombre:'',cat:d?d.cat:'',sub:d?subDe(d):'',direccion:d?d.direccion:'',tel:d?d.tel:'',
       lat:d&&d.lat?d.lat:null,lng:d&&d.lng?d.lng:null,ubicacionExacta:!!(d&&d.lat&&!d.ubicacion_aprox),
       dias:d&&d.dias&&d.dias.length?d.dias.slice():[1,2,3,4,5,6],abre:d&&d.abre?d.abre:'08:00',cierra:d&&d.cierra?d.cierra:'18:00',
-      desc:d?d.desc:'',imagen:d?d.imagen:'',imagenNueva:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':''}};
+      desc:d?d.desc:'',imagen:d?d.imagen:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':''}};
+  wiz.datos.fotos=fotosIniciales(d);
   pintarWizard();abrir('ovForm');
 }
 function wizPremium(){return wiz.original&&premiumVigente(wiz.original);}
@@ -1884,17 +2095,14 @@ function pintarWizard(){
       +'<div class="horas-row mt-16"><div class="campo"><label for="wAbre">Abre</label><input type="time" id="wAbre" value="'+esc(d.abre)+'"></div><div class="campo"><label for="wCierra">Cierra</label><input type="time" id="wCierra" value="'+esc(d.cierra)+'"></div></div>'
       +'<p class="ayuda">Así se verá: '+esc(textoHorarioWiz())+'</p>';
   }else if(p===4){
-    const img=d.imagenNueva||imgSegura(d.imagen);
-    cuerpo='<p class="lbl">Foto principal</p><div class="foto-wiz">'+(img?'<img src="'+esc(img)+'" alt="Vista previa de la foto">':'<span class="fallback-ic">'+icon('image',22)+'</span>')+'</div>'
-      +'<label class="btn btn-secundario btn-sm mt-16" for="wFoto">'+icon('camera')+(img?'Cambiar foto':'Elegir foto')+'</label><input type="file" id="wFoto" accept="image/*" class="sr-only">'
-      +'<p class="ayuda">La recortamos en cuadrado y la reducimos para que cargue rápido.</p>'
+    cuerpo='<p class="lbl">Fotos del negocio</p><div id="wGaleriaCaja">'+galeriaEditHTML()+'</div>'
       +'<div class="campo mt-16"><label for="wDesc">Descripción</label><textarea id="wDesc" maxlength="400" placeholder="Cuenta en pocas líneas qué ofreces...">'+esc(d.desc)+'</textarea><p class="ayuda cuenta-car" id="wCont">'+d.desc.length+' / 400</p></div>'
       +(wizPremium()?'<div class="bloque-form"><p class="bloque-tit">'+icon('star')+'Opciones Premium</p>'
         +['instagram','facebook','tiktok','youtube','x'].map(k=>'<div class="campo"><label for="wRed_'+k+'">'+RED_TXT[k]+'</label><input type="url" id="wRed_'+k+'" placeholder="https://..." value="'+esc(d.redes[k]||'')+'"></div>').join('')
         +'<div class="campo"><label for="wWeb">Sitio web</label><input type="url" id="wWeb" placeholder="https://www.tunegocio.com" value="'+esc(d.web)+'"><p class="ayuda">Debe comenzar con https://</p></div></div>':'');
   }else{
     const vista={...(w.original||{}),id:'vista',nombre:d.nombre,cat:d.cat,sub:d.cat==='turismo'?'':d.sub,tipo:d.cat==='turismo'?d.sub:'',
-      direccion:d.direccion||'Fusagasugá',desc:d.desc||'Negocio local de Fusagasugá.',imagen:d.imagenNueva||d.imagen,dias:d.dias,abre:d.abre,cierra:d.cierra,horario:textoHorarioWiz(),tel:d.tel,esPremium:false};
+      direccion:d.direccion||'Fusagasugá',desc:d.desc||'Negocio local de Fusagasugá.',imagen:(d.fotos[0]&&(d.fotos[0].src||d.fotos[0].thumb))||'',dias:d.dias,abre:d.abre,cierra:d.cierra,horario:textoHorarioWiz(),tel:d.tel,esPremium:false};
     cuerpo='<p class="nota">Así verán tu negocio en el directorio:</p><div class="vista-previa" aria-hidden="true">'+cardHTML(vista)+'</div>'
       +(w.editandoId&&w.original&&w.original.estado_publicacion==='aprobado'?'':'<p class="nota">'+icon('clock',14)+' Un administrador revisará la información antes de publicarla.</p>');
   }
@@ -1926,7 +2134,7 @@ function pintarWizard(){
   }
   if(p===3)$$('#sheetForm [data-wdia]').forEach(b=>b.onclick=()=>{guardarPasoWiz();const i=+b.dataset.wdia;d.dias=d.dias.includes(i)?d.dias.filter(x=>x!==i):[...d.dias,i];pintarWizard();});
   if(p===4){
-    $('#wFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;guardarPasoWiz();d.imagenNueva=await recortarCuadrado(f);if(!d.imagenNueva)toast('No pudimos leer esa foto. Prueba con otra.');pintarWizard();};
+    enlazarGaleriaEdit();
     $('#wDesc').oninput=e=>{$('#wCont').textContent=e.target.value.length+' / 400';};
   }
 }
@@ -1971,21 +2179,9 @@ function validarPasoWiz(){
 function textoHorarioWiz(){const d=wiz.datos;return d.dias.length?d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra):'Consultar directamente';}
 // "08:00" -> "8:00 a. m."
 function formatearHora(hhmm){if(!hhmm)return '';const[h,m]=hhmm.split(':').map(Number);return horaTexto(h*60+(m||0));}
-// Recorta la foto al centro en un cuadrado de 800 px (JPEG liviano para Firestore)
-function recortarCuadrado(file){
-  return new Promise(res=>{
-    const reader=new FileReader();
-    reader.onload=ev=>{const img=new Image();img.onload=()=>{
-      const lado=Math.min(img.width,img.height),t=Math.min(800,lado);
-      const cv=document.createElement('canvas');cv.width=t;cv.height=t;
-      cv.getContext('2d').drawImage(img,(img.width-lado)/2,(img.height-lado)/2,lado,lado,0,0,t,t);
-      res(cv.toDataURL('image/jpeg',0.7));};img.onerror=()=>res('');img.src=ev.target.result;};
-    reader.onerror=()=>res('');reader.readAsDataURL(file);
-  });
-}
 function urlValida(u){return /^https:\/\/[^\s.]+\.[^\s]{2,}$/i.test(u);}
 async function publicarComercio(){
-  if(!esComerciante()){cerrar('ovForm');pedirLogin('Ingresa con tu cuenta de productor.',true);return;}
+  if(!logueado()){cerrar('ovForm');pedirLogin('Inicia sesión para registrar tu negocio.');return;}
   const w=wiz,d=w.datos,cat=d.cat,sub=d.sub,tel=telLimpio(d.tel);
   const btn=$('#wEnviar'),txt=btn.innerHTML;btn.innerHTML='Guardando...';btn.disabled=true;
   try{
@@ -1994,35 +2190,37 @@ async function publicarComercio(){
       horario:textoHorarioWiz(),municipio:'Fusagasugá',fecha_modificacion:FV.serverTimestamp()};
     if(cat==='turismo'){datos.tipo=sub;datos.sub='';}else datos.sub=SUBCATS[cat]?sub:'';
     if(d.lat&&d.lng){datos.lat=d.lat;datos.lng=d.lng;datos.ubicacion_aprox=!d.ubicacionExacta;}
-    if(d.imagenNueva)datos.imagen=d.imagenNueva;
     if(wizPremium()){datos.redesSociales=Object.fromEntries(Object.entries(d.redes).filter(([k,u])=>u));datos.sitioWeb=d.web;}
+    // El negocio y sus fotos se guardan juntos (las reglas revisan el límite de fotos en el mismo lote)
+    const ref=w.editandoId?db.collection('comercios').doc(w.editandoId):db.collection('comercios').doc();
+    const lote=db.batch();
+    Object.assign(datos,await prepararFotos(ref,lote));
     if(w.editandoId&&w.esSemilla){
       // Un admin corrige la ficha de un negocio semilla: se crea su documento en la nube con el mismo id
       Object.assign(datos,{imagen:datos.imagen||w.original.imagen||'',estado_publicacion:'aprobado',propietario_uid:null,esPremium:false,prioridadBusqueda:0,fechaCreacion:FV.serverTimestamp()});
-      await db.collection('comercios').doc(w.editandoId).set(datos,{merge:true});toast('Ficha actualizada');
+      lote.set(ref,datos,{merge:true});await lote.commit();toast('Ficha actualizada');
     }else if(w.editandoId){
       const reenviar=w.original&&w.original.estado_publicacion==='rechazado';
       if(reenviar){datos.estado_publicacion='pendiente';datos.motivo_rechazo=FV.delete();}
-      await db.collection('comercios').doc(w.editandoId).update(datos);
+      lote.update(ref,datos);await lote.commit();
       toast(reenviar?'Cambios enviados a revisión':'Cambios guardados');
     }else{
       if(!datos.lat){datos.lat=PLAZA_FUSA[0];datos.lng=PLAZA_FUSA[1];datos.ubicacion_aprox=true;}
       Object.assign(datos,{propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,
-        redesSociales:{},sitioWeb:'',imagen:d.imagenNueva||'',fechaCreacion:FV.serverTimestamp()});
-      const ref=await db.collection('comercios').add(datos);estado.comercioSel=ref.id;
-      toast('Tu negocio quedó en revisión. Aparecerá en el directorio cuando un administrador lo apruebe.');
+        redesSociales:{},sitioWeb:'',fechaCreacion:FV.serverTimestamp()});
+      lote.set(ref,datos);await lote.commit();estado.comercioSel=ref.id;
+      toast('Tu negocio quedó en revisión. Lo verás en tu Perfil, en «Mis negocios».');
     }
     cerrar('ovForm');
-    if(!esAdmin()&&vistaActual().tipo!=='dashboard')navegar({tipo:'dashboard'});else render(true);
-  }catch(e){console.error(e);toast(e.code==='permission-denied'?'No tienes permiso para editar este negocio':'No se pudo guardar. Revisa tu conexión o usa una foto más liviana.');}
+    if(!w.editandoId){if(vistaActual().tipo!=='perfil')navegar({tipo:'perfil'});else render(true);}else render(true);
+  }catch(e){console.error(e);toast(e.message==='fotos-cargando'?'Espera a que terminen de cargar las fotos':e.code==='permission-denied'?'No tienes permiso para guardar este negocio (revisa el límite de fotos de tu plan)':'No se pudo guardar. Revisa tu conexión o usa fotos más livianas.');}
   finally{if(btn.isConnected){btn.innerHTML=txt;btn.disabled=false;}}
 }
 
 /* ===== AUTENTICACIÓN REAL CON FIREBASE (RF-02, RF-03, RNF-07) ===== */
-let modoLogin='ingresar',registroPendiente=null,creandoPerfil=null;
+let modoLogin='ingresar',registroPendiente=null,creandoPerfil=null,correoAbierto=true;
 function abrirLogin(modo='ingresar',productor=false,aviso=''){
-  modoLogin=modo;
-  $('#lComerciante').checked=productor;
+  modoLogin=modo;correoAbierto=modo!=='registro';
   $('#loginAviso').innerHTML=aviso?icon('lock',18)+'<span>'+esc(aviso)+'</span>':'';$('#loginAviso').style.display=aviso?'flex':'none';
   pintarModoLogin();abrir('ovLogin');
 }
@@ -2035,7 +2233,11 @@ function pintarModoLogin(){
   $('#lOlvido').style.display=reg?'none':'inline-flex';
   $('#lMail').textContent=reg?'Crear mi cuenta':'Ingresar';
   $('#clave').setAttribute('autocomplete',reg?'new-password':'current-password');
-  $('#loginTitulo').textContent=$('#lComerciante').checked?(reg?'Crea tu cuenta de productor':'Ingresa como productor'):(reg?'Crea tu cuenta':'Ingresa a Fusa Conecta');
+  $('#loginTitulo').textContent=reg?'Crea tu cuenta':'Ingresa a Fusa Conecta';
+  // Al registrarse, Google va primero (grande); el correo es la opción secundaria que despliega los campos
+  $('#lGoogle').classList.toggle('grande',reg);
+  const uc=$('#lUsarCorreo');
+  if(uc){uc.hidden=!reg||correoAbierto;uc.setAttribute('aria-expanded',correoAbierto);$('#formLogin').hidden=reg&&!correoAbierto;}
   $('#loginSub').textContent=reg?'Guarda favoritos, califica lugares y genera cupones de descuento.':'Qué bueno verte de nuevo.';
 }
 function mensajeAuth(e){
@@ -2054,7 +2256,7 @@ async function enviarLogin(e){
   const email=$('#mail').value.trim(),clave=$('#clave').value,nombre=$('#lNombre').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Ingresa un correo válido');return;}
   if(clave.length<8){toast('La contraseña debe tener mínimo 8 caracteres');return;}
-  const rol=$('#lComerciante').checked?'comerciante':'usuario';
+  const rol='usuario';
   bloquearLogin(true);
   try{
     if(modoLogin==='registro'){
@@ -2082,7 +2284,7 @@ async function enviarLogin(e){
 }
 async function ingresarGoogle(){
   const provider=new firebase.auth.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});
-  registroPendiente={consent:modoLogin==='registro'&&$('#lConsent').checked,rol:$('#lComerciante').checked?'comerciante':'usuario'};
+  registroPendiente={consent:modoLogin==='registro'&&$('#lConsent').checked,rol:'usuario'};
   bloquearLogin(true);
   // En celulares y en la app instalada la ventana emergente de Google no puede devolver
   // la sesión: se usa redirección de página completa y se retoma al volver.
@@ -2113,11 +2315,11 @@ async function olvideClave(){
   try{await auth.sendPasswordResetEmail(email);toast('Te enviamos un correo para restablecer tu contraseña');}
   catch(e){toast(mensajeAuth(e));}
 }
-// Factory: crea el perfil según el rol elegido (usuario o comerciante)
+// Factory: todas las cuentas nacen como "usuario" (el panel de negocio se habilita al aprobarse un negocio)
 function crearPerfil(user,datos){
   if(creandoPerfil)return creandoPerfil;
   const perfil={uid:user.uid,nombre:datos.nombre||user.displayName||(user.email||'').split('@')[0]||'Vecino',correo:user.email||'',
-    rol:datos.rol==='comerciante'?'comerciante':'usuario',consentimiento_ley1581:true,fecha_consentimiento:FV.serverTimestamp(),
+    rol:'usuario',consentimiento_ley1581:true,fecha_consentimiento:FV.serverTimestamp(),
     fecha_registro:FV.serverTimestamp(),notificaciones_push:true,favoritos:ls.get('fc_fav_'+user.uid,[])};
   creandoPerfil=db.collection('usuarios').doc(user.uid).set(perfil).then(()=>({...perfil,fecha_consentimiento:Date.now()})).finally(()=>{creandoPerfil=null;});
   return creandoPerfil;
@@ -2138,41 +2340,37 @@ async function _procesarUsuario(user){
   cerrar('ovLogin');ocultarSplash();
   estado.favoritos=ls.get(claveFav(),[]);
   estado.perfil=ls.get('fc_perfil_'+user.uid,null);
-  let snap=null;
+  let snap=null,cuentaNueva=false;
   try{snap=await db.collection('usuarios').doc(user.uid).get();}catch(e){console.warn('Perfil sin conexión');}
   if(snap&&snap.exists){
     estado.perfil=snap.data();
     const nube=estado.perfil.favoritos||[];
     estado.favoritos=[...new Set([...nube,...estado.favoritos])];
     if(estado.favoritos.length!==nube.length)db.collection('usuarios').doc(user.uid).update({favoritos:estado.favoritos}).catch(()=>{});
-    if(registroPendiente&&registroPendiente.rol==='comerciante'&&estado.perfil.rol==='usuario'){
-      await db.collection('usuarios').doc(user.uid).update({rol:'comerciante'}).catch(()=>{});estado.perfil.rol='comerciante';
-    }
     if(estado.perfil.nombre)estado.usuario.nombre=estado.perfil.nombre;
   }else if(snap&&!snap.exists){
     const datos=registroPendiente||ls.get('fc_registro_pendiente',null)||{consent:false,rol:'usuario'};
     if(!datos.consent){
-      const r=await pedirConsentimiento(datos.rol);
+      const r=await pedirConsentimiento();
       if(!r){await auth.signOut();toast('Sin tu autorización no podemos crear la cuenta.');return;}
-      datos.rol=r;
     }
-    try{estado.perfil=await crearPerfil(user,{...datos,nombre:estado.usuario.nombre});}
+    try{estado.perfil=await crearPerfil(user,{...datos,nombre:estado.usuario.nombre});cuentaNueva=true;}
     catch(e){console.error(e);const s2=await db.collection('usuarios').doc(user.uid).get().catch(()=>null);estado.perfil=s2&&s2.exists?s2.data():null;}
   }
   ls.del('fc_registro_pendiente');
   if(estado.perfil){const p={...estado.perfil};p.fecha_consentimiento=aMs(p.fecha_consentimiento);ls.set('fc_perfil_'+user.uid,p);}
   ls.set(claveFav(),estado.favoritos);
-  const quiereProductor=registroPendiente&&registroPendiente.rol==='comerciante';
   registroPendiente=null;
-  if(quiereProductor&&esComerciante()){stack.length=0;navegar({tipo:'dashboard'});}
-  else refrescarTodo();
+  refrescarTodo();
   escucharPromociones();sincronizarCupones();escucharMisComercios();escucharAdmin();
+  // Después del primer registro: "¿Qué te gusta de Fusa?"; luego se retoma lo que iba a hacer (p. ej. registrar su negocio)
+  if(cuentaNueva)setTimeout(mostrarBienvenida,400);else retomarAccionPendiente();
   if(typeof adminPendiente!=='undefined'&&adminPendiente&&esAdmin()){adminPendiente=false;ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}
 }
-function pedirConsentimiento(rol){
+function pedirConsentimiento(){
   return new Promise(res=>{
-    $('#cComerciante').checked=rol==='comerciante';abrir('ovConsent');
-    $('#consentSi').onclick=()=>{cerrar('ovConsent');res($('#cComerciante').checked?'comerciante':'usuario');};
+    abrir('ovConsent');
+    $('#consentSi').onclick=()=>{cerrar('ovConsent');res('usuario');};
     $('#consentNo').onclick=()=>{cerrar('ovConsent');res(null);};
   });
 }
@@ -2440,12 +2638,17 @@ function renderAdmin(){
       +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
       +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>';
   }
+  const fotosAntiguas=D.comercios.filter(c=>/^data:image\//.test(c._raw.imagen||'')&&!(c._raw.fotos||[]).length);
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
     +'<div class="metricas">'+[['store',database.length,'Comercios publicados'],['clock',D.pendientes.length,'Pendientes'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
       .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'
+    +(fotosAntiguas.length?'<button class="btn btn-tonal btn-bloque mt-16" id="admMigrar">'+icon('images',18)+'Pasar '+fotosAntiguas.length+(fotosAntiguas.length===1?' foto antigua':' fotos antiguas')+' a la galería</button>':'')
     +'<div class="adm-tabs" role="tablist">'+tabs.map(([k,t,ic,n])=>'<button role="tab" aria-selected="'+(A.tab===k)+'" class="'+(A.tab===k?'on':'')+'" data-atab="'+k+'">'+icon(ic,18)+t+(n?'<span class="contador">'+n+'</span>':'')+'</button>').join('')+'</div>'
     +'<div class="adm-cuerpo">'+html+'</div></div>';
   $('#admRecargar').onclick=()=>{toast('Actualizando…');cargarAdmin();};
+  const mg=$('#admMigrar');if(mg)mg.onclick=async()=>{mg.disabled=true;mg.textContent='Pasando fotos…';
+    const n=await migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen})));
+    toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();};
   $$('[data-atab]').forEach(b=>b.onclick=()=>{A.tab=b.dataset.atab;render(true);});
   const pend=id=>D.pendientes.find(c=>c.id===id),sol=id=>D.solicitudes.find(s=>s.id===id),rep=id=>D.reportes.find(r=>r.id===id);
   $$('[data-aprobar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Comercio aprobado y publicado'));
@@ -2751,7 +2954,8 @@ $$('#ovLogin .seg button').forEach(b=>b.onclick=()=>{modoLogin=b.dataset.modo;pi
 $('#formLogin').addEventListener('submit',enviarLogin);
 $('#lGoogle').onclick=ingresarGoogle;
 $('#lOlvido').onclick=olvideClave;
-$('#lComerciante').onchange=pintarModoLogin;
+// Si el navegador aún tiene la página anterior en caché, la app no se detiene por un botón que no existe
+{const uc=$('#lUsarCorreo');if(uc)uc.onclick=()=>{correoAbierto=true;pintarModoLogin();setTimeout(()=>$('#lNombre').focus(),50);};}
 $('#lVerLegal').onclick=()=>abrir('ovLegal');
 $('#cVerLegal').onclick=()=>abrir('ovLegal');
 $('#edadSi').onclick=()=>{estado.mayorEdad=true;cerrar('ovEdad');navegar({tipo:'lista',cat:'bares'});};

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=29">
+<link rel="stylesheet" href="app.css?v=30">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -91,13 +91,13 @@
       <div class="seg" role="group" aria-label="Ingresar o crear cuenta"><button type="button" data-modo="ingresar" class="on">Ingresar</button><button type="button" data-modo="registro">Crear cuenta</button></div>
       <p class="login-aviso" id="loginAviso"></p>
       <button type="button" class="btn btn-secundario btn-bloque btn-google" id="lGoogle"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path class="g-b" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path class="g-v" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path class="g-a" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path class="g-r" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>Continuar con Google</button>
-      <div class="sep">o con tu correo</div>
+      <div class="sep">o</div>
+      <button type="button" class="btn btn-secundario btn-bloque" id="lUsarCorreo" aria-expanded="false" aria-controls="formLogin"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="mail"></svg>Usar mi correo</button>
       <form class="login-mail" id="formLogin" novalidate>
         <div class="campo" id="lNombreWrap" style="display:none"><label for="lNombre">Nombre</label><input type="text" id="lNombre" maxlength="60" placeholder="Tu nombre" autocomplete="name"></div>
         <div class="campo"><label for="mail">Correo electrónico</label><input type="email" id="mail" placeholder="tucorreo@email.com" autocomplete="email"></div>
         <div class="campo"><label for="clave">Contraseña</label><input type="password" id="clave" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="current-password"></div>
         <label class="check" id="lConsentWrap" style="display:none"><input type="checkbox" id="lConsent"><span>Autorizo el tratamiento de mis datos personales conforme a la <button type="button" class="enlace" id="lVerLegal">Ley 1581 de 2012</button>.</span></label>
-        <label class="check"><input type="checkbox" id="lComerciante"><span>Tengo un negocio (cuenta de productor)</span></label>
         <button type="submit" class="btn btn-primario btn-bloque" id="lMail">Ingresar</button>
         <button type="button" class="btn btn-ghost" id="lOlvido">¿Olvidaste tu contraseña?</button>
       </form>
@@ -110,7 +110,6 @@
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="consentTit">
     <div class="mc-ic"><svg class="ic" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="shield-check"></svg></div><h3 id="consentTit">Autorización de datos</h3>
     <p>Para crear tu cuenta necesitamos tu autorización para tratar tu nombre y correo con el único fin de operar Fusa Conecta, conforme a la Ley 1581 de 2012. Puedes eliminar tu cuenta cuando quieras desde tu Perfil.</p>
-    <label class="check"><input type="checkbox" id="cComerciante"><span>Tengo un negocio (cuenta de productor)</span></label>
     <div class="modal-acc"><button class="btn btn-secundario" id="consentNo">No acepto</button><button class="btn btn-primario" id="consentSi">Acepto</button></div>
     <p class="mc-pie"><button type="button" class="enlace" id="cVerLegal">Leer aviso legal y privacidad</button></p>
   </div>
@@ -125,6 +124,7 @@
 </div>
 
 <div class="overlay" id="ovGen"><div class="sheet" id="sheetGen" role="dialog" aria-modal="true" aria-label="Detalle"></div></div>
+<div class="overlay pantalla" id="ovVisor"><div class="visor" id="visorFotos" role="dialog" aria-modal="true" aria-label="Fotos del negocio"></div></div>
 <div class="overlay pantalla" id="ovCupon"><div class="pantalla-cupon" id="pantallaCupon" role="dialog" aria-modal="true" aria-label="Cupón para mostrar en caja"></div></div>
 <div class="overlay pantalla" id="ovEscaner"><div class="escaner" id="escaner" role="dialog" aria-modal="true" aria-label="Escanear cupón"></div></div>
 
@@ -164,12 +164,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=29"></script>
+<script src="icons.js?v=30"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=29"></script>
-<script src="app.js?v=29"></script>
+<script src="datos.js?v=30"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>
