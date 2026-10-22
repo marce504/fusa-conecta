@@ -266,6 +266,35 @@ function califHTML(cal){
 function estrellasFijas(n){return Array.from({length:5},(_,i)=>'<span class="'+(i<n?'on':'')+'">'+icon('star',14,'ic-fill')+'</span>').join('');}
 const PTO='<span class="pto" aria-hidden="true">·</span>';
 
+/* ===== ANALÍTICA CON UMAMI (sin cookies ni datos personales) =====
+   Solo en el sitio publicado y solo si hay un Website ID. Cada pantalla cuenta como una página
+   (la app vive en una sola dirección) y se miden acciones clave sin nombres, correos ni ids de usuario. */
+const UMAMI={id:'',script:'https://cloud.umami.is/script.js',dominio:'fusa-conecta.netlify.app'};
+const analitica={cola:[],ultima:''};
+(function(){
+  if(!UMAMI.id||location.hostname!==UMAMI.dominio)return;
+  const s=document.createElement('script');
+  s.defer=true;s.src=UMAMI.script;s.dataset.websiteId=UMAMI.id;s.dataset.autoTrack='false';s.dataset.domains=UMAMI.dominio;
+  s.onload=()=>{analitica.cola.splice(0).forEach(f=>f());};
+  document.head.appendChild(s);
+})();
+function enviarAnalitica(f){if(!UMAMI.id)return;try{window.umami?f():analitica.cola.push(f);}catch(e){}}
+// Página vista: solo cuando cambia la pantalla (no en cada actualización en vivo)
+function medirPagina(url,titulo){
+  if(url===analitica.ultima)return;analitica.ultima=url;
+  enviarAnalitica(()=>umami.track(p=>({...p,url,title:titulo+' · Fusa Conecta'})));
+}
+function medir(evento,datos){enviarAnalitica(()=>umami.track(evento,datos));}
+function rutaDeVista(v){
+  if(v.tipo==='lista'){
+    if(v.cat==='favoritos')return ['/favoritos','Mis favoritos'];
+    if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
+    return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
+  }
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
+  return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
+}
+
 /* ===== NAVEGACIÓN (pila + botón Atrás del sistema, RF-07) ===== */
 const stack=[];
 let saliendo=false;
@@ -424,6 +453,7 @@ function abrirFiltros(){
         if(!p){toast('Activa tu ubicación para ordenar por cercanía');borrador.orden='recomendados';}
       }
       estado.filtros={...borrador};cerrar('ovGen');render();
+      medir('filtros',{activos:filtrosActivos().map(x=>x[1]).join(', ')||'ninguno'});
     };
   };
   pintar();
@@ -522,11 +552,12 @@ function abrirWhatsApp(d){
   if(!d)return;
   const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
   if(!wa){toast('Este comercio no tiene WhatsApp registrado. Puedes llamar al '+d.tel);return;}
-  registrarEvento(d,'toques_wa');
+  registrarEvento(d,'toques_wa');medir('whatsapp',{comercio:d.nombre,categoria:d.cat});
   const msg='Hola '+d.nombre+', te encontré en Fusa Conecta. Quisiera más información.';
   window.open('https://wa.me/57'+wa+'?text='+encodeURIComponent(msg),'_blank','noopener');
 }
 async function compartir(nombre,ruta){
+  medir('compartir',{lugar:nombre});
   const url=location.origin+location.pathname+(ruta?'#'+ruta:'');
   const text='Mira este lugar en Fusagasugá: '+nombre+'. Descúbrelo en Fusa Conecta.';
   if(navigator.share){try{await navigator.share({title:nombre,text,url});}catch(e){}return;}
@@ -573,6 +604,7 @@ function render(conservarScroll){
   else renderLista(v);
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
+  medirPagina(...rutaDeVista(v));
 }
 function hayFiltros(){return filtrosActivos().length>0;}
 function renderLista(v){
@@ -720,6 +752,8 @@ function cuponesDe(d){
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
 function abrirDetalle(id){
   const d=buscar(id);if(!d)return;
+  // La ficha es una hoja sobre la pantalla actual: se cuenta como página sin cambiar la pantalla de fondo
+  enviarAnalitica(()=>umami.track(p=>({...p,url:'/lugar/'+d.id,title:d.nombre+' · Fusa Conecta'})));
   registrarEvento(d,'vistas');
   const esFav=estado.favoritos.includes(String(d.id));
   const esDueno=logueado()&&d.propietario_uid&&d.propietario_uid===estado.usuario.uid;
@@ -924,7 +958,7 @@ async function generarCupon(d,cupon,boton){
       return {ya:false,datos};
     });
     guardarCuponLocal(serializarCupon({id,...r.datos,fecha_emision:Date.now()}));
-    if(!r.ya)registrarEvento(d,'cupones_obtenidos');
+    if(!r.ya){registrarEvento(d,'cupones_obtenidos');medir('cupon_obtenido',{comercio:d.nombre});}
     vibrar(30);
     if(boton){
       volarABilletera(boton);
@@ -2532,6 +2566,7 @@ async function enviarOpinion(op,origen){
   }
 }
 function graciasOpinion(){
+  medir('opinion_enviada');
   $('#sheetGen').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="cerrarGen" aria-label="Cerrar">'+icon('x')+'</button>'
     +'<div class="hoja-pad hoja-centro gracias"><span class="logo-gracias">'+logo('iso','claro',{alto:56,decorativo:true})+'</span><h2>¡Gracias por tu opinión!</h2>'
     +'<p>'+(estado.online?'La leemos con cuidado para mejorar Fusa Conecta.':'Se enviará apenas tengas conexión.')+'</p>'
@@ -2602,6 +2637,7 @@ function radioReproducir(){
   radio.audio.src=EMISORA.url+'?t='+Date.now();
   radioEstado('conectando');
   radio.audio.play().catch(()=>radioEstado('error'));
+  medir('radio_play');
   if('mediaSession' in navigator){
     navigator.mediaSession.metadata=new MediaMetadata({title:EMISORA.nombre+' '+EMISORA.frecuencia,artist:'En vivo · '+EMISORA.de,album:'Fusa Conecta',
       artwork:[{src:'img/icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'img/icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
@@ -2722,7 +2758,7 @@ $('#edadNo').onclick=()=>{cerrar('ovEdad');toast('Solo para mayores de 18 años.
 $('#bVolver').onclick=volver;
 $('#bFiltros').onclick=abrirFiltros;
 document.addEventListener('click',e=>{const s=e.target.closest&&e.target.closest('[data-sos]');if(!s)return;$$('.overlay.abierto').forEach(o=>cerrar(o.id));if(vistaActual().tipo!=='sos')navegar({tipo:'sos'});});
-document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-tel]');if(a)registrarEvento(buscar(a.dataset.tel),'toques_llamar');});
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-tel]');if(a){const d=buscar(a.dataset.tel);registrarEvento(d,'toques_llamar');if(d)medir('llamar',{comercio:d.nombre,categoria:d.cat});}});
 
 let _deb;
 $('#busqueda').addEventListener('input',e=>{
@@ -2730,6 +2766,7 @@ $('#busqueda').addEventListener('input',e=>{
   _deb=setTimeout(()=>{
     renderSugerencias();
     estado.q=e.target.value.trim();
+    if(estado.q.length>=3)medir('busqueda',{termino:estado.q.slice(0,40).toLowerCase()});
     const v=vistaActual();
     if(v.tipo==='lista')render();else navegar({tipo:'lista',cat:'todas'});
   },300);
@@ -2764,6 +2801,7 @@ function puedeInstalar(){return !appInstalada()&&(!!avisoInstalar||esIOS||/andro
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();avisoInstalar=e;if(['perfil','lista'].includes(vistaActual().tipo))render(true);});
 window.addEventListener('appinstalled',()=>{avisoInstalar=null;render(true);toast('Fusa Conecta quedó instalada en tu celular');});
 async function instalarApp(){
+  medir('instalar_app');
   if(avisoInstalar){
     avisoInstalar.prompt();
     await avisoInstalar.userChoice.catch(()=>null);
