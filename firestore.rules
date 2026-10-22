@@ -257,9 +257,27 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
-    /* ---------- Moderación general (CU-18) ---------- */
-    match /{document=**} {
-      allow read, write: if esAdmin();
+    /* ---------- Banners del inicio: los ve cualquiera, solo el admin los publica ----------
+       banners/destacado = el espacio del negocio destacado; los demás son banners con foto (WebP/JPEG comprimido) */
+    match /banners/{id} {
+      allow read: if true;
+      allow delete: if esAdmin();
+      allow create, update: if esAdmin()
+        && request.resource.data.keys().hasOnly(['tipo', 'titulo', 'texto', 'imagen', 'enlace_tipo', 'enlace_valor', 'orden', 'activo', 'comercio_id', 'fecha'])
+        && ((id == 'destacado' && request.resource.data.tipo == 'destacado' && request.resource.data.comercio_id is string)
+          || (id != 'destacado' && request.resource.data.tipo == 'foto'
+            && request.resource.data.titulo is string && request.resource.data.titulo.size() > 0 && request.resource.data.titulo.size() <= 60
+            && request.resource.data.get('texto', '').size() <= 120
+            && request.resource.data.imagen is string && request.resource.data.imagen.matches('data:image/(webp|jpeg);base64,.*')
+            && request.resource.data.imagen.size() <= 360000
+            && request.resource.data.get('enlace_tipo', 'ninguno') in ['ninguno', 'negocio', 'categoria']));
+    }
+
+    /* ---------- Moderación general (CU-18) ----------
+       El admin puede todo, salvo en banners: ahí también debe cumplir la validación de su bloque (tamaño y tipo de foto). */
+    match /{coleccion}/{documento=**} {
+      allow read: if esAdmin();
+      allow write: if esAdmin() && coleccion != 'banners';
     }
   }
 }

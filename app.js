@@ -139,6 +139,13 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
 db.collection('config').doc('directorio').onSnapshot(s=>{
   const l=(s.exists&&s.data().ocultos)||[];estado.ocultos=new Set(l);ls.set('fc_ocultos',l);reconstruirDirectorio();refrescarVista();
 },()=>{});
+// Banners del inicio que publica el admin (negocio destacado y banners con foto)
+estado.banners=[];
+db.collection('banners').onSnapshot(s=>{
+  estado.banners=s.docs.map(d=>({id:d.id,...d.data()}));
+  if(!$('#plegBanner').hidden)montarBanner();
+  if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
+},()=>{});
 
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
@@ -369,7 +376,8 @@ const SOS_HTML='<button class="sos-pill" data-sos aria-label="Emergencias: núme
 function saludoDeHora(h=new Date().getHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
   const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
-  $('#saludoHora').innerHTML='<b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en Fusa?</span>';
+  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en Fusa?</span></div>'+pildoraRadioHTML();
+  $('#pRadio').onclick=radioAlternar;
 }
 function renderHeader(){
   const v=vistaActual();
@@ -623,7 +631,8 @@ function renderLista(v){
   let html;
   if(items.length){
     const enInicio=v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros();
-    html=(enInicio?seccionCuponesHTML()+seccionRadioHTML()+seccionAbiertosHTML()+seccionPlanesHTML()+tarjetaInstalarHTML():'')
+    // Orden del inicio: Cupones de la semana, Abierto ahora, Rutas y senderos y luego Todo Fusa Conecta
+    html=(enInicio?seccionCuponesHTML()+seccionAbiertosHTML()+seccionRutasHTML()+tarjetaInstalarHTML():'')
       +'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
@@ -640,11 +649,12 @@ function renderLista(v){
     estado.q='';estado.filtros={abierto:false,cupon:false,municipio:'',orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
-  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarRadio();enlazarFooter();
+  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
 }
 
 /* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
-   4 diapositivas en HTML/CSS/SVG. Cambia sola cada 5 s; se pausa al tocarla o arrastrarla y
+   Primero el "Negocio destacado" (un solo espacio) y los banners con foto que publica el admin (colección banners);
+   después las 4 diapositivas propias de la app. Cambia sola cada 5 s; se pausa al tocarla o arrastrarla y
    se reanuda a los 8 s. Se desliza con el dedo (scroll-snap) o con el mouse (pointer events).
    Con prefers-reduced-motion no avanza sola. */
 const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
@@ -652,57 +662,92 @@ function formaSVG(cls,x,y,t,giro){return '<svg class="forma '+cls+'" style="left
 const FOTOS_BANNER=['img/comercios/vivero-de-orquideas-de-fusa.jpg','img/comercios/hacienda-coloma-museo-del-cafe.jpg','img/comercios/cafe-sutagao.jpg'];
 function cuponesActivosTotal(){let n=0;database.forEach(d=>n+=cuponesDe(d).length);return n;}
 function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
-function bannerHTML(){
-  const slide=(i,cls,tag,tit,sub,boton,ilu,extra)=>'<div class="slide '+cls+'" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de 4: '+esc(tit)+'">'
-    +'<div class="slide-ilu" aria-hidden="true">'+ilu+'</div>'
-    +'<span class="slide-tag">'+tag+'</span><h2 class="slide-tit">'+tit+'</h2><p class="slide-sub">'+sub+'</p>'
-    +'<div class="slide-pie">'+boton+(extra||'')+'</div></div>';
-  return '<div class="banner-pista" id="bannerPista">'
-    +slide(0,'s-bienvenida','Bienvenido','Todo Fusa, en tu bolsillo','Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
-      '<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
-      formaSVG('f-menta',44,-18,70,20)+formaSVG('f-menta2',-10,6,46,-30)
-      +'<span class="ilu-logo">'+logo('iso','lila',{alto:48,decorativo:true})+'</span>'
-      +FOTOS_BANNER.map((f,k)=>'<img class="ilu-foto f'+k+'" src="'+f+'" alt="" loading="lazy" onerror="this.remove()">').join(''))
-    +slide(1,'s-cupones','Ahorra en Fusa','Tu cupón te está esperando','Toma un descuento, muéstralo en caja y ahorra unos pesos.',
-      '<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
-      formaSVG('f-blanca',50,-14,64,40)
-      +'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',
-      '<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>')
-    +slide(2,'s-negocio','Para comerciantes','¿Tienes un negocio? Súmalo gratis','Llega a más vecinos y turistas de la región.',
-      '<button class="slide-btn" data-slide="negocio">Registrar mi negocio</button>',
-      formaSVG('f-menta',46,-10,62,-15)+formaSVG('f-menta3',-4,24,40,60)
-      +'<span class="ilu-circulo c-menta">'+icon('store',30)+'</span><span class="ilu-chispa">'+icon('sparkles',18)+'</span>')
-    +slide(3,'s-opinion','Estamos en pruebas','Tu opinión hace mejor esta app','Cuéntanos qué te gustó y qué cambiarías.',
-      '<button class="slide-btn" data-slide="opinion">Dar mi opinión</button>',
-      formaSVG('f-violeta',48,-12,60,10)+formaSVG('f-menta',-4,26,42,-40)
-      +'<span class="ilu-circulo c-violeta">'+icon('message-circle-heart',30)+'</span>')
-    +'</div><div class="banner-puntos" aria-hidden="true">'+[0,1,2,3].map(i=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>';
+function slidesBase(){
+  return [
+    {id:'bienvenida',cls:'s-bienvenida',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',sub:'Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
+      boton:'<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
+      ilu:formaSVG('f-menta',44,-18,70,20)+formaSVG('f-menta2',-10,6,46,-30)
+        +'<span class="ilu-logo">'+logo('iso','lila',{alto:48,decorativo:true})+'</span>'
+        +FOTOS_BANNER.map((f,k)=>'<img class="ilu-foto f'+k+'" src="'+f+'" alt="" loading="lazy" onerror="this.remove()">').join('')},
+    {id:'cupones',cls:'s-cupones',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',sub:'Toma un descuento, muéstralo en caja y ahorra unos pesos.',
+      boton:'<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
+      ilu:formaSVG('f-blanca',50,-14,64,40)+'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',
+      extra:'<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>'},
+    {id:'negocio',cls:'s-negocio',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',sub:'Llega a más vecinos y turistas de la región.',
+      boton:'<button class="slide-btn" data-slide="negocio">Registrar mi negocio</button>',
+      ilu:formaSVG('f-menta',46,-10,62,-15)+formaSVG('f-menta3',-4,24,40,60)
+        +'<span class="ilu-circulo c-menta">'+icon('store',30)+'</span><span class="ilu-chispa">'+icon('sparkles',18)+'</span>'},
+    {id:'opinion',cls:'s-opinion',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',sub:'Cuéntanos qué te gustó y qué cambiarías.',
+      boton:'<button class="slide-btn" data-slide="opinion">Dar mi opinión</button>',
+      ilu:formaSVG('f-violeta',48,-12,60,10)+formaSVG('f-menta',-4,26,42,-40)
+        +'<span class="ilu-circulo c-violeta">'+icon('message-circle-heart',30)+'</span>'}
+  ];
 }
-const banner={actual:0,timer:null,pausaHasta:0};
+const porOrden=(a,b)=>(a.orden||0)-(b.orden||0);
+function slidesBanner(){
+  const l=[],bs=estado.banners||[];
+  const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
+  if(dc)l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
+    tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio'});
+  bs.filter(b=>b.tipo==='foto'&&b.activo!==false&&b.imagen).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:'',tit:b.titulo||'',sub:b.texto||'',
+    accion:b.enlace_tipo&&b.enlace_tipo!=='ninguno'&&b.enlace_valor?b.enlace_tipo+':'+b.enlace_valor:'',textoBoton:b.enlace_tipo==='negocio'?'Ver negocio':'Ver más'}));
+  return l.concat(slidesBase());
+}
+function slideHTML(s,i,n){
+  const aria=' role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(s.tit)+'" data-sid="'+esc(s.id)+'"';
+  // Banner con foto: el texto va abajo, sobre un velo oscuro que asegura el contraste
+  if('foto' in s)return '<div class="slide s-foto"'+aria+'>'
+    +(s.foto?'<img class="slide-foto" src="'+esc(s.foto)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'<span class="slide-velo" aria-hidden="true"></span>'
+    +(s.tag?'<span class="slide-tag">'+(s.comercio?icon('star',12,'ic-fill'):'')+esc(s.tag)+'</span>':'')
+    +'<h2 class="slide-tit">'+esc(s.tit)+'</h2>'+(s.sub?'<p class="slide-sub">'+esc(s.sub)+'</p>':'')
+    +(s.accion?'<div class="slide-pie"><button class="slide-btn" data-slide="'+esc(s.accion)+'">'+esc(s.textoBoton)+icon('arrow-right',16)+'</button></div>':'')+'</div>';
+  return '<div class="slide '+s.cls+'"'+aria+'><div class="slide-ilu" aria-hidden="true">'+s.ilu+'</div>'
+    +'<span class="slide-tag">'+s.tag+'</span><h2 class="slide-tit">'+s.tit+'</h2><p class="slide-sub">'+s.sub+'</p>'
+    +'<div class="slide-pie">'+s.boton+(s.extra||'')+'</div></div>';
+}
+function bannerHTML(sl){
+  return '<div class="banner-pista" id="bannerPista">'+sl.map((s,i)=>slideHTML(s,i,sl.length)).join('')+'</div>'
+    +'<div class="banner-puntos" aria-hidden="true">'+sl.map((s,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>';
+}
+const banner={actual:0,n:0,timer:null,pausaHasta:0,firma:'',arr:null,ventana:false};
+const pasoBanner=p=>p.firstElementChild.offsetWidth+8;
 function montarBanner(){
-  const caja=$('#banner');
-  if(!caja.firstChild){
-    caja.innerHTML=bannerHTML();
+  const caja=$('#banner'),sl=slidesBanner();
+  // Solo se regenera si cambió lo que muestra (nuevo banner, destacado distinto...): así no parpadea al navegar
+  const firma=sl.map(s=>s.id+'|'+s.tit+'|'+(s.foto?s.foto.length:0)+'|'+(s.accion||'')).join(';');
+  if(banner.firma!==firma){
+    banner.firma=firma;banner.n=sl.length;banner.actual=0;
+    caja.innerHTML=bannerHTML(sl);
     const pista=$('#bannerPista');
     const pausar=()=>{banner.pausaHasta=Date.now()+8000;};
     ['pointerdown','touchstart','wheel','focusin'].forEach(ev=>pista.addEventListener(ev,pausar,{passive:true}));
     pista.addEventListener('scroll',()=>{
-      const i=Math.round(pista.scrollLeft/(pista.firstChild.offsetWidth+8));
+      const i=Math.round(pista.scrollLeft/pasoBanner(pista));
       if(i!==banner.actual){banner.actual=i;$$('.banner-puntos span').forEach((p,k)=>p.classList.toggle('on',k===i));}
     },{passive:true});
     // Arrastre con el mouse en computador (en el celular el dedo usa el desplazamiento nativo)
-    let arr=null;
-    pista.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;arr={x:e.clientX,s:pista.scrollLeft};pista.classList.add('arrastrando');});
-    window.addEventListener('pointermove',e=>{if(arr)pista.scrollLeft=arr.s-(e.clientX-arr.x);});
-    window.addEventListener('pointerup',()=>{if(!arr)return;arr=null;pista.classList.remove('arrastrando');irASlide(Math.round(pista.scrollLeft/(pista.firstChild.offsetWidth+8)));});
+    pista.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;banner.arr={x:e.clientX,s:pista.scrollLeft};pista.classList.add('arrastrando');});
     $$('[data-slide]',caja).forEach(b=>b.onclick=()=>accionSlide(b.dataset.slide));
+    // El destacado se ve de una vez con la portada liviana y luego cambia a su primera foto en buena calidad
+    const d=sl.find(s=>s.fotoNube);
+    if(d)db.collection('comercios').doc(String(d.comercio)).collection('fotos').doc(d.fotoNube).get().then(s=>{
+      const sl2=caja.querySelector('[data-sid="'+d.id+'"]');if(!s.exists||!sl2)return;
+      let img=sl2.querySelector('.slide-foto');
+      if(!img){img=document.createElement('img');img.className='slide-foto';img.alt='';sl2.prepend(img);}
+      img.src=s.data().data;
+    }).catch(()=>{});
+  }
+  if(!banner.ventana){
+    banner.ventana=true;
+    window.addEventListener('pointermove',e=>{const p=$('#bannerPista');if(banner.arr&&p)p.scrollLeft=banner.arr.s-(e.clientX-banner.arr.x);});
+    window.addEventListener('pointerup',()=>{const p=$('#bannerPista');if(!banner.arr||!p)return;banner.arr=null;p.classList.remove('arrastrando');irASlide(Math.round(p.scrollLeft/pasoBanner(p)));});
     if(!sinMovimiento())banner.timer=setInterval(avanzarBanner,5000);
   }
   const c=$('#bannerCupones');if(c)c.textContent=textoCuponesBanner();
 }
 function irASlide(i){
-  const pista=$('#bannerPista');if(!pista)return;
-  i=(i+4)%4;pista.scrollTo({left:i*(pista.firstChild.offsetWidth+8),behavior:sinMovimiento()?'auto':'smooth'});
+  const pista=$('#bannerPista');if(!pista||!banner.n)return;
+  i=(i+banner.n)%banner.n;pista.scrollTo({left:i*pasoBanner(pista),behavior:sinMovimiento()?'auto':'smooth'});
 }
 function avanzarBanner(){
   const caja=$('#banner');
@@ -712,6 +757,9 @@ function avanzarBanner(){
 }
 function accionSlide(k){
   banner.pausaHasta=Date.now()+8000;
+  const [tipo,valor]=k.split(':');
+  if(tipo==='negocio'&&valor){abrirDetalle(valor);return;}
+  if(tipo==='categoria'&&valor&&CAT[valor]){valor==='bares'?irABares():navegar({tipo:'lista',cat:valor});return;}
   if(k==='explorar'){const t=$('#todoFusa');if(t)t.scrollIntoView({behavior:sinMovimiento()?'auto':'smooth',block:'start'});}
   else if(k==='cupones'){estado.filtros.cupon=true;render();}
   else if(k==='negocio')registrarMiNegocio();
@@ -732,17 +780,19 @@ function seccionAbiertosHTML(){
     +'<div class="carrusel">'+l.map(d=>'<article class="mini-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
       +fotoHTML(d,'mini-foto')+'</div><b>'+esc(d.nombre)+'</b><span class="mini-cat">'+esc(etiquetaDe(d))+'</span>'+estadoHTML(estadoApertura(d),d.id)+'</article>').join('')+'</div></section>';
 }
-function seccionPlanesHTML(){
-  const l=database.filter(d=>d.cat==='turismo'&&imgSegura(d.imagen)).sort((a,b)=>calificacionDe(b).prom-calificacionDe(a).prom).slice(0,8);
+// Rutas y senderos: primero los que tienen recorrido trazado, luego los demás senderos
+function seccionRutasHTML(){
+  const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&imgSegura(d.imagen))
+    .sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,8);
   if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tPlanes"><div class="head-v"><h2 id="tPlanes">Planes para el fin de semana</h2><button class="btn-ghost" data-ir="turismo">Ver todos</button></div>'
+  return '<section class="seccion-inicio" aria-labelledby="tRutas"><div class="head-v"><h2 id="tRutas">Rutas y senderos</h2><button class="btn-ghost" data-ir="senderos">Ver todos</button></div>'
     +'<div class="carrusel">'+l.map(d=>{const r=RUTAS[d.id];
       return '<article class="plan-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
         +'<img src="'+esc(d.imagen)+'" alt="" loading="lazy" onerror="this.remove()"><div class="plan-tx"><span class="plan-tipo">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+(r?' · '+String(r.distanciaTotal).replace('.',',')+' km':'')+'</span><b>'+esc(d.nombre)+'</b></div></article>';}).join('')+'</div></section>';
 }
 function enlazarSecciones(){
   $$('#cuerpo .mini-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
-  $$('#cuerpo [data-ir]').forEach(b=>b.onclick=()=>{const k=b.dataset.ir;if(k==='abierto'){estado.filtros.abierto=true;render();}else navegar({tipo:'lista',cat:k});});
+  $$('#cuerpo [data-ir]').forEach(b=>b.onclick=()=>{const k=b.dataset.ir;if(k==='abierto'){estado.filtros.abierto=true;render();}else if(k==='senderos')navegar({tipo:'lista',cat:'turismo',sub:'sendero'});else navegar({tipo:'lista',cat:k});});
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -2771,7 +2821,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -2821,6 +2871,8 @@ function renderAdmin(){
       :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
   }else if(A.tab==='opiniones'){
     html=opinionesAdminHTML(D.opiniones||[]);
+  }else if(A.tab==='banners'){
+    html=bannersAdminHTML();
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -2878,6 +2930,7 @@ function renderAdmin(){
     if(!c){toast('No encontramos ese comercio');return;}
     db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
   $$('[data-descartar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('reportes').doc(b.dataset.descartar).update({estado:'descartado',fecha_respuesta:FV.serverTimestamp()}),'Reporte descartado'));
+  enlazarBannersAdmin();
   // Editor de emergencias
   $$('[data-amun]').forEach(b=>b.onclick=()=>{A.mun=b.dataset.amun;render(true);});
   const mun=A.mun||'fusagasuga';
@@ -2890,6 +2943,80 @@ function renderAdmin(){
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
   cargarFotosPreview();
+}
+/* ---------- Admin · Banners del inicio (v4 · Fase 5) ----------
+   banners/destacado: un solo espacio para un negocio (los Premium se turnan). banners/{id}: banners con foto. */
+function textoEnlaceBanner(b){
+  if(b.enlace_tipo==='negocio'){const c=buscar(b.enlace_valor);return 'Abre '+(c?'«'+c.nombre+'»':'un negocio');}
+  if(b.enlace_tipo==='categoria')return 'Abre '+(CAT[b.enlace_valor]?CAT[b.enlace_valor].label:'una categoría');
+  return 'Sin enlace';
+}
+function bannersAdminHTML(){
+  const bs=estado.banners||[],dest=bs.find(b=>b.id==='destacado'),dc=dest&&buscar(dest.comercio_id);
+  const fotos=bs.filter(b=>b.tipo==='foto').sort(porOrden);
+  const opciones=[...database].sort((a,b)=>(premiumVigente(b)-premiumVigente(a))||a.nombre.localeCompare(b.nombre,'es'));
+  return '<p class="dash-section">Negocio destacado</p>'
+    +'<p class="nota-c izq">Un solo espacio, el primero del banner principal. Ve cambiándolo para que los negocios Premium se turnen.</p>'
+    +'<div class="campo"><label for="admDest">Negocio que se muestra</label><select class="input" id="admDest"><option value="">Ninguno</option>'
+    +opciones.map(c=>'<option value="'+esc(c.id)+'"'+(dc&&dc.id===c.id?' selected':'')+'>'+esc(c.nombre)+(premiumVigente(c)?' · Premium':'')+'</option>').join('')+'</select></div>'
+    +'<button class="btn btn-secundario btn-sm" id="admDestGuardar">'+icon('star',16)+'Guardar destacado</button>'
+    +'<p class="dash-section">Banners con foto ('+fotos.length+')</p>'
+    +(fotos.length?fotos.map((b,i)=>'<div class="adm-fila banner-fila"><img class="bf-foto" src="'+esc(b.imagen)+'" alt="">'
+        +'<div class="dc-info"><b>'+esc(b.titulo)+'</b><span>'+(b.activo===false?'En pausa':'Visible')+' · '+esc(textoEnlaceBanner(b))+'</span></div>'
+        +'<div class="dc-actions"><button class="btn-redondo" data-bmover="'+i+'" data-dir="-1" aria-label="Mover «'+esc(b.titulo)+'» antes"'+(i?'':' disabled')+'>'+icon('arrow-up',18)+'</button>'
+        +'<button class="btn-redondo" data-bmover="'+i+'" data-dir="1" aria-label="Mover «'+esc(b.titulo)+'» después"'+(i<fotos.length-1?'':' disabled')+'>'+icon('arrow-down',18)+'</button>'
+        +'<button class="btn btn-secundario btn-sm" data-bpausa="'+esc(b.id)+'">'+(b.activo===false?icon('eye',16)+'Mostrar':icon('eye-off',16)+'Pausar')+'</button>'
+        +'<button class="btn btn-ghost" data-bborrar="'+esc(b.id)+'">Eliminar</button></div></div>').join('')
+      :'<p class="nota-c izq">Aún no hay banners con foto: el inicio muestra los banners propios de la app.</p>')
+    +'<button class="btn btn-primario btn-bloque mt-16" id="admBannerNuevo">'+icon('image-plus',18)+'Nuevo banner con foto</button>';
+}
+function enlazarBannersAdmin(){
+  const col=db.collection('banners'),fotos=(estado.banners||[]).filter(b=>b.tipo==='foto').sort(porOrden);
+  const g=$('#admDestGuardar');if(g)g.onclick=()=>{const id=$('#admDest').value;
+    adminAccion(()=>id?col.doc('destacado').set({tipo:'destacado',comercio_id:id,activo:true,fecha:FV.serverTimestamp()}):col.doc('destacado').delete(),
+      id?'Negocio destacado guardado':'El espacio destacado quedó libre');};
+  $$('[data-bmover]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.bmover,j=i+(+b.dataset.dir);if(j<0||j>=fotos.length)return;
+    const l=[...fotos];[l[i],l[j]]=[l[j],l[i]];
+    adminAccion(()=>{const bt=db.batch();l.forEach((x,k)=>bt.update(col.doc(x.id),{orden:k}));return bt.commit();},'Orden actualizado');
+  });
+  $$('[data-bpausa]').forEach(b=>b.onclick=()=>{const x=fotos.find(f=>f.id===b.dataset.bpausa);
+    adminAccion(()=>col.doc(x.id).update({activo:x.activo===false}),x.activo===false?'Banner visible':'Banner en pausa');});
+  $$('[data-bborrar]').forEach(b=>b.onclick=async()=>{const x=fotos.find(f=>f.id===b.dataset.bborrar);
+    if(!await confirmar('Eliminar banner','«'+x.titulo+'» sale del inicio. Esta acción no se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
+    adminAccion(()=>col.doc(x.id).delete(),'Banner eliminado');});
+  const n=$('#admBannerNuevo');if(n)n.onclick=formBanner;
+}
+function formBanner(){
+  let foto=null;
+  const opcCat=Object.entries(CAT).map(([k,c])=>'<option value="'+k+'">'+esc(c.label)+'</option>').join('');
+  const opcNeg=[...database].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');
+  abrirHoja('<div class="hoja-pad"><h2>Nuevo banner con foto</h2><p class="nota-c izq">Usa una foto horizontal y clara. El título va sobre la parte de abajo de la foto.</p>'
+    +'<label class="foto-banner" id="fbCaja"><input type="file" accept="image/*" id="fbFoto" class="sr-only"><span class="fb-vacio">'+icon('image-plus',28)+'<b>Elegir foto</b></span></label>'
+    +'<div class="campo"><label for="fbTit">Título <span class="req">*</span></label><input class="input" id="fbTit" maxlength="60" placeholder="Ej.: Festival del Café este sábado"></div>'
+    +'<div class="campo"><label for="fbTxt">Texto corto</label><input class="input" id="fbTxt" maxlength="120" placeholder="Ej.: Parque principal, desde las 9 a. m."></div>'
+    +'<div class="campo"><label for="fbEnl">Al tocar «Ver más»</label><select class="input" id="fbEnl"><option value="ninguno">Sin botón</option><option value="negocio">Abrir un negocio</option><option value="categoria">Abrir una categoría</option></select></div>'
+    +'<div class="campo" id="fbValCaja" hidden><label for="fbVal">¿Cuál?</label><select class="input" id="fbVal"></select></div>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="fbGuardar">Publicar banner</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Nuevo banner con foto');
+  $('#fbEnl').onchange=()=>{const t=$('#fbEnl').value;$('#fbValCaja').hidden=t==='ninguno';$('#fbVal').innerHTML=t==='negocio'?opcNeg:t==='categoria'?opcCat:'';};
+  $('#fbFoto').onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;
+    $('#fbCaja').classList.add('cargando');
+    try{foto=await comprimirFoto(f,1280,250000,.8);$('#fbCaja').innerHTML='<img src="'+foto.src+'" alt="Foto elegida para el banner">';}
+    catch(err){toast('No pudimos usar esa foto. Prueba con otra.');}
+    $('#fbCaja').classList.remove('cargando');
+  };
+  $('#fbGuardar').onclick=async()=>{
+    const tit=$('#fbTit').value.trim(),enl=$('#fbEnl').value;
+    if(!foto){toast('Elige una foto para el banner');return;}
+    if(!tit){toast('Escribe un título');$('#fbTit').focus();return;}
+    const orden=Math.max(-1,...(estado.banners||[]).filter(b=>b.tipo==='foto').map(b=>b.orden||0))+1;
+    $('#fbGuardar').disabled=true;
+    await adminAccion(()=>db.collection('banners').add({tipo:'foto',titulo:tit,texto:$('#fbTxt').value.trim(),imagen:foto.src,
+      enlace_tipo:enl,enlace_valor:enl==='ninguno'?'':$('#fbVal').value,orden,activo:true,fecha:FV.serverTimestamp()}),'Banner publicado en el inicio');
+    cerrar('ovGen');
+  };
 }
 // Ocultar: los de la nube pasan a "oculto"; los de muestra se anotan en config/directorio (lista pública de ocultos)
 async function ocultarNegocio(c,despues){
@@ -3081,30 +3208,30 @@ function botonRadioHTML(id,clase){
 function textoRadio(){
   return {conectando:'Conectando…',sonando:'En vivo',pausada:'En pausa',error:'Sin señal. Toca para reintentar',apagada:'En vivo'}[radio.estado];
 }
+// Píldora junto al saludo: toca para escuchar o pausar (el mini reproductor aparece abajo)
+function pildoraRadioHTML(){
+  const on=['sonando','conectando'].includes(radio.estado);
+  return '<button class="pildora-radio'+(on?' on':'')+'" id="pRadio" aria-pressed="'+on+'" aria-label="'+(on?'Pausar':'Escuchar')+' '+EMISORA.nombre+' '+EMISORA.frecuencia+' en vivo">'
+    +'<span class="punto-vivo" aria-hidden="true"></span>EN VIVO · '+EMISORA.frecuencia+'</button>';
+}
 function pintarRadio(){
   const b=$('#radioBarra');
   b.hidden=radio.estado==='apagada';
   if(!b.hidden){
+    // Mini reproductor: a la izquierda la emisora, en el centro el hueco curvo del botón de Cupones, a la derecha los controles
     b.className='radio-barra '+radio.estado;
-    b.innerHTML='<span class="rb-ic" aria-hidden="true">'+(radio.estado==='sonando'?'<span class="ecualizador"><i></i><i></i><i></i></span>':icon('radio',20))+'</span>'
-      +'<span class="rb-tx"><b>'+EMISORA.nombre+' '+EMISORA.frecuencia+'</b><small role="status">'+textoRadio()+'</small></span>'
-      +botonRadioHTML('rbPlay','rb-play')+'<button class="rb-cerrar" id="rbCerrar" aria-label="Cerrar la radio">'+icon('x',20)+'</button>';
+    b.innerHTML='<div class="rb-izq"><span class="rb-ic" aria-hidden="true">'+(radio.estado==='sonando'?'<span class="ecualizador"><i></i><i></i><i></i></span>':icon('radio',18))+'</span>'
+      +'<span class="rb-tx"><b><span class="sr-only">'+EMISORA.nombre+' </span>'+EMISORA.frecuencia+'</b><small role="status">'+textoRadio()+'</small></span></div>'
+      +'<span class="rb-hueco" aria-hidden="true"></span>'
+      +'<div class="rb-der">'+botonRadioHTML('rbPlay','rb-play')+'<button class="rb-cerrar" id="rbCerrar" aria-label="Cerrar la radio">'+icon('x',20)+'</button></div>';
     $('#rbPlay').onclick=radioAlternar;$('#rbCerrar').onclick=radioApagar;
   }
-  // La tarjeta del inicio refleja el mismo estado
-  const t=$('#tarjetaRadio');
-  if(t){t.querySelector('.tr-estado').textContent=radio.estado==='apagada'?'La emisora de la Alcaldía, en vivo':textoRadio();
-    t.querySelector('#trPlay').outerHTML=botonRadioHTML('trPlay','tr-play');$('#trPlay').onclick=radioAlternar;
-    t.classList.toggle('sonando',radio.estado==='sonando');}
+  // La píldora del saludo refleja el mismo estado (se actualiza sin regenerarla para no perder el foco)
+  const p=$('#pRadio');
+  if(p){const on=['sonando','conectando'].includes(radio.estado);p.classList.toggle('on',on);p.setAttribute('aria-pressed',on);
+    p.setAttribute('aria-label',(on?'Pausar':'Escuchar')+' '+EMISORA.nombre+' '+EMISORA.frecuencia+' en vivo');}
   if('mediaSession' in navigator)navigator.mediaSession.playbackState=radio.estado==='sonando'?'playing':radio.estado==='apagada'?'none':'paused';
 }
-function seccionRadioHTML(){
-  return '<section class="tarjeta-radio'+(radio.estado==='sonando'?' sonando':'')+'" id="tarjetaRadio" aria-label="Radio en vivo">'
-    +'<span class="tr-ic" aria-hidden="true">'+icon('radio',26)+'</span>'
-    +'<span class="tr-tx"><small>Radio en vivo</small><b>'+EMISORA.nombre+' '+EMISORA.frecuencia+'</b><span class="tr-estado">'+(radio.estado==='apagada'?'La emisora de la Alcaldía, en vivo':textoRadio())+'</span></span>'
-    +botonRadioHTML('trPlay','tr-play')+'</section>';
-}
-function enlazarRadio(){const p=$('#trPlay');if(p)p.onclick=radioAlternar;}
 window.addEventListener('offline',()=>{if(['sonando','conectando'].includes(radio.estado))radioEstado('error');});
 
 /* ===== FOOTER ===== */

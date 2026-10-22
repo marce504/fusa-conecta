@@ -128,6 +128,9 @@ ICONOS["infinity"]="<path d=\"M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-
 // Logo oficial de WhatsApp (no existe en Lucide)
 ICONOS.whatsapp="<path fill=\"currentColor\" stroke=\"none\" d=\"M17.47 14.38c-.27-.13-1.59-.78-1.84-.87s-.42-.13-.6.13-.69.87-.84 1.05-.31.19-.58.06a7.3 7.3 0 0 1-2.14-1.32 8 8 0 0 1-1.48-1.84c-.16-.27 0-.42.12-.55s.27-.31.4-.47a1.7 1.7 0 0 0 .27-.45.5.5 0 0 0 0-.47c-.06-.13-.6-1.44-.82-1.97s-.43-.45-.59-.46h-.51a1 1 0 0 0-.72.34A3 3 0 0 0 8 10.87a5.26 5.26 0 0 0 1.1 2.79 12 12 0 0 0 4.61 4.06c.64.28 1.14.44 1.53.57a3.68 3.68 0 0 0 1.69.11 2.76 2.76 0 0 0 1.81-1.28 2.24 2.24 0 0 0 .16-1.28c-.07-.12-.25-.18-.51-.31zM12 2a10 10 0 0 0-8.65 15L2 22l5.17-1.35A10 10 0 1 0 12 2z\"/>";
 
+ICONOS["arrow-up"]="<path d=\"m5 12 7-7 7 7\" /><path d=\"M12 19V5\" />";
+ICONOS["arrow-down"]="<path d=\"M12 5v14\" /><path d=\"m19 12-7 7-7-7\" />";
+
 function icon(nombre,tam=20,clase=''){
   const c=ICONOS[nombre]||ICONOS["circle-help"];
   return '<svg class="ic'+(clase?' '+clase:'')+'" width="'+tam+'" height="'+tam+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+c+'</svg>';

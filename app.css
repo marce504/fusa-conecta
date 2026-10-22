@@ -21,6 +21,7 @@
   --ink:#1B1F3B;--ink-2:#5B6178;
   --ink-3:#9AA0B4;         /* solo puntos, íconos decorativos y deshabilitado: 2.6:1, nunca texto */
   --line:#E7E8F0;--soft:#F4F4F8;--bg:#FFFFFF;
+  --surface:#FFFFFF;       /* superficies flotantes (mini reproductor de la radio); en modo oscuro se aclara un poco */
   /* Colores por categoría: SOLO en el ícono de categoría, el pin del mapa y el chip de categoría seleccionado */
   --cat-comer-bg:#FFF1E6;     --cat-comer:#C2410C;     /* Comercios y comidas: naranja mandarina */
   --cat-comer-borde:#FDBA74;  --cat-comer-texto:#9A3412; /* chip activo de Comercios: borde y texto (6.6:1) */
@@ -53,6 +54,7 @@
   --blanco-14:rgba(255,255,255,.14);
   --blanco-60:rgba(255,255,255,.6);
   --velo-foto:linear-gradient(180deg,rgba(27,31,59,0) 30%,rgba(27,31,59,.82) 100%);
+  --velo-banner:linear-gradient(180deg,rgba(27,31,59,.1) 0%,rgba(27,31,59,.5) 40%,rgba(27,31,59,.88) 100%); /* texto blanco AA sobre cualquier foto */
   --whatsapp:#25D366;       /* logo oficial; el glifo blanco va encima (marca: exento de contraste) */
   --google-azul:#4285F4;--google-verde:#34A853;--google-amarillo:#FBBC05;--google-rojo:#EA4335;
   /* Tipografía (Poppins): pantalla 26 px, sección 18 px, texto 16 px, metadatos 13 px, números 30 px */
@@ -1006,25 +1008,33 @@ button:disabled{opacity:.6;pointer-events:none}
 .slide-ilu{position:absolute;right:12px;top:50%;margin-top:-37px}
 .slide-pie{align-self:flex-start;flex-wrap:wrap;gap:6px 10px;margin-top:auto;padding-top:10px}
 /* ---------- Radio en vivo ---------- */
-/* Tarjeta del inicio */
-.tarjeta-radio{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;margin-bottom:24px;border-radius:var(--radius-lg);background:var(--ink);color:var(--bg)}
-.tr-ic{width:48px;height:48px;border-radius:var(--radius-md);background:var(--primary-500);display:grid;place-items:center;flex-shrink:0}
-.tr-tx{flex:1;min-width:0;display:flex;flex-direction:column}
-.tr-tx small{font-size:var(--text-2xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-200)}
-.tr-tx b{font-size:var(--text-base);font-weight:600;line-height:1.25}
-.tr-estado{font-size:var(--text-xs);color:var(--blanco-92)}
-.tr-play,.rb-play{width:48px;height:48px;border-radius:var(--radius-full);background:var(--bg);color:var(--primary-700);display:grid;place-items:center;flex-shrink:0;transition:transform var(--t)}
-.tr-play:active,.rb-play:active{transform:scale(.94)}
-/* Mini reproductor: tarjeta flotante sobre la barra inferior; deja libre el botón central de Cupones */
-.radio-barra{position:relative;z-index:24;display:flex;align-items:center;gap:10px;margin:0 12px 34px;padding:8px 6px 8px 10px;border-radius:var(--radius-lg);background:var(--ink);color:var(--bg);box-shadow:var(--shadow-md);flex-shrink:0}
+.rb-play{width:44px;height:44px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;flex-shrink:0;transition:transform var(--t)}
+.rb-play:active{transform:scale(.94)}
+/* Mini reproductor (52 px) justo encima de la barra inferior. Un hueco curvo (máscara) deja libre el botón central
+   de Cupones; el texto y los controles quedan a los lados del hueco. */
+/* El centro del botón de Cupones queda 5 px por debajo del borde de la barra inferior */
+.radio-barra{--hueco:35px;--hueco-y:6px;--fab-centro:calc(100% + var(--hueco-y) + 5px);position:relative;z-index:24;flex-shrink:0;display:grid;grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);align-items:center;
+  height:52px;margin:0 8px var(--hueco-y);padding:0 4px 0 8px;border-radius:var(--radius-lg);background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  -webkit-mask:radial-gradient(circle var(--hueco) at 50% var(--fab-centro),transparent calc(var(--hueco) - 1px),var(--ink) var(--hueco));
+  mask:radial-gradient(circle var(--hueco) at 50% var(--fab-centro),transparent calc(var(--hueco) - 1px),var(--ink) var(--hueco))}
 .radio-barra[hidden]{display:none}
-.rb-ic{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--primary-500);display:grid;place-items:center;flex-shrink:0}
-.rb-tx{flex:1;min-width:0;display:flex;flex-direction:column}
-.rb-tx b{font-size:var(--text-sm);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rb-tx small{font-size:var(--text-2xs);color:var(--blanco-92)}
-.radio-barra.error .rb-tx small{color:var(--sun-400)}
-.rb-play{width:44px;height:44px}
-.rb-cerrar{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--blanco-92);flex-shrink:0}
+.rb-izq{display:flex;align-items:center;gap:8px;min-width:0}
+.rb-der{display:flex;align-items:center;justify-content:flex-end}
+.rb-ic{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--primary-500);color:var(--bg);display:grid;place-items:center;flex-shrink:0}
+.rb-tx{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.rb-tx b{font-size:var(--text-sm);font-weight:600;color:var(--ink)}
+.rb-tx small{font-size:var(--text-2xs);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.radio-barra.error .rb-tx small{color:var(--danger-700)}
+.rb-cerrar{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);flex-shrink:0}
+/* Píldora "EN VIVO · 88.1 FM" junto al saludo (32 px visibles, 44 px de área táctil) */
+.saludo-hora{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sh-tx{min-width:0}
+.pildora-radio{position:relative;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);font-size:var(--text-2xs);font-weight:700;letter-spacing:.04em;white-space:nowrap;transition:background var(--t),color var(--t)}
+.pildora-radio::after{content:"";position:absolute;inset:-6px -2px}
+.pildora-radio.on{background:var(--primary-500);color:var(--bg)}
+.punto-vivo{width:8px;height:8px;border-radius:var(--radius-full);background:var(--primary-500);animation:latido 1.6s ease-in-out infinite}
+.pildora-radio.on .punto-vivo{background:var(--bg)}
+@keyframes latido{50%{opacity:.3}}
 /* Ecualizador mientras suena; ícono que gira mientras conecta (sin movimiento si se pidió) */
 .ecualizador{display:flex;align-items:flex-end;gap:2px;height:16px}
 .ecualizador i{width:3px;height:100%;border-radius:2px;background:var(--bg);transform-origin:bottom;animation:barraEq .9s ease-in-out infinite alternate}
@@ -1146,3 +1156,33 @@ button:disabled{opacity:.6;pointer-events:none}
 .splash.corto .logo-nom b{animation-delay:.45s}
 .splash.corto .logo-nom>span{animation-delay:.55s}
 .pf-suelto{margin-top:12px;padding:0 16px;border:1px solid var(--line);border-radius:var(--radius-lg)}
+/* ---------- v4 · Fase 5: inicio más limpio ---------- */
+/* Cupones compactos: boletos de 236 x 92 (se ve uno y medio por pantalla) */
+.ticket-mini{--corte:52px;flex:0 0 236px;width:236px;min-width:0;height:92px;min-height:0}
+.ticket-mini .ticket-cuerpo{justify-content:center;gap:1px;padding:8px 12px 8px 14px}
+.ticket-mini .ticket-com,.ticket-mini .ticket-det{font-size:var(--text-2xs);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ticket-mini .ticket-tit{line-height:1.25}
+.ticket-mini .ticket-lado .ic{width:20px;height:20px}
+.carrusel{scroll-padding:0;scroll-padding-inline:16px}
+/* Carrusel del banner: cada diapositiva mide el ancho menos 40 px y se alinea al inicio con 16 px de margen */
+.banner-pista{gap:8px;margin:0 -16px;padding:0 16px;scroll-padding-inline:16px}
+.banner-pista>.slide{flex:0 0 calc(100% - 40px);scroll-snap-align:start}
+/* Banner con foto (negocio destacado y los que publica el admin) */
+.s-foto{justify-content:flex-start;background:var(--ink);color:var(--bg)}
+.slide-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.slide-velo{position:absolute;inset:0;background:var(--velo-banner);z-index:-1}
+.s-foto .slide-tag{display:inline-flex;align-items:center;gap:4px;background:var(--sun-400);color:var(--ink)}
+.s-foto .slide-tag,.s-foto .slide-tit,.s-foto .slide-sub,.s-foto .slide-pie{max-width:100%}
+.s-foto .slide-tit{margin-top:auto;color:var(--bg)}
+.s-foto .slide-sub{color:var(--blanco-92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.s-foto .slide-pie{margin-top:0;padding-top:8px}
+.s-foto .slide-btn{background:var(--bg);color:var(--primary-700)}
+/* Admin · banners */
+.banner-fila{align-items:center}
+.bf-foto{width:72px;height:44px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0}
+.foto-banner{display:grid;place-items:center;width:100%;aspect-ratio:2/1;margin:12px 0 16px;border:1.5px dashed var(--line);border-radius:var(--radius-lg);background:var(--soft);color:var(--ink-2);cursor:pointer;overflow:hidden}
+.foto-banner:focus-within{outline:3px solid var(--primary-700);outline-offset:2px}
+.foto-banner img{width:100%;height:100%;object-fit:cover}
+.foto-banner.cargando{opacity:.6}
+.fb-vacio{display:flex;flex-direction:column;align-items:center;gap:6px}
+.fb-vacio b{color:var(--ink);font-size:var(--text-sm)}
