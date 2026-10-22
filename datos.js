@@ -14,7 +14,7 @@ const CAT={
 
 // Subcategorías (segundo nivel de filtros). Comercios usa el campo "sub"; Turismo usa "tipo".
 const SUBCATS={
-  comercio:[{k:'comidas',t:'🍕 Comidas'},{k:'ferreterias',t:'🛠️ Ferreterías'},{k:'mascotas',t:'🐶 Mascotas'},{k:'panaderias',t:'🥖 Panaderías'},{k:'salud',t:'🏥 Salud'},{k:'talleres',t:'🚗 Talleres'},{k:'tiendas',t:'🛍️ Tiendas'}],
+  comercio:[{k:'comidas',t:'🍕 Comidas'},{k:'ferreterias',t:'🛠️ Ferreterías'},{k:'mascotas',t:'🐶 Mascotas'},{k:'panaderias',t:'🥖 Panaderías'},{k:'salud',t:'🏥 Salud'},{k:'servicios',t:'Servicios'},{k:'talleres',t:'🚗 Talleres'},{k:'tiendas',t:'🛍️ Tiendas'}],
   turismo:[{k:'sendero',t:'🥾 Senderos'},{k:'mirador',t:'🌄 Miradores'},{k:'cultural',t:'⛪ Cultura'},{k:'finca',t:'☕ Fincas y haciendas'}]
 };
 

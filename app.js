@@ -240,7 +240,7 @@ function horarioTexto(d){
 /* ===== ÍCONOS POR CATEGORÍA, SUBCATEGORÍA Y SERVICIO ===== */
 // Los emojis de datos.js se ignoran: el ícono sale de la categoría o subcategoría
 const ICONO_CAT={todas:'layout-grid',comercio:'store',campo:'sprout',turismo:'mountain',hospedaje:'bed-double',bares:'wine',tramite:'landmark',favoritos:'heart'};
-const ICONO_SUB={comidas:'utensils',ferreterias:'hammer',mascotas:'paw-print',panaderias:'croissant',salud:'stethoscope',talleres:'car',tiendas:'shopping-bag',
+const ICONO_SUB={comidas:'utensils',ferreterias:'hammer',mascotas:'paw-print',panaderias:'croissant',salud:'stethoscope',servicios:'hand-helping',talleres:'car',tiendas:'shopping-bag',
   sendero:'footprints',mirador:'binoculars',cultural:'church',finca:'tractor'};
 const NOMBRE_CAT_CORTO={comercio:'Comercios',campo:'Campo',turismo:'Turismo',hospedaje:'Hospedaje',bares:'Bares y licores',tramite:'Trámites'};
 function iconoDe(d){return ICONO_SUB[subDe(d)]||ICONO_CAT[d.cat]||'map-pin';}
@@ -826,7 +826,8 @@ function abrirDetalle(id){
     +bloqueCupones+bloquePremium
     +'<p class="mapa-label">'+icon('map',18)+'Ubicación'+(d.ubicacion_aprox?' aproximada del sector':'')+'</p>'
     +mapaHTML
-    +(esDueno?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('pencil')+'Editar mi comercio</button>':'')
+    +(esDueno?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('pencil')+'Editar mi comercio</button>'
+      :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
     +'<div class="det-pie">'+(!d.propietario_uid?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
@@ -848,7 +849,7 @@ function abrirDetalle(id){
   $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
   $$('#sheetDetalle [data-cupon]').forEach(b=>b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b));
-  if(esDueno)$('#btnEditar').onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
+  const be=$('#btnEditar');if(be)be.onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
   const br=$('#bReclamar');if(br)br.onclick=()=>{cerrar('ovDetalle');reclamarNegocio(d);};
   $('#bReportar').onclick=()=>{cerrar('ovDetalle');reportar(d);};
   $$('#sheetDetalle [data-rep]').forEach(b=>b.onclick=()=>{cerrar('ovDetalle');reportar(d,califs.find(c=>c._id===b.dataset.rep));});
