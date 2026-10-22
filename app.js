@@ -299,7 +299,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -593,7 +593,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard','billetera','cupones'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera','cupones','planes'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -609,6 +609,7 @@ function render(conservarScroll){
   else if(v.tipo==='admin')renderAdmin();
   else if(v.tipo==='billetera')renderBilletera();
   else if(v.tipo==='cupones')renderCuponesDisponibles();
+  else if(v.tipo==='planes')renderPlanes();
   else renderLista(v);
   renderHeader();renderBottomNav();
   cuerpo.scrollTop=scroll;
@@ -1754,8 +1755,8 @@ function renderDashboard(){
     ?'<div class="estado-card rech">'+icon('circle-alert',22)+'<div><b>Rechazado'+(d.motivo_rechazo?': '+esc(d.motivo_rechazo):'')+'</b><span>Corrige la información y envíala de nuevo a revisión.</span><button class="btn btn-secundario btn-sm mt-8" id="bCorregir">'+icon('pencil',16)+'Corregir y reenviar</button></div></div>'
     :'<div class="estado-card rev">'+icon('clock',22)+'<div><b>En revisión</b><span>Un administrador revisará tu negocio pronto. Mientras tanto no aparece en el directorio.</span></div></div>';
   const plan='<div class="plan-fila">'+(prem
-      ?'<span class="dc-plan prem">'+icon('star',14,'ic-fill')+'Premium hasta '+fechaCorta(d.suscripcion_vigente_hasta)+'</span>'
-      :'<span class="dc-plan">Plan Gratis</span>'+(pedido?'<span class="nota-c">Premium solicitado</span>':'<button class="btn btn-ghost" id="bPremium">'+icon('star',16)+'Solicitar Premium</button>'))+'</div>';
+      ?'<span class="dc-plan prem">'+icon('star',14,'ic-fill')+'Premium · '+textoVencePremium(d)+'</span>'
+      :'<span class="dc-plan">Plan Gratis</span>'+(pedido?'<span class="nota-c">Solicitud enviada, te avisaremos</span>':'<button class="btn btn-ghost" id="bPremium">'+icon('star',16)+'Ver planes</button>'))+'</div>';
   const cupones=estado.cuponesFS.filter(c=>c.comercio_id===d.id);
   const canjeadosDe=id=>canjesPropios.filter(k=>k.cupon_id===id&&k.estado==='usado').length;
   const listaCupones=cupones.length?'<p class="dash-section">Mis cupones</p>'+cupones.map(c=>{
@@ -1774,12 +1775,13 @@ function renderDashboard(){
     +(mis.length>1?'<label class="sr-only" for="selComercio">Elegir negocio</label><select class="input" id="selComercio">'+mis.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===d.id?' selected':'')+'>'+esc(x.nombre)+'</option>').join('')+'</select>':'<p class="dash-nombre">'+esc(d.nombre)+'</p>')
     +'</div>'+tarjetaEstado+plan
     +'<p class="dash-section">Este mes</p><div class="metricas">'
-    +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar'],['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]
-      .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')+'</div>'
+    +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar']].concat(prem?[['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]:[])
+      .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')
+    +(prem?'':'<button class="metrica bloqueada" data-planes>'+icon('trending-up',18)+chipPremium()+'<span>Estadísticas completas: cupones obtenidos y canjeados</span></button>')+'</div>'
     +'<div class="acciones-grid">'
     +'<button class="accion destacada" id="aEscanear">'+icon('scan-line',28)+'<b>Escanear cupón</b><span>Valida el cupón de un cliente</span></button>'
     +(prem?'<button class="accion" id="aCupon">'+icon('ticket',28)+'<b>Crear cupón</b><span>Atrae clientes con un beneficio</span></button>'
-          :'<button class="accion bloqueada" id="aCupon" aria-label="Crear cupón: disponible con Premium. Solicitar">'+icon('lock',28)+'<b>Crear cupón</b><span>Disponible con Premium · Solicitar</span></button>')
+          :'<button class="accion bloqueada" id="aCupon" aria-label="Crear cupón: función Premium. Ver planes">'+icon('ticket',28)+chipPremium()+'<b>Crear cupón</b><span>Atrae clientes con un beneficio</span></button>')
     +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
     +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
     +'<button class="accion" id="aFotos">'+icon('images',28)+'<b>Fotos</b><span>'+(d.fotos||[]).length+' de '+limiteFotos(d)+' · la primera es la portada</span></button>'
@@ -1788,20 +1790,22 @@ function renderDashboard(){
     +'<p class="dash-section">Canjes de hoy</p>'
     +(canjesHoy.length?canjesHoy.map(k=>'<div class="canje-fila">'+icon('badge-check',18)+'<div><b>'+esc(k.descripcion||'Cupón')+'</b><span>'+esc(k.usuario_nombre||'Cliente')+' · '+fechaHora(aMs(k.fecha_canje))+'</span></div></div>').join('')
       :'<p class="nota-c izq">Hoy aún no has canjeado cupones.</p>')
-    +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>':'')
+    +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>'
+      :'<button class="btn btn-secundario btn-bloque mt-16 btn-bloqueado" data-planes aria-label="Publicar una novedad: función Premium. Ver planes">'+icon('megaphone')+'Publicar una novedad'+chipPremium()+'</button>')
     +listaCupones
     +'<div class="perfil-acc mt-16"><button class="btn btn-secundario btn-bloque" id="bVerFicha">'+icon('eye')+'Ver mi ficha pública</button>'
     +'<button class="btn btn-ghost" id="bDashNuevo">'+icon('plus',18)+'Registrar otro negocio</button></div>'
     +'</div>'+footerHTML();
   const sel=$('#selComercio');if(sel)sel.onchange=()=>{estado.comercioSel=sel.value;render(true);};
   const bc=$('#bCorregir');if(bc)bc.onclick=()=>abrirFormComercio(d);
-  const bp=$('#bPremium');if(bp)bp.onclick=()=>solicitarPremium(d);
+  const bp=$('#bPremium');if(bp)bp.onclick=()=>irAPlanes(d);
+  $$('#cuerpo [data-planes]').forEach(b=>b.onclick=()=>irAPlanes(d));
   $('#aEscanear').onclick=()=>abrirEscaner(d);
-  $('#aCupon').onclick=()=>prem?formCupon(d):solicitarPremium(d);
+  $('#aCupon').onclick=()=>prem?formCupon(d):irAPlanes(d);
   $('#aEditar').onclick=()=>abrirFormComercio(d);
   $('#aQR').onclick=()=>miCodigoQR(d);
   $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
-  $('#aPlan').onclick=()=>prem?toast('Tu plan Premium está activo hasta el '+fechaCorta(d.suscripcion_vigente_hasta)):solicitarPremium(d);
+  $('#aPlan').onclick=()=>irAPlanes(d);
   const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
   $('#bVerFicha').onclick=()=>abrirDetalle(d.id);
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
@@ -1842,7 +1846,7 @@ async function solicitarPremium(d){
     try{
       await db.collection('solicitudes').add({tipo:'premium',plan:'premium',mensaje:$('#premMsg').value.trim().slice(0,300),comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
         usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
-      solicitudesPremium.add(d.id);cerrar('ovGen');toast('Solicitud enviada, te avisaremos.');render(true);
+      solicitudesPremium.add(d.id);cerrar('ovGen');toast('Solicitud enviada, te avisaremos.');render(true);medir('premium_solicitado');
     }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
   };
 }
@@ -1909,9 +1913,9 @@ function galeriaEditHTML(){
       +'<button type="button" class="foto-quitar" data-quitar-foto="'+i+'" aria-label="Eliminar la foto '+(i+1)+'">'+icon('x',16)+'</button></div>').join('')
     +(f.length<lim?'<label class="foto-agregar" for="wFotos">'+icon('image-plus',26)+'<span>Agregar</span></label>':'')
     +'</div><input type="file" id="wFotos" accept="image/*" multiple class="sr-only">'
-    +'<p class="ayuda">'+f.length+' de '+lim+' fotos · '+(lim===FOTOS_MAX.gratis?'Con Premium puedes subir hasta '+FOTOS_MAX.premium+'. ':'')+'La primera es la portada; arrastra para cambiar el orden.</p>';
+    +'<p class="ayuda">'+f.length+' de '+lim+' fotos · La primera es la portada; arrastra para cambiar el orden.'+(lim===FOTOS_MAX.gratis?' Con Premium, hasta '+FOTOS_MAX.premium+'. <button type="button" class="enlace" data-verplanes>Ver planes</button>':'')+'</p>';
 }
-function pintarGaleriaEdit(){const g=$('#wGaleriaCaja');if(!g)return;g.innerHTML=galeriaEditHTML();enlazarGaleriaEdit();}
+function pintarGaleriaEdit(){const g=$('#wGaleriaCaja');if(!g)return;g.innerHTML=galeriaEditHTML();enlazarGaleriaEdit();$$('#wGaleriaCaja [data-verplanes]').forEach(b=>b.onclick=verPlanesDesdeRegistro);}
 function moverFoto(de,a){
   const f=wiz.datos.fotos;if(a<0||a>=f.length||de===a)return;
   const [x]=f.splice(de,1);f.splice(a,0,x);
@@ -2069,6 +2073,67 @@ function mostrarBienvenida(){
   };
 }
 
+/* ===== PLANES PARA TU NEGOCIO (v4 · Fase 3) =====
+   Comparación Gratis / Premium. Premium es gratis durante la fase de pruebas: se solicita y lo activa el admin. */
+const PLANES_FILAS=[
+  ['Ficha completa, WhatsApp, llamada, mapa y horario',true,true],
+  ['Fotos',String(FOTOS_MAX.gratis),String(FOTOS_MAX.premium)],
+  ['Cupones de descuento con QR',false,true],
+  ['Aparecer en «Destacados» y primero en búsquedas',false,true],
+  ['Anuncio en el banner principal',false,'Sí (por turnos)'],
+  ['Novedades a usuarios que te siguen',false,true],
+  ['Estadísticas','Básicas','Completas'],
+  ['Redes sociales y sitio web en la ficha',false,true]
+];
+function celdaPlan(v){
+  if(v===true)return icon('check',20)+'<span class="sr-only">Sí</span>';
+  if(v===false)return '<span aria-hidden="true">—</span><span class="sr-only">No incluido</span>';
+  return esc(v);
+}
+// Candado para funciones Premium en el panel de un negocio Gratis (se ven, no se ocultan)
+function chipPremium(){return '<span class="chip-premium">'+icon('lock',12)+'Premium</span>';}
+function planesHTML(d,enRegistro){
+  const prem=d&&premiumVigente(d),pedido=d&&solicitudesPremium.has(d.id),mis=comerciosPropios;
+  let cta;
+  if(enRegistro)cta='<p class="nota-c">Termina el registro de tu negocio y luego solicita Premium desde su panel.</p><button class="btn btn-primario btn-bloque" id="plVolver">Volver al registro</button>';
+  else if(!d)cta='<p class="nota-c">Registra tu negocio gratis y luego solicita Premium.</p><button class="btn btn-primario btn-bloque" id="plRegistrar">'+icon('store',18)+'Registrar mi negocio</button>';
+  else if(prem)cta='<p class="plan-estado ok">'+icon('circle-check',20)+'«'+esc(d.nombre)+'» ya es Premium · '+textoVencePremium(d)+'</p>';
+  else if(pedido)cta='<p class="plan-estado">'+icon('clock',20)+'Solicitud enviada, te avisaremos.</p>';
+  else cta='<button class="btn btn-primario btn-bloque" id="plSolicitar">'+icon('star',18)+'Solicitar Premium</button>';
+  return '<div class="planes"><h2 class="titulo-planes">Planes para tu negocio</h2>'
+    +'<p class="plan-cinta">'+icon('sparkles',18)+'Premium es gratis durante la fase de pruebas</p>'
+    +(!enRegistro&&mis.length>1&&!prem?'<div class="campo mt-16"><label for="plNegocio">¿Para cuál negocio?</label><select class="input" id="plNegocio">'+mis.map(x=>'<option value="'+esc(x.id)+'"'+(d&&x.id===d.id?' selected':'')+'>'+esc(x.nombre)+'</option>').join('')+'</select></div>':'')
+    +'<table class="tabla-planes"><caption class="sr-only">Comparación de los planes Gratis y Premium</caption>'
+    +'<thead><tr><th scope="col">Beneficio</th><th scope="col">Gratis</th><th scope="col" class="col-prem">'+icon('star',14,'ic-fill')+'Premium</th></tr></thead>'
+    +'<tbody>'+PLANES_FILAS.map(([t,g,p])=>'<tr><th scope="row">'+esc(t)+'</th><td>'+celdaPlan(g)+'</td><td class="col-prem">'+celdaPlan(p)+'</td></tr>').join('')+'</tbody></table>'
+    +'<div class="planes-cta">'+cta+'</div></div>';
+}
+function enlazarPlanes(d,alCambiar){
+  const s=$('#plSolicitar');if(s)s.onclick=()=>solicitarPremium(d);
+  const r=$('#plRegistrar');if(r)r.onclick=registrarMiNegocio;
+  const n=$('#plNegocio');if(n)n.onchange=()=>{estado.comercioSel=n.value;alCambiar();};
+}
+function negocioDePlanes(){return comerciosPropios.find(c=>c.id===estado.comercioSel)||comerciosPropios[0]||null;}
+function renderPlanes(){
+  const d=negocioDePlanes();
+  $('#cuerpo').innerHTML='<div class="vista">'+planesHTML(d)+'</div>'+footerHTML();
+  enlazarPlanes(d,()=>render(true));enlazarFooter();
+  // Solicitudes ya enviadas (para mostrar "Solicitud enviada")
+  if(logueado())db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','premium').get().then(s=>{
+    const antes=[...solicitudesPremium].join();
+    s.docs.filter(x=>x.data().estado==='pendiente').forEach(x=>solicitudesPremium.add(x.data().comercio_id));
+    if([...solicitudesPremium].join()!==antes&&vistaActual().tipo==='planes')render(true);
+  }).catch(()=>{});
+}
+function irAPlanes(d){if(d)estado.comercioSel=d.id;navegar({tipo:'planes'});}
+// Desde el registro del negocio: los planes se ven en una hoja encima del asistente
+function verPlanesDesdeRegistro(){
+  abrirHoja('<div class="hoja-pad">'+planesHTML(wiz&&wiz.original,!(wiz&&wiz.editandoId))+'</div>');
+  $('#sheetGen').setAttribute('aria-label','Planes para tu negocio');
+  const v=$('#plVolver');if(v)v.onclick=()=>cerrar('ovGen');
+  enlazarPlanes(wiz&&wiz.original,()=>{});
+}
+
 /* ===== REGISTRO / EDICIÓN DE COMERCIO: asistente de 4 pasos (Fase 2.3) ===== */
 let wiz=null,wizMapa=null;
 const CATS_FORM=[['comercio','Comercios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
@@ -2113,7 +2178,8 @@ function pintarWizard(){
       +'<div class="campo mt-16"><label for="wDesc">Descripción</label><textarea id="wDesc" maxlength="400" placeholder="Cuenta en pocas líneas qué ofreces...">'+esc(d.desc)+'</textarea><p class="ayuda cuenta-car" id="wCont">'+d.desc.length+' / 400</p></div>'
       +(wizPremium()?'<div class="bloque-form"><p class="bloque-tit">'+icon('star')+'Opciones Premium</p>'
         +['instagram','facebook','tiktok','youtube','x'].map(k=>'<div class="campo"><label for="wRed_'+k+'">'+RED_TXT[k]+'</label><input type="url" id="wRed_'+k+'" placeholder="https://..." value="'+esc(d.redes[k]||'')+'"></div>').join('')
-        +'<div class="campo"><label for="wWeb">Sitio web</label><input type="url" id="wWeb" placeholder="https://www.tunegocio.com" value="'+esc(d.web)+'"><p class="ayuda">Debe comenzar con https://</p></div></div>':'');
+        +'<div class="campo"><label for="wWeb">Sitio web</label><input type="url" id="wWeb" placeholder="https://www.tunegocio.com" value="'+esc(d.web)+'"><p class="ayuda">Debe comenzar con https://</p></div></div>'
+      :'<button type="button" class="bloque-form bloque-premium-cerrado" data-verplanes>'+icon('globe',20)+'<span><b>Redes sociales y sitio web</b><small>Muéstralos en tu ficha con el plan Premium. Ver planes</small></span>'+chipPremium()+'</button>');
   }else{
     const vista={...(w.original||{}),id:'vista',nombre:d.nombre,cat:d.cat,sub:d.cat==='turismo'?'':d.sub,tipo:d.cat==='turismo'?d.sub:'',
       direccion:d.direccion||'Fusagasugá',desc:d.desc||'Negocio local de Fusagasugá.',imagen:(d.fotos[0]&&(d.fotos[0].src||d.fotos[0].thumb))||'',dias:d.dias,abre:d.abre,cierra:d.cierra,horario:textoHorarioWiz(),tel:d.tel,esPremium:false};
@@ -2149,6 +2215,7 @@ function pintarWizard(){
   if(p===3)$$('#sheetForm [data-wdia]').forEach(b=>b.onclick=()=>{guardarPasoWiz();const i=+b.dataset.wdia;d.dias=d.dias.includes(i)?d.dias.filter(x=>x!==i):[...d.dias,i];pintarWizard();});
   if(p===4){
     enlazarGaleriaEdit();
+    $$('#sheetForm [data-verplanes]').forEach(b=>b.onclick=verPlanesDesdeRegistro);
     $('#wDesc').oninput=e=>{$('#wCont').textContent=e.target.value.length+' / 400';};
   }
 }
@@ -2680,10 +2747,12 @@ function cambiosPremium(hasta){
 }
 function textoVencePremium(c){return c.suscripcion_vigente_hasta?'Vence el '+fechaCorta(c.suscripcion_vigente_hasta):'Sin fecha de fin';}
 // Lista de la pestaña Negocios: los de la nube (todos los estados) + los de muestra que aún no están en la nube
+// Copias de la carga inicial: documentos sin dueño con el nombre de un negocio de muestra (el directorio ya los ignora)
+function copiaVieja(c){return !c.propietario_uid&&!idsBase.has(c.id)&&nombresBase.has(norm(c.nombre).trim());}
 function negociosAdmin(D){
-  const nube=new Map(D.comercios.map(c=>[c.id,c]));
+  const nube=new Map(D.comercios.filter(c=>!copiaVieja(c)).map(c=>[c.id,c]));
   const semillas=COMERCIOS_BASE.filter(b=>!nube.has(b.id)).map(b=>({...b,_semilla:true,estado_publicacion:estado.ocultos.has(b.id)?'oculto':'aprobado'}));
-  return [...D.comercios,...semillas].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  return [...nube.values(),...semillas].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 }
 function chipEstadoAdmin(c){
   const e=c.estado_publicacion;
@@ -2763,7 +2832,7 @@ function renderAdmin(){
       +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
       +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>';
   }
-  const fotosAntiguas=D.comercios.filter(c=>/^data:image\//.test(c._raw.imagen||'')&&!(c._raw.fotos||[]).length);
+  const fotosAntiguas=D.comercios.filter(c=>!copiaVieja(c)&&/^data:image\//.test(c._raw.imagen||'')&&!(c._raw.fotos||[]).length);
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
     +'<div class="metricas">'+[['store',database.length,'Negocios publicados'],['clock',nNegocios+premium.length,'Por aprobar'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
       .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'
@@ -3053,7 +3122,7 @@ function renderBottomNav(){
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin'].includes(v.tipo));
+      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
