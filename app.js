@@ -269,7 +269,7 @@ const PTO='<span class="pto" aria-hidden="true">·</span>';
 /* ===== ANALÍTICA CON UMAMI (sin cookies ni datos personales) =====
    Solo en el sitio publicado y solo si hay un Website ID. Cada pantalla cuenta como una página
    (la app vive en una sola dirección) y se miden acciones clave sin nombres, correos ni ids de usuario. */
-const UMAMI={id:'',script:'https://cloud.umami.is/script.js',dominio:'fusa-conecta.netlify.app'};
+const UMAMI={id:'62b419e4-bcfa-465f-b47b-c617aa6392e6',script:'https://cloud.umami.is/script.js',dominio:'fusa-conecta.netlify.app'};
 const analitica={cola:[],ultima:''};
 (function(){
   if(!UMAMI.id||location.hostname!==UMAMI.dominio)return;
