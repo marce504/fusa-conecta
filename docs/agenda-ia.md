@@ -7,7 +7,7 @@ el admin o un organizador confiable, ellos mismos lo publican después de revisa
 ## 2.1 "Llenar con IA desde un afiche o texto" (en la app, plan Spark, costo $0)
 
 - Está en el formulario de evento del admin, de los organizadores y de los negocios.
-- Usa **Firebase AI Logic** (SDK web `firebase/ai` 12.19.0) con la **Gemini Developer API** (modelo `gemini-2.5-flash`) y salida estructurada (schema) con los campos de `eventos`. La clave la guarda Firebase: no está en el código.
+- Usa **Firebase AI Logic** (SDK web `firebase/ai` 12.19.0) con la **Gemini Developer API** (modelo `gemini-flash-lite-latest`; si falla, `gemini-3.8-flash`) y salida estructurada (schema) con los campos de `eventos`. La clave la guarda Firebase: no está en el código.
 - Se carga solo al usarla, en una app de Firebase aparte con la misma configuración (la inicialización principal no cambia).
 - Límite: **20 usos por persona al día** (`uso_ia/{uid}`, validado en `firestore.rules`). Si falla o no está activada, el formulario sigue a mano.
 

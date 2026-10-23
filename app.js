@@ -405,14 +405,15 @@ function formEvento(e,opc={}){
    la guarda Firebase (nunca va en este código). Se carga solo al usarla, en una app de Firebase aparte con la misma
    configuración: la inicialización principal no cambia. Con App Check (reCAPTCHA v3) si hay clave de sitio.
    Límite: 20 usos por persona al día (contador en Firestore, validado por las reglas). Si falla, el formulario sigue a mano. */
-const IA={version:'12.19.0',modelo:'gemini-2.5-flash',limiteDia:20,
+// Modelos en orden: el rápido primero; si está saturado o sin cupo, el siguiente (gemini-2.5-flash ya no se ofrece a proyectos nuevos)
+const IA={version:'12.19.0',modelos:['gemini-flash-lite-latest','gemini-3.8-flash'],limiteDia:20,
   recaptcha:''};   // clave de SITIO reCAPTCHA v3 (es pública) cuando se active App Check en la consola
-let modeloIA=null;
+let modelosIA=null;
 const esOrganizador=()=>!!(estado.perfil&&estado.perfil.rol==='organizador');
 const organizadorConfiable=()=>esOrganizador()&&estado.perfil.confiable===true;
 const puedeUsarIA=()=>logueado()&&(esAdmin()||esComerciante()||esOrganizador());
 async function obtenerModeloIA(){
-  if(modeloIA)return modeloIA;
+  if(modelosIA)return modelosIA;
   const base='https://www.gstatic.com/firebasejs/'+IA.version+'/';
   const {initializeApp,getApps}=await import(base+'firebase-app.js');
   const {getAI,getGenerativeModel,GoogleAIBackend,Schema}=await import(base+'firebase-ai.js');
@@ -436,8 +437,8 @@ async function obtenerModeloIA(){
       enlace_fuente:Schema.string({description:'Enlace https de la publicación oficial, si aparece'})},
     optionalProperties:['descripcion','fecha_fin','precio','organizador','enlace_fuente']});
   const ai=getAI(app,{backend:new GoogleAIBackend()});
-  modeloIA=getGenerativeModel(ai,{model:IA.modelo,generationConfig:{responseMimeType:'application/json',responseSchema:esquema,temperature:0}});
-  return modeloIA;
+  modelosIA=IA.modelos.map(m=>getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:'application/json',responseSchema:esquema,temperature:0}}));
+  return modelosIA;
 }
 // Cuenta un uso de hoy (día UTC); las reglas impiden pasar de 20 o saltarse el contador
 async function contarUsoIA(){
@@ -470,7 +471,7 @@ function enlazarIAEvento(alLlenar){
     const b=$('#iaLlenar');b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Leyendo…';est('');
     try{
       const quedan=await contarUsoIA();
-      const modelo=await obtenerModeloIA();
+      const modelos=await obtenerModeloIA();
       const hoy=new Date(),p=n=>String(n).padStart(2,'0');
       const pedido='Hoy es '+hoy.getFullYear()+'-'+p(hoy.getMonth()+1)+'-'+p(hoy.getDate())+' en Colombia. Extrae UN evento público de Fusagasugá o Pasca (Cundinamarca) '
         +'del afiche o texto. Reglas: no inventes datos; si falta el año, usa la próxima fecha futura; si falta la hora, usa 09:00; si falta el fin, 2 horas después; '
@@ -478,7 +479,11 @@ function enlazarIAEvento(alLlenar){
         +'Categorías: '+CATS_EVENTO.map(c=>c[0]+' ('+c[1]+')').join(', ')+'.'+(texto?'\n\nTEXTO:\n'+texto:'');
       const partes=[{text:pedido}];
       if(afiche)partes.push({inlineData:{mimeType:afiche.src.slice(5,afiche.src.indexOf(';')),data:afiche.src.split(',')[1]}});
-      const r=await modelo.generateContent(partes);
+      let r=null;
+      for(let i=0;i<modelos.length;i++){
+        try{r=await modelos[i].generateContent(partes);break;}
+        catch(e){if(i===modelos.length-1||!/(404|429|500|503)|high demand|quota|no longer available/i.test(e.message))throw e;}
+      }
       const d=JSON.parse(r.response.text());
       alLlenar(d,afiche);
       medir('evento_ia',{con_afiche:!!afiche});

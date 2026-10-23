@@ -14,7 +14,7 @@ const FUENTES = [
 ];
 const PALABRAS = ['evento', 'festival', 'concierto', 'feria', 'celebración', 'programación', 'cultura', 'deporte', 'caminata', 'mercado campesino'];
 const CATEGORIAS = ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro'];
-const MODELO = process.env.MODELO_IA || 'gemini-2.5-flash';
+const MODELO = process.env.MODELO_IA || 'gemini-flash-lite-latest';
 const DIA = 864e5, ahora = Date.now();
 
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
