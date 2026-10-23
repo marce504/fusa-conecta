@@ -17,7 +17,7 @@ el admin o un organizador confiable, ellos mismos lo publican después de revisa
 2. **App Check** (recomendado, para que solo la app use la IA):
    1. En https://www.google.com/recaptcha/admin crea una clave **reCAPTCHA v3** para los dominios `fusa-conecta.web.app` y `fusa-conecta.firebaseapp.com`.
    2. Consola de Firebase → **App Check** → registra la app web con esa clave (proveedor reCAPTCHA v3) y pon la **clave secreta** allí.
-   3. Pásame la **clave de sitio** (es pública): va en `IA.recaptcha` en `app.js`. Con eso la app pide el token de App Check antes de llamar a Gemini.
+   3. La **clave de sitio** de `fusa-conecta.web.app` ya está en `IA.recaptcha` (`app.js`); la app pide el token de App Check solo en ese dominio.
    4. Cuando veas tráfico verificado en App Check → Firebase AI Logic, pulsa **Enforce**.
 3. Opcional: en AI Logic → Settings pon un límite de solicitudes por usuario por minuto.
 
