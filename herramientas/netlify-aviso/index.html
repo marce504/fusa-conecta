@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fusa Conecta se mudó</title>
+<meta name="description" content="Fusa Conecta tiene nueva dirección: fusa-conecta.web.app">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://fusa-conecta.web.app/">
+<meta name="theme-color" content="#6B4EFF">
+<link rel="icon" href="https://fusa-conecta.web.app/icono-app.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  /* Aviso en la dirección vieja de Netlify (v6 · Fase 5). Mismos colores de la app. */
+  :root{
+    --bg:#FFFFFF;--soft:#F4F4F8;--line:#E7E8F0;--ink:#1B1F3B;--ink-2:#5B6178;
+    --primary-50:#F1EEFF;--primary-500:#6B4EFF;--primary-600:#5A3DF0;--primary-700:#4F35D8;--blanco:#FFFFFF;
+    --radius-md:12px;--radius-xl:28px;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#121420;--soft:#1A1D2E;--line:#2B2F47;--ink:#ECEEF8;--ink-2:#A8AEC6;--primary-50:#221C45;--primary-700:#B7A8FF;
+  }}
+  *{box-sizing:border-box;margin:0}
+  body{min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--ink);font-family:Poppins,system-ui,sans-serif;line-height:1.5;
+    display:flex;align-items:center;justify-content:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
+  main{width:100%;max-width:440px;text-align:center}
+  .logo{width:72px;height:72px;border-radius:20px;display:block;margin:0 auto 20px}
+  h1{font-size:26px;font-weight:800;line-height:1.2;margin-bottom:8px}
+  p{color:var(--ink-2);font-size:16px}
+  .dir{display:inline-block;margin:16px 0 24px;padding:8px 16px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700);font-weight:600;word-break:break-all}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:var(--radius-md);
+    background:var(--primary-500);color:var(--blanco);font:600 16px Poppins,system-ui,sans-serif;text-decoration:none;transition:background .2s}
+  .btn:hover{background:var(--primary-600)}
+  .btn:focus-visible{outline:3px solid var(--primary-700);outline-offset:3px}
+  .pasos{margin-top:28px;padding:20px;border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--soft);text-align:left}
+  .pasos h2{font-size:17px;margin-bottom:8px;color:var(--ink)}
+  .pasos ol{padding-left:22px;color:var(--ink-2)}
+  .pasos li{margin-top:6px}
+  .pasos b{color:var(--ink)}
+  .ic{width:20px;height:20px;flex-shrink:0}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <img class="logo" src="https://fusa-conecta.web.app/icono-app.png" alt="" width="72" height="72">
+  <h1>Fusa Conecta se mudó</h1>
+  <p>La app sigue igual, con todos los negocios, cupones, rutas y eventos de Fusagasugá y Pasca. Solo cambió la dirección:</p>
+  <span class="dir">fusa-conecta.web.app</span>
+  <a class="btn" id="ir" href="https://fusa-conecta.web.app/">Abrir la nueva Fusa Conecta
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+  <section class="pasos" aria-labelledby="tPasos">
+    <h2 id="tPasos">Si la tenías instalada en tu celular</h2>
+    <ol>
+      <li>Toca <b>Abrir la nueva Fusa Conecta</b>.</li>
+      <li>Instálala de nuevo desde ahí: en Android, menú del navegador → <b>Instalar app</b>; en iPhone, <b>Compartir</b> → <b>Agregar a inicio</b>.</li>
+      <li>Borra el ícono viejo de tu pantalla de inicio.</li>
+    </ol>
+    <p style="margin-top:12px;font-size:14px">Tus favoritos y cupones están en tu cuenta: entra con el mismo correo y siguen ahí.</p>
+  </section>
+</main>
+<script>
+  // Conserva la ruta y los parámetros (por ejemplo, un enlace compartido) al pasar a la dirección nueva
+  try{var a=document.getElementById('ir');a.href='https://fusa-conecta.web.app'+location.pathname+location.search+location.hash;}catch(e){}
+</script>
+</body>
+</html>

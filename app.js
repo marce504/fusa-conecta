@@ -660,7 +660,8 @@ db.collection('emergencias').onSnapshot(s=>{
 },()=>{});
 function listaEmergencias(mun){const e=estado.emergencias[mun];return e&&e.lista&&e.lista.length?e.lista:EMERGENCIAS[mun];}
 
-function premiumVigente(d){if(!d.esPremium)return false;return !d.suscripcion_vigente_hasta||d.suscripcion_vigente_hasta>Date.now();}
+// Premium activo: negocio con dueño, marcado Premium y sin vencer (los negocios de muestra nunca son Premium ni «Destacado»)
+function premiumVigente(d){if(!d.esPremium||!d.propietario_uid)return false;return !d.suscripcion_vigente_hasta||d.suscripcion_vigente_hasta>Date.now();}
 // Solo cuentan las calificaciones reales de usuarios: sin reseñas no se muestran estrellas
 function calificacionDe(d){
   const l=estado.califs[d.id]||[];
@@ -1018,8 +1019,8 @@ function renderSugerencias(){
 /* ===== TARJETA DE LUGAR ===== */
 function fotoHTML(d,cls){
   const img=imgSegura(d.imagen);
-  return '<div class="'+cls+'"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d))+'</span>'
-    +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.remove()">':'');
+  return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
+    +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'');
 }
 function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
 function enlazarTarjetas(){
@@ -1108,6 +1109,7 @@ function renderLista(v){
   if(estado.listaClave!==JSON.stringify([v.cat,v.sub,v.todo,estado.q])){estado.listaClave=JSON.stringify([v.cat,v.sub,v.todo,estado.q]);estado.limiteLista=POR_PAGINA;}
   if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
+    destacadosInicio=new Set();
     html=tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
       +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
@@ -1178,7 +1180,7 @@ function slidesBanner(){
   const l=[],bs=estado.banners||[];
   const finde=slideFinDeSemana();if(finde)l.push(finde);
   const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
-  if(dc)l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
+  if(dc&&premiumVigente(dc))l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
     tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio',
     ilu:'<span class="ilu-circulo">'+icon(iconoDe(dc),30)+'</span>'});
   bs.filter(b=>b.tipo==='foto'&&b.imagen&&bannerVigente(b)).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:b.etiqueta||'',tit:b.titulo||'',sub:b.texto||'',
@@ -1271,15 +1273,21 @@ function registrarMiNegocio(){
 /* ===== TARJETA COMPACTA (v5 · Fase 3) =====
    168 px en carruseles y ancho flexible en la cuadrícula de 2 columnas. Foto 4:3, corazón arriba a la derecha,
    insignia "Cupón" o "Destacado" arriba a la izquierda; toda la tarjeta abre la ficha (el nombre es el enlace y lo cubre todo). */
+let destacadosInicio=null;   // mientras se arma el inicio: negocios que ya llevan «Destacado» (máximo 6)
+function llevaDestacado(d){
+  if(!premiumVigente(d))return false;if(!destacadosInicio)return true;
+  if(destacadosInicio.has(d.id))return true;if(destacadosInicio.size>=6)return false;destacadosInicio.add(d.id);return true;
+}
 function tarjetaHTML(d){
   const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=imgSegura(d.imagen);
   const insignia=cuponesDe(d).length?'<span class="tc-ins cupon">'+icon('ticket',12)+'Cupón</span>'
-    :premiumVigente(d)?'<span class="tc-ins dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'';
+    :llevaDestacado(d)?'<span class="tc-ins dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'';
   // Abierto o "Cierra pronto" cuando aplica; si no, la categoría y la distancia
   const linea=ap&&ap.abierto?estadoHTML(ap,d.id):'<span class="tc-cat">'+esc(etiquetaDe(d))+(km!=null?' · '+fmtDist(km):'')+'</span>';
   return '<article class="tarjeta">'
-    +'<div class="tc-foto"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),28)+'</span>'
-      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+insignia
+    +'<div class="tc-foto c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),44)+'</span>'
+      +'<span class="tc-sf-nombre" aria-hidden="true">'+esc(d.nombre)+'</span>'
+      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'')+insignia
       +'<button class="tc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',18)+'</button></div>'
     +'<h3 class="tc-nombre"><button class="tc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
     +(cal.total?'<p class="tc-calif">'+icon('star',14,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' <span>('+cal.total+')</span></p>':'')
@@ -1946,11 +1954,11 @@ async function publicarCupon(){
     await db.collection('cupones').add({comercio_id:d.id,propietario_uid:estado.usuario.uid,comercio_nombre:d.nombre,descripcion:cw.texto,tipo:cw.tipo,
       porcentajeDescuento:cw.tipo==='descuento'?cw.pct:null,cupo_total:cw.cupo,cupo_restante:cw.cupo,vigencia:vigenciaCW(),
       dias:cw.dias.length&&cw.dias.length<7?cw.dias:null,terminos:cw.terminos,estado:'activo',fecha_creacion:FV.serverTimestamp()});
-    $('#sheetForm').innerHTML='<div class="grab"></div><div class="hoja-pad hoja-centro listo-cupon"><div class="mc-ic ambar">'+icon('sparkles',28)+'</div>'
+    $('#sheetForm').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" id="cwCerrar2" aria-label="Cerrar">'+icon('x')+'</button><div class="hoja-pad hoja-centro listo-cupon"><div class="mc-ic ambar">'+icon('sparkles',28)+'</div>'
       +'<h2>¡Cupón publicado!</h2><p>Tu cupón ya está visible en tu ficha y en «Cupones de la semana».</p>'
       +ticketHTML({icono:ICONO_TIPO_CUPON[cw.tipo],comercio:d.nombre,titulo:cw.texto,detalle:esc('Vence el '+fechaCorta(aMs(vigenciaCW())))})
       +'<button class="btn btn-primario btn-bloque mt-16" id="cwListo">Listo</button></div>';
-    $('#cwListo').onclick=()=>{cerrar('ovForm');if(vistaActual().tipo==='dashboard')render(true);};
+    $('#cwListo').onclick=$('#cwCerrar2').onclick=()=>{cerrar('ovForm');if(vistaActual().tipo==='dashboard')render(true);};
     confeti();vibrar(30);
   }catch(e){console.error(e);toast('No se pudo publicar el cupón. Revisa que tu plan Premium esté vigente.');btn.disabled=false;btn.innerHTML=icon('ticket')+'Publicar cupón';}
 }
@@ -4159,9 +4167,9 @@ function estadoBanner(b){
 function bannersAdminHTML(){
   const bs=estado.banners||[],dest=bs.find(b=>b.id==='destacado'),dc=dest&&buscar(dest.comercio_id);
   const fotos=bs.filter(b=>b.tipo==='foto').sort(porOrden);
-  const opciones=[...database].sort((a,b)=>(premiumVigente(b)-premiumVigente(a))||a.nombre.localeCompare(b.nombre,'es'));
+  const opciones=database.filter(premiumVigente).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   return '<p class="dash-section">Negocio destacado</p>'
-    +'<p class="nota-c izq">Un solo espacio, el primero del banner principal. Ve cambiándolo para que los negocios Premium se turnen.</p>'
+    +'<p class="nota-c izq">Un solo espacio, el primero del banner principal. Solo aparecen los negocios con Premium activo: ve cambiándolo para que se turnen.</p>'+(dc&&!premiumVigente(dc)?'<p class="nota-c izq">«'+esc(dc.nombre)+'» ya no tiene Premium activo y no se está mostrando.</p>':'')
     +'<div class="campo"><label for="admDest">Negocio que se muestra</label><select class="input" id="admDest"><option value="">Ninguno</option>'
     +opciones.map(c=>'<option value="'+esc(c.id)+'"'+(dc&&dc.id===c.id?' selected':'')+'>'+esc(c.nombre)+(premiumVigente(c)?' · Premium':'')+'</option>').join('')+'</select></div>'
     +'<button class="btn btn-secundario btn-sm" id="admDestGuardar">'+icon('star',16)+'Guardar destacado</button>'
@@ -4499,6 +4507,37 @@ $('#loginLogo').innerHTML=logo('iso','claro',{alto:44});
 // Tocar fuera de la hoja la cierra con cerrar(), para que corran sus tareas de cierre (alCerrar)
 $$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.id!=='ovConsent'&&ov.id!=='ovConfirm')cerrar(ov.id);}));
 alCerrar.ovDetalle=quitarPreviaRelieve;
+/* v6 · Fase 5: las hojas se cierran con la X, deslizando hacia abajo y con Esc (todo pasa por su botón de cerrar,
+   así cada hoja hace lo mismo que al tocar la X: confirmar si hay cambios, apagar la cámara, etc.) */
+function cerrarCapa(ov){const b=ov.querySelector('#cfNo,#edadNo,#cerrarDet,.btn-redondo.cerrar,[data-cerrar]');if(b)b.click();else cerrar(ov.id);}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||vista3D)return;
+  const abiertas=[...$$('.overlay.abierto')].filter(o=>o.id!=='ovConsent');if(!abiertas.length)return;
+  const z=o=>+getComputedStyle(o).zIndex||0;
+  e.preventDefault();cerrarCapa(abiertas.reduce((a,b)=>z(b)>=z(a)?b:a));
+});
+$$('.overlay .sheet').forEach(sh=>{
+  let y0=null,dy=0,t0=0;
+  sh.addEventListener('touchstart',e=>{
+    const t=e.target;y0=null;
+    if(e.touches.length!==1||t.closest('input,textarea,select,.leaflet-container,.maplibregl-map,.carrusel,.galeria,.galeria-edit,.wiz-mapa'))return;
+    if(sh.scrollTop>0&&!t.closest('.grab'))return;   // con el contenido desplazado, el gesto es para volver arriba
+    y0=e.touches[0].clientY;dy=0;t0=Date.now();
+  },{passive:true});
+  sh.addEventListener('touchmove',e=>{
+    if(y0==null)return;dy=e.touches[0].clientY-y0;
+    if(dy<=0||sh.scrollTop>0){sh.style.transform='';if(sh.scrollTop>0)y0=null;return;}
+    e.preventDefault();sh.style.transition='none';sh.style.transform='translateY('+dy+'px)';
+  },{passive:false});
+  const soltar=()=>{
+    if(y0==null)return;y0=null;sh.style.transition='';
+    if(dy>120||(dy>40&&Date.now()-t0<250)){
+      sh.style.transform='translateY(100%)';cerrarCapa(sh.closest('.overlay'));
+      setTimeout(()=>{sh.style.transform='';},260);   // si la hoja pidió confirmar y sigue abierta, vuelve a su sitio
+    }else sh.style.transform='';
+  };
+  sh.addEventListener('touchend',soltar);sh.addEventListener('touchcancel',soltar);
+});
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
 function ocultarSplash(){$('#splash').classList.add('oculto');colorBarra('--bg');}

@@ -1,3 +1,8 @@
-# La app se mudó a Firebase Hosting: toda dirección vieja de Netlify (QR, enlaces compartidos,
-# apps instaladas) pasa a la misma ruta en el dominio nuevo con una redirección permanente (301).
-/*  https://fusa-conecta.web.app/:splat  301!
+# Solo para Netlify (Firebase lo ignora). La app se mudó a Firebase Hosting.
+# 1. /sw.js entrega un service worker que limpia la app vieja instalada (si /sw.js redirigiera, el navegador
+#    no podría actualizarlo y la app instalada se quedaría en la versión vieja para siempre).
+# 2. La portada (también /?origen=app, con la que abre la app instalada) muestra el aviso con el enlace nuevo.
+# 3. Todo lo demás (QR, enlaces compartidos) pasa a la misma ruta en el dominio nuevo (301).
+/sw.js  /herramientas/netlify-aviso/sw.js       200!
+/       /herramientas/netlify-aviso/index.html  200!
+/*      https://fusa-conecta.web.app/:splat     301!
