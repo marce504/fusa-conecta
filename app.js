@@ -407,7 +407,7 @@ function formEvento(e,opc={}){
    Límite: 20 usos por persona al día (contador en Firestore, validado por las reglas). Si falla, el formulario sigue a mano. */
 // Modelos en orden: el rápido primero; si está saturado o sin cupo, el siguiente (gemini-2.5-flash ya no se ofrece a proyectos nuevos)
 const IA={version:'12.19.0',modelos:['gemini-flash-lite-latest','gemini-3.8-flash'],limiteDia:20,
-  recaptcha:'6LdJi_0tAAAAAHM--injdgPK3u6mGcpBKBeE6Vwe'};   // clave de SITIO reCAPTCHA v3 de fusa-conecta.web.app (es pública; la secreta está en App Check)
+  recaptcha:''};   // clave de SITIO reCAPTCHA v3 (es pública) cuando se active App Check en la consola
 let modelosIA=null;
 const esOrganizador=()=>!!(estado.perfil&&estado.perfil.rol==='organizador');
 const organizadorConfiable=()=>esOrganizador()&&estado.perfil.confiable===true;
@@ -418,7 +418,7 @@ async function obtenerModeloIA(){
   const {initializeApp,getApps}=await import(base+'firebase-app.js');
   const {getAI,getGenerativeModel,GoogleAIBackend,Schema}=await import(base+'firebase-ai.js');
   const app=getApps().find(a=>a.name==='fusa-ia')||initializeApp(firebase.app().options,'fusa-ia');
-  if(IA.recaptcha&&location.hostname==='fusa-conecta.web.app'){
+  if(IA.recaptcha){
     const {initializeAppCheck,ReCaptchaV3Provider}=await import(base+'firebase-app-check.js');
     try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider(IA.recaptcha),isTokenAutoRefreshEnabled:true});}catch(e){}
   }

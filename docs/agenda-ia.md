@@ -14,11 +14,7 @@ el admin o un organizador confiable, ellos mismos lo publican después de revisa
 ### Activarla (lo hace la dueña del proyecto en la consola; 5 minutos)
 
 1. https://console.firebase.google.com/project/fusa-conecta/ailogic → **Get started** → elige **Gemini Developer API** (sin costo, plan Spark). Firebase crea y protege la clave.
-2. **App Check** (recomendado, para que solo la app use la IA):
-   1. En https://www.google.com/recaptcha/admin crea una clave **reCAPTCHA v3** para los dominios `fusa-conecta.web.app` y `fusa-conecta.firebaseapp.com`.
-   2. Consola de Firebase → **App Check** → registra la app web con esa clave (proveedor reCAPTCHA v3) y pon la **clave secreta** allí.
-   3. La **clave de sitio** de `fusa-conecta.web.app` ya está en `IA.recaptcha` (`app.js`); la app pide el token de App Check solo en ese dominio.
-   4. Cuando veas tráfico verificado en App Check → Firebase AI Logic, pulsa **Enforce**.
+2. **App Check**: por ahora **no se usa**. Google retiró el reCAPTCHA clásico y su reemplazo (Fraud Defense / reCAPTCHA Enterprise) pide una cuenta de facturación. En el plan Spark no hay cobros: lo peor es que se gaste el cupo diario gratis y ese día el formulario se llene a mano. Si el proyecto pasa a un plan con facturación, se activa con `ReCaptchaEnterpriseProvider` y la clave de sitio va en `IA.recaptcha`.
 3. Opcional: en AI Logic → Settings pon un límite de solicitudes por usuario por minuto.
 
 Capa gratuita de Gemini (Developer API): límites por minuto y por día por proyecto; con 20 usos por persona al día y pocas personas que publican eventos queda muy por debajo. Si algún día se supera, la IA responde con error y el formulario sigue a mano.
