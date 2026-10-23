@@ -60,13 +60,11 @@ function aplicarTema(pref=temaElegido()){
 }
 function elegirTema(pref){try{localStorage.setItem('fc_tema',pref);}catch(e){}aplicarTema(pref);medir('tema',{tema:pref});}
 if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
-// Teselas del mapa: OpenStreetMap en claro, CARTO Dark Matter en oscuro
+// Teselas del mapa: siempre OpenStreetMap; en modo noche se oscurecen con un filtro solo en el panel de teselas (CSS)
 function capaBase(){
-  const o=temaOscuro();
-  return L.tileLayer(o?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {maxZoom:19,subdomains:o?'abcd':'abc',attribution:o?'© OpenStreetMap © CARTO':'© OpenStreetMap'});
+  return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'});
 }
-function urlTesela(z,x,y){return temaOscuro()?'https://a.basemaps.cartocdn.com/dark_all/'+z+'/'+x+'/'+y+'.png':'https://tile.openstreetmap.org/'+z+'/'+x+'/'+y+'.png';}
+function urlTesela(z,x,y){return 'https://tile.openstreetmap.org/'+z+'/'+x+'/'+y+'.png';}
 const ls={
   get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},
@@ -371,7 +369,7 @@ const LOGO_HOJAS=[ // superior (la del circuito), izquierda, derecha, inferior
   'M262.57,90.62c.06-.61.27-1.16.62-1.65.72-1.01,3.27-4.48,7.64-10.41,1.25-1.68,2.77-3.02,4.95-2.05.61.27,1.2.85,1.76,1.74,1.17,1.84,1.8,2.82,1.87,2.94,2.88,4.58,5.62,9.96,8.22,16.13,4.15,9.85,6.82,20.05,8.02,30.61.54,4.79.98,9.99.78,15.02-.35,8.64-1.27,16.33-2.77,23.05-4.83,21.66-15.89,41.49-32.11,56.92-6.46,6.15-12.96,11.05-20.04,16.01-3.07,2.15-6.04,4.48-8.92,7-8.15,7.11-14.68,16.11-19.36,25.84-.74,1.53-1.83,3.51-3.73,3.74-1.8.23-2.98-.58-3.53-2.41-.4-1.32-.67-2.88-.84-4.69-.14-1.53-.26-4.38-.37-8.54-.07-2.91-.06-7.38.05-13.43.08-4.79.97-9.68,2.67-14.66,1.78-5.26,4.2-10.17,7.25-14.73,2.06-3.08,3.43-5.02,4.12-5.84,2.47-2.93,4.21-5.2,6.71-7.77,5.75-5.93,10.26-10.56,13.53-13.91,1.32-1.36,2.83-1.84,4.53-1.44,1.05.25,1.58.37,1.59.37,1.83.21,3.16.29,3.98.23,4.63-.3,8.47-2.14,11.52-5.55,3.23-3.62,4.86-8.59,4.1-13.42-.93-5.83-4.71-10.65-10.12-12.88-6.07-2.5-12.99-1.01-17.57,3.58-3.46,3.47-5.11,7.82-4.96,13.06.02.59.24,1.73.67,3.43.45,1.81.11,3.18-1.15,4.48-10.51,10.88-17.42,18.06-20.71,21.54-1.24,1.31-3.4,1.54-4.73.3-.76-.71-1.17-1.67-1.23-2.87-.41-8.05-.15-18.38-.21-23.49-.04-3.51.13-6.35.51-8.54,2.18-12.48,8.76-22.45,17.21-31.51,7.54-8.09,13.66-14.58,18.36-19.46,1.52-1.59,2.98-1.77,5.34-1.59,1.81.13,3.31.11,4.49-.08,4.77-.75,8.49-3.18,11.17-7.29,2.62-4.02,3.37-8.43,2.25-13.23-.31-1.31-1.13-2.87-1.46-3.83-.08-.23-.11-.48-.08-.72h0Z',
   'M150.76,170.79c1.49-.64,3.57.78,4.67,1.81,3.92,3.63,7.77,7.22,11.55,10.78,2.8,2.64,5.21,5.1,7.24,7.39,2.54,2.86,4.69,5.54,6.46,8.05,5.84,8.28,9.07,18.17,10.2,28.1.58,5.07.9,10.58.96,15.58.1,9.01-.16,18.15-.75,27.41-.1,1.54-.23,3.9-1.56,4.95-2.06,1.63-4.09.3-4.96-1.87-1.53-3.85-2.73-6.64-3.58-8.37-3.01-6.11-6.84-11.34-11.51-15.68-3.49-3.25-7.65-6.3-12.48-9.16-.04-.02-.88-.54-2.53-1.54-9.65-5.87-18.29-13.1-25.91-21.69-8.27-9.33-14.69-19.91-19.23-31.73-3.63-9.42-5.81-19.07-6.55-28.93-.44-5.81-.43-11.94.02-18.39.12-1.67.4-2.78.84-3.33,1.55-1.93,4.05-1.51,5.99-.07,6.64,4.91,12.4,9.52,17.29,13.84,1.24,1.1,1.14,2.47.81,4.25-.47,2.47-.52,4.61-.16,6.42.82,4.11,2.68,7.36,5.57,9.76,5.02,4.17,11.65,5.04,17.64,2.43h0Z'];
 // Colores de las hojas por tema (variables de :root)
-const LOGO_COLORES={claro:['--primary-500','--mint-300','--mint-600','--mint-400'],lila:['--sobre-color','--teal-300','--mint-300','--teal-200'],oscuro:['--sobre-color','--teal-300','--mint-300','--teal-200']};
+const LOGO_COLORES={claro:['--primary-500','--mint-300','--mint-600','--mint-400'],lila:['--blanco','--teal-300','--mint-300','--teal-200'],oscuro:['--blanco','--teal-300','--mint-300','--teal-200']};
 function isoSVG(clase,tema,enLinea){
   // enLinea: rellenos escritos en el SVG (para dibujarlo fuera de la página: póster, ícono)
   const col=LOGO_COLORES[tema]||LOGO_COLORES.claro;
@@ -410,7 +408,8 @@ function renderHeader(){
   const v=vistaActual();
   const enLista=v.tipo==='lista';
   // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
-  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista);
+  // Las pestañas de la barra inferior (Inicio, Mapa, Cupones, Favoritos, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
+  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','perfil'].includes(v.tipo));
   $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
@@ -690,19 +689,23 @@ const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
 function formaSVG(cls,x,y,t,giro){return '<svg class="forma '+cls+'" style="left:'+x+'%;top:'+y+'%;width:'+t+'px;height:'+t+'px;transform:rotate('+giro+'deg)" viewBox="0 0 100 100" aria-hidden="true"><path d="'+HOJA_SVG+'"/></svg>';}
 function cuponesActivosTotal(){let n=0;database.forEach(d=>n+=cuponesDe(d).length);return n;}
 function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
-// Banners propios de la app: foto real de Fusa con la capa violeta de la marca; el de cupones sigue ilustrado
+// Banners propios de la app: todos con foto real de Fusa (WebP 800 px) y el velo de su color;
+// si una foto no carga queda el fondo de color con la ilustración
 function slidesBase(){
   return [
-    {id:'bienvenida',foto:'img/comercios/pueblito-fusagasugueno.jpg',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
-      sub:'Comercios, rutas y emergencias de Fusa y Pasca.',accion:'explorar',textoBoton:'Explorar'},
-    {id:'cupones',cls:'s-cupones',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',sub:'Toma un descuento, muéstralo en caja y ahorra unos pesos.',
-      boton:'<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
-      ilu:formaSVG('f-blanca',50,-14,64,40)+'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',
+    {id:'bienvenida',foto:'img/banners/bienvenida.webp',velo:'violeta',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
+      sub:'Comercios, rutas y emergencias de Fusa y Pasca.',accion:'explorar',textoBoton:'Explorar',
+      ilu:'<span class="ilu-logo">'+logo('iso','lila',{alto:56,decorativo:true})+'</span>'},
+    {id:'cupones',foto:'img/banners/cupones.webp',velo:'sol',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',
+      sub:'Toma un descuento, muéstralo en caja y ahorra.',accion:'cupones',textoBoton:'Ver cupones',
+      ilu:'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',iluSiempre:true,
       extra:'<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>'},
-    {id:'negocio',foto:'img/comercios/hacienda-coloma-museo-del-cafe.jpg',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',
-      sub:'Llega a más vecinos y turistas de la región.',accion:'negocio',textoBoton:'Registrar mi negocio'},
-    {id:'opinion',foto:'img/comercios/cerro-fusacatan.jpg',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',
-      sub:'Cuéntanos qué te gustó y qué cambiarías.',accion:'opinion',textoBoton:'Dar mi opinión'}
+    {id:'negocio',foto:'img/banners/negocio.webp',velo:'menta',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',
+      sub:'Llega a más vecinos y turistas de la región.',accion:'negocio',textoBoton:'Registrar mi negocio',
+      ilu:'<span class="ilu-circulo">'+icon('store',30)+'</span>'},
+    {id:'opinion',foto:'img/banners/opinion.webp',velo:'noche',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',
+      sub:'Cuéntanos qué te gustó y qué cambiarías.',accion:'opinion',textoBoton:'Dar mi opinión',
+      ilu:'<span class="ilu-circulo">'+icon('message-circle-heart',30)+'</span>'}
   ];
 }
 const porOrden=(a,b)=>(a.orden||0)-(b.orden||0);
@@ -725,15 +728,18 @@ function slidesBanner(){
 }
 function slideHTML(s,i,n){
   const aria=' role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(s.tit)+'" data-sid="'+esc(s.id)+'"';
-  // Banner con foto: el texto va a la izquierda sobre la capa violeta de la marca (85 % → transparente al 60 % del ancho)
-  if('foto' in s)return '<div class="slide s-foto'+(s.comercio?' s-destacado':'')+'"'+aria+'>'
-    +(s.foto?'<img class="slide-foto" src="'+esc(s.foto)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'<span class="slide-velo" aria-hidden="true"></span>'
+  // Foto (z 0) → velo de color de izquierda a derecha (z 1) → texto (z 2), dentro del contexto de apilamiento de la diapositiva.
+  // Carga inmediata (en un carrusel horizontal "lazy" deja sin cargar las que no se ven); la primera con prioridad alta.
+  // Si la foto falla, se oculta y queda el fondo de color con la ilustración.
+  const v=s.velo||'violeta';
+  return '<div class="slide s-foto v-'+v+(s.comercio?' s-destacado':'')+(s.foto?'':' sin-foto')+(s.iluSiempre?' ilu-siempre':'')+'"'+aria+'>'
+    +(s.foto?'<img class="slide-foto" src="'+esc(s.foto)+'" alt="" loading="eager" decoding="async"'+(i===0?' fetchpriority="high"':'')
+      +' onerror="this.hidden=true;this.closest(\'.slide\').classList.add(\'sin-foto\')">':'')
+    +'<span class="slide-velo" aria-hidden="true"></span>'
+    +(s.ilu?'<div class="slide-ilu" aria-hidden="true">'+s.ilu+'</div>':'')
     +(s.tag?'<span class="slide-tag">'+(s.comercio?icon('star',12,'ic-fill'):'')+esc(s.tag)+'</span>':'')
     +'<h2 class="slide-tit">'+esc(s.tit)+'</h2>'+(s.sub?'<p class="slide-sub">'+esc(s.sub)+'</p>':'')
-    +(s.accion?'<div class="slide-pie"><button class="slide-btn" data-slide="'+esc(s.accion)+'">'+esc(s.textoBoton)+icon('arrow-right',16)+'</button></div>':'')+'</div>';
-  return '<div class="slide '+s.cls+'"'+aria+'><div class="slide-ilu" aria-hidden="true">'+s.ilu+'</div>'
-    +'<span class="slide-tag">'+s.tag+'</span><h2 class="slide-tit">'+s.tit+'</h2><p class="slide-sub">'+s.sub+'</p>'
-    +'<div class="slide-pie">'+s.boton+(s.extra||'')+'</div></div>';
+    +(s.accion?'<div class="slide-pie"><button class="slide-btn" data-slide="'+esc(s.accion)+'">'+esc(s.textoBoton)+icon('arrow-right',16)+'</button>'+(s.extra||'')+'</div>':'')+'</div>';
 }
 function bannerHTML(sl){
   return '<div class="banner-pista" id="bannerPista">'+sl.map((s,i)=>slideHTML(s,i,sl.length)).join('')+'</div>'
@@ -799,7 +805,7 @@ function accionSlide(k){
 function registrarMiNegocio(){
   if(logueado()){abrirFormComercio(null);return;}
   guardarAccionPendiente('negocio');
-  abrirLogin('registro',false,'Crea tu cuenta gratis y registra tu negocio enseguida.');
+  abrirLogin('registro',false,'Crea tu cuenta gratis para registrar tu negocio.');
 }
 
 /* ===== SECCIONES DEL INICIO ===== */
@@ -971,7 +977,7 @@ async function pintarQR(el,texto,tam){
   try{
     await cargarScript('lib/qrcode.min.js');
     el.innerHTML='';
-    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--tinta-fija'),colorLight:cssVar('--sobre-color'),correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(el,{text:texto,width:tam,height:tam,colorDark:cssVar('--tinta-fija'),colorLight:cssVar('--blanco'),correctLevel:QRCode.CorrectLevel.M});
     return true;
   }catch(e){return false;}
 }
@@ -1616,7 +1622,14 @@ async function renderMapa(){
   if(pos&&mapaActivo===m){
     L.marker(pos,{icon:pinUsuario(),title:'Estás aquí'}).addTo(m).bindPopup('Estás aquí');
     if(distanciaKm(pos,PLAZA_FUSA)<25)m.setView(pos,15);
-  }else if(mapaActivo===m){$('#mapaInfo').textContent+=' · sin GPS: centrado en la plaza principal';}
+  }else if(mapaActivo===m){
+    $('#mapaInfo').textContent='Activa tu ubicación para ver lo más cercano';
+    const b=document.createElement('button');b.className='btn btn-tonal btn-sm';b.id='mapaGPS';b.innerHTML=icon('locate-fixed',16)+'Activar';
+    $('.mapa-head').appendChild(b);
+    b.onclick=async()=>{const p=await pedirUbicacion();if(mapaActivo!==m)return;
+      if(!p){toast('No pudimos ver tu ubicación. Permite el acceso en los ajustes del navegador.');return;}
+      L.marker(p,{icon:pinUsuario(),title:'Estás aquí'}).addTo(m).bindPopup('Estás aquí');m.setView(p,15);b.remove();$('#mapaInfo').textContent=items.length+' lugares cerca de ti';};
+  }
   setTimeout(()=>m.invalidateSize(),200);
 }
 
@@ -1856,19 +1869,15 @@ async function renderRecorrido(id){
 }
 
 /* ---------- Vista 3D (MapLibre + relieve) con vuelo de cámara y video opcional ---------- */
-function estilo3D(){
-  const o=temaOscuro();
+const ESTILO_3D={claro:'https://tiles.openfreemap.org/styles/liberty',oscuro:'https://tiles.openfreemap.org/styles/dark'};
+// Relieve: Terrarium (Mapzen / AWS) como terreno 3D y sombreado debajo de las etiquetas
+function agregarRelieve(mapa){
   const dem={type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:15,
-    attribution:'Relieve: <a href="https://github.com/tilezen/joerd">Mapzen / AWS Terrain Tiles</a>'};
-  return {version:8,
-    sources:{
-      base:{type:'raster',tileSize:256,maxzoom:19,
-        tiles:o?['a','b','c','d'].map(s=>'https://'+s+'.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'):['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'+(o?' © <a href="https://carto.com/attributions">CARTO</a>':'')},
-      relieve:dem,sombras:{...dem}},
-    layers:[{id:'base',type:'raster',source:'base'},
-      {id:'sombras',type:'hillshade',source:'sombras',paint:{'hillshade-exaggeration':.4,'hillshade-shadow-color':cssVar('--tinta-fija'),'hillshade-highlight-color':cssVar('--sobre-color'),'hillshade-accent-color':cssVar('--tinta-fija')}}],
-    terrain:{source:'relieve',exaggeration:1.5}};
+    attribution:'Relieve: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Mapzen / AWS Terrain Tiles</a>'};
+  mapa.addSource('relieve',dem);mapa.addSource('sombras',{...dem});
+  const etiquetas=(mapa.getStyle().layers||[]).find(l=>l.type==='symbol');
+  mapa.addLayer({id:'sombras',type:'hillshade',source:'sombras',paint:{'hillshade-exaggeration':.35,'hillshade-shadow-color':cssVar('--tinta-fija'),'hillshade-highlight-color':cssVar('--blanco'),'hillshade-accent-color':cssVar('--tinta-fija')}},etiquetas&&etiquetas.id);
+  mapa.setTerrain({source:'relieve',exaggeration:1.5});
 }
 // Punto y rumbo a una distancia (km) del inicio de la línea
 function puntoEn(linea,acum,d){
@@ -1900,17 +1909,18 @@ async function abrir3D(o){
   const acum=[0];for(let i=1;i<o.linea.length;i++)acum.push(acum[i-1]+distanciaKm(o.linea[i-1],o.linea[i]));
   const total=acum[acum.length-1]||0;
   const lim=linea.reduce((b,p)=>[[Math.min(b[0][0],p[0]),Math.min(b[0][1],p[1])],[Math.max(b[1][0],p[0]),Math.max(b[1][1],p[1])]],[[180,90],[-180,-90]]);
-  const mapa=new maplibregl.Map({container:'tdMapa',style:estilo3D(),bounds:lim,fitBoundsOptions:{padding:60},pitch:55,maxPitch:75,
-    preserveDrawingBuffer:!!o.video,attributionControl:{compact:true},fadeDuration:0});
+  const mapa=new maplibregl.Map({container:'tdMapa',style:temaOscuro()?ESTILO_3D.oscuro:ESTILO_3D.claro,bounds:lim,fitBoundsOptions:{padding:60},pitch:55,maxPitch:75,
+    preserveDrawingBuffer:!!o.video,attributionControl:{compact:false},fadeDuration:0});
   vista3D={mapa,raf:0,grabador:null,cont};
   vista3D.k=0;vista3D.idx=0;
   mapa.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
   const fotosMarc=[];
   mapa.on('load',()=>{
+    try{agregarRelieve(mapa);}catch(e){}
     $('#tdEstado').textContent=fmtKm(total)+' · Toca «Recorrer» para volar por el sendero';
     mapa.addSource('ruta',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linea}}});
     mapa.addSource('avance',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linea.slice(0,1)}}});
-    mapa.addLayer({id:'ruta-borde',type:'line',source:'ruta',paint:{'line-color':cssVar('--sobre-color'),'line-width':['interpolate',['linear'],['zoom'],11,6,16,11],'line-opacity':.7},layout:{'line-cap':'round','line-join':'round'}});
+    mapa.addLayer({id:'ruta-borde',type:'line',source:'ruta',paint:{'line-color':cssVar('--blanco'),'line-width':['interpolate',['linear'],['zoom'],11,6,16,11],'line-opacity':.7},layout:{'line-cap':'round','line-join':'round'}});
     mapa.addLayer({id:'ruta',type:'line',source:'ruta',paint:{'line-color':cssVar('--primary-500'),'line-width':['interpolate',['linear'],['zoom'],11,3.5,16,6]},layout:{'line-cap':'round','line-join':'round'}});
     mapa.addLayer({id:'avance',type:'line',source:'avance',paint:{'line-color':cssVar('--sun-400'),'line-width':['interpolate',['linear'],['zoom'],11,4,16,7]},layout:{'line-cap':'round','line-join':'round'}});
     (o.fotos||[]).filter(f=>f.lat!=null).forEach(f=>{const el=document.createElement('div');el.className='td-foto';el.innerHTML='<img src="'+f.data+'" alt="">';
@@ -1965,7 +1975,7 @@ async function grabarVideo3D(mapa,o,volar,boton){
     const velo=C('--velo-escaner');
     const g1=ctx.createLinearGradient(0,0,0,360);g1.addColorStop(0,velo);g1.addColorStop(1,'transparent');ctx.fillStyle=g1;ctx.fillRect(0,0,W,360);
     const g2=ctx.createLinearGradient(0,H-520,0,H);g2.addColorStop(0,'transparent');g2.addColorStop(1,velo);ctx.fillStyle=g2;ctx.fillRect(0,H-520,W,520);
-    ctx.fillStyle=C('--sobre-color');ctx.textBaseline='alphabetic';
+    ctx.fillStyle=C('--blanco');ctx.textBaseline='alphabetic';
     ctx.font='800 64px '+fuente;ctx.fillText(recortar(ctx,r.nombre,W-120),60,130);
     ctx.font='500 36px '+fuente;ctx.fillText(fechaCorta(r.inicio)+' · Fusa Conecta',60,190);
     const stats=[[fmtKm(r.distancia),'Distancia'],[fmtDuracion(r.activo),'Tiempo'],[(r.desnivel||0)+' m','Desnivel']];
@@ -1976,7 +1986,7 @@ async function grabarVideo3D(mapa,o,volar,boton){
     if(ultima>iFotoVista){iFotoVista=ultima;desde=performance.now();}
     if(iFotoVista>=0&&performance.now()-desde<2200){
       const im=fotos[iFotoVista].img,fw=760,fh=Math.round(fw*im.height/im.width);
-      ctx.fillStyle=C('--sobre-color');ctx.fillRect((W-fw)/2-14,560-14,fw+28,Math.min(fh,900)+28);
+      ctx.fillStyle=C('--blanco');ctx.fillRect((W-fw)/2-14,560-14,fw+28,Math.min(fh,900)+28);
       ctx.drawImage(im,0,0,im.width,Math.min(im.height,im.width*900/fw),(W-fw)/2,560,fw,Math.min(fh,900));
     }
   }
@@ -2009,7 +2019,7 @@ async function compartirTarjeta(r,fotos){
   const ctx=cv.getContext('2d'),C=n=>cssVarClaro(n),fuente=getComputedStyle(document.body).fontFamily;
   ctx.fillStyle=C('--primary-500');ctx.fillRect(0,0,W,H);
   ctx.fillStyle=C('--primary-600');ctx.beginPath();ctx.arc(W+80,-60,520,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=C('--sobre-color');ctx.textBaseline='alphabetic';
+  ctx.fillStyle=C('--blanco');ctx.textBaseline='alphabetic';
   ctx.font='600 40px '+fuente;ctx.fillText(r.completo?'META ALCANZADA':'MI RECORRIDO',80,150);
   ctx.font='800 76px '+fuente;ctx.fillText(recortar(ctx,r.nombre,W-160),80,250);
   ctx.font='500 38px '+fuente;ctx.fillText(fechaHora(r.inicio),80,310);
@@ -2020,12 +2030,12 @@ async function compartirTarjeta(r,fotos){
   const X=p=>cx.x+cx.w/2+((p[1]-(mlo+xlo)/2)*k)*s,Y=p=>cx.y+cx.h/2-(p[0]-(mla+xla)/2)*s;
   ctx.fillStyle=C('--blanco-14');ctx.beginPath();ctx.roundRect?ctx.roundRect(cx.x-20,cx.y-20,cx.w+40,cx.h+40,40):ctx.rect(cx.x-20,cx.y-20,cx.w+40,cx.h+40);ctx.fill();
   ctx.lineJoin=ctx.lineCap='round';
-  ctx.strokeStyle=C('--sobre-color');ctx.lineWidth=22;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p)));ctx.stroke();
+  ctx.strokeStyle=C('--blanco');ctx.lineWidth=22;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p)));ctx.stroke();
   ctx.strokeStyle=C('--sun-400');ctx.lineWidth=12;ctx.stroke();
-  const punto=(p,col)=>{ctx.fillStyle=C('--sobre-color');ctx.beginPath();ctx.arc(X(p),Y(p),22,0,Math.PI*2);ctx.fill();ctx.fillStyle=C(col);ctx.beginPath();ctx.arc(X(p),Y(p),13,0,Math.PI*2);ctx.fill();};
+  const punto=(p,col)=>{ctx.fillStyle=C('--blanco');ctx.beginPath();ctx.arc(X(p),Y(p),22,0,Math.PI*2);ctx.fill();ctx.fillStyle=C(col);ctx.beginPath();ctx.arc(X(p),Y(p),13,0,Math.PI*2);ctx.fill();};
   punto(pts[0],'--mint-600');punto(pts[pts.length-1],'--primary-700');
   // Datos
-  ctx.fillStyle=C('--sobre-color');
+  ctx.fillStyle=C('--blanco');
   [[fmtKm(r.distancia),'Distancia'],[fmtDuracion(r.activo),'Tiempo'],[(r.desnivel||0)+' m','Desnivel']].forEach(([v,t],i)=>{
     const x=80+i*320;ctx.font='700 60px '+fuente;ctx.fillText(v,x,1260);ctx.font='500 32px '+fuente;ctx.fillText(t,x,1308);});
   // Perfil de elevación
@@ -2039,7 +2049,7 @@ async function compartirTarjeta(r,fotos){
     const sc=Math.max(t/im.width,t*.66/im.height);ctx.drawImage(im,x+(t-im.width*sc)/2,y+(t*.66-im.height*sc)/2,im.width*sc,im.height*sc);ctx.restore();});
   // Marca
   const iso=await imagenDeSVG(isoSVG('','lila',true).replace('<svg ','<svg width="194" height="276" ')).catch(()=>null);
-  ctx.fillStyle=C('--sobre-color');ctx.font='800 44px '+fuente;
+  ctx.fillStyle=C('--blanco');ctx.font='800 44px '+fuente;
   if(iso)ctx.drawImage(iso,W-80-44-240,H-112,44,62);
   ctx.fillText('Fusa Conecta',W-80-232,H-62);
   const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
@@ -2197,7 +2207,7 @@ function renderPerfil(){
     cuerpo.innerHTML='<div class="vista"><div class="perfil-card"><div class="pf-av">'+icon('user',28)+'</div><h2>Estás explorando como invitado</h2>'
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
-      +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Tengo un negocio</button></div></div>'
+      +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
       +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
@@ -3241,7 +3251,7 @@ function miniMapaHTML(lat,lng){
   const tx=Math.floor(fx),ty=Math.floor(fy),px=(fx-tx)*256,py=(fy-ty)*256;
   let t='';for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)t+='<img src="'+urlTesela(z,tx+dx,ty+dy)+'" alt="" loading="lazy" style="left:'+((dx+1)*256)+'px;top:'+((dy+1)*256)+'px">';
   return '<div class="mini-mapa" role="img" aria-label="Ubicación en el mapa"><div class="mm-teselas" style="left:calc(50% - '+(256+px).toFixed(1)+'px);top:calc(50% - '+(256+py).toFixed(1)+'px)">'+t+'</div>'
-    +'<span class="mm-pin">'+icon('map-pin',30)+'</span><span class="mm-atrib">© OpenStreetMap'+(temaOscuro()?' © CARTO':'')+'</span></div>';
+    +'<span class="mm-pin">'+icon('map-pin',30)+'</span><span class="mm-atrib">© OpenStreetMap</span></div>';
 }
 // Vista previa real de la ficha para decidir: fotos, datos, horario, teléfono para llamar y mini mapa
 function vistaPreviaAdminHTML(c,acciones){
