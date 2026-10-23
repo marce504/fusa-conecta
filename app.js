@@ -130,15 +130,18 @@ const nombresBase=new Set(COMERCIOS_BASE.map(c=>norm(c.nombre).trim()));
 const idsBase=new Set(COMERCIOS_BASE.map(c=>c.id));
 let comerciosNube=[];
 let database=COMERCIOS_BASE.map(c=>({...c}));
+// v6 · Fase 3: Mascotas, Salud, Talleres y Servicios dejaron Comercios y ahora son subcategorías de Servicios
+const SUB_A_SERVICIOS={talleres:'mecanica',mascotas:'mascotas',salud:'salud',servicios:'profesionales'};
 function normalizarNube(id,x){
-  const cat=CAT[x.cat]?x.cat:(CAT[x.categoria]?x.categoria:'comercio');
+  let cat=CAT[x.cat]?x.cat:(CAT[x.categoria]?x.categoria:'comercio'),sub=x.sub||'';
+  if(cat==='comercio'&&SUB_A_SERVICIOS[sub]){cat='servicios';sub=SUB_A_SERVICIOS[sub];}
   const tel=telLimpio(x.tel);
   return {id,cat,emoji:x.emoji||CAT[cat].emoji,rating:+x.rating||0,nombre:x.nombre||'Sin nombre',desc:x.desc||'',
     horario:x.horario||'',dias:x.dias||null,abre:x.abre||'',cierra:x.cierra||'',direccion:x.direccion||'Fusagasugá',
     tel,whatsapp:x.whatsapp||(esCelular(tel)?tel:''),imagen:x.imagen||'',lat:x.lat,lng:x.lng,ubicacion_aprox:x.ubicacion_aprox!==false,
     esPremium:!!x.esPremium,suscripcion_vigente_hasta:aMs(x.suscripcion_vigente_hasta),prioridadBusqueda:+x.prioridadBusqueda||0,
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
-    tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||'',
+    tipo:x.tipo||'',sub,nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
     fotos:Array.isArray(x.fotos)?x.fotos:[],creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
 }
@@ -735,10 +738,11 @@ function horarioTexto(d){
 
 /* ===== ÍCONOS POR CATEGORÍA, SUBCATEGORÍA Y SERVICIO ===== */
 // Los emojis de datos.js se ignoran: el ícono sale de la categoría o subcategoría
-const ICONO_CAT={todas:'layout-grid',comercio:'store',campo:'sprout',turismo:'mountain',hospedaje:'bed-double',bares:'wine',tramite:'landmark',favoritos:'heart'};
-const ICONO_SUB={comidas:'utensils',ferreterias:'hammer',mascotas:'paw-print',panaderias:'croissant',salud:'stethoscope',servicios:'hand-helping',talleres:'car',tiendas:'shopping-bag',
+const ICONO_CAT={todas:'layout-grid',comercio:'store',servicios:'hand-helping',campo:'sprout',turismo:'mountain',hospedaje:'bed-double',bares:'wine',tramite:'landmark',favoritos:'heart'};
+const ICONO_SUB={comidas:'utensils',ferreterias:'hammer',mascotas:'paw-print',panaderias:'croissant',salud:'stethoscope',tiendas:'shopping-bag',
+  hogar:'wrench',belleza:'scissors',lavanderia:'washing-machine',mecanica:'car',tecnologia:'smartphone',transporte:'truck',profesionales:'briefcase',educacion:'graduation-cap',
   sendero:'footprints',mirador:'binoculars',cultural:'church',finca:'tractor'};
-const NOMBRE_CAT_CORTO={comercio:'Comercios',campo:'Campo',turismo:'Turismo',hospedaje:'Hospedaje',bares:'Bares y licores',tramite:'Trámites'};
+const NOMBRE_CAT_CORTO={comercio:'Comida y tiendas',servicios:'Servicios',campo:'Campo',turismo:'Turismo',hospedaje:'Hospedaje',bares:'Bares y licores',tramite:'Trámites'};
 function iconoDe(d){return ICONO_SUB[subDe(d)]||ICONO_CAT[d.cat]||'map-pin';}
 function etiquetaDe(d){return nombreSub(d.cat,subDe(d))||NOMBRE_CAT_CORTO[d.cat]||'Lugar';}
 const RED_IC={instagram:'instagram',facebook:'facebook',tiktok:'link',youtube:'youtube',x:'twitter'};
@@ -885,7 +889,7 @@ function renderHeader(){
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
   $('#bNovedades').onclick=abrirNovedades;
-  const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comercios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
+  const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comida y tiendas'},{k:'servicios',t:'Servicios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'" role="tab" aria-selected="'+(v.cat===c.k)+'">'+icon(ICONO_CAT[c.k],18)+c.t+'</button>').join('');
   $$('#cats .cat').forEach(b=>b.onclick=()=>{
@@ -899,7 +903,7 @@ function renderHeader(){
 }
 /* ===== SEGUNDO NIVEL: filtros rápidos + subcategorías =====
    Filtros rápidos (Abierto ahora, Con cupón, municipio) al inicio de la fila;
-   luego las subcategorías de Comercios (en Todas y Comercios) o de Turismo. */
+   luego las subcategorías de Comida y tiendas, Servicios o Turismo. */
 function renderSubcategorias(v){
   const fila=$('#subcats'),cont=$('#filaSub');
   const subs=['todas','favoritos'].includes(v.cat)?[]:(SUBCATS[v.cat]||[]).filter(s=>database.some(d=>d.cat===v.cat&&subDe(d)===s.k));
@@ -960,7 +964,7 @@ function abrirFiltros(){
 
 function subDe(d){return d.cat==='turismo'?(d.tipo||''):(d.sub||'');}
 // Nombre de la subcategoría sin el emoji que trae datos.js
-function nombreSub(cat,k){const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^[^\p{L}]+/u,'').trim():'';}
+function nombreSub(cat,k){if(GRUPOS_SUB[k])return GRUPOS_SUB[k].t;const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^[^\p{L}]+/u,'').trim():'';}
 function irABares(){if(estado.mayorEdad){navegar({tipo:'lista',cat:'bares'});return;}abrir('ovEdad');}
 
 /* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19) ===== */
@@ -990,7 +994,7 @@ function ordenar(items,orden='recomendados'){
 function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
   let items=[...database];
   if(cat&&cat!=='todas'&&cat!=='favoritos')items=items.filter(d=>d.cat===cat);
-  if(sub)items=items.filter(d=>subDe(d)===sub);
+  if(sub){const g=GRUPOS_SUB[sub];items=items.filter(d=>g?g.subs.includes(subDe(d)):subDe(d)===sub);}
   if(cat==='favoritos')items=items.filter(d=>estado.favoritos.includes(String(d.id)));
   if(cat==='todas'&&!estado.mayorEdad)items=items.filter(d=>d.cat!=='bares');
   if(conFiltros){
@@ -1118,7 +1122,7 @@ function renderLista(v){
     const motivo=estado.q?'No encontramos resultados para «'+esc(estado.q)+'»'
       :estado.filtros.municipio==='Pasca'?'Aún no hay lugares registrados en Pasca con estos filtros'
       :'No hay lugares que cumplan estos filtros';
-    const sug=[['comercio','Comercios'],['turismo','Turismo'],['hospedaje','Hospedaje'],['campo','Campo']];
+    const sug=[['comercio','Comida y tiendas'],['servicios','Servicios'],['turismo','Turismo'],['hospedaje','Hospedaje'],['campo','Campo']];
     html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b><p>Prueba con otra palabra o explora una categoría:</p>'
       +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div></div>';
   }
@@ -1289,39 +1293,37 @@ function carruselHTML(id,titulo,items,ir,cargando){
     +'<div class="carrusel carrusel-tc"'+(cargando?' aria-busy="true"':'')+'>'+(cargando?tarjetaEsqueletoHTML().repeat(3):items.map(tarjetaHTML).join(''))+'</div></section>';
 }
 
-/* ===== CATEGORÍAS EN TILES (inicio) ===== */
+/* ===== CATEGORÍAS EN TILES (inicio) =====
+   v6 · Fase 3: siempre 8 mosaicos. "Más" abre solo categorías principales (Bares, Trámites, Salud). */
+// Grupos de subcategorías que abre un mosaico (Comida = Comidas + Panaderías; Tiendas = Tiendas + Ferreterías)
+const GRUPOS_SUB={'g-comida':{t:'Comida',subs:['comidas','panaderias']},'g-tiendas':{t:'Tiendas',subs:['tiendas','ferreterias']}};
 const TILES=[
-  {t:'Comida',ic:'utensils',cat:'comercio',sub:'comidas',c:'comer'},
-  {t:'Tiendas',ic:'shopping-bag',cat:'comercio',sub:'tiendas',c:'comer'},
+  {t:'Comida',ic:'utensils',cat:'comercio',sub:'g-comida',c:'comer'},
+  {t:'Tiendas',ic:'shopping-bag',cat:'comercio',sub:'g-tiendas',c:'comer'},
+  {t:'Servicios',ic:'hand-helping',cat:'servicios',c:'servicios'},
   {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
   {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
   {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
   {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos'},
-  {t:'Bares',ic:'wine',cat:'bares',c:'bares'},
-  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites'},
-  {t:'Mascotas',ic:'paw-print',cat:'comercio',sub:'mascotas',c:'comer'},
-  {t:'Panaderías',ic:'croissant',cat:'comercio',sub:'panaderias',c:'comer'},
-  {t:'Salud',ic:'stethoscope',cat:'comercio',sub:'salud',c:'comer'},
-  {t:'Servicios',ic:'hand-helping',cat:'comercio',sub:'servicios',c:'comer'},
-  {t:'Talleres',ic:'car',cat:'comercio',sub:'talleres',c:'comer'},
-  {t:'Ferreterías',ic:'hammer',cat:'comercio',sub:'ferreterias',c:'comer'},
-  {t:'Comercios',ic:'store',cat:'comercio',c:'comer'}
+  // En la hoja "Más"
+  {t:'Bares',ic:'wine',cat:'bares',c:'bares',mas:true},
+  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites',mas:true},
+  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true}
 ];
-// Solo las categorías con lugares; si son más de 8, la octava es "Más" y abre una hoja con todas
-// "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
-function tilesDisponibles(){return TILES.filter(x=>x.agenda||database.some(d=>d.cat===x.cat&&(!x.sub||subDe(d)===x.sub)));}
+// Solo los mosaicos con lugares; "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
+function tileConLugares(x){const g=GRUPOS_SUB[x.sub];return x.agenda||database.some(d=>d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
 function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
 function tilesHTML(){
-  const l=tilesDisponibles(),mas=l.length>8;
-  return '<nav class="tiles-cat" aria-label="Categorías">'+(mas?l.slice(0,7):l).map((x,i)=>tileHTML(x,TILES.indexOf(x))).join('')
+  const l=TILES.filter(x=>!x.mas&&tileConLugares(x)),mas=TILES.some(x=>x.mas&&tileConLugares(x));
+  return '<nav class="tiles-cat" aria-label="Categorías">'+l.map(x=>tileHTML(x,TILES.indexOf(x))).join('')
     +(mas?'<button class="tile-cat" id="tileMas"><span class="tile-ic c-mas" aria-hidden="true">'+icon('layout-grid',28)+'</span><span class="tile-tx">Más</span></button>':'')+'</nav>';
 }
 function irATile(x){if(x.agenda){irAgenda();return;}if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
 function enlazarTiles(){
   $$('#cuerpo [data-tile]').forEach(b=>b.onclick=()=>irATile(TILES[+b.dataset.tile]));
   const m=$('#tileMas');if(m)m.onclick=()=>{
-    abrirHoja('<div class="hoja-pad"><h2>Todas las categorías</h2><nav class="tiles-cat mt-16" aria-label="Todas las categorías">'+tilesDisponibles().map(x=>tileHTML(x,TILES.indexOf(x))).join('')+'</nav></div>');
-    $('#sheetGen').setAttribute('aria-label','Todas las categorías');
+    abrirHoja('<div class="hoja-pad"><h2>Más categorías</h2><nav class="tiles-cat mt-16" aria-label="Más categorías">'+TILES.filter(x=>x.mas&&tileConLugares(x)).map(x=>tileHTML(x,TILES.indexOf(x))).join('')+'</nav></div>');
+    $('#sheetGen').setAttribute('aria-label','Más categorías');
     $$('#sheetGen [data-tile]').forEach(b=>b.onclick=()=>{cerrar('ovGen');irATile(TILES[+b.dataset.tile]);});
   };
 }
@@ -3369,7 +3371,7 @@ function verPlanesDesdeRegistro(){
 
 /* ===== REGISTRO / EDICIÓN DE COMERCIO: asistente de 4 pasos (Fase 2.3) ===== */
 let wiz=null,wizMapa=null;
-const CATS_FORM=[['comercio','Comercios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
+const CATS_FORM=[['comercio','Comida y tiendas'],['servicios','Servicios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
 const PASOS_WIZ=['Qué es','Dónde','Cuándo','Fotos y descripción'];
 function abrirFormComercio(d,opc={}){
   if(!logueado()){guardarAccionPendiente('negocio');pedirLogin('Inicia sesión para registrar tu negocio.');return;}

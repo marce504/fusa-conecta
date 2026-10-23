@@ -36,6 +36,7 @@
   --cat-bares-bg:#FFF6D6;     --cat-bares:#8A5A00;     /* Bares: ámbar */
   --cat-tramites-bg:#EEF2F7;  --cat-tramites:#334155;  /* Trámites: pizarra */
   --cat-eventos-bg:#FFF1F2;   --cat-eventos:#BE123C;   /* Eventos: frambuesa (6.3:1 sobre su fondo) */
+  --cat-servicios-bg:#EEF2FF; --cat-servicios:#4338CA; /* Servicios: índigo */
   /* Semánticos: rojo solo para SOS y errores */
   --danger-50:#FEF2F2;--danger-600:#DC2626;
   --danger-700:#B91C1C;    /* texto pequeño sobre --danger-50 (con 600 da 4.41:1) */
@@ -99,6 +100,7 @@ button:disabled{opacity:.6;pointer-events:none}
 
 /* Color de cada categoría como variables (--cc y --cc-bg) que usan íconos, pines y el chip seleccionado */
 [data-cat="comercio"],.c-comercio,.cat-comercio{--cc:var(--cat-comer);--cc-bg:var(--cat-comer-bg);--cc-borde:var(--cat-comer-borde);--cc-texto:var(--cat-comer-texto)}
+[data-cat="servicios"],.c-servicios,.cat-servicios{--cc:var(--cat-servicios);--cc-bg:var(--cat-servicios-bg)}
 [data-cat="campo"],.c-campo,.cat-campo{--cc:var(--cat-campo);--cc-bg:var(--cat-campo-bg)}
 [data-cat="turismo"],.c-turismo,.cat-turismo{--cc:var(--cat-turismo);--cc-bg:var(--cat-turismo-bg)}
 [data-cat="hospedaje"],.c-hospedaje,.cat-hospedaje{--cc:var(--cat-hospedaje);--cc-bg:var(--cat-hospedaje-bg)}
@@ -1234,6 +1236,7 @@ button:disabled{opacity:.6;pointer-events:none}
   --cat-bares-bg:#2A2311;--cat-bares:#F2C14E;
   --cat-tramites-bg:#1E2533;--cat-tramites:#B7C3D6;
   --cat-eventos-bg:#3B1422;--cat-eventos:#FDA4AF;
+  --cat-servicios-bg:#1E1B4B;--cat-servicios:#A5B4FC;
   --danger-50:#3B1417;--danger-700:#FCA5A5;
   --warning-700:#FBBF24;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow-md:0 6px 20px rgba(0,0,0,.45);--shadow-nav:0 -4px 16px rgba(0,0,0,.4);
@@ -1386,6 +1389,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .tile-cat:focus-visible .tile-ic{box-shadow:0 0 0 3px var(--primary-700)}
 .tile-tx{font-size:12px;font-weight:500;color:var(--ink);text-align:center;line-height:1.2}
 .tile-ic.c-comer{background:var(--cat-comer-bg);color:var(--cat-comer)}
+.tile-ic.c-servicios{background:var(--cat-servicios-bg);color:var(--cat-servicios)}
 .tile-ic.c-campo{background:var(--cat-campo-bg);color:var(--cat-campo)}
 .tile-ic.c-turismo{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
 .tile-ic.c-hospedaje{background:var(--cat-hospedaje-bg);color:var(--cat-hospedaje)}
