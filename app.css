@@ -35,6 +35,7 @@
   --cat-hospedaje-bg:#FDF0FF; --cat-hospedaje:#A21CAF; /* Hospedaje: orquídea fucsia */
   --cat-bares-bg:#FFF6D6;     --cat-bares:#8A5A00;     /* Bares: ámbar */
   --cat-tramites-bg:#EEF2F7;  --cat-tramites:#334155;  /* Trámites: pizarra */
+  --cat-eventos-bg:#FFF1F2;   --cat-eventos:#BE123C;   /* Eventos: frambuesa (6.3:1 sobre su fondo) */
   /* Semánticos: rojo solo para SOS y errores */
   --danger-50:#FEF2F2;--danger-600:#DC2626;
   --danger-700:#B91C1C;    /* texto pequeño sobre --danger-50 (con 600 da 4.41:1) */
@@ -1232,6 +1233,7 @@ button:disabled{opacity:.6;pointer-events:none}
   --cat-hospedaje-bg:#2F1633;--cat-hospedaje:#F0A3F7;
   --cat-bares-bg:#2A2311;--cat-bares:#F2C14E;
   --cat-tramites-bg:#1E2533;--cat-tramites:#B7C3D6;
+  --cat-eventos-bg:#3B1422;--cat-eventos:#FDA4AF;
   --danger-50:#3B1417;--danger-700:#FCA5A5;
   --warning-700:#FBBF24;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow-md:0 6px 20px rgba(0,0,0,.45);--shadow-nav:0 -4px 16px rgba(0,0,0,.4);
@@ -1439,3 +1441,18 @@ button:disabled{opacity:.6;pointer-events:none}
 .ev-acc2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #evInteresa.on{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-700)}
 #evInteresa.on .ic{fill:currentColor}
+/* ---------- v6 · Fase 1: eventos siempre visibles ---------- */
+.tile-ic.c-eventos{background:var(--cat-eventos-bg);color:var(--cat-eventos)}
+/* Estado vacío de "Qué hacer en Fusa" */
+.ev-vacio{display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--radius-lg);background:var(--cat-eventos-bg);color:var(--ink)}
+.ev-vacio-ilu{width:80px;height:80px;flex-shrink:0;color:var(--cat-eventos)}
+.ev-vacio-tx{flex:1;min-width:0}
+.ev-vacio-tx p{font-size:var(--text-sm);font-weight:600;color:var(--ink);margin-bottom:10px}
+/* Botón flotante "+" de la Agenda: encima de la barra inferior (y del mini reproductor si suena la radio) */
+.fab-agenda{position:absolute;right:16px;bottom:calc(84px + var(--safe-b));z-index:30;width:56px;height:56px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--primary-500);color:var(--blanco);box-shadow:var(--shadow-primary);transition:transform var(--t)}
+.fab-agenda:active{transform:scale(.94)}
+.fab-agenda:focus-visible{outline:3px solid var(--primary-700);outline-offset:3px}
+.shell:has(#radioBarra:not([hidden])) .fab-agenda{bottom:calc(144px + var(--safe-b))}
+/* Etiqueta de los eventos de ejemplo */
+.ev-demo{position:absolute;right:8px;top:8px;z-index:1;padding:2px 8px;border-radius:var(--radius-full);background:var(--blanco);color:var(--tinta-fija);font-size:var(--text-2xs);font-weight:700}
+.ev-chip-demo{background:var(--sun-50);color:var(--sun-800)}

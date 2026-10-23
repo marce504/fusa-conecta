@@ -208,13 +208,25 @@ function tarjetaEventoHTML(e){
   const c=catEvento(e.categoria);
   return '<article class="tarjeta tarjeta-ev"><div class="tc-foto"><span class="fallback-ic c-ev">'+icon(c[2],28)+'</span>'
     +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
+    +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p class="tc-linea">'+icon('map-pin',12)+esc(e.lugar_nombre)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
 }
+// Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
+const puedePublicarEventos=()=>esAdmin()||esComerciante();
+const textoSugerir=()=>logueado()&&puedePublicarEventos()?'Publicar un evento':'Sugerir un evento';
+function sugerirEvento(){if(!logueado()){pedirLogin('Inicia sesión para sugerir un evento.');return;}formEvento(null);}
+// Ilustración de línea (calendario con destellos) para el estado vacío
+const ILU_EVENTOS='<svg class="ev-vacio-ilu" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  +'<rect x="16" y="22" width="56" height="54" rx="10"/><path d="M16 38h56M30 14v14M58 14v14"/><path d="M30 52h6M44 52h6M30 64h6M44 64h6"/>'
+  +'<path d="M80 50v12M74 56h12M76 24l4 4M84 20v6"/></svg>';
 function seccionEventosHTML(){
-  const l=eventosVigentes().slice(0,10);if(!l.length)return '';
+  const l=eventosVigentes().slice(0,10);
   return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en Fusa</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
-    +'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div></section>';
+    +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
+      :'<div class="ev-vacio">'+ILU_EVENTOS+'<div class="ev-vacio-tx"><p>Aún no hay eventos esta semana. ¿Sabes de uno?</p>'
+        +'<button class="btn btn-primario btn-sm" data-sugerir>'+icon('calendar-plus',16)+textoSugerir()+'</button></div></div>')
+    +'</section>';
 }
 // Primera diapositiva del banner si hay eventos entre hoy y el domingo
 function slideFinDeSemana(){
@@ -225,6 +237,7 @@ function slideFinDeSemana(){
 function enlazarEventos(){
   $$('#cuerpo [data-evento]').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
   $$('#cuerpo [data-agenda]').forEach(b=>b.onclick=()=>irAgenda());
+  $$('#cuerpo [data-sugerir]').forEach(b=>b.onclick=sugerirEvento);
 }
 function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agenda'});}
 
@@ -234,12 +247,12 @@ function filaEventoHTML(e){
   return '<article class="ev-fila">'+calBloque(e.ini)
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+esc(e.lugar_nombre)+'</p>'
-    +'<p class="ev-chips"><span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
+    +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
     +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':'')+'</article>';
 }
 function renderAgenda(){
   const A=estado.agenda,l=eventosEn(A.rango,A.cat);
-  const quien=!logueado()?'Sugerir un evento':esComerciante()||esAdmin()?'Publicar un evento':'Sugerir un evento';
+  const quien=textoSugerir();
   $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>Qué hacer en Fusa</h2><span class="conteo">'+l.length+(l.length===1?' evento':' eventos')+'</span></div>'
     +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
       .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
@@ -254,7 +267,10 @@ function renderAgenda(){
   $$('#cuerpo [data-evcat]').forEach(b=>b.onclick=()=>{A.cat=A.cat===b.dataset.evcat?'':b.dataset.evcat;render(true);});
   $$('#cuerpo [data-agvista]').forEach(b=>b.onclick=()=>{A.vista=b.dataset.agvista;render(true);});
   $$('#cuerpo .ev-link').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
-  $('#agSugerir').onclick=()=>{if(!logueado()){pedirLogin('Inicia sesión para sugerir un evento.');return;}formEvento(null);};
+  $('#agSugerir').onclick=sugerirEvento;
+  // Botón flotante "+" (dentro de la app, encima de la barra inferior; se quita al salir de la Agenda)
+  const fab=document.createElement('button');fab.className='fab-agenda';fab.id='agFab';fab.setAttribute('aria-label',textoSugerir());
+  fab.innerHTML=icon('plus',28);fab.onclick=sugerirEvento;$('#shell').appendChild(fab);
   enlazarFooter();
   if(A.vista==='mapa'&&l.length)mapaAgenda(l);
 }
@@ -285,7 +301,7 @@ function abrirEvento(id){
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
   abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':'<span class="fallback-ic c-ev">'+icon(c[2],40)+'</span>')+calBloque(e.ini)+'</div>'
-    +'<div class="hoja-pad"><span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
+    +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
@@ -364,6 +380,30 @@ function formEvento(e,opc={}){
   };
 }
 
+/* ---------- Admin · eventos de ejemplo para presentar (demo:true) ---------- */
+// El tipo se fija por la extensión (algunos servidores entregan .webp como binario genérico)
+async function fotoComoDataURL(url){const b=new Blob([await fetch(url).then(r=>r.arrayBuffer())],{type:/\.webp$/i.test(url)?'image/webp':'image/jpeg'});return new Promise((ok,mal)=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=mal;fr.readAsDataURL(b);});}
+async function cargarEventosDemo(){
+  const TS=firebase.firestore.Timestamp,dia=(d,h,m=0)=>{const x=new Date();x.setDate(x.getDate()+d);x.setHours(h,m,0,0);return x.getTime();};
+  const sab=(6-new Date().getDay()+7)%7||7;
+  const base={lat:null,lng:null,municipio:'Fusagasugá',enlace_fuente:'',estado:'publicado',origen:'admin',creado_por:estado.usuario.uid,demo:true};
+  const l=[
+    {titulo:'Festival de Bandas del Sumapaz',descripcion:'Bandas sinfónicas de la región en concierto al aire libre (evento de ejemplo).',categoria:'musica',ini:dia(sab,16),fin:dia(sab,21),
+      lugar_nombre:'Parque principal',lat:4.3366,lng:-74.3639,organizador:'Secretaría de Cultura',gratis:true,precio:'',foto:'img/banners/bienvenida.webp'},
+    {titulo:'Mercado campesino',descripcion:'Productos frescos del campo directo de los productores (evento de ejemplo).',categoria:'feria',ini:dia(sab+1,7),fin:dia(sab+1,13),
+      lugar_nombre:'Plaza de mercado',organizador:'Productores de Fusagasugá',gratis:true,precio:'',foto:'img/banners/negocio.webp'},
+    {titulo:'Caminata al Cerro Fusacatán',descripcion:'Salida guiada al amanecer; lleva agua y ropa abrigada (evento de ejemplo).',categoria:'deporte',ini:dia(sab+5,5),fin:dia(sab+5,10),
+      lugar_nombre:'Inicio del sendero al Fusacatán',organizador:'Club de caminantes',gratis:false,precio:'$15.000',foto:'img/banners/opinion.webp'}
+  ];
+  const b=db.batch();
+  for(const e of l){
+    const imagen=await fotoComoDataURL(e.foto).catch(()=>'');
+    b.set(db.collection('eventos').doc(),{...base,titulo:e.titulo,descripcion:e.descripcion,categoria:e.categoria,fecha_inicio:TS.fromMillis(e.ini),fecha_fin:TS.fromMillis(e.fin),
+      lugar_nombre:e.lugar_nombre,lat:e.lat||null,lng:e.lng||null,organizador:e.organizador,gratis:e.gratis,precio:e.precio,imagen:/^data:image\/(webp|jpeg);/.test(imagen)?imagen:'',fecha_creacion:FV.serverTimestamp()});
+  }
+  await b.commit();
+}
+
 /* ---------- Admin · pestaña Eventos ---------- */
 function eventosAdminHTML(){
   const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
@@ -372,7 +412,11 @@ function eventosAdminHTML(){
     +(e.descripcion?'<p class="adm-desc">'+esc(e.descripcion.slice(0,220))+'</p>':'')
     +(e.enlace_fuente?'<p class="nota-c izq"><a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la fuente</a></p>':'')
     +'<div class="dc-actions">'+botones+'</div></div>';
+  const nDemo=estado.eventos.filter(e=>e.demo).length;
   return '<button class="btn btn-primario btn-bloque" id="admEvNuevo">'+icon('calendar-plus',18)+'Nuevo evento</button>'
+    +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="admEvDemo">'+icon('sparkles',16)+'Cargar eventos de ejemplo</button>'
+    +(nDemo?'<button class="btn btn-ghost" id="admEvDemoBorrar">'+icon('trash-2',16)+'Borrar eventos de ejemplo ('+nDemo+')</button>':'')+'</div>'
+    +'<p class="nota-c izq">Los de ejemplo sirven para presentar la app: se publican con la etiqueta «Ejemplo» y se borran con un toque.</p>'
     +'<p class="dash-section">Por aprobar ('+pend.length+')</p>'
     +(pend.length?pend.map(e=>fila(e,'<button class="btn btn-primario btn-sm" data-evpub="'+esc(e.id)+'">'+icon('check',16)+'Publicar</button>'
         +'<button class="btn btn-secundario btn-sm" data-eveditp="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
@@ -386,6 +430,9 @@ function eventosAdminHTML(){
 function enlazarEventosAdmin(){
   const col=db.collection('eventos'),pend=id=>(estado.adminPend.eventos||[]).find(e=>e.id===id),pub=id=>estado.eventos.find(e=>e.id===id);
   const n=$('#admEvNuevo');if(n)n.onclick=()=>formEvento(null);
+  const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
+  const db_=$('#admEvDemoBorrar');if(db_)db_.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
+    adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>b.delete(d.ref));await b.commit();},'Eventos de ejemplo borrados');};
   $$('[data-evpub]').forEach(b=>b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda'));
   $$('[data-eveditp]').forEach(b=>b.onclick=()=>formEvento(pend(b.dataset.eveditp)));
   $$('[data-evedit]').forEach(b=>b.onclick=()=>formEvento(pub(b.dataset.evedit)));
@@ -851,6 +898,7 @@ function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
   const scroll=conservarScroll?cuerpo.scrollTop:0;
   limpiarMapas();
+  const fabAg=$('#agFab');if(fabAg)fabAg.remove();
   // Las actualizaciones en vivo no repiten la animación de entrada de las tarjetas
   cuerpo.className='cuerpo'+(conservarScroll?' sin-anim':'');
   if(v.tipo==='dashboard')renderDashboard();
@@ -1072,6 +1120,7 @@ const TILES=[
   {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
   {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
   {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
+  {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos'},
   {t:'Bares',ic:'wine',cat:'bares',c:'bares'},
   {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites'},
   {t:'Mascotas',ic:'paw-print',cat:'comercio',sub:'mascotas',c:'comer'},
@@ -1083,14 +1132,15 @@ const TILES=[
   {t:'Comercios',ic:'store',cat:'comercio',c:'comer'}
 ];
 // Solo las categorías con lugares; si son más de 8, la octava es "Más" y abre una hoja con todas
-function tilesDisponibles(){return TILES.filter(x=>database.some(d=>d.cat===x.cat&&(!x.sub||subDe(d)===x.sub)));}
+// "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
+function tilesDisponibles(){return TILES.filter(x=>x.agenda||database.some(d=>d.cat===x.cat&&(!x.sub||subDe(d)===x.sub)));}
 function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
 function tilesHTML(){
   const l=tilesDisponibles(),mas=l.length>8;
   return '<nav class="tiles-cat" aria-label="Categorías">'+(mas?l.slice(0,7):l).map((x,i)=>tileHTML(x,TILES.indexOf(x))).join('')
     +(mas?'<button class="tile-cat" id="tileMas"><span class="tile-ic c-mas" aria-hidden="true">'+icon('layout-grid',28)+'</span><span class="tile-tx">Más</span></button>':'')+'</nav>';
 }
-function irATile(x){if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
+function irATile(x){if(x.agenda){irAgenda();return;}if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
 function enlazarTiles(){
   $$('#cuerpo [data-tile]').forEach(b=>b.onclick=()=>irATile(TILES[+b.dataset.tile]));
   const m=$('#tileMas');if(m)m.onclick=()=>{
@@ -2637,7 +2687,8 @@ function renderPerfil(){
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
-      +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
+      +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
+    +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
       +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
@@ -2646,6 +2697,7 @@ function renderPerfil(){
     $('#pfProductor').onclick=registrarMiNegocio;$('#pfLegal').onclick=()=>abrir('ovLegal');
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
+  $('#pfAgenda').onclick=()=>irAgenda();
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
@@ -2666,6 +2718,7 @@ function renderPerfil(){
       +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
+    +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
@@ -2692,6 +2745,7 @@ function renderPerfil(){
   $('#pfBilletera').onclick=irABilletera;
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
+  $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfNotif').onchange=async e=>{
     const on=e.target.checked;
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
