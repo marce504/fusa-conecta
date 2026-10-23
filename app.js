@@ -403,8 +403,15 @@ function escucharMisComercios(){
   if(propiosUnsub||!logueado())return;
   propiosUnsub=db.collection('comercios').where('propietario_uid','==',estado.usuario.uid).onSnapshot(snap=>{
     comerciosPropios=snap.docs.map(doc=>normalizarNube(doc.id,doc.data()));refrescarVista();
+    // Si su negocio aún guarda la foto grande dentro del documento, se pasa sola a la galería (una vez por sesión)
+    const viejas=snap.docs.map(d=>({id:d.id,...d.data()})).filter(fotoAntigua);
+    if(viejas.length&&!migrandoPropias){migrandoPropias=true;
+      migrarFotosAntiguas(viejas).then(n=>{if(n)toast(n===1?'Pasamos la foto de tu negocio a su galería':'Pasamos las fotos de tus negocios a sus galerías');});}
   },()=>{propiosUnsub=null;});
 }
+let migrandoPropias=false;
+// Foto antigua: imagen en base64 dentro del documento del negocio y sin galería
+const fotoAntigua=c=>/^data:image\//.test(c.imagen||'')&&!(c.fotos||[]).length;
 function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];}
 
 db.collection('calificaciones').onSnapshot(snap=>{
@@ -2870,7 +2877,8 @@ function limiteFotos(d){return d&&premiumVigente(d)?FOTOS_MAX.premium:FOTOS_MAX.
 function bytesDataURL(u){return Math.round((u.length-u.indexOf(',')-1)*3/4);}
 function cargarImagen(src){return new Promise((ok,mal)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=mal;i.src=src;});}
 // Comprime a WebP (o JPEG si el navegador no sabe codificar WebP, como Safari) bajando calidad y tamaño hasta caber
-async function comprimirFoto(origen,lado=1280,maxBytes=250000,calidad=.8){
+// Fotos de negocios: WebP (JPEG en Safari) de 1280 px y máx. 200 KB, cada una en comercios/{id}/fotos/{n}
+async function comprimirFoto(origen,lado=1280,maxBytes=200000,calidad=.8){
   const url=typeof origen==='string'?origen:URL.createObjectURL(origen);
   try{
     const img=await cargarImagen(url);
@@ -2887,6 +2895,7 @@ async function comprimirFoto(origen,lado=1280,maxBytes=250000,calidad=.8){
     throw new Error('muy-grande');
   }finally{if(typeof origen!=='string')URL.revokeObjectURL(url);}
 }
+// Portada en miniatura (320 px, máx. 25 KB; las reglas aceptan hasta 40 KB) que va dentro del documento del negocio
 function miniatura(src){return comprimirFoto(src,320,25000,.7).then(r=>r.src);}
 function idFoto(){return 'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 async function cargarFotosDe(cid,ids){
@@ -3836,7 +3845,10 @@ function renderAdmin(){
       +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
       +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>';
   }
-  const fotosAntiguas=D.comercios.filter(c=>!copiaVieja(c)&&/^data:image\//.test(c._raw.imagen||'')&&!(c._raw.fotos||[]).length);
+  const fotosAntiguas=D.comercios.filter(c=>!copiaVieja(c)&&fotoAntigua(c._raw));
+  // El admin las migra solo al abrir el panel (una vez por sesión); el botón queda por si alguna falla
+  if(fotosAntiguas.length&&!A.migracionAuto){A.migracionAuto=true;
+    migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen}))).then(n=>{if(n){toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();}});}
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
     +'<div class="metricas">'+[['store',database.length,'Negocios publicados'],['clock',nNegocios+premium.length,'Por aprobar'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
       .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'

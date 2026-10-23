@@ -13,7 +13,7 @@
 (function(){var t='sistema';try{t=localStorage.getItem('fc_tema')||'sistema';}catch(e){}
 var o=t==='oscuro'||(t==='sistema'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
 document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</script>
-<link rel="stylesheet" href="app.css?v=43">
+<link rel="stylesheet" href="app.css?v=44">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -157,8 +157,8 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
       <p><b>Tus derechos:</b> conocer, actualizar, rectificar y suprimir tus datos, y revocar esta autorización. Puedes desactivar las promociones o eliminar tu cuenta y tus datos en cualquier momento desde <b>Perfil</b>.</p>
       <h3>Seguridad</h3>
       <p>Toda la comunicación viaja cifrada por HTTPS/TLS. Las calificaciones de cuentas eliminadas se conservan de forma anónima para no alterar el promedio de los comercios.</p>
-      <h3>Estadísticas de uso</h3>
-      <p>Para mejorar la app contamos de forma anónima qué pantallas se visitan y qué acciones se usan más (por ejemplo, abrir WhatsApp de un comercio u obtener un cupón), con Umami. No usamos cookies, no guardamos tu nombre, correo ni dirección IP, y estos datos no permiten identificarte.</p>
+      <h3>Estadísticas de uso (analítica anónima)</h3>
+      <p>Para mejorar la app contamos de forma anónima qué pantallas se visitan y qué acciones se usan más (por ejemplo, abrir WhatsApp de un comercio u obtener un cupón), con Umami. No usamos cookies, no guardamos tu nombre, correo ni dirección IP, y estos datos no permiten identificarte. Por eso no son datos personales ni se usan para perfilarte, y no se venden ni se comparten con fines comerciales; aplicamos el principio de finalidad y de acceso restringido de la Ley 1581 de 2012.</p>
       <h3>Ubicación</h3>
       <p>La ubicación de tu teléfono solo se usa, con tu permiso, para mostrar distancias, el mapa y la navegación de senderos. No se almacena en nuestros servidores.</p>
       <button class="btn btn-primario btn-bloque" data-cerrar="ovLegal">Entendido</button>
@@ -171,12 +171,12 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=43"></script>
+<script src="icons.js?v=44"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=43"></script>
-<script src="app.js?v=43"></script>
+<script src="datos.js?v=44"></script>
+<script src="app.js?v=44"></script>
 </body>
 </html>

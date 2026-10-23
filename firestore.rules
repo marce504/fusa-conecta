@@ -69,20 +69,23 @@ service cloud.firestore {
         && request.resource.data.get('prioridadBusqueda', 0) == 0
         && !request.resource.data.keys().hasAny(['suscripcion_vigente_hasta', 'prueba_usada', 'fecha_aprobacion', 'motivo_rechazo'])
         && request.resource.data.nombre is string
-        && request.resource.data.nombre.size() > 0;
+        && request.resource.data.nombre.size() > 0
+        // La portada en el documento es una miniatura: máx. ~56 000 caracteres (≈ 40 KB)
+        && request.resource.data.get('imagen', '').size() <= 56000;
       // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
       // Excepción: el dueño puede reenviar a revisión un comercio rechazado.
       allow update: if esAdmin()
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
             && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
             && request.resource.data.get('fotos', []).size() <= (premiumVigente(resource.data) ? 10 : 4)
+            && (!cambia(['imagen']) || request.resource.data.get('imagen', '').size() <= 56000)
             && (!cambia(['estado_publicacion', 'motivo_rechazo'])
                 || (resource.data.get('estado_publicacion', '') == 'rechazado'
                     && request.resource.data.estado_publicacion == 'pendiente')));
       allow delete: if esAdmin()
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid);
 
-      // Fotos (comercios/{id}/fotos/{foto}): una por documento, máx. ~360 000 caracteres (≈ 250 KB en WebP).
+      // Fotos (comercios/{id}/fotos/{foto}): una por documento, máx. ~280 000 caracteres (≈ 200 KB en WebP).
       // Se crean en el mismo lote que el negocio y solo si su id está en la lista "fotos" del negocio.
       match /fotos/{foto} {
         function negocioDespues() { return getAfter(/databases/$(database)/documents/comercios/$(id)).data; }
@@ -91,7 +94,7 @@ service cloud.firestore {
           && foto in negocioDespues().get('fotos', [])
           && request.resource.data.keys().hasOnly(['data', 'ancho', 'alto', 'bytes', 'fecha'])
           && request.resource.data.data is string
-          && request.resource.data.data.size() <= 360000;
+          && request.resource.data.data.size() <= 280000;
         allow update: if false;
         allow delete: if esAdmin() || duenoDe(id);
       }
