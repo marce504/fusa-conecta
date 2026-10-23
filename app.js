@@ -242,6 +242,7 @@ function horaTexto(min){
 }
 // Devuelve {tipo:'ab'|'pronto'|'cerr', abierto, texto} o null si el lugar no tiene horario calculable
 function estadoApertura(d){
+  if(esNatural(d))return null;
   let dias,rangos;
   if(d.dias&&d.dias.length&&d.abre&&d.cierra){
     const hm=x=>{const[h,mi]=x.split(':');return +h*60+(+mi||0);};
@@ -274,7 +275,7 @@ function estadoApertura(d){
 function estadoHTML(ap,id){return ap?'<span class="estado '+ap.tipo+'"'+(id!=null?' data-estado="'+esc(id)+'"':'')+'><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
 function horarioTexto(d){
   if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra);
-  return d.horario||'Consultar directamente';
+  return formatearHorario(d.horario)||'Consultar directamente';
 }
 
 /* ===== ÍCONOS POR CATEGORÍA, SUBCATEGORÍA Y SERVICIO ===== */
@@ -840,6 +841,71 @@ function cuponesDe(d){
     .filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
 }
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
+/* ===== SENDEROS Y LUGARES NATURALES (v5 · Fase 2) =====
+   Senderos, cerros, miradores y caminos no son comercios: sin abierto/cerrado, sin "Reclámalo", sin llamar ni WhatsApp.
+   Trazados reales en rutas/{id}.geojson (150-300 puntos de un GPX real), listados en rutas/indice.json y cargados bajo demanda.
+   Sin trazado real no hay "Ver ruta en 3D": se muestra "Trazado en preparación". */
+const TIPOS_NATURALES=['sendero','mirador'];
+const esNatural=d=>!!d&&d.cat==='turismo'&&(TIPOS_NATURALES.includes(d.tipo)||/\b(cerro|sendero|mirador|camino real|alto de)\b/i.test(d.nombre||''));
+// Mejor hora para ir (solo donde hay dato confirmado)
+const MEJOR_HORA={c21:'5:00 – 9:00 a. m.'};
+// "Recom. 5–4 p.m." → "Recomendado: 5:00 a. m. – 4:00 p. m." (usa el mismo lector de horarios que calcula Abierto/Cerrado)
+function formatearHorario(h){
+  const rangos=parsearRangos(h||'');if(!rangos.length)return h||'';
+  const i=(h.search(/\d/));let pre=i>0?h.slice(0,i).trim():'';
+  pre=pre.replace(/^Recom\.?\s*/i,'');
+  return (pre?pre+' ':'')+rangos.map(([s,e])=>horaTexto(s)+' – '+horaTexto(e)).join(', ');
+}
+let indiceRutas=null;
+async function trazadoReal(id){
+  try{
+    if(!indiceRutas)indiceRutas=await fetch('rutas/indice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}));
+    const info=indiceRutas[id];if(!info)return null;
+    if(!info._coords){
+      const g=await fetch('rutas/'+id+'.geojson').then(r=>r.json());
+      const f=(g.features||[g]).find(x=>x.geometry&&x.geometry.type==='LineString');
+      info._coords=f.geometry.coordinates.map(c=>[c[1],c[0],c[2]==null?null:c[2]]);   // [lat, lng, ele]
+    }
+    return info._coords.length>=150?info._coords:null;
+  }catch(e){return null;}
+}
+// Vista previa pequeña del relieve en la ficha (MapLibre sin interacción); se elimina al cerrar la ficha
+let mapaPrevia=null;
+function quitarPreviaRelieve(){if(mapaPrevia){try{mapaPrevia.remove();}catch(e){}mapaPrevia=null;}}
+async function previaRelieve(d,coords){
+  const caja=$('#relievePrev');if(!caja||!estado.online||!soporta3D())return;
+  try{await cargarMapLibre();}catch(e){return;}
+  if(!document.body.contains(caja))return;
+  quitarPreviaRelieve();
+  const centro=coords?coords[Math.floor(coords.length/2)]:[d.lat,d.lng];
+  mapaPrevia=new maplibregl.Map({container:caja,style:temaOscuro()?ESTILO_3D.oscuro:ESTILO_3D.claro,center:[centro[1],centro[0]],zoom:coords?13.6:14,pitch:62,bearing:-20,
+    interactive:false,attributionControl:{compact:true},fadeDuration:0});
+  mapaPrevia.on('load',()=>{
+    try{agregarRelieve(mapaPrevia);}catch(e){}
+    // En la vista previa los créditos van como texto debajo (el botón (i) del mapa queda recogido)
+    const at=caja.querySelector('.maplibregl-ctrl-attrib');if(at)at.classList.remove('maplibregl-compact-show');
+    if(coords){
+      mapaPrevia.addSource('ruta',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:coords.map(c=>[c[1],c[0]])}}});
+      mapaPrevia.addLayer({id:'ruta',type:'line',source:'ruta',paint:{'line-color':cssVar('--primary-500'),'line-width':4},layout:{'line-cap':'round','line-join':'round'}});
+      const lim=coords.reduce((b,c)=>[[Math.min(b[0][0],c[1]),Math.min(b[0][1],c[0])],[Math.max(b[1][0],c[1]),Math.max(b[1][1],c[0])]],[[180,90],[-180,-90]]);
+      mapaPrevia.fitBounds(lim,{padding:24,pitch:62,bearing:-20,duration:0});
+    }
+  });
+}
+// Para el admin: el trazado de un recorrido real grabado con la app, listo para guardar en rutas/{id}.geojson
+function trazadoParaRutas(r){
+  const p=r.puntos;if(p.length<2)return null;
+  // Muestreo por distancia: entre 150 y 300 puntos repartidos a lo largo del camino
+  const n=Math.min(300,Math.max(150,Math.min(p.length,300)));
+  const acum=[0];for(let i=1;i<p.length;i++)acum.push(acum[i-1]+distanciaKm(p[i-1],p[i]));
+  const total=acum[acum.length-1],sal=[];let j=0;
+  for(let k=0;k<n;k++){const objetivo=total*k/(n-1);while(j<p.length-1&&acum[j+1]<objetivo)j++;
+    const a=p[j],b=p[Math.min(j+1,p.length-1)],tr=(acum[Math.min(j+1,p.length-1)]-acum[j])||1,f=Math.min(1,Math.max(0,(objetivo-acum[j])/tr));
+    const ele=a[2]!=null&&b[2]!=null?Math.round(a[2]+(b[2]-a[2])*f):(a[2]!=null?a[2]:null);
+    sal.push([+(a[1]+(b[1]-a[1])*f).toFixed(6),+(a[0]+(b[0]-a[0])*f).toFixed(6)].concat(ele==null?[]:[ele]));}
+  return {type:'FeatureCollection',features:[{type:'Feature',properties:{ruta:r.rutaId,nombre:r.nombre,fuente:'Recorrido real grabado con Fusa Conecta',
+    fecha:new Date(r.inicio).toISOString().slice(0,10),distancia_km:+total.toFixed(2),desnivel_m:r.desnivel||0,puntos:n},geometry:{type:'LineString',coordinates:sal}}]};
+}
 function abrirDetalle(id){
   const d=buscar(id);if(!d)return;
   // La ficha es una hoja sobre la pantalla actual: se cuenta como página sin cambiar la pantalla de fondo
@@ -853,6 +919,7 @@ function abrirDetalle(id){
   const miCalif=logueado()?califs.find(c=>c.usuario_uid===estado.usuario.uid):null;
   const ruta=RUTAS[d.id];
   const cupones=cuponesDe(d);
+  const natural=esNatural(d);
 
   const opiniones=califs.length===0
     ?'<p class="nota-c">Aún no hay opiniones. Sé el primero en calificar este lugar.</p>'
@@ -909,10 +976,16 @@ function abrirDetalle(id){
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
     +'<div class="datos">'
     +filaDato('map-pin','Dirección',esc(d.direccion)+(km!=null?' · a '+fmtDist(km)+' de ti':''))
-    +filaDato('clock','Horario',esc(horarioTexto(d)))
-    +filaDato('phone','Contacto',esc(d.tel))
+    +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
+    +filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d)))
+    +(natural?'':filaDato('phone','Contacto',esc(d.tel)))
     +'</div>'
-    +(ruta?'<button class="btn btn-secundario btn-bloque btn-ruta" id="detRuta">'+icon('route')+'Iniciar navegación guiada</button>':'')
+    +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
+      +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'
+        +'<p class="relieve-cred">Mapa: OpenFreeMap · © OpenStreetMap · Relieve: Mapzen / AWS</p>':'')
+      +'<div id="detTrazado"><p class="trazado-prep" role="status">'+icon('loader-circle',16,'gira')+'Buscando el trazado…</p></div>'
+      +(ruta?'<button class="btn btn-secundario btn-bloque mt-16" id="detRuta">'+icon('footprints')+'Grabar mi recorrido</button>':'')+'</div>'
+      :(ruta?'<button class="btn btn-secundario btn-bloque btn-ruta" id="detRuta">'+icon('route')+'Iniciar navegación guiada</button>':''))
     +bloqueCupones+bloquePremium
     +'<p class="mapa-label">'+icon('map',18)+'Ubicación'+(d.ubicacion_aprox?' aproximada del sector':'')+'</p>'
     +mapaHTML
@@ -920,13 +993,16 @@ function abrirDetalle(id){
       :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
-    +'<div class="det-pie">'+(!d.propietario_uid?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
+    +'<div class="det-pie">'+(!d.propietario_uid&&!natural?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
     +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
-    +'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
-    +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
-    +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>'
+    +(natural
+      ?'<a class="btn btn-primario" id="detLlegar" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar al inicio</a>'
+        +'<button class="btn btn-secundario" id="detCompartir">'+icon('share-2')+'Compartir</button>'
+      :'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
+        +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
+        +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>')
     +'</div>';
 
   $('#sheetDetalle').innerHTML=html;
@@ -934,8 +1010,21 @@ function abrirDetalle(id){
   $('#sheetDetalle').scrollTop=0;
   abrir('ovDetalle');
   enlazarGaleriaFicha(d);
-  $('#cerrarDet').onclick=()=>cerrar('ovDetalle');
-  $('#detWa').onclick=()=>abrirWhatsApp(d);
+  $('#cerrarDet').onclick=()=>{quitarPreviaRelieve();cerrar('ovDetalle');};
+  const dw=$('#detWa');if(dw)dw.onclick=()=>abrirWhatsApp(d);
+  const dc=$('#detCompartir');if(dc)dc.onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
+  if(natural){
+    // Trazado real: "Ver ruta en 3D" (y "Cómo llegar al inicio" va al primer punto del trazado); sin él, "Trazado en preparación"
+    trazadoReal(d.id).then(coords=>{
+      const t=$('#detTrazado');if(!t||!$('#ovDetalle').classList.contains('abierto'))return;
+      if(coords){
+        t.innerHTML='<button class="btn btn-primario btn-bloque" id="det3D">'+icon('mountain',18)+'Ver ruta en 3D</button>';
+        $('#det3D').onclick=()=>abrir3D({titulo:d.nombre,linea:coords.map(c=>[c[0],c[1]])});
+        const ll=$('#detLlegar');if(ll)ll.href='https://www.google.com/maps/dir/?api=1&destination='+coords[0][0]+','+coords[0][1];
+      }else t.innerHTML='<p class="trazado-prep" role="status">'+icon('route',16)+'Trazado en preparación. Pronto podrás ver la ruta en 3D.</p>';
+      previaRelieve(d,coords);
+    });
+  }
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
   $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
@@ -1857,6 +1946,7 @@ async function renderRecorrido(id){
     +'<button class="btn btn-primario btn-bloque" id="rlVer3D"'+(r.puntos.length<2?' disabled':'')+'>'+icon('mountain',18)+'Ver mi recorrido en 3D</button>'
     +'<button class="btn btn-secundario btn-bloque" id="rlVideo"'+(r.puntos.length<2?' disabled':'')+'>'+icon('video',18)+'Crear video para compartir</button>'
     +'<button class="btn btn-secundario btn-bloque" id="rlTarjeta"'+(r.puntos.length<2?' disabled':'')+'>'+icon('image',18)+'Compartir tarjeta</button>'
+    +(esAdmin()&&r.rutaId&&r.puntos.length>=20&&!r.simulado?'<button class="btn btn-secundario btn-bloque" id="rlTrazado">'+icon('download',18)+'Descargar trazado para la ruta (GeoJSON)</button>':'')
     +'<button class="btn btn-ghost btn-bloque" id="rlMis">'+icon('award',18)+'Mis recorridos e insignias</button></div>'
     +(r.puntos.length<2?'<p class="nota-c">Este recorrido no alcanzó a guardar suficientes puntos de GPS para dibujarlo.</p>':'')
     +'</div>'+footerHTML();
@@ -1865,6 +1955,8 @@ async function renderRecorrido(id){
   $('#rlVideo').onclick=()=>abrir3D({...datos3D(),video:true});
   $('#rlTarjeta').onclick=()=>compartirTarjeta(r,fotos);
   $('#rlMis').onclick=()=>navegar({tipo:'recorridos'});
+  const rt=$('#rlTrazado');if(rt)rt.onclick=()=>{const g=trazadoParaRutas(r);if(!g)return;
+    entregarArchivo(new File([JSON.stringify(g)],r.rutaId+'.geojson',{type:'application/geo+json'}),'Trazado de '+r.nombre);};
   enlazarFooter();
 }
 
@@ -2073,7 +2165,7 @@ async function renderRuta(id){
     +'<button class="btn btn-primario" id="gTerminar">'+icon('square',18)+'Terminar</button></div>'
     +'<p class="ruta-nota">La pantalla se mantiene encendida mientras grabas. Si bloqueas el teléfono, el GPS puede detenerse.</p></div>'
     +'<div class="ruta-btns" id="rutaBtns"><button class="btn btn-primario" id="rIniciar">'+icon('play')+'Grabar recorrido</button><button class="btn btn-secundario" id="rSimular">Simular</button></div>'
-    +'<button class="btn btn-tonal btn-bloque mt-16" id="r3D">'+icon('mountain',18)+'Recorrer en 3D</button>'
+    +'<div id="r3DCaja"><p class="trazado-prep" role="status">'+icon('route',16)+'Trazado en preparación. Pronto podrás recorrer esta ruta en 3D.</p></div>'
     +'<button class="btn btn-ghost btn-bloque" id="rMis">'+icon('award',18)+'Mis recorridos e insignias</button>'
     +'<p class="ruta-nota">Trazado de referencia: verifica siempre la señalización del sendero. La ruta queda guardada en tu teléfono para consultarla sin conexión.</p>'
     +r.puntosInteres.map(p=>'<div class="poi">'+icon('map-pin')+'<div><b>'+esc(p.nombre)+'</b><small>'+esc(p.descripcion)+'</small></div></div>').join('')
@@ -2157,7 +2249,13 @@ async function renderRuta(id){
     if(!await confirmar('Terminar recorrido','Se guarda en «Mis recorridos» y podrás verlo en 3D, crear un video y compartir tu tarjeta.','Terminar','Seguir grabando','flag'))return;
     terminar(false);
   };
-  $('#r3D').onclick=()=>abrir3D({titulo:r.nombre,linea:wps.concat([r.puntoLlegada])});
+  trazadoReal(id).then(coords=>{
+    const caja=$('#r3DCaja');if(!coords||!caja)return;
+    caja.innerHTML='<button class="btn btn-tonal btn-bloque mt-16" id="r3D">'+icon('mountain',18)+'Recorrer en 3D</button>';
+    $('#r3D').onclick=()=>abrir3D({titulo:r.nombre,linea:coords.map(c=>[c[0],c[1]])});
+    // El trazado real reemplaza la línea de referencia en el mapa
+    if(m&&mapaActivo===m)L.polyline(coords.map(c=>[c[0],c[1]]),{color:cssVar('--primary-700'),weight:5,opacity:.95}).addTo(m);
+  });
   $('#rMis').onclick=()=>navegar({tipo:'recorridos'});
   // Volviste a esta pantalla mientras grababas, o quedó un recorrido sin terminar tras cerrar la app
   if(grab.rec&&grab.rec.rutaId===id){modoGrabando(true);const u=grab.rec.puntos[grab.rec.puntos.length-1];if(u)actualizar([u[0],u[1]]);}
@@ -3821,7 +3919,9 @@ $$('.bn-btn').forEach(b=>{
 
 /* ===== EVENTOS DE LA INTERFAZ ===== */
 $('#loginLogo').innerHTML=logo('iso','claro',{alto:44});
-$$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.id!=='ovConsent'&&ov.id!=='ovConfirm')ov.classList.remove('abierto');}));
+// Tocar fuera de la hoja la cierra con cerrar(), para que corran sus tareas de cierre (alCerrar)
+$$('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov&&ov.id!=='ovConsent'&&ov.id!=='ovConfirm')cerrar(ov.id);}));
+alCerrar.ovDetalle=quitarPreviaRelieve;
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
 function ocultarSplash(){$('#splash').classList.add('oculto');colorBarra('--bg');}

@@ -24,7 +24,8 @@
   --surface:#FFFFFF;       /* superficies flotantes (mini reproductor de la radio); en modo oscuro se aclara un poco */
   /* Fijos en ambos temas: texto sobre rellenos de color o fotos (blanco) y sobre el sol (tinta) */
   --blanco:#FFFFFF;--tinta-fija:#1B1F3B;
-  --violeta-fijo:#4F35D8;  /* texto violeta sobre --blanco encima de fondos lila (no cambia en modo noche): 7.2:1 */
+  --violeta-fijo:#4F35D8;
+  --menta-fija:#047857;    /* fondo de la diapositiva verde (no cambia en modo noche) */  /* texto violeta sobre --blanco encima de fondos lila (no cambia en modo noche): 7.2:1 */
   --brillo-foto:1;
   /* Colores por categoría: SOLO en el ícono de categoría, el pin del mapa y el chip de categoría seleccionado */
   --cat-comer-bg:#FFF1E6;     --cat-comer:#C2410C;     /* Comercios y comidas: naranja mandarina */
@@ -1183,7 +1184,7 @@ button:disabled{opacity:.6;pointer-events:none}
 /* Banner con foto (todas las diapositivas): foto (z 0) → velo de su color (z 1) → texto (z 2).
    .slide ya crea su contexto de apilamiento (position, isolation, overflow), así la foto queda dentro y encima de su fondo. */
 .slide.s-foto{position:relative;isolation:isolate;overflow:hidden;color:var(--blanco)}
-.s-foto.v-violeta{background:var(--primary-500)}.s-foto.v-menta{background:var(--mint-700)}
+.s-foto.v-violeta{background:var(--primary-500)}.s-foto.v-menta{background:var(--menta-fija)}
 .s-foto.v-noche{background:var(--tinta-fija)}.s-foto.v-sol{background:var(--sun-400);color:var(--tinta-fija)}
 .slide-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .slide-velo{position:absolute;inset:0;z-index:1}
@@ -1334,3 +1335,9 @@ button:disabled{opacity:.6;pointer-events:none}
 /* ---------- v5 · Fase 1 ---------- */
 .mapa-head{flex-wrap:wrap}
 .mapa-head #mapaGPS{flex-shrink:0}
+/* ---------- v5 · Fase 2: senderos y lugares naturales ---------- */
+.bloque-natural{margin:16px 0}
+.relieve-prev{height:168px;border-radius:var(--radius-lg);overflow:hidden;background:var(--soft)}
+.relieve-cred{margin:4px 0 12px;font-size:var(--text-2xs);color:var(--ink-2)}
+.trazado-prep{display:flex;align-items:center;gap:8px;padding:12px;border-radius:var(--radius-md);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm)}
+.trazado-prep .ic{color:var(--ink-2)}
