@@ -134,6 +134,9 @@ ICONOS["arrow-down"]="<path d=\"M12 5v14\" /><path d=\"m19 12-7 7-7-7\" />";
 ICONOS["smartphone"]="<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /><path d=\"M12 18h.01\" />";
 ICONOS["sun-moon"]="<path d=\"M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4\" /><path d=\"M12 2v2\" /><path d=\"M12 20v2\" /><path d=\"m4.9 4.9 1.4 1.4\" /><path d=\"m17.7 17.7 1.4 1.4\" /><path d=\"M2 12h2\" /><path d=\"M20 12h2\" /><path d=\"m6.3 17.7-1.4 1.4\" /><path d=\"m19.1 4.9-1.4 1.4\" />";
 
+ICONOS["video"]="<path d=\"m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5\" /><rect x=\"2\" y=\"6\" width=\"14\" height=\"12\" rx=\"2\" />";
+ICONOS["award"]="<path d=\"m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526\" /><circle cx=\"12\" cy=\"8\" r=\"6\" />";
+
 function icon(nombre,tam=20,clase=''){
   const c=ICONOS[nombre]||ICONOS["circle-help"];
   return '<svg class="ic'+(clase?' '+clase:'')+'" width="'+tam+'" height="'+tam+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+c+'</svg>';

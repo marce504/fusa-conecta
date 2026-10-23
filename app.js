@@ -333,7 +333,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -645,8 +645,10 @@ function render(conservarScroll){
   else if(v.tipo==='billetera')renderBilletera();
   else if(v.tipo==='cupones')renderCuponesDisponibles();
   else if(v.tipo==='planes')renderPlanes();
+  else if(v.tipo==='recorridos')renderRecorridos();
+  else if(v.tipo==='recorrido')renderRecorrido(v.id);
   else renderLista(v);
-  renderHeader();renderBottomNav();
+  renderHeader();renderBottomNav();pintarAvisoGrabando();
   cuerpo.scrollTop=scroll;
   medirPagina(...rutaDeVista(v));
 }
@@ -1623,6 +1625,427 @@ function perfilSVG(r){
   const pts=p.map((e,i)=>(i/(p.length-1)*w).toFixed(1)+','+(h-(e-min)/(max-min)*h).toFixed(1)).join(' ');
   return '<svg viewBox="0 0 '+w+' '+(h+4)+'" class="perfil-elev" preserveAspectRatio="none" role="img" aria-label="Perfil de elevación de la ruta"><polygon class="area" points="0,'+h+' '+pts+' '+w+','+h+'"/><polyline class="linea" points="'+pts+'"/></svg>';
 }
+/* ===== SENDEROS ESTILO RELIVE (v4 · Fase 7) =====
+   - Recorrer en 3D: MapLibre GL (copiado en lib/, se carga solo en las pantallas de senderos) con relieve
+     Terrarium de AWS (Mapzen) y un vuelo de cámara por el trazado.
+   - Grabar: watchPosition + Wake Lock (pantalla encendida) + IndexedDB (sobrevive a cierres) + fotos con su posición.
+   - Relive: el recorrido en 3D, tarjeta vertical 1080 x 1920 para compartir y video (MediaRecorder).
+   - Mis recorridos e insignias: todo vive en el teléfono (IndexedDB); nada se sube a la nube. */
+const MAPLIBRE_JS='lib/maplibre/maplibre-gl.js',MAPLIBRE_CSS='lib/maplibre/maplibre-gl.css';
+async function cargarMapLibre(){cargarCSS(MAPLIBRE_CSS);await cargarScript(MAPLIBRE_JS);}
+function soporta3D(){try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'));}catch(e){return false;}}
+const fmtKm=km=>(km||0).toFixed(km>=10?1:2).replace('.',',')+' km';
+function fmtDuracion(ms){const m=Math.round((ms||0)/60000),h=Math.floor(m/60);return h?h+' h '+String(m%60).padStart(2,'0')+' min':m+' min';}
+function fmtRitmo(ms,km){if(!km||km<.05)return '—';const s=ms/1000/km;return Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0')+' min/km';}
+
+/* ---------- IndexedDB: recorridos y sus fotos (en almacenes separados para guardar rápido) ---------- */
+const IDB={
+  db:null,
+  abrir(){
+    if(this.db)return Promise.resolve(this.db);
+    return new Promise((ok,mal)=>{
+      if(!('indexedDB' in window)){mal(new Error('sin-idb'));return;}
+      const r=indexedDB.open('fusa-recorridos',1);
+      r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('recorridos',{keyPath:'id'});d.createObjectStore('fotos',{keyPath:'id'}).createIndex('rec','rec');};
+      r.onsuccess=()=>{this.db=r.result;ok(this.db);};r.onerror=()=>mal(r.error);
+    });
+  },
+  async op(almacen,modo,fn){const d=await this.abrir();return new Promise((ok,mal)=>{const t=d.transaction(almacen,modo),s=t.objectStore(almacen);const r=fn(s);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>mal(t.error);});},
+  poner(a,v){return this.op(a,'readwrite',s=>s.put(v));},
+  obtener(a,id){return this.op(a,'readonly',s=>s.get(id));},
+  todos(a){return this.op(a,'readonly',s=>s.getAll());},
+  borrar(a,id){return this.op(a,'readwrite',s=>s.delete(id));},
+  fotosDe(rec){return this.op('fotos','readonly',s=>s.index('rec').getAll(rec));}
+};
+async function borrarRecorrido(id){
+  const fotos=await IDB.fotosDe(id).catch(()=>[]);
+  for(const f of fotos)await IDB.borrar('fotos',f.id);
+  await IDB.borrar('recorridos',id);
+}
+
+/* ---------- Estadísticas de un recorrido ---------- */
+// Desnivel con histéresis de 4 m: el GPS sube y baja unos metros aunque estés quieto
+function desnivelPositivo(pts){
+  let sube=0,ref=null;
+  pts.forEach(p=>{const a=p[2];if(a==null)return;if(ref==null){ref=a;return;}if(a-ref>=4){sube+=a-ref;ref=a;}else if(ref-a>=4)ref=a;});
+  return Math.round(sube);
+}
+function distanciaDe(pts){let s=0;for(let i=1;i<pts.length;i++)s+=distanciaKm(pts[i-1],pts[i]);return s;}
+
+/* ---------- Grabación (independiente de la pantalla: sigue aunque visites otras secciones) ---------- */
+const grab={rec:null,watch:null,sim:null,wake:null,pausado:false,ultimo:0,guardadoEn:0,alCambiar:null};
+async function pedirPantallaEncendida(){
+  try{if('wakeLock' in navigator&&!grab.wake){grab.wake=await navigator.wakeLock.request('screen');grab.wake.addEventListener('release',()=>{grab.wake=null;});}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(grab.rec&&!grab.pausado&&document.visibilityState==='visible')pedirPantallaEncendida();});
+function soltarPantalla(){if(grab.wake){grab.wake.release().catch(()=>{});grab.wake=null;}}
+async function guardarGrabacion(forzar){
+  if(!grab.rec)return;
+  const ahora=Date.now();if(!forzar&&ahora-grab.guardadoEn<8000)return;
+  grab.guardadoEn=ahora;
+  const r=grab.rec;r.distancia=distanciaDe(r.puntos);r.desnivel=desnivelPositivo(r.puntos);
+  if(!grab.pausado&&r.reanudado){r.activo+=ahora-r.reanudado;r.reanudado=ahora;}
+  await IDB.poner('recorridos',r).catch(()=>{});
+}
+function tiempoActivo(r){return r.activo+(grab.rec===r&&!grab.pausado&&r.reanudado?Date.now()-r.reanudado:0);}
+async function empezarGrabacion(rutaId,simulado){
+  const r=RUTAS[rutaId];
+  grab.rec={id:'r'+Date.now().toString(36),rutaId,nombre:r?r.nombre:'Recorrido libre',inicio:Date.now(),fin:null,puntos:[],fotos:[],
+    activo:0,reanudado:Date.now(),distancia:0,desnivel:0,estado:'grabando',completo:false,simulado:!!simulado};
+  grab.pausado=false;grab.guardadoEn=0;
+  await guardarGrabacion(true);
+  if(!simulado)pedirPantallaEncendida();
+  medir('recorrido_inicio',{ruta:rutaId,simulado:!!simulado});
+  if(simulado)return;
+  grab.watch=navigator.geolocation.watchPosition(p=>sumarPunto([p.coords.latitude,p.coords.longitude,p.coords.altitude],p.coords.accuracy),
+    e=>{if(e.code===1){toast('Permite el acceso a tu ubicación para grabar');detenerSensores();if(grab.alCambiar)grab.alCambiar();}},
+    {enableHighAccuracy:true,maximumAge:3000,timeout:30000});
+}
+// Puntos con precisión de 35 m o mejor y al menos 5 m del anterior (menos ruido y menos espacio)
+function sumarPunto(p,precision){
+  const r=grab.rec;if(!r||grab.pausado)return;
+  if(precision!=null&&precision>35)return;
+  const ant=r.puntos[r.puntos.length-1];
+  if(ant&&distanciaKm(ant,p)<.005)return;
+  r.puntos.push([+p[0].toFixed(6),+p[1].toFixed(6),p[2]==null?null:Math.round(p[2]),Date.now()]);
+  guardarGrabacion();
+  if(grab.alCambiar)grab.alCambiar(p);
+}
+function pausarGrabacion(){const r=grab.rec;if(!r||grab.pausado)return;r.activo+=Date.now()-r.reanudado;r.reanudado=null;grab.pausado=true;soltarPantalla();guardarGrabacion(true);pintarAvisoGrabando();}
+function reanudarGrabacion(){const r=grab.rec;if(!r||!grab.pausado)return;r.reanudado=Date.now();grab.pausado=false;if(!r.simulado)pedirPantallaEncendida();guardarGrabacion(true);pintarAvisoGrabando();}
+function detenerSensores(){
+  if(grab.watch!=null){navigator.geolocation.clearWatch(grab.watch);grab.watch=null;}
+  if(grab.sim){clearInterval(grab.sim);grab.sim=null;}
+  soltarPantalla();
+}
+async function terminarGrabacion(completo){
+  const r=grab.rec;if(!r)return null;
+  if(!grab.pausado&&r.reanudado){r.activo+=Date.now()-r.reanudado;}
+  detenerSensores();
+  r.reanudado=null;r.fin=Date.now();r.estado='terminado';r.completo=!!completo;
+  await guardarGrabacion(true);
+  grab.rec=null;grab.pausado=false;pintarAvisoGrabando();
+  medir('recorrido_fin',{ruta:r.rutaId,km:+r.distancia.toFixed(2),simulado:r.simulado});
+  return r;
+}
+// Si la app se cerró a mitad de camino, el recorrido sigue en el teléfono y se puede continuar
+async function recorridoSinTerminar(){
+  const l=await IDB.todos('recorridos').catch(()=>[]);
+  return l.find(x=>x.estado==='grabando')||null;
+}
+async function continuarGrabacion(r){
+  grab.rec=r;r.reanudado=Date.now();grab.pausado=false;
+  if(!r.simulado){pedirPantallaEncendida();
+    grab.watch=navigator.geolocation.watchPosition(p=>sumarPunto([p.coords.latitude,p.coords.longitude,p.coords.altitude],p.coords.accuracy),()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:30000});}
+}
+// Foto durante el recorrido: se comprime y queda con la posición donde se tomó
+async function fotoDeRecorrido(archivo){
+  const r=grab.rec;if(!r||!archivo)return;
+  try{
+    const f=await comprimirFoto(archivo,1280,250000,.8);
+    const ult=r.puntos[r.puntos.length-1];
+    const id='f'+Date.now().toString(36);
+    await IDB.poner('fotos',{id,rec:r.id,t:Date.now(),lat:ult?ult[0]:null,lng:ult?ult[1]:null,i:Math.max(0,r.puntos.length-1),data:f.src});
+    r.fotos.push(id);await guardarGrabacion(true);
+    toast('Foto guardada en tu recorrido');
+  }catch(e){toast('No pudimos guardar esa foto');}
+}
+// Aviso fijo mientras se graba y estás en otra pantalla
+function pintarAvisoGrabando(){
+  let a=$('#avisoGrabando');
+  const ver=!!grab.rec&&!(vistaActual().tipo==='ruta'&&vistaActual().id===grab.rec.rutaId);
+  if(!ver){if(a)a.remove();return;}
+  if(!a){a=document.createElement('button');a.id='avisoGrabando';a.className='aviso-grabando';document.body.appendChild(a);
+    a.onclick=()=>{if(grab.rec)navegar({tipo:'ruta',id:grab.rec.rutaId});};}
+  a.innerHTML='<span class="punto-grab" aria-hidden="true"></span>'+(grab.pausado?'Recorrido en pausa':'Grabando tu recorrido')+' · Volver';
+}
+
+/* ---------- Insignias (solo recorridos reales terminados; las simulaciones no cuentan) ---------- */
+const INSIGNIAS=[
+  ['primer','footprints','Primer sendero','Termina tu primer recorrido',s=>s.n>=1],
+  ['km10','route','10 km','Suma 10 km recorridos',s=>s.km>=10],
+  ['km50','mountain','50 km','Suma 50 km recorridos',s=>s.km>=50],
+  ['escalador','trending-up','Escalador','Sube 500 m de desnivel en total',s=>s.desnivel>=500],
+  ['fusacatan','flag','Cumbre del Fusacatán','Llega a la meta del Cerro Fusacatán',s=>s.rutas.has('c21')],
+  ['explorador','binoculars','Explorador del Sumapaz','Completa todos los senderos con ruta',s=>Object.keys(RUTAS).every(k=>s.rutas.has(k))],
+  ['madrugador','sun','Madrugador','Empieza un recorrido antes de las 7 a. m.',s=>s.madrugador],
+  ['fotografo','camera','Fotógrafo de senderos','Toma 10 fotos en tus recorridos',s=>s.fotos>=10]
+];
+function resumenInsignias(lista){
+  const s={n:0,km:0,desnivel:0,rutas:new Set(),madrugador:false,fotos:0};
+  lista.filter(r=>r.estado==='terminado'&&!r.simulado).forEach(r=>{
+    s.n++;s.km+=r.distancia||0;s.desnivel+=r.desnivel||0;s.fotos+=(r.fotos||[]).length;
+    if(r.completo)s.rutas.add(r.rutaId);if(new Date(r.inicio).getHours()<7)s.madrugador=true;});
+  return s;
+}
+const insigniasGanadas=lista=>{const s=resumenInsignias(lista);return new Set(INSIGNIAS.filter(x=>x[4](s)).map(x=>x[0]));};
+function insigniasHTML(gan){
+  return '<ul class="insignias" aria-label="Insignias">'+INSIGNIAS.map(([k,ic,t,d])=>{const ok=gan.has(k);
+    return '<li class="insignia'+(ok?' ganada':'')+'"><span class="ins-ic" aria-hidden="true">'+icon(ok?ic:'lock',22)+'</span><b>'+t+'</b><small>'+(ok?'Ganada':d)+'</small></li>';}).join('')+'</ul>';
+}
+
+/* ---------- Mis recorridos ---------- */
+async function renderRecorridos(){
+  const cuerpo=$('#cuerpo');
+  cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mis recorridos</h2></div><div class="vacio">'+icon('loader-circle',40,'gira')+'</div></div>';
+  let lista=[];try{lista=await IDB.todos('recorridos');}catch(e){}
+  if(vistaActual().tipo!=='recorridos')return;
+  lista.sort((a,b)=>b.inicio-a.inicio);
+  const gan=insigniasGanadas(lista),s=resumenInsignias(lista);
+  cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mis recorridos</h2></div>'
+    +'<div class="metricas"><div class="metrica">'+icon('footprints',18)+'<b>'+s.n+'</b><span>Recorridos</span></div><div class="metrica">'+icon('route',18)+'<b>'+fmtKm(s.km)+'</b><span>Distancia total</span></div>'
+    +'<div class="metrica">'+icon('trending-up',18)+'<b>'+s.desnivel+' m</b><span>Desnivel total</span></div><div class="metrica">'+icon('award',18)+'<b>'+gan.size+' de '+INSIGNIAS.length+'</b><span>Insignias</span></div></div>'
+    +'<p class="dash-section">Insignias</p>'+insigniasHTML(gan)
+    +'<p class="dash-section">Historial</p>'
+    +(lista.length?lista.map(r=>'<article class="rec-item"><button class="rec-link" data-rec="'+esc(r.id)+'" aria-label="Ver '+esc(r.nombre)+' del '+fechaCorta(r.inicio)+'"></button>'
+        +'<span class="rec-ic" aria-hidden="true">'+icon(r.completo?'flag':'footprints',22)+'</span><div class="rec-tx"><b>'+esc(r.nombre)+'</b>'
+        +'<span>'+fechaCorta(r.inicio)+' · '+fmtKm(r.distancia)+' · '+fmtDuracion(r.activo)+(r.estado==='grabando'?' · Sin terminar':'')+(r.simulado?' · Simulación':'')+'</span></div>'
+        +'<button class="btn-redondo rec-borrar" data-borrar-rec="'+esc(r.id)+'" aria-label="Eliminar el recorrido '+esc(r.nombre)+' del '+fechaCorta(r.inicio)+'">'+icon('trash-2',18)+'</button></article>').join('')
+      :'<div class="vacio">'+icon('footprints',48)+'<b>Aún no tienes recorridos</b><p>Abre un sendero con ruta y toca «Grabar recorrido». Todo queda guardado en tu teléfono.</p>'
+        +'<button class="btn btn-primario" id="recIrSenderos">Ver senderos</button></div>')
+    +'<p class="nota-c izq">Tus recorridos y fotos se guardan solo en este teléfono. Si borras los datos del navegador o desinstalas la app, se pierden.</p>'
+    +'</div>'+footerHTML();
+  $$('[data-rec]').forEach(b=>b.onclick=()=>navegar({tipo:'recorrido',id:b.dataset.rec}));
+  $$('[data-borrar-rec]').forEach(b=>b.onclick=async()=>{
+    if(!await confirmar('Eliminar recorrido','Se borran el trazado y sus fotos de este teléfono. No se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
+    if(grab.rec&&grab.rec.id===b.dataset.borrarRec){detenerSensores();grab.rec=null;pintarAvisoGrabando();}
+    await borrarRecorrido(b.dataset.borrarRec);toast('Recorrido eliminado');render(true);});
+  const ir=$('#recIrSenderos');if(ir)ir.onclick=()=>navegar({tipo:'lista',cat:'turismo',sub:'sendero'});
+  enlazarFooter();
+}
+
+/* ---------- Relive: el resumen de un recorrido ---------- */
+function perfilRecorridoSVG(pts){
+  const a=pts.filter(p=>p[2]!=null);if(a.length<3)return '';
+  const w=320,h=84,v=a.map(p=>p[2]),min=Math.min(...v)-10,max=Math.max(...v)+10;
+  const xy=a.map((p,i)=>(i/(a.length-1)*w).toFixed(1)+','+(h-(p[2]-min)/(max-min)*h).toFixed(1)).join(' ');
+  return '<div class="elev-head"><span>Perfil de elevación</span><span>'+Math.round(min+10)+' – '+Math.round(max-10)+' m s. n. m.</span></div>'
+    +'<svg viewBox="0 0 '+w+' '+(h+4)+'" class="perfil-elev" preserveAspectRatio="none" role="img" aria-label="Perfil de elevación de tu recorrido"><polygon class="area" points="0,'+h+' '+xy+' '+w+','+h+'"/><polyline class="linea" points="'+xy+'"/></svg>';
+}
+async function renderRecorrido(id){
+  const cuerpo=$('#cuerpo');
+  const r=await IDB.obtener('recorridos',id).catch(()=>null);
+  if(vistaActual().tipo!=='recorrido')return;
+  if(!r){cuerpo.innerHTML='<div class="vacio">'+icon('footprints',48)+'<b>Recorrido no encontrado</b></div>';return;}
+  const fotos=await IDB.fotosDe(id).catch(()=>[]);
+  const todos=await IDB.todos('recorridos').catch(()=>[]);
+  const antes=insigniasGanadas(todos.filter(x=>x.id!==id)),ahora=insigniasGanadas(todos);
+  const nuevas=INSIGNIAS.filter(x=>ahora.has(x[0])&&!antes.has(x[0]));
+  cuerpo.innerHTML='<div class="vista relive">'
+    +'<div class="relive-head"><span class="relive-tag">'+icon(r.completo?'flag':'footprints',14)+(r.completo?'Meta alcanzada':r.estado==='grabando'?'Sin terminar':'Recorrido')+(r.simulado?' · Simulación':'')+'</span>'
+    +'<h2>'+esc(r.nombre)+'</h2><p>'+fechaHora(r.inicio)+'</p></div>'
+    +'<div class="ruta-stats"><div><b>'+fmtKm(r.distancia)+'</b><span>Distancia</span></div><div><b>'+fmtDuracion(r.activo)+'</b><span>Tiempo</span></div>'
+    +'<div><b>'+(r.desnivel||0)+' m</b><span>Desnivel</span></div><div><b>'+fmtRitmo(r.activo,r.distancia)+'</b><span>Ritmo</span></div></div>'
+    +(nuevas.length?'<div class="relive-nuevas" role="status">'+icon('award',20)+'<span><b>¡Nueva insignia!</b> '+nuevas.map(x=>x[2]).join(', ')+'</span></div>':'')
+    +perfilRecorridoSVG(r.puntos)
+    +(fotos.length?'<div class="relive-fotos" aria-label="Fotos del recorrido">'+fotos.map((f,i)=>'<img src="'+f.data+'" alt="Foto '+(i+1)+' del recorrido">').join('')+'</div>':'')
+    +'<div class="relive-acc">'
+    +'<button class="btn btn-primario btn-bloque" id="rlVer3D"'+(r.puntos.length<2?' disabled':'')+'>'+icon('mountain',18)+'Ver mi recorrido en 3D</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="rlVideo"'+(r.puntos.length<2?' disabled':'')+'>'+icon('video',18)+'Crear video para compartir</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="rlTarjeta"'+(r.puntos.length<2?' disabled':'')+'>'+icon('image',18)+'Compartir tarjeta</button>'
+    +'<button class="btn btn-ghost btn-bloque" id="rlMis">'+icon('award',18)+'Mis recorridos e insignias</button></div>'
+    +(r.puntos.length<2?'<p class="nota-c">Este recorrido no alcanzó a guardar suficientes puntos de GPS para dibujarlo.</p>':'')
+    +'</div>'+footerHTML();
+  const datos3D=()=>({titulo:r.nombre,linea:r.puntos.map(p=>[p[0],p[1]]),fotos,rec:r});
+  $('#rlVer3D').onclick=()=>abrir3D(datos3D());
+  $('#rlVideo').onclick=()=>abrir3D({...datos3D(),video:true});
+  $('#rlTarjeta').onclick=()=>compartirTarjeta(r,fotos);
+  $('#rlMis').onclick=()=>navegar({tipo:'recorridos'});
+  enlazarFooter();
+}
+
+/* ---------- Vista 3D (MapLibre + relieve) con vuelo de cámara y video opcional ---------- */
+function estilo3D(){
+  const o=temaOscuro();
+  const dem={type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:15,
+    attribution:'Relieve: <a href="https://github.com/tilezen/joerd">Mapzen / AWS Terrain Tiles</a>'};
+  return {version:8,
+    sources:{
+      base:{type:'raster',tileSize:256,maxzoom:19,
+        tiles:o?['a','b','c','d'].map(s=>'https://'+s+'.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'):['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'+(o?' © <a href="https://carto.com/attributions">CARTO</a>':'')},
+      relieve:dem,sombras:{...dem}},
+    layers:[{id:'base',type:'raster',source:'base'},
+      {id:'sombras',type:'hillshade',source:'sombras',paint:{'hillshade-exaggeration':.4,'hillshade-shadow-color':cssVar('--tinta-fija'),'hillshade-highlight-color':cssVar('--sobre-color'),'hillshade-accent-color':cssVar('--tinta-fija')}}],
+    terrain:{source:'relieve',exaggeration:1.5}};
+}
+// Punto y rumbo a una distancia (km) del inicio de la línea
+function puntoEn(linea,acum,d){
+  let i=acum.findIndex(x=>x>=d);if(i<=0)i=1;if(i<0)i=linea.length-1;
+  const a=linea[i-1],b=linea[i],tramo=(acum[i]-acum[i-1])||1e-9,f=Math.min(1,Math.max(0,(d-acum[i-1])/tramo));
+  return {p:[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f],i};
+}
+function rumbo(a,b){const r=x=>x*Math.PI/180,y=Math.sin(r(b[1]-a[1]))*Math.cos(r(b[0])),x=Math.cos(r(a[0]))*Math.sin(r(b[0]))-Math.sin(r(a[0]))*Math.cos(r(b[0]))*Math.cos(r(b[1]-a[1]));return (Math.atan2(y,x)*180/Math.PI+360)%360;}
+let vista3D=null;
+async function abrir3D(o){
+  if(!estado.online){toast('La vista 3D necesita conexión a internet');return;}
+  if(!soporta3D()){toast('Tu teléfono no puede mostrar mapas 3D');return;}
+  const volverA=document.activeElement;
+  const cont=document.createElement('div');cont.className='tres-d';cont.setAttribute('role','dialog');cont.setAttribute('aria-modal','true');cont.setAttribute('aria-label','Recorrido en 3D: '+o.titulo);
+  cont.innerHTML='<div class="td-mapa" id="tdMapa"></div>'
+    +'<div class="td-top"><button class="btn-redondo" id="tdCerrar" aria-label="Cerrar la vista 3D">'+icon('x',20)+'</button><div class="td-tit"><b>'+esc(o.titulo)+'</b><small id="tdEstado">Cargando relieve…</small></div></div>'
+    +'<div class="td-abajo"><div class="td-barra" aria-hidden="true"><span id="tdAvance"></span></div>'
+    +'<div class="td-btns"><button class="btn btn-primario" id="tdPlay">'+icon('play',18)+'Recorrer</button>'
+    +(o.video?'<button class="btn btn-secundario" id="tdGrabar">'+icon('video',18)+'Grabar video</button>':'')+'</div></div>';
+  document.body.appendChild(cont);
+  const cerrar3D=()=>{if(!vista3D)return;cancelAnimationFrame(vista3D.raf);if(vista3D.grabador&&vista3D.grabador.state==='recording')vista3D.grabador.stop();
+    try{vista3D.mapa.remove();}catch(e){}cont.remove();document.removeEventListener('keydown',tecla);vista3D=null;if(volverA&&volverA.focus)volverA.focus();};
+  const tecla=e=>{if(e.key==='Escape')cerrar3D();};
+  document.addEventListener('keydown',tecla);
+  $('#tdCerrar').onclick=cerrar3D;$('#tdCerrar').focus();
+  try{await cargarMapLibre();}catch(e){toast('No se pudo cargar el mapa 3D');cerrar3D();return;}
+  if(!document.body.contains(cont))return;
+  const linea=o.linea.map(p=>[p[1],p[0]]);   // MapLibre usa [lng, lat]
+  const acum=[0];for(let i=1;i<o.linea.length;i++)acum.push(acum[i-1]+distanciaKm(o.linea[i-1],o.linea[i]));
+  const total=acum[acum.length-1]||0;
+  const lim=linea.reduce((b,p)=>[[Math.min(b[0][0],p[0]),Math.min(b[0][1],p[1])],[Math.max(b[1][0],p[0]),Math.max(b[1][1],p[1])]],[[180,90],[-180,-90]]);
+  const mapa=new maplibregl.Map({container:'tdMapa',style:estilo3D(),bounds:lim,fitBoundsOptions:{padding:60},pitch:55,maxPitch:75,
+    preserveDrawingBuffer:!!o.video,attributionControl:{compact:true},fadeDuration:0});
+  vista3D={mapa,raf:0,grabador:null,cont};
+  vista3D.k=0;vista3D.idx=0;
+  mapa.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+  const fotosMarc=[];
+  mapa.on('load',()=>{
+    $('#tdEstado').textContent=fmtKm(total)+' · Toca «Recorrer» para volar por el sendero';
+    mapa.addSource('ruta',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linea}}});
+    mapa.addSource('avance',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linea.slice(0,1)}}});
+    mapa.addLayer({id:'ruta-borde',type:'line',source:'ruta',paint:{'line-color':cssVar('--sobre-color'),'line-width':['interpolate',['linear'],['zoom'],11,6,16,11],'line-opacity':.7},layout:{'line-cap':'round','line-join':'round'}});
+    mapa.addLayer({id:'ruta',type:'line',source:'ruta',paint:{'line-color':cssVar('--primary-500'),'line-width':['interpolate',['linear'],['zoom'],11,3.5,16,6]},layout:{'line-cap':'round','line-join':'round'}});
+    mapa.addLayer({id:'avance',type:'line',source:'avance',paint:{'line-color':cssVar('--sun-400'),'line-width':['interpolate',['linear'],['zoom'],11,4,16,7]},layout:{'line-cap':'round','line-join':'round'}});
+    (o.fotos||[]).filter(f=>f.lat!=null).forEach(f=>{const el=document.createElement('div');el.className='td-foto';el.innerHTML='<img src="'+f.data+'" alt="">';
+      fotosMarc.push({f,m:new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([f.lng,f.lat]).addTo(mapa),el});});
+  });
+  // Vuelo: la cámara sigue el trazado mirando un poco adelante; la duración crece con la distancia
+  const DUR=Math.min(40000,Math.max(12000,total*7000));
+  let rumboSuave=null;
+  function volar(alTerminar){
+    cancelAnimationFrame(vista3D.raf);const t0=performance.now();
+    fotosMarc.forEach(x=>x.el.classList.remove('visible'));
+    const paso=ahora=>{
+      if(!vista3D)return;
+      const k=Math.min(1,(ahora-t0)/DUR),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,d=total*e;
+      const {p,i}=puntoEn(o.linea,acum,d),mira=puntoEn(o.linea,acum,Math.min(total,d+Math.max(.15,total*.08))).p;
+      let b=rumbo(p,mira);if(rumboSuave==null)rumboSuave=b;let dif=((b-rumboSuave+540)%360)-180;rumboSuave=(rumboSuave+dif*.06+360)%360;
+      mapa.jumpTo({center:[p[1],p[0]],bearing:rumboSuave,pitch:62,zoom:15.3});
+      const coords=linea.slice(0,i);coords.push([p[1],p[0]]);
+      const src=mapa.getSource('avance');if(src)src.setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
+      fotosMarc.forEach(x=>{if(x.f.i<=i)x.el.classList.add('visible');});
+      vista3D.k=k;vista3D.idx=i;
+      $('#tdAvance').style.width=(k*100)+'%';
+      $('#tdEstado').textContent=fmtKm(d)+' de '+fmtKm(total);
+      if(k<1)vista3D.raf=requestAnimationFrame(paso);
+      else{mapa.fitBounds(lim,{padding:60,pitch:50,duration:sinMovimiento()?0:1500});if(alTerminar)setTimeout(alTerminar,sinMovimiento()?100:1700);}
+    };
+    vista3D.raf=requestAnimationFrame(paso);
+  }
+  $('#tdPlay').onclick=()=>{if(mapa.loaded()||mapa.isStyleLoaded())volar();else mapa.once('load',()=>volar());};
+  const bg=$('#tdGrabar');
+  if(bg)bg.onclick=()=>grabarVideo3D(mapa,o,volar,bg);
+}
+/* Video: cada cuadro del mapa 3D se copia a un lienzo vertical 1080 x 1920 con los datos encima y MediaRecorder lo graba */
+function tipoVideo(){
+  if(!window.MediaRecorder)return null;
+  return ['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||null;
+}
+async function grabarVideo3D(mapa,o,volar,boton){
+  const tipo=tipoVideo();
+  const lienzo=document.createElement('canvas');lienzo.width=1080;lienzo.height=1920;
+  if(!tipo||!lienzo.captureStream){toast('Este navegador no puede grabar video. Usa «Compartir tarjeta».');return;}
+  const ctx=lienzo.getContext('2d'),fuente=getComputedStyle(document.body).fontFamily,r=o.rec;
+  const fotos=await Promise.all([...(o.fotos||[])].sort((a,b)=>(a.i||0)-(b.i||0)).map(f=>cargarImagen(f.data).then(img=>({f,img})).catch(()=>null))).then(l=>l.filter(Boolean));
+  const C=n=>cssVarClaro(n);
+  let iFotoVista=-1,desde=0;
+  function cuadro(){
+    const fuente2=mapa.getCanvas(),W=1080,H=1920;
+    ctx.fillStyle=C('--tinta-fija');ctx.fillRect(0,0,W,H);
+    // El mapa llena el lienzo vertical (recorte tipo "cover")
+    const s=Math.max(W/fuente2.width,H/fuente2.height),w=fuente2.width*s,h=fuente2.height*s;
+    try{ctx.drawImage(fuente2,(W-w)/2,(H-h)/2,w,h);}catch(e){}
+    const velo=C('--velo-escaner');
+    const g1=ctx.createLinearGradient(0,0,0,360);g1.addColorStop(0,velo);g1.addColorStop(1,'transparent');ctx.fillStyle=g1;ctx.fillRect(0,0,W,360);
+    const g2=ctx.createLinearGradient(0,H-520,0,H);g2.addColorStop(0,'transparent');g2.addColorStop(1,velo);ctx.fillStyle=g2;ctx.fillRect(0,H-520,W,520);
+    ctx.fillStyle=C('--sobre-color');ctx.textBaseline='alphabetic';
+    ctx.font='800 64px '+fuente;ctx.fillText(recortar(ctx,r.nombre,W-120),60,130);
+    ctx.font='500 36px '+fuente;ctx.fillText(fechaCorta(r.inicio)+' · Fusa Conecta',60,190);
+    const stats=[[fmtKm(r.distancia),'Distancia'],[fmtDuracion(r.activo),'Tiempo'],[(r.desnivel||0)+' m','Desnivel']];
+    stats.forEach(([v,t],k)=>{const x=60+k*330;ctx.font='700 58px '+fuente;ctx.fillText(v,x,H-170);ctx.font='500 32px '+fuente;ctx.fillText(t,x,H-120);});
+    ctx.fillStyle=C('--sun-400');ctx.fillRect(60,H-70,(W-120)*Math.min(1,vista3D?vista3D.k:1),10);
+    // La foto del punto por donde va el vuelo aparece unos segundos
+    const idx=vista3D?vista3D.idx:0,ultima=fotos.reduce((u,x,n)=>x.f.i!=null&&x.f.i<=idx?n:u,-1);
+    if(ultima>iFotoVista){iFotoVista=ultima;desde=performance.now();}
+    if(iFotoVista>=0&&performance.now()-desde<2200){
+      const im=fotos[iFotoVista].img,fw=760,fh=Math.round(fw*im.height/im.width);
+      ctx.fillStyle=C('--sobre-color');ctx.fillRect((W-fw)/2-14,560-14,fw+28,Math.min(fh,900)+28);
+      ctx.drawImage(im,0,0,im.width,Math.min(im.height,im.width*900/fw),(W-fw)/2,560,fw,Math.min(fh,900));
+    }
+  }
+  const flujo=lienzo.captureStream(30),grab2=new MediaRecorder(flujo,{mimeType:tipo,videoBitsPerSecond:6000000}),trozos=[];
+  vista3D.grabador=grab2;
+  grab2.ondataavailable=e=>{if(e.data&&e.data.size)trozos.push(e.data);};
+  let activo=true;const bucle=()=>{if(!activo)return;cuadro();requestAnimationFrame(bucle);};
+  grab2.onstop=async()=>{
+    activo=false;boton.disabled=false;boton.innerHTML=icon('video',18)+'Grabar video';
+    if(!trozos.length)return;
+    const ext=tipo.includes('mp4')?'mp4':'webm',blob=new Blob(trozos,{type:tipo.split(';')[0]});
+    const archivo=new File([blob],'recorrido-fusa-conecta.'+ext,{type:blob.type});
+    medir('recorrido_video',{ext});
+    entregarArchivo(archivo,'Mi recorrido por '+r.nombre+' en Fusa Conecta');
+  };
+  boton.disabled=true;boton.innerHTML=icon('loader-circle',18,'gira')+'Grabando…';
+  grab2.start(500);bucle();
+  volar(()=>{setTimeout(()=>{if(grab2.state==='recording')grab2.stop();},1200);});
+}
+function recortar(ctx,t,max){if(ctx.measureText(t).width<=max)return t;while(t.length>3&&ctx.measureText(t+'…').width>max)t=t.slice(0,-1);return t+'…';}
+// Compartir con el menú del teléfono (WhatsApp, Instagram...) o descargar si no se puede
+async function entregarArchivo(archivo,texto){
+  try{if(navigator.canShare&&navigator.canShare({files:[archivo]})){await navigator.share({files:[archivo],title:'Fusa Conecta',text:texto});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(archivo);a.download=archivo.name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Guardado en tus descargas');
+}
+/* Tarjeta 1080 x 1920 (sin mapa: trazado dibujado, perfil de elevación, datos y fotos). Colores del tema claro. */
+async function compartirTarjeta(r,fotos){
+  const W=1080,H=1920,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d'),C=n=>cssVarClaro(n),fuente=getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle=C('--primary-500');ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=C('--primary-600');ctx.beginPath();ctx.arc(W+80,-60,520,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=C('--sobre-color');ctx.textBaseline='alphabetic';
+  ctx.font='600 40px '+fuente;ctx.fillText(r.completo?'META ALCANZADA':'MI RECORRIDO',80,150);
+  ctx.font='800 76px '+fuente;ctx.fillText(recortar(ctx,r.nombre,W-160),80,250);
+  ctx.font='500 38px '+fuente;ctx.fillText(fechaHora(r.inicio),80,310);
+  // Trazado normalizado dentro de un recuadro (norte arriba)
+  const pts=r.puntos,cx={x:80,y:380,w:W-160,h:760};
+  const la=pts.map(p=>p[0]),lo=pts.map(p=>p[1]),mla=Math.min(...la),xla=Math.max(...la),mlo=Math.min(...lo),xlo=Math.max(...lo);
+  const k=Math.cos(((mla+xla)/2)*Math.PI/180),ew=(xlo-mlo)*k||1e-6,eh=(xla-mla)||1e-6,s=Math.min(cx.w/ew,cx.h/eh)*.9;
+  const X=p=>cx.x+cx.w/2+((p[1]-(mlo+xlo)/2)*k)*s,Y=p=>cx.y+cx.h/2-(p[0]-(mla+xla)/2)*s;
+  ctx.fillStyle=C('--blanco-14');ctx.beginPath();ctx.roundRect?ctx.roundRect(cx.x-20,cx.y-20,cx.w+40,cx.h+40,40):ctx.rect(cx.x-20,cx.y-20,cx.w+40,cx.h+40);ctx.fill();
+  ctx.lineJoin=ctx.lineCap='round';
+  ctx.strokeStyle=C('--sobre-color');ctx.lineWidth=22;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p)));ctx.stroke();
+  ctx.strokeStyle=C('--sun-400');ctx.lineWidth=12;ctx.stroke();
+  const punto=(p,col)=>{ctx.fillStyle=C('--sobre-color');ctx.beginPath();ctx.arc(X(p),Y(p),22,0,Math.PI*2);ctx.fill();ctx.fillStyle=C(col);ctx.beginPath();ctx.arc(X(p),Y(p),13,0,Math.PI*2);ctx.fill();};
+  punto(pts[0],'--mint-600');punto(pts[pts.length-1],'--primary-700');
+  // Datos
+  ctx.fillStyle=C('--sobre-color');
+  [[fmtKm(r.distancia),'Distancia'],[fmtDuracion(r.activo),'Tiempo'],[(r.desnivel||0)+' m','Desnivel']].forEach(([v,t],i)=>{
+    const x=80+i*320;ctx.font='700 60px '+fuente;ctx.fillText(v,x,1260);ctx.font='500 32px '+fuente;ctx.fillText(t,x,1308);});
+  // Perfil de elevación
+  const al=pts.filter(p=>p[2]!=null);
+  if(al.length>2){const v=al.map(p=>p[2]),mn=Math.min(...v),mx=Math.max(...v)||mn+1,px=80,py=1360,pw=W-160,ph=170;
+    ctx.fillStyle=C('--blanco-20');ctx.beginPath();ctx.moveTo(px,py+ph);
+    al.forEach((p,i)=>ctx.lineTo(px+i/(al.length-1)*pw,py+ph-(p[2]-mn)/((mx-mn)||1)*ph));ctx.lineTo(px+pw,py+ph);ctx.closePath();ctx.fill();}
+  // Hasta 3 fotos
+  const imgs=await Promise.all((fotos||[]).slice(0,3).map(f=>cargarImagen(f.data).catch(()=>null))).then(l=>l.filter(Boolean));
+  imgs.forEach((im,i)=>{const t=290,x=80+i*(t+25),y=1570;ctx.save();ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,t,t*.66,24):ctx.rect(x,y,t,t*.66);ctx.clip();
+    const sc=Math.max(t/im.width,t*.66/im.height);ctx.drawImage(im,x+(t-im.width*sc)/2,y+(t*.66-im.height*sc)/2,im.width*sc,im.height*sc);ctx.restore();});
+  // Marca
+  const iso=await imagenDeSVG(isoSVG('','lila',true).replace('<svg ','<svg width="194" height="276" ')).catch(()=>null);
+  ctx.fillStyle=C('--sobre-color');ctx.font='800 44px '+fuente;
+  if(iso)ctx.drawImage(iso,W-80-44-240,H-112,44,62);
+  ctx.fillText('Fusa Conecta',W-80-232,H-62);
+  const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
+  medir('recorrido_tarjeta');
+  entregarArchivo(new File([blob],'recorrido-fusa-conecta.png',{type:'image/png'}),'Mi recorrido por '+r.nombre+' en Fusa Conecta');
+}
+
 async function renderRuta(id){
   const d=buscar(id),r=RUTAS[id];const cuerpo=$('#cuerpo');
   if(!d||!r){cuerpo.innerHTML='<div class="vacio">'+icon('route',48)+'<b>Ruta no disponible</b></div>';return;}
@@ -1631,12 +2054,20 @@ async function renderRuta(id){
     +'<div class="ruta-panel"><h2>'+esc(r.nombre)+'</h2>'
     +'<div class="ruta-stats"><div><b>'+String(r.distanciaTotal).replace('.',',')+' km</b><span>Distancia</span></div><div><b>'+esc(r.duracionEstimada)+'</b><span>Tiempo</span></div><div><b>'+(r.elevacionMaxima-r.elevacionMinima)+' m</b><span>Desnivel</span></div><div><b>'+esc(r.dificultad)+'</b><span>Dificultad</span></div></div>'
     +'<div class="elev-head"><span>Perfil de elevación</span><span>'+r.elevacionMinima+' – '+r.elevacionMaxima+' m s. n. m.</span></div>'+perfilSVG(r)
-    +'<div class="ruta-prog" id="rutaProg" role="status">'+icon('navigation',18)+'<span>Pulsa «Iniciar ruta» para seguir tu posición en tiempo real.</span></div>'
-    +'<div class="ruta-btns"><button class="btn btn-primario" id="rIniciar">'+icon('play')+'Iniciar ruta</button><button class="btn btn-secundario" id="rSimular">Simular recorrido</button></div>'
+    +'<div id="grabPendiente"></div>'
+    +'<div class="ruta-prog" id="rutaProg" role="status">'+icon('navigation',18)+'<span>Toca «Grabar recorrido» para seguir tu posición y guardar tu recorrido con fotos.</span></div>'
+    +'<div class="grab-panel" id="grabPanel" hidden><div class="grab-datos" aria-live="off"><div><b id="gTiempo">0 min</b><span>Tiempo</span></div><div><b id="gDist">0,00 km</b><span>Distancia</span></div><div><b id="gDesn">0 m</b><span>Desnivel</span></div></div>'
+    +'<div class="grab-btns"><button class="btn btn-secundario" id="gPausa">'+icon('pause',18)+'Pausar</button>'
+    +'<label class="btn btn-secundario" id="gFotoBtn">'+icon('camera',18)+'Foto<input type="file" accept="image/*" capture="environment" id="gFoto" class="sr-only"></label>'
+    +'<button class="btn btn-primario" id="gTerminar">'+icon('square',18)+'Terminar</button></div>'
+    +'<p class="ruta-nota">La pantalla se mantiene encendida mientras grabas. Si bloqueas el teléfono, el GPS puede detenerse.</p></div>'
+    +'<div class="ruta-btns" id="rutaBtns"><button class="btn btn-primario" id="rIniciar">'+icon('play')+'Grabar recorrido</button><button class="btn btn-secundario" id="rSimular">Simular</button></div>'
+    +'<button class="btn btn-tonal btn-bloque mt-16" id="r3D">'+icon('mountain',18)+'Recorrer en 3D</button>'
+    +'<button class="btn btn-ghost btn-bloque" id="rMis">'+icon('award',18)+'Mis recorridos e insignias</button>'
     +'<p class="ruta-nota">Trazado de referencia: verifica siempre la señalización del sendero. La ruta queda guardada en tu teléfono para consultarla sin conexión.</p>'
     +r.puntosInteres.map(p=>'<div class="poi">'+icon('map-pin')+'<div><b>'+esc(p.nombre)+'</b><small>'+esc(p.descripcion)+'</small></div></div>').join('')
     +'</div></div>';
-  let marcadorUsuario=null,m=null;
+  let marcadorUsuario=null,m=null,trazo=null;
   if(estado.online){
     try{
       await cargarLeaflet();
@@ -1652,39 +2083,82 @@ async function renderRuta(id){
       setTimeout(()=>m.invalidateSize(),200);
     }catch(e){}
   }
+  if(vistaActual().tipo!=='ruta')return;
   const wps=r.rutaWaypoints;
   const restanteDesde=(pos,idx)=>{let s=distanciaKm(pos,wps[idx]);for(let i=idx;i<wps.length-1;i++)s+=distanciaKm(wps[i],wps[i+1]);return s;};
-  const prog=html=>{$('#rutaProg').innerHTML=icon('navigation',18)+'<span>'+html+'</span>';};
-  let terminado=false;
+  const prog=html=>{const e=$('#rutaProg');if(e)e.innerHTML=icon('navigation',18)+'<span>'+html+'</span>';};
+  // Tu trazo grabado (amarillo) sobre la ruta de referencia
+  function pintarTrazo(){
+    const rec=grab.rec;if(!m||!rec)return;
+    const pts=rec.puntos.map(p=>[p[0],p[1]]);
+    if(!trazo)trazo=L.polyline(pts,{color:cssVar('--sun-800'),weight:4,opacity:.95}).addTo(m);else trazo.setLatLngs(pts);
+  }
+  function pintarDatos(){
+    const rec=grab.rec;if(!rec||!$('#gTiempo'))return;
+    $('#gTiempo').textContent=fmtDuracion(tiempoActivo(rec));$('#gDist').textContent=fmtKm(distanciaDe(rec.puntos));$('#gDesn').textContent=desnivelPositivo(rec.puntos)+' m';
+    $('#gPausa').innerHTML=grab.pausado?icon('play',18)+'Seguir':icon('pause',18)+'Pausar';
+  }
+  function modoGrabando(on){
+    $('#grabPanel').hidden=!on;$('#rutaBtns').hidden=on;$('#grabPendiente').innerHTML='';
+    if(on){pintarDatos();pintarTrazo();}
+  }
+  async function terminar(completo){
+    const rec=await terminarGrabacion(completo);
+    if(!rec)return;
+    if(rec.puntos.length<2){toast('El recorrido quedó guardado, pero sin suficientes puntos de GPS');}
+    navegar({tipo:'recorrido',id:rec.id});
+  }
   function actualizar(pos){
-    if(terminado||vistaActual().tipo!=='ruta')return;
-    if(m){if(!marcadorUsuario)marcadorUsuario=L.marker(pos,{icon:pinUsuario(),title:'Tu posición'}).addTo(m);else marcadorUsuario.setLatLng(pos);}
+    if(vistaActual().tipo!=='ruta'||vistaActual().id!==id)return;
+    if(m){if(!marcadorUsuario)marcadorUsuario=L.marker(pos,{icon:pinUsuario(),title:'Tu posición'}).addTo(m);else marcadorUsuario.setLatLng(pos);
+      if(grab.sim)m.panTo(pos);}
+    pintarTrazo();pintarDatos();
     let cerca=0,best=Infinity;wps.forEach((w,i)=>{const k=distanciaKm(pos,w);if(k<best){best=k;cerca=i;}});
     const sig=Math.min(cerca+(best<0.03?1:0),wps.length-1);
-    const fin=distanciaKm(pos,r.puntoLlegada);
-    if(fin<0.04){terminado=true;limpiarSeguimiento();
-      $('#rutaProg').innerHTML=icon('flag',18)+'<span><b>¡Llegaste!</b> Completaste '+esc(r.nombre)+'.</span>';
-      confirmar('¡Felicitaciones!','Completaste «'+r.nombre+'» ('+String(r.distanciaTotal).replace('.',',')+' km). ¿Quieres compartir tu logro?','Compartir','Ahora no','flag').then(si=>{if(si)compartir('Completé '+r.nombre+' en Fusagasugá','c/'+id);});
-      return;}
+    if(distanciaKm(pos,r.puntoLlegada)<0.04&&grab.rec&&grab.rec.rutaId===id){
+      prog('<b>¡Llegaste!</b> Completaste '+esc(r.nombre)+'.');
+      terminar(true);return;
+    }
     prog('Siguiente punto: <b>'+fmtDist(distanciaKm(pos,wps[sig]))+'</b> · Falta para la meta: <b>'+fmtDist(restanteDesde(pos,sig))+'</b>');
   }
-  function limpiarSeguimiento(){
-    if(rutaWatch!=null){navigator.geolocation.clearWatch(rutaWatch);rutaWatch=null;}
-    if(rutaSim){clearInterval(rutaSim);rutaSim=null;}
-    $('#rIniciar').innerHTML=icon('play')+'Iniciar ruta';
-  }
-  $('#rIniciar').onclick=()=>{
-    if(rutaWatch!=null||rutaSim){limpiarSeguimiento();prog('Seguimiento detenido.');return;}
+  grab.alCambiar=p=>{if(p)actualizar(p);else{pintarDatos();if(!grab.rec)modoGrabando(false);}};
+  // Reloj del panel mientras se graba en esta pantalla
+  const reloj=setInterval(()=>{if(vistaActual().tipo!=='ruta'||!$('#gTiempo')){clearInterval(reloj);return;}pintarDatos();},1000);
+  $('#rIniciar').onclick=async()=>{
+    if(grab.rec){toast('Ya estás grabando un recorrido');return;}
     if(!navigator.geolocation){toast('Tu dispositivo no permite usar el GPS');return;}
-    terminado=false;$('#rIniciar').innerHTML=icon('square')+'Detener';prog('Buscando tu ubicación GPS…');
-    rutaWatch=navigator.geolocation.watchPosition(p=>actualizar([p.coords.latitude,p.coords.longitude]),
-      ()=>{limpiarSeguimiento();toast('Activa el GPS y permite el acceso a tu ubicación');},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+    await empezarGrabacion(id,false);modoGrabando(true);prog('Buscando tu ubicación GPS…');
   };
-  $('#rSimular').onclick=()=>{
-    limpiarSeguimiento();terminado=false;$('#rIniciar').innerHTML=icon('square')+'Detener';
-    const pts=[];for(let i=0;i<wps.length-1;i++)for(let k=0;k<6;k++){const f=k/6;pts.push([wps[i][0]+(wps[i+1][0]-wps[i][0])*f,wps[i][1]+(wps[i+1][1]-wps[i][1])*f]);}pts.push(r.puntoLlegada);
-    let i=0;rutaSim=setInterval(()=>{if(i>=pts.length){limpiarSeguimiento();return;}actualizar(pts[i++]);if(m&&marcadorUsuario)m.panTo(marcadorUsuario.getLatLng());},700);
+  $('#rSimular').onclick=async()=>{
+    if(grab.rec){toast('Ya estás grabando un recorrido');return;}
+    await empezarGrabacion(id,true);modoGrabando(true);
+    // Puntos intermedios con la altura del perfil de la ruta (para probar sin salir de casa)
+    const pts=[];const per=r.perfilElevacion;
+    for(let i=0;i<wps.length-1;i++)for(let k=0;k<8;k++){const f=k/8;pts.push([wps[i][0]+(wps[i+1][0]-wps[i][0])*f,wps[i][1]+(wps[i+1][1]-wps[i][1])*f]);}
+    pts.push(r.puntoLlegada);
+    pts.forEach((p,i)=>{p[2]=Math.round(per[Math.min(per.length-1,Math.floor(i/(pts.length-1)*(per.length-1)))]);});
+    let i=0;grab.sim=setInterval(()=>{if(!grab.rec||grab.pausado)return;if(i>=pts.length){clearInterval(grab.sim);grab.sim=null;return;}
+      sumarPunto(pts[i++],5);},450);
   };
+  $('#gPausa').onclick=()=>{grab.pausado?reanudarGrabacion():pausarGrabacion();pintarDatos();prog(grab.pausado?'Recorrido en pausa. El tiempo no corre.':'Grabando de nuevo.');};
+  $('#gFoto').onchange=async e=>{await fotoDeRecorrido(e.target.files[0]);e.target.value='';};
+  $('#gTerminar').onclick=async()=>{
+    if(!await confirmar('Terminar recorrido','Se guarda en «Mis recorridos» y podrás verlo en 3D, crear un video y compartir tu tarjeta.','Terminar','Seguir grabando','flag'))return;
+    terminar(false);
+  };
+  $('#r3D').onclick=()=>abrir3D({titulo:r.nombre,linea:wps.concat([r.puntoLlegada])});
+  $('#rMis').onclick=()=>navegar({tipo:'recorridos'});
+  // Volviste a esta pantalla mientras grababas, o quedó un recorrido sin terminar tras cerrar la app
+  if(grab.rec&&grab.rec.rutaId===id){modoGrabando(true);const u=grab.rec.puntos[grab.rec.puntos.length-1];if(u)actualizar([u[0],u[1]]);}
+  else if(!grab.rec){
+    const pend=await recorridoSinTerminar();
+    if(pend&&vistaActual().tipo==='ruta'&&$('#grabPendiente')){
+      $('#grabPendiente').innerHTML='<div class="grab-pend" role="status">'+icon('footprints',20)+'<span>Tienes un recorrido sin terminar: <b>'+esc(pend.nombre)+'</b> ('+fmtKm(pend.distancia)+').</span>'
+        +'<div class="dc-actions">'+(pend.rutaId===id?'<button class="btn btn-primario btn-sm" id="gpSeguir">Continuar</button>':'')+'<button class="btn btn-secundario btn-sm" id="gpCerrar">Terminarlo</button></div></div>';
+      const s=$('#gpSeguir');if(s)s.onclick=async()=>{await continuarGrabacion(pend);modoGrabando(true);prog('Grabando de nuevo.');};
+      $('#gpCerrar').onclick=async()=>{grab.rec=pend;pend.reanudado=null;grab.pausado=true;const rec=await terminarGrabacion(false);navegar({tipo:'recorrido',id:rec.id});};
+    }
+  }
 }
 
 /* ===== EMERGENCIAS SIN CONEXIÓN (RF-16, RNF-02, CU-14) ===== */
@@ -1723,13 +2197,15 @@ function renderPerfil(){
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Tengo un negocio</button></div></div>'
-      +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
+      +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
+    +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
       +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
     const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
     $('#pfRegistro').onclick=()=>abrirLogin('registro');$('#pfIngresar').onclick=()=>abrirLogin('ingresar');
     $('#pfProductor').onclick=registrarMiNegocio;$('#pfLegal').onclick=()=>abrir('ovLegal');
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
+  $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
@@ -1750,6 +2226,7 @@ function renderPerfil(){
       +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
+    +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
@@ -1774,6 +2251,7 @@ function renderPerfil(){
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
+  $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
   $('#pfNotif').onchange=async e=>{
     const on=e.target.checked;
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
@@ -3284,7 +3762,7 @@ function renderBottomNav(){
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&(v.tipo==='mapa'||v.tipo==='ruta'))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
+      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido'].includes(v.tipo))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
