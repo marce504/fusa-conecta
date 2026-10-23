@@ -17,7 +17,9 @@
       "*.ai",
       "*.md",
       "logo whatsapp.jpg",
-      "nuevo logo Fusa conecta.svg"
+      "nuevo logo Fusa conecta.svg",
+      "herramientas/**",
+      "docs/**"
     ],
     "headers": [
       {

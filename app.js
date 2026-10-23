@@ -171,6 +171,231 @@ db.collection('banners').onSnapshot(s=>{
   if(!$('#plegBanner').hidden)montarBanner();
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
+/* ===== QUÉ HACER EN FUSA: EVENTOS Y AGENDA (v5 · Fase 4) =====
+   Colección eventos. Lectura pública solo de los publicados; cualquier cuenta real puede sugerir (queda pendiente)
+   y el admin publica, edita o descarta. Los eventos que ya terminaron se ocultan solos. */
+const CATS_EVENTO=[['cultura','Cultura','drama'],['musica','Música','music'],['deporte','Deporte','trophy'],['gastronomia','Gastronomía','utensils'],
+  ['feria','Feria','ferris-wheel'],['religioso','Religioso','church'],['institucional','Institucional','landmark'],['otro','Otro','sparkles']];
+const catEvento=k=>CATS_EVENTO.find(c=>c[0]===k)||CATS_EVENTO[7];
+const DIAS3=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'],DIAS_EV=['dom','lun','mar','mié','jue','vie','sáb'],MESES3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+estado.eventos=[];estado.agenda={rango:'30',cat:'',vista:'lista'};
+let eventoPorAbrir=null;
+db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
+  estado.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};});
+  if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
+  if(!$('#plegBanner').hidden)montarBanner();
+  refrescarVista();
+},()=>{});
+// Próximos o en curso (los que ya terminaron no se muestran), del más cercano al más lejano
+function eventosVigentes(){const ahora=Date.now();return estado.eventos.filter(e=>e.ini&&e.fin&&e.fin>=ahora).sort((a,b)=>a.ini-b.ini);}
+function finDelDomingo(){const d=new Date();d.setHours(23,59,59,999);d.setDate(d.getDate()+((7-d.getDay())%7));return d.getTime();}
+function inicioDelViernes(){const d=new Date();if([0,5,6].includes(d.getDay()))return Date.now();d.setHours(0,0,0,0);d.setDate(d.getDate()+(5-d.getDay()));return d.getTime();}
+function eventosEn(rango,cat){
+  const ahora=Date.now(),hoyFin=new Date().setHours(23,59,59,999);
+  const [desde,hasta]=rango==='hoy'?[ahora,hoyFin]:rango==='finde'?[inicioDelViernes(),finDelDomingo()]:[ahora,ahora+30*864e5];
+  return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&(!cat||e.categoria===cat));
+}
+function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
+function fechaEvento(e){
+  const a=new Date(e.ini),b=new Date(e.fin),mismoDia=a.toDateString()===b.toDateString();
+  const dia=d=>DIAS_EV[d.getDay()]+' '+d.getDate()+' de '+MESES3[d.getMonth()];
+  return dia(a)+' · '+horaEv(e.ini)+(mismoDia?' – '+horaEv(e.fin):' al '+dia(b));
+}
+const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};
+const precioEv=e=>e.gratis?'Gratis':(e.precio||'Con costo');
+// Tarjeta de evento para el carrusel del inicio (mismo tamaño que la tarjeta compacta)
+function tarjetaEventoHTML(e){
+  const c=catEvento(e.categoria);
+  return '<article class="tarjeta tarjeta-ev"><div class="tc-foto"><span class="fallback-ic c-ev">'+icon(c[2],28)+'</span>'
+    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
+    +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
+    +'<p class="tc-linea">'+icon('map-pin',12)+esc(e.lugar_nombre)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
+}
+function seccionEventosHTML(){
+  const l=eventosVigentes().slice(0,10);if(!l.length)return '';
+  return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en Fusa</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
+    +'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div></section>';
+}
+// Primera diapositiva del banner si hay eventos entre hoy y el domingo
+function slideFinDeSemana(){
+  const e=eventosVigentes().find(x=>x.ini<=finDelDomingo());if(!e)return null;
+  return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en Fusa',tit:e.titulo,
+    sub:fechaEvento(e)+' · '+e.lugar_nombre,accion:'agenda',textoBoton:'Ver agenda',ilu:'<span class="ilu-circulo">'+icon('calendar-days',30)+'</span>'};
+}
+function enlazarEventos(){
+  $$('#cuerpo [data-evento]').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
+  $$('#cuerpo [data-agenda]').forEach(b=>b.onclick=()=>irAgenda());
+}
+function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agenda'});}
+
+/* ---------- Pantalla Agenda: Hoy · Este fin de semana · Próximos 30 días · categoría; lista o mapa ---------- */
+function filaEventoHTML(e){
+  const c=catEvento(e.categoria);
+  return '<article class="ev-fila">'+calBloque(e.ini)
+    +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
+    +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+esc(e.lugar_nombre)+'</p>'
+    +'<p class="ev-chips"><span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
+    +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':'')+'</article>';
+}
+function renderAgenda(){
+  const A=estado.agenda,l=eventosEn(A.rango,A.cat);
+  const quien=!logueado()?'Sugerir un evento':esComerciante()||esAdmin()?'Publicar un evento':'Sugerir un evento';
+  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>Qué hacer en Fusa</h2><span class="conteo">'+l.length+(l.length===1?' evento':' eventos')+'</span></div>'
+    +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
+      .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
+    +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'+CATS_EVENTO.map(([k,t,ic])=>'<button type="button" aria-pressed="'+(A.cat===k)+'" class="chip-filtro'+(A.cat===k?' on':'')+'" data-evcat="'+k+'">'+icon(ic,14)+t+'</button>').join('')+'</div>'
+    +'<div class="lb-vista" role="radiogroup" aria-label="Vista"><button type="button" role="radio" aria-checked="'+(A.vista!=='mapa')+'" class="'+(A.vista!=='mapa'?'on':'')+'" data-agvista="lista" aria-label="Lista">'+icon('calendar-days',20)+'</button>'
+    +'<button type="button" role="radio" aria-checked="'+(A.vista==='mapa')+'" class="'+(A.vista==='mapa'?'on':'')+'" data-agvista="mapa" aria-label="Mapa">'+icon('map',20)+'</button></div></div>'
+    +(l.length?(A.vista==='mapa'?'<div id="mapaAgenda" class="mapa-lista" role="region" aria-label="Mapa de los eventos"></div>':'<div class="ev-lista">'+l.map(filaEventoHTML).join('')+'</div>')
+      :'<div class="vacio">'+icon('calendar-days',48)+'<b>No hay eventos '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+(A.cat?' de '+catEvento(A.cat)[1].toLowerCase():'')+'</b><p>¿Sabes de alguno? Cuéntanos y lo publicamos después de revisarlo.</p></div>')
+    +'<button class="btn btn-secundario btn-bloque mt-16" id="agSugerir">'+icon('calendar-plus',18)+quien+'</button>'
+    +'</div>'+footerHTML();
+  $$('#cuerpo [data-rango]').forEach(b=>b.onclick=()=>{A.rango=b.dataset.rango;render(true);});
+  $$('#cuerpo [data-evcat]').forEach(b=>b.onclick=()=>{A.cat=A.cat===b.dataset.evcat?'':b.dataset.evcat;render(true);});
+  $$('#cuerpo [data-agvista]').forEach(b=>b.onclick=()=>{A.vista=b.dataset.agvista;render(true);});
+  $$('#cuerpo .ev-link').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
+  $('#agSugerir').onclick=()=>{if(!logueado()){pedirLogin('Inicia sesión para sugerir un evento.');return;}formEvento(null);};
+  enlazarFooter();
+  if(A.vista==='mapa'&&l.length)mapaAgenda(l);
+}
+async function mapaAgenda(l){
+  try{await cargarLeaflet();}catch(e){return;}
+  const caja=$('#mapaAgenda');if(!caja||mapaActivo)return;
+  const m=L.map(caja).setView(PLAZA_FUSA,13);mapaActivo=m;capaBase().addTo(m);
+  const pts=[];l.filter(e=>e.lat&&e.lng).forEach(e=>{pts.push([e.lat,e.lng]);
+    L.marker([e.lat,e.lng],{icon:pinIcono(catEvento(e.categoria)[2]),title:e.titulo,alt:e.titulo}).addTo(m)
+      .bindPopup('<b>'+esc(e.titulo)+'</b><br><small>'+esc(fechaEvento(e))+'</small><br><button class="pop-ver" data-evento="'+esc(e.id)+'">Ver evento</button>');});
+  if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
+  m.on('popupopen',ev=>{const b=ev.popup.getElement().querySelector('[data-evento]');if(b)b.onclick=()=>abrirEvento(b.dataset.evento);});
+  setTimeout(()=>m.invalidateSize(),200);
+}
+
+/* ---------- Ficha del evento ---------- */
+function icsEvento(e){
+  const f=ms=>new Date(ms).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const x=s=>String(s||'').replace(/[\\;,]/g,m=>'\\'+m).replace(/\r?\n/g,'\\n');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Fusa Conecta//Agenda//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    'UID:'+e.id+'@fusa-conecta.web.app','DTSTAMP:'+f(Date.now()),'DTSTART:'+f(e.ini),'DTEND:'+f(e.fin),'SUMMARY:'+x(e.titulo),
+    'LOCATION:'+x(e.lugar_nombre+', '+(e.municipio||'Fusagasugá')),'DESCRIPTION:'+x((e.descripcion||'')+'\n'+SITIO_URL+'/#/evento/'+e.id),
+    e.enlace_fuente?'URL:'+e.enlace_fuente:'','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+}
+function abrirEvento(id){
+  const e=estado.eventos.find(x=>x.id===id);if(!e){eventoPorAbrir=id;return;}
+  enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
+  const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
+  const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
+  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':'<span class="fallback-ic c-ev">'+icon(c[2],40)+'</span>')+calBloque(e.ini)+'</div>'
+    +'<div class="hoja-pad"><span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
+    +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
+    +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
+    +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
+    +filaDato('ticket','Entrada',esc(precioEv(e)))
+    +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'):'')+'</div>'
+    +(e.descripcion?'<p class="det-desc">'+esc(e.descripcion)+'</p>':'')
+    +'<div class="ev-acc"><button class="btn btn-primario btn-bloque" id="evCal">'+icon('calendar-plus',18)+'Agregar a mi calendario</button>'
+    +'<div class="ev-acc2"><button class="btn btn-secundario'+(on?' on':'')+'" id="evInteresa" aria-pressed="'+on+'">'+icon('heart',18)+(on?'Te interesa':'Me interesa')+'</button>'
+    +'<button class="btn btn-secundario" id="evCompartir">'+icon('share-2',18)+'Compartir</button></div></div></div>');
+  $('#sheetGen').setAttribute('aria-label','Evento: '+e.titulo);
+  $('#evCal').onclick=()=>{medir('evento_calendario');entregarArchivo(new File([icsEvento(e)],'evento-fusa-conecta.ics',{type:'text/calendar'}),e.titulo);};
+  $('#evInteresa').onclick=()=>{if(!toggleFavorito(fav))return;const ya=estado.favoritos.includes(fav),b=$('#evInteresa');
+    b.classList.toggle('on',ya);b.setAttribute('aria-pressed',ya);b.innerHTML=icon('heart',18)+(ya?'Te interesa':'Me interesa');};
+  $('#evCompartir').onclick=()=>compartir(e.titulo,'/evento/'+e.id);
+}
+// Favoritos: los eventos que te interesan (vigentes) arriba de los lugares
+function eventosFavoritosHTML(){
+  const l=eventosVigentes().filter(e=>estado.favoritos.includes('ev:'+e.id));
+  return l.length?'<section class="seccion-inicio" aria-labelledby="tEvFav"><div class="head-v"><h2 id="tEvFav">Eventos que te interesan</h2></div><div class="ev-lista">'+l.map(filaEventoHTML).join('')+'</div></section>':'';
+}
+
+/* ---------- Publicar (admin, directo), publicar como organizador o sugerir (quedan pendientes) ---------- */
+const aLocal=ms=>{if(!ms)return '';const d=new Date(ms),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());};
+function formEvento(e,opc={}){
+  const admin=esAdmin(),v=k=>esc(e&&e[k]!=null?e[k]:'');
+  let foto=e&&e.imagen?{src:e.imagen}:null,lat=e?e.lat:null,lng=e?e.lng:null;
+  const lugares=[...database].filter(d=>d.lat&&d.lng).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  abrirHoja('<div class="hoja-pad"><h2>'+(e?'Editar evento':admin?'Nuevo evento':esComerciante()?'Publicar un evento':'Sugerir un evento')+'</h2>'
+    +(admin?'':'<p class="nota-c izq">Lo revisamos antes de publicarlo en la agenda.</p>')
+    +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
+    +(foto?'<img src="'+esc(foto.src)+'" alt="Foto del evento. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
+    +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
+    +'<div class="campo"><label for="evfCat">Categoría <span class="req">*</span></label><select class="input" id="evfCat">'+CATS_EVENTO.map(([k,t])=>'<option value="'+k+'"'+(e&&e.categoria===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
+    +'<div class="fb-fechas"><div class="campo"><label for="evfIni">Empieza <span class="req">*</span></label><input class="input" type="datetime-local" id="evfIni" value="'+aLocal(e&&e.ini)+'"></div>'
+    +'<div class="campo"><label for="evfFin">Termina <span class="req">*</span></label><input class="input" type="datetime-local" id="evfFin" value="'+aLocal(e&&e.fin)+'"></div></div>'
+    +'<div class="campo"><label for="evfLugar">Lugar <span class="req">*</span></label><input class="input" id="evfLugar" maxlength="80" placeholder="Ej.: Parque principal" value="'+v('lugar_nombre')+'"></div>'
+    +'<div class="campo"><label for="evfEn">¿Es en un lugar de la app? (opcional, para el mapa)</label><select class="input" id="evfEn"><option value="">No / no sé</option>'
+      +lugares.map(d=>'<option value="'+esc(d.id)+'">'+esc(d.nombre)+'</option>').join('')+'</select>'
+      +'<button type="button" class="btn btn-ghost" id="evfAqui">'+icon('locate-fixed',16)+'Usar mi ubicación actual</button><p class="ayuda" id="evfPos">'+(lat?'Ubicación en el mapa guardada':'Sin ubicación en el mapa')+'</p></div>'
+    +'<div class="campo"><label for="evfMun">Municipio</label><select class="input" id="evfMun">'+['Fusagasugá','Pasca'].map(m=>'<option'+(e&&e.municipio===m?' selected':'')+'>'+m+'</option>').join('')+'</select></div>'
+    +'<div class="campo"><label for="evfOrg">Organiza</label><input class="input" id="evfOrg" maxlength="80" placeholder="Ej.: Casa de la Cultura" value="'+v('organizador')+'"></div>'
+    +'<label class="switch-row"><span>Entrada gratis</span><input type="checkbox" id="evfGratis"'+(!e||e.gratis?' checked':'')+'></label>'
+    +'<div class="campo" id="evfPrecioCaja"'+(!e||e.gratis?' hidden':'')+'><label for="evfPrecio">Precio</label><input class="input" id="evfPrecio" maxlength="40" placeholder="Ej.: $10.000" value="'+v('precio')+'"></div>'
+    +'<div class="campo"><label for="evfFuente">Enlace de la fuente oficial</label><input class="input" type="url" id="evfFuente" placeholder="https://..." value="'+v('enlace_fuente')+'"></div>'
+    +'<div class="campo"><label for="evfDesc">Descripción</label><textarea id="evfDesc" maxlength="1000">'+v('descripcion')+'</textarea></div>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="evfGuardar">'+(admin?(e&&e.estado!=='publicado'?'Guardar y publicar':e?'Guardar cambios':'Publicar evento'):'Enviar para revisión')+'</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Formulario de evento');
+  $('#evfGratis').onchange=()=>{$('#evfPrecioCaja').hidden=$('#evfGratis').checked;};
+  $('#evfEn').onchange=()=>{const d=buscar($('#evfEn').value);if(!d)return;lat=d.lat;lng=d.lng;if(!$('#evfLugar').value.trim())$('#evfLugar').value=d.nombre;$('#evfPos').textContent='Ubicación de «'+d.nombre+'» guardada';};
+  $('#evfAqui').onclick=async()=>{const p=await pedirUbicacion();if(!p){toast('No pudimos ver tu ubicación');return;}[lat,lng]=p;$('#evfPos').textContent='Tu ubicación actual quedó guardada';};
+  $('#evfFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#evfCaja').classList.add('cargando');
+    try{foto=await comprimirFoto(f,1280,250000,.8);$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}catch(err){toast('No pudimos usar esa foto. Prueba con otra.');}
+    $('#evfCaja').classList.remove('cargando');};
+  $('#evfGuardar').onclick=async()=>{
+    const tit=$('#evfTit').value.trim(),ini=$('#evfIni').value?new Date($('#evfIni').value).getTime():0,fin=$('#evfFin').value?new Date($('#evfFin').value).getTime():0;
+    const lugar=$('#evfLugar').value.trim(),fuente=$('#evfFuente').value.trim();
+    if(tit.length<3){toast('Escribe el nombre del evento');$('#evfTit').focus();return;}
+    if(!ini||!fin){toast('Indica cuándo empieza y cuándo termina');return;}
+    if(fin<ini){toast('La hora final debe ser después de la inicial');$('#evfFin').focus();return;}
+    if(!e&&fin<Date.now()){toast('Ese evento ya terminó');return;}
+    if(!lugar){toast('Escribe dónde es');$('#evfLugar').focus();return;}
+    if(fuente&&!/^https:\/\/\S+$/.test(fuente)){toast('El enlace debe comenzar con https://');$('#evfFuente').focus();return;}
+    const TS=firebase.firestore.Timestamp;
+    const datos={titulo:tit,descripcion:$('#evfDesc').value.trim(),categoria:$('#evfCat').value,fecha_inicio:TS.fromMillis(ini),fecha_fin:TS.fromMillis(fin),
+      lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:foto?foto.src:'',organizador:$('#evfOrg').value.trim(),
+      enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim()};
+    $('#evfGuardar').disabled=true;
+    try{
+      if(admin&&e)await db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:e.origen||'admin',creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()});
+      else await db.collection('eventos').add({...datos,estado:admin?'publicado':'pendiente',origen:admin?'admin':esComerciante()?'organizador':'usuario',
+        creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
+      cerrar('ovGen');medir(admin?'evento_publicado':'evento_sugerido');
+      toast(admin?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
+      if(vistaActual().tipo==='admin')cargarAdmin();
+    }catch(err){console.error(err);toast('No se pudo guardar. Revisa tu conexión.');$('#evfGuardar').disabled=false;}
+  };
+}
+
+/* ---------- Admin · pestaña Eventos ---------- */
+function eventosAdminHTML(){
+  const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
+  const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e.ini)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
+    +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA'}[e.origen]||e.origen)+'</p>'
+    +(e.descripcion?'<p class="adm-desc">'+esc(e.descripcion.slice(0,220))+'</p>':'')
+    +(e.enlace_fuente?'<p class="nota-c izq"><a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la fuente</a></p>':'')
+    +'<div class="dc-actions">'+botones+'</div></div>';
+  return '<button class="btn btn-primario btn-bloque" id="admEvNuevo">'+icon('calendar-plus',18)+'Nuevo evento</button>'
+    +'<p class="dash-section">Por aprobar ('+pend.length+')</p>'
+    +(pend.length?pend.map(e=>fila(e,'<button class="btn btn-primario btn-sm" data-evpub="'+esc(e.id)+'">'+icon('check',16)+'Publicar</button>'
+        +'<button class="btn btn-secundario btn-sm" data-eveditp="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
+        +'<button class="btn btn-ghost" data-evdesc="'+esc(e.id)+'">Descartar</button>')).join('')
+      :'<p class="nota-c izq">No hay eventos por aprobar.</p>')
+    +'<p class="dash-section">Publicados y próximos ('+pub.length+')</p>'
+    +(pub.length?pub.map(e=>fila(e,'<button class="btn btn-secundario btn-sm" data-evedit="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
+        +'<button class="btn btn-ghost" data-evborrar="'+esc(e.id)+'">Eliminar</button>')).join('')
+      :'<p class="nota-c izq">Aún no hay eventos publicados.</p>');
+}
+function enlazarEventosAdmin(){
+  const col=db.collection('eventos'),pend=id=>(estado.adminPend.eventos||[]).find(e=>e.id===id),pub=id=>estado.eventos.find(e=>e.id===id);
+  const n=$('#admEvNuevo');if(n)n.onclick=()=>formEvento(null);
+  $$('[data-evpub]').forEach(b=>b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda'));
+  $$('[data-eveditp]').forEach(b=>b.onclick=()=>formEvento(pend(b.dataset.eveditp)));
+  $$('[data-evedit]').forEach(b=>b.onclick=()=>formEvento(pub(b.dataset.evedit)));
+  $$('[data-evdesc]').forEach(b=>b.onclick=()=>pedirMotivo('Descartar el evento',m=>adminAccion(()=>col.doc(b.dataset.evdesc).update({estado:'rechazado',motivo:m}),'Evento descartado'),
+    ['Ya pasó','Información incompleta','No es en Fusagasugá o Pasca','Duplicado','No es un evento público']));
+  $$('[data-evborrar]').forEach(b=>b.onclick=async()=>{const e=pub(b.dataset.evborrar);
+    if(!await confirmar('Eliminar evento','«'+e.titulo+'» sale de la agenda. Esta acción no se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
+    adminAccion(()=>col.doc(e.id).delete(),'Evento eliminado');});
+}
+
 
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
@@ -332,7 +557,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -613,7 +838,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard','billetera','cupones','planes'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera','cupones','planes','agenda'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -630,6 +855,7 @@ function render(conservarScroll){
   else if(v.tipo==='billetera')renderBilletera();
   else if(v.tipo==='cupones')renderCuponesDisponibles();
   else if(v.tipo==='planes')renderPlanes();
+  else if(v.tipo==='agenda')renderAgenda();
   else if(v.tipo==='recorridos')renderRecorridos();
   else if(v.tipo==='recorrido')renderRecorrido(v.id);
   else renderLista(v);
@@ -647,16 +873,16 @@ function renderLista(v){
   if(estado.listaClave!==JSON.stringify([v.cat,v.sub,v.todo,estado.q])){estado.listaClave=JSON.stringify([v.cat,v.sub,v.todo,estado.q]);estado.limiteLista=POR_PAGINA;}
   if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
-    html=tilesHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
       +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
       +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>';
   }else if(items.length){
-    html='<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
-    html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
+    html=eventosFavoritosHTML()+'<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else{
     const motivo=estado.q?'No encontramos resultados para «'+esc(estado.q)+'»'
       :estado.filtros.municipio==='Pasca'?'Aún no hay lugares registrados en Pasca con estos filtros'
@@ -671,6 +897,7 @@ function renderLista(v){
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
+  enlazarEventos();
   if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
   else if(items.length)enlazarListado(items);
 }
@@ -714,6 +941,7 @@ function accionBanner(b){
 }
 function slidesBanner(){
   const l=[],bs=estado.banners||[];
+  const finde=slideFinDeSemana();if(finde)l.push(finde);
   const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
   if(dc)l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
     tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio'});
@@ -788,6 +1016,7 @@ function avanzarBanner(){
 }
 function accionSlide(k){
   banner.pausaHasta=Date.now()+8000;
+  if(k==='agenda'){irAgenda('finde');return;}
   const [tipo,valor]=k.split(':');
   if(tipo==='negocio'&&valor){abrirDetalle(valor);return;}
   if(tipo==='categoria'&&valor&&CAT[valor]){valor==='bares'?irABares():navegar({tipo:'lista',cat:valor});return;}
@@ -3295,7 +3524,7 @@ db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapsh
   estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
 },()=>{});
 function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
-function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar():0;}
+function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length:0;}
 function campanaHTML(){
   const n=noLeidas(),p=pendientesAdmin();
   return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
@@ -3319,7 +3548,7 @@ function abrirNovedades(){
 
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
-estado.adminPend={comercios:[],solicitudes:[]};
+estado.adminPend={comercios:[],solicitudes:[],eventos:[]};
 function escucharAdmin(){
   if(adminUnsubs.length||!esAdmin())return;
   adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
@@ -3330,8 +3559,13 @@ function escucharAdmin(){
     estado.adminPend.solicitudes=s.docs.map(d=>({id:d.id,...d.data(),fecha:aMs(d.data().fecha)||0}));
     avisosAdminCambiaron();
   },()=>{}));
+  // Eventos sugeridos o publicados por organizadores (y los de la IA), pendientes de revisión
+  adminUnsubs.push(db.collection('eventos').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin),fecha:aMs(x.fecha_creacion)||0};});
+    avisosAdminCambiaron();
+  },()=>{}));
 }
-function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[]};}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[]};}
 // "Por aprobar" = comercios nuevos + reclamos de negocio
 function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
 function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
@@ -3532,7 +3766,7 @@ function renderAdmin(){
   if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
-  const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
+  const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
     ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
@@ -3583,6 +3817,8 @@ function renderAdmin(){
       :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
   }else if(A.tab==='opiniones'){
     html=opinionesAdminHTML(D.opiniones||[]);
+  }else if(A.tab==='eventos'){
+    html=eventosAdminHTML();
   }else if(A.tab==='banners'){
     html=bannersAdminHTML();
   }else{
@@ -3642,7 +3878,7 @@ function renderAdmin(){
     if(!c){toast('No encontramos ese comercio');return;}
     db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
   $$('[data-descartar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('reportes').doc(b.dataset.descartar).update({estado:'descartado',fecha_respuesta:FV.serverTimestamp()}),'Reporte descartado'));
-  enlazarBannersAdmin();
+  enlazarBannersAdmin();enlazarEventosAdmin();
   // Editor de emergencias
   $$('[data-amun]').forEach(b=>b.onclick=()=>{A.mun=b.dataset.amun;render(true);});
   const mun=A.mun||'fusagasuga';
@@ -4141,11 +4377,12 @@ if(navigator.geolocation&&navigator.permissions){
 }
 // Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa
 (function(){const ir=new URLSearchParams(location.search).get('ir');if(ir==='sos'||ir==='mapa'){ocultarSplash();navegar({tipo:ir});}})();
-// Rutas profundas: #/lugar/<id> (QR del comercio), #c/<id> (enlaces antiguos) y #/admin
+// Rutas profundas: #/lugar/<id> (QR del comercio), #/evento/<id>, #c/<id> (enlaces antiguos) y #/admin
 let adminPendiente=false;
 function rutaHash(){
   const h=location.hash,m=h.match(/^#\/lugar\/(.+)$/)||h.match(/^#c\/(.+)$/);
   if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
+  const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
 }
 window.addEventListener('hashchange',rutaHash);
