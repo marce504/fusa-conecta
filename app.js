@@ -2714,7 +2714,7 @@ async function renderRuta(id){
   cuerpo.innerHTML='<div class="vista-ruta">'
     +'<div id="mapaRuta">'+(estado.online?'':'<div class="mapa-off">'+icon('wifi-off',24)+'Mapa base sin conexión. La ruta y tu progreso siguen disponibles.</div>')+'</div>'
     +'<div class="ruta-panel"><h2>'+esc(r.nombre)+'</h2>'
-    +'<div class="ruta-stats"><div><b>'+String(r.distanciaTotal).replace('.',',')+' km</b><span>Distancia</span></div><div><b>'+esc(r.duracionEstimada)+'</b><span>Tiempo</span></div><div><b>'+(r.elevacionMaxima-r.elevacionMinima)+' m</b><span>Desnivel</span></div><div><b>'+esc(r.dificultad)+'</b><span>Dificultad</span></div></div>'
+    +'<div class="ruta-stats"><div><b>'+String(r.distanciaTotal).replace('.',',')+' km</b><span>Distancia</span></div><div><b>'+esc(r.duracionEstimada)+'</b><span>Tiempo</span></div><div><b>'+(r.desnivelPositivo||r.elevacionMaxima-r.elevacionMinima)+' m</b><span>Desnivel</span></div><div><b>'+esc(r.dificultad)+'</b><span>Dificultad</span></div></div>'
     +'<div class="elev-head"><span>Perfil de elevación</span><span>'+r.elevacionMinima+' – '+r.elevacionMaxima+' m s. n. m.</span></div>'+perfilSVG(r)
     +'<div id="grabPendiente"></div>'
     +'<div class="ruta-prog" id="rutaProg" role="status">'+icon('navigation',18)+'<span>Toca «Grabar recorrido» para seguir tu posición y guardar tu recorrido con fotos.</span></div>'
@@ -2738,7 +2738,8 @@ async function renderRuta(id){
       capaBase().addTo(m);
       const verde=cssVar('--primary-700'),blanco=cssVar('--bg');
       const linea=L.polyline(r.rutaWaypoints,{color:verde,weight:5,opacity:.9}).addTo(m);
-      r.rutaWaypoints.forEach((w,i)=>L.circleMarker(w,{radius:5,color:verde,fillColor:blanco,fillOpacity:1,weight:2}).addTo(m).bindPopup('Punto '+(i+1)));
+      // Puntos de paso solo en los trazados de referencia (pocos puntos); un trazado real (150-300) va solo como línea
+      if(r.rutaWaypoints.length<=30)r.rutaWaypoints.forEach((w,i)=>L.circleMarker(w,{radius:5,color:verde,fillColor:blanco,fillOpacity:1,weight:2}).addTo(m).bindPopup('Punto '+(i+1)));
       r.puntosInteres.forEach(p=>L.marker(r.rutaWaypoints[p.wp],{icon:pinIcono('map-pin'),title:p.nombre}).addTo(m).bindPopup('<b>'+esc(p.nombre)+'</b><br><small>'+esc(p.descripcion)+'</small>'));
       L.marker(r.puntoLlegada,{icon:pinIcono('flag','pin-fc meta'),title:'Punto de llegada'}).addTo(m).bindPopup('Punto de llegada');
       m.fitBounds(linea.getBounds(),{padding:[24,24]});

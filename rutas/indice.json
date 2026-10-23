@@ -1,1 +1,10 @@
-{}
+{
+  "c22": {
+    "nombre": "Sendero Cara del Indio por el Camino Real del Quininí",
+    "fuente": "OpenStreetMap (© OpenStreetMap contributors, ODbL): Camino Real del Quininí y sendero Panorámica; alturas SRTM 30 m",
+    "fecha": "2026-10-23",
+    "puntos": 200,
+    "distancia_km": 3.98,
+    "desnivel_m": 421
+  }
+}
