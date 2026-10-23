@@ -140,7 +140,7 @@ function normalizarNube(id,x){
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
     tipo:x.tipo||'',sub:x.sub||'',nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
-    fotos:Array.isArray(x.fotos)?x.fotos:[]};
+    fotos:Array.isArray(x.fotos)?x.fotos:[],creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
 }
 estado.ocultos=new Set(ls.get('fc_ocultos',[]));
 function reconstruirDirectorio(){
@@ -158,7 +158,7 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
     if(!x.propietario_uid&&nombresBase.has(norm(x.nombre).trim())&&!idsBase.has(doc.id))return;
     lista.push(normalizarNube(doc.id,x));
   });
-  comerciosNube=lista;reconstruirDirectorio();refrescarVista();
+  comerciosNube=lista;estado.nubeLista=true;reconstruirDirectorio();refrescarVista();
 },err=>console.warn('Comercios sin conexión:',err.code));
 // Negocios de muestra que el admin ocultó (los de la nube se ocultan con estado "oculto" y ya no llegan al directorio)
 db.collection('config').doc('directorio').onSnapshot(s=>{
@@ -415,7 +415,8 @@ function renderHeader(){
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
   pintarSaludo();
-  const conBanner=v.cat==='todas'&&!v.sub&&!estado.q;
+  const conBanner=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
+  $('#cats').closest('.fila-chips').hidden=conBanner;
   $('#plegBanner').hidden=!conBanner;
   if(conBanner)montarBanner();
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
@@ -562,25 +563,9 @@ function fotoHTML(d,cls){
     +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.remove()">':'');
 }
 function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
-function cardHTML(d){
-  const esFav=estado.favoritos.includes(String(d.id));
-  const ap=estadoApertura(d),km=distanciaA(d),cal=calificacionDe(d),img=imgSegura(d.imagen);
-  return '<article class="card-c">'
-    +'<div class="cc-foto"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d))+'</span>'
-      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.remove()">':'')
-      +(premiumVigente(d)?'<span class="cc-dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'')+'</div>'
-    +'<div class="cc-tx"><h3 class="cc-nombre"><button class="cc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
-      +'<p class="cc-meta">'+esc(etiquetaDe(d))+(cal.total?PTO+califHTML(cal):'')+'</p>'
-      +(ap?'<p class="cc-estado">'+estadoHTML(ap,d.id)+'</p>':'')
-      +'<p class="cc-dir">'+icon('map-pin',14)+'<span>'+esc(d.direccion)+(km!=null?' · a '+fmtDist(km):'')+'</span></p></div>'
-    +'<div class="cc-acc"><button class="cc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',22)+'</button>'
-      +'<button class="btn-wa" data-wa="'+esc(d.id)+'" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'</button></div>'
-    +'</article>';
-}
 function enlazarTarjetas(){
-  $$('#cuerpo .cc-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
-  $$('#cuerpo [data-wa]').forEach(b=>b.onclick=e=>{e.stopPropagation();abrirWhatsApp(buscar(b.dataset.wa));});
-  $$('#cuerpo .cc-fav').forEach(b=>b.onclick=e=>{
+  $$('#cuerpo .tc-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
+  $$('#cuerpo .tc-fav').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
     if(!toggleFavorito(b.dataset.fav))return;
     const on=estado.favoritos.includes(b.dataset.fav);
@@ -658,11 +643,18 @@ function renderLista(v){
   const titulo=v.cat==='favoritos'?'Mis favoritos':(v.cat==='todas'?'Todo Fusa Conecta':(CAT[v.cat]?CAT[v.cat].label:'Resultados'))
     +(v.sub?' · '+nombreSub(v.cat,v.sub):'');
   let html;
-  if(items.length){
-    const enInicio=v.cat==='todas'&&!v.sub&&!estado.q&&!hayFiltros();
-    // Orden del inicio: Cupones de la semana, Abierto ahora, Rutas y senderos y luego Todo Fusa Conecta
-    html=(enInicio?seccionCuponesHTML()+seccionAbiertosHTML()+seccionRutasHTML()+tarjetaInstalarHTML():'')
-      +'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div><div class="grid">'+items.map(cardHTML).join('')+'</div>';
+  const enInicio=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q&&!hayFiltros();
+  if(estado.listaClave!==JSON.stringify([v.cat,v.sub,v.todo,estado.q])){estado.listaClave=JSON.stringify([v.cat,v.sub,v.todo,estado.q]);estado.limiteLista=POR_PAGINA;}
+  if(enInicio){
+    // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
+    html=tilesHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+      +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
+      +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
+      +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>';
+  }else if(items.length){
+    html='<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+      +barraListaHTML(items.length)
+      +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html='<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else{
@@ -679,6 +671,8 @@ function renderLista(v){
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   });
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
+  if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
+  else if(items.length)enlazarListado(items);
 }
 
 /* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
@@ -695,7 +689,7 @@ function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' 
 function slidesBase(){
   return [
     {id:'bienvenida',foto:'img/banners/bienvenida.webp',velo:'violeta',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
-      sub:'Comercios, rutas y emergencias de Fusa y Pasca.',accion:'explorar',textoBoton:'Explorar',
+      sub:'Comercios, rutas y emergencias de la región.',accion:'explorar',textoBoton:'Explorar',
       ilu:'<span class="ilu-logo">'+logo('iso','lila',{alto:56,decorativo:true})+'</span>'},
     {id:'cupones',foto:'img/banners/cupones.webp',velo:'sol',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',
       sub:'Toma un descuento, muéstralo en caja y ahorra.',accion:'cupones',textoBoton:'Ver cupones',
@@ -809,27 +803,127 @@ function registrarMiNegocio(){
   abrirLogin('registro',false,'Crea tu cuenta gratis para registrar tu negocio.');
 }
 
-/* ===== SECCIONES DEL INICIO ===== */
+/* ===== TARJETA COMPACTA (v5 · Fase 3) =====
+   168 px en carruseles y ancho flexible en la cuadrícula de 2 columnas. Foto 4:3, corazón arriba a la derecha,
+   insignia "Cupón" o "Destacado" arriba a la izquierda; toda la tarjeta abre la ficha (el nombre es el enlace y lo cubre todo). */
+function tarjetaHTML(d){
+  const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=imgSegura(d.imagen);
+  const insignia=cuponesDe(d).length?'<span class="tc-ins cupon">'+icon('ticket',12)+'Cupón</span>'
+    :premiumVigente(d)?'<span class="tc-ins dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'';
+  // Abierto o "Cierra pronto" cuando aplica; si no, la categoría y la distancia
+  const linea=ap&&ap.abierto?estadoHTML(ap,d.id):'<span class="tc-cat">'+esc(etiquetaDe(d))+(km!=null?' · '+fmtDist(km):'')+'</span>';
+  return '<article class="tarjeta">'
+    +'<div class="tc-foto"><span class="fallback-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),28)+'</span>'
+      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+insignia
+      +'<button class="tc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',18)+'</button></div>'
+    +'<h3 class="tc-nombre"><button class="tc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
+    +(cal.total?'<p class="tc-calif">'+icon('star',14,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' <span>('+cal.total+')</span></p>':'')
+    +'<p class="tc-linea">'+linea+'</p></article>';
+}
+function tarjetaEsqueletoHTML(){return '<div class="tarjeta esqueleto" aria-hidden="true"><div class="tc-foto"></div><span class="esq-l"></span><span class="esq-l corta"></span></div>';}
+function carruselHTML(id,titulo,items,ir,cargando){
+  if(!items.length&&!cargando)return '';
+  return '<section class="seccion-inicio" aria-labelledby="t'+id+'"><div class="head-v"><h2 id="t'+id+'">'+titulo+'</h2>'
+    +(ir&&items.length?'<button class="btn-ghost" data-ir="'+ir+'">Ver todos</button>':'')+'</div>'
+    +'<div class="carrusel carrusel-tc"'+(cargando?' aria-busy="true"':'')+'>'+(cargando?tarjetaEsqueletoHTML().repeat(3):items.map(tarjetaHTML).join(''))+'</div></section>';
+}
+
+/* ===== CATEGORÍAS EN TILES (inicio) ===== */
+const TILES=[
+  {t:'Comida',ic:'utensils',cat:'comercio',sub:'comidas',c:'comer'},
+  {t:'Tiendas',ic:'shopping-bag',cat:'comercio',sub:'tiendas',c:'comer'},
+  {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
+  {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
+  {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
+  {t:'Bares',ic:'wine',cat:'bares',c:'bares'},
+  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites'},
+  {t:'Mascotas',ic:'paw-print',cat:'comercio',sub:'mascotas',c:'comer'},
+  {t:'Panaderías',ic:'croissant',cat:'comercio',sub:'panaderias',c:'comer'},
+  {t:'Salud',ic:'stethoscope',cat:'comercio',sub:'salud',c:'comer'},
+  {t:'Servicios',ic:'hand-helping',cat:'comercio',sub:'servicios',c:'comer'},
+  {t:'Talleres',ic:'car',cat:'comercio',sub:'talleres',c:'comer'},
+  {t:'Ferreterías',ic:'hammer',cat:'comercio',sub:'ferreterias',c:'comer'},
+  {t:'Comercios',ic:'store',cat:'comercio',c:'comer'}
+];
+// Solo las categorías con lugares; si son más de 8, la octava es "Más" y abre una hoja con todas
+function tilesDisponibles(){return TILES.filter(x=>database.some(d=>d.cat===x.cat&&(!x.sub||subDe(d)===x.sub)));}
+function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
+function tilesHTML(){
+  const l=tilesDisponibles(),mas=l.length>8;
+  return '<nav class="tiles-cat" aria-label="Categorías">'+(mas?l.slice(0,7):l).map((x,i)=>tileHTML(x,TILES.indexOf(x))).join('')
+    +(mas?'<button class="tile-cat" id="tileMas"><span class="tile-ic c-mas" aria-hidden="true">'+icon('layout-grid',28)+'</span><span class="tile-tx">Más</span></button>':'')+'</nav>';
+}
+function irATile(x){if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
+function enlazarTiles(){
+  $$('#cuerpo [data-tile]').forEach(b=>b.onclick=()=>irATile(TILES[+b.dataset.tile]));
+  const m=$('#tileMas');if(m)m.onclick=()=>{
+    abrirHoja('<div class="hoja-pad"><h2>Todas las categorías</h2><nav class="tiles-cat mt-16" aria-label="Todas las categorías">'+tilesDisponibles().map(x=>tileHTML(x,TILES.indexOf(x))).join('')+'</nav></div>');
+    $('#sheetGen').setAttribute('aria-label','Todas las categorías');
+    $$('#sheetGen [data-tile]').forEach(b=>b.onclick=()=>{cerrar('ovGen');irATile(TILES[+b.dataset.tile]);});
+  };
+}
+
+/* ===== SECCIONES DEL INICIO (carruseles de tarjetas compactas) ===== */
 function seccionAbiertosHTML(){
   const l=itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}).slice(0,10);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tAbiertos"><div class="head-v"><h2 id="tAbiertos">Abierto ahora</h2><button class="btn-ghost" data-ir="abierto">Ver todos</button></div>'
-    +'<div class="carrusel">'+l.map(d=>'<article class="mini-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
-      +fotoHTML(d,'mini-foto')+'</div><b>'+esc(d.nombre)+'</b><span class="mini-cat">'+esc(etiquetaDe(d))+'</span>'+estadoHTML(estadoApertura(d),d.id)+'</article>').join('')+'</div></section>';
+  return carruselHTML('Abiertos','Abierto ahora',l,'abierto');
 }
-// Rutas y senderos: primero los que tienen recorrido trazado, luego los demás senderos
+function seccionCercaHTML(){
+  if(!estado.pos)return '';
+  const l=itemsVisibles('todas','',false).filter(d=>{const k=distanciaA(d);return k!=null&&k<=3;}).sort((a,b)=>distanciaA(a)-distanciaA(b)).slice(0,10);
+  return carruselHTML('Cerca','Cerca de ti',l,'cercanos');
+}
+function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',itemsVisibles('campo','',false).slice(0,10),'campo');}
+// Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
-  const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&imgSegura(d.imagen))
-    .sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,8);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tRutas"><div class="head-v"><h2 id="tRutas">Rutas y senderos</h2><button class="btn-ghost" data-ir="senderos">Ver todos</button></div>'
-    +'<div class="carrusel">'+l.map(d=>{const r=RUTAS[d.id];
-      return '<article class="plan-card"><button class="mini-link" data-ver="'+esc(d.id)+'" aria-label="'+esc(d.nombre)+'"></button>'
-        +'<img src="'+esc(d.imagen)+'" alt="" loading="lazy" onerror="this.remove()"><div class="plan-tx"><span class="plan-tipo">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+(r?' · '+String(r.distanciaTotal).replace('.',',')+' km':'')+'</span><b>'+esc(d.nombre)+'</b></div></article>';}).join('')+'</div></section>';
+  const l=database.filter(d=>RUTAS[d.id]||subDe(d)==='sendero').sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
+  return carruselHTML('Rutas','Rutas y senderos',l,'senderos');
+}
+// Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
+function seccionRecientesHTML(){
+  const l=database.filter(d=>d.creado).sort((a,b)=>b.creado-a.creado).slice(0,10);
+  return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
 }
 function enlazarSecciones(){
-  $$('#cuerpo .mini-link').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
-  $$('#cuerpo [data-ir]').forEach(b=>b.onclick=()=>{const k=b.dataset.ir;if(k==='abierto'){estado.filtros.abierto=true;render();}else if(k==='senderos')navegar({tipo:'lista',cat:'turismo',sub:'sendero'});else navegar({tipo:'lista',cat:k});});
+  $$('#cuerpo [data-ir]').forEach(b=>b.onclick=()=>{const k=b.dataset.ir;
+    if(k==='abierto'){estado.filtros.abierto=true;render();}
+    else if(k==='cercanos'){estado.filtros.orden='cercanos';navegar({tipo:'lista',cat:'todas',todo:true});}
+    else if(k==='senderos')navegar({tipo:'lista',cat:'turismo',sub:'sendero'});
+    else navegar({tipo:'lista',cat:k});});
+}
+
+/* ===== LISTADOS EN CUADRÍCULA DE 2 COLUMNAS (o mapa) ===== */
+const POR_PAGINA=24;
+function barraListaHTML(n){
+  const o=estado.filtros.orden||'recomendados',vm=estado.vistaLista==='mapa';
+  return '<div class="lista-barra"><div class="lb-orden" role="radiogroup" aria-label="Ordenar por">'
+    +ORDENES.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(o===k)+'" class="chip-filtro'+(o===k?' on':'')+'" data-orden="'+k+'">'+t+'</button>').join('')+'</div>'
+    +'<div class="lb-vista" role="radiogroup" aria-label="Vista"><button type="button" role="radio" aria-checked="'+!vm+'" class="'+(vm?'':'on')+'" data-vista="cuadricula" aria-label="Cuadrícula">'+icon('layout-grid',20)+'</button>'
+    +'<button type="button" role="radio" aria-checked="'+vm+'" class="'+(vm?'on':'')+'" data-vista="mapa" aria-label="Mapa">'+icon('map',20)+'</button></div></div>';
+}
+function cuadriculaHTML(items,limite){
+  return '<div class="grid-tc">'+items.slice(0,limite).map(tarjetaHTML).join('')+'</div>'
+    +(items.length>limite?'<button class="btn btn-secundario btn-bloque mt-16" id="verMas">Ver más ('+(items.length-limite)+')</button>':'');
+}
+function enlazarListado(items){
+  $$('#cuerpo [data-orden]').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.orden;
+    if(k==='cercanos'&&!estado.pos){const p=await pedirUbicacion();if(!p){toast('Activa tu ubicación para ordenar por cercanía');return;}}
+    estado.filtros.orden=k;render(true);});
+  $$('#cuerpo [data-vista]').forEach(b=>b.onclick=()=>{estado.vistaLista=b.dataset.vista;render(true);});
+  const vm=$('#verMas');if(vm)vm.onclick=()=>{estado.limiteLista=(estado.limiteLista||POR_PAGINA)+POR_PAGINA;render(true);};
+  if(estado.vistaLista==='mapa'&&$('#mapaLista'))mapaDeLista(items);
+}
+async function mapaDeLista(items){
+  try{await cargarLeaflet();}catch(e){$('#mapaLista').innerHTML='<div class="mapa-off">'+icon('wifi-off',24)+'No se pudo cargar el mapa.</div>';return;}
+  const caja=$('#mapaLista');if(!caja||mapaActivo)return;
+  const m=L.map(caja).setView(PLAZA_FUSA,13);mapaActivo=m;capaBase().addTo(m);
+  const con=items.filter(d=>d.lat&&d.lng),pts=[];
+  con.forEach(d=>{pts.push([d.lat,d.lng]);L.marker([d.lat,d.lng],{icon:pinIcono(iconoDe(d),'pin-fc c-'+d.cat),title:d.nombre,alt:d.nombre}).addTo(m)
+    .bindPopup('<b>'+esc(d.nombre)+'</b><br><small>'+esc(etiquetaDe(d))+'</small><br><button class="pop-ver" data-ver="'+esc(d.id)+'">Ver ficha</button>');});
+  if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
+  m.on('popupopen',e=>{const b=e.popup.getElement().querySelector('[data-ver]');if(b)b.onclick=()=>abrirDetalle(b.dataset.ver);});
+  setTimeout(()=>m.invalidateSize(),200);
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -2853,7 +2947,7 @@ function pintarWizard(){
   }else{
     const vista={...(w.original||{}),id:'vista',nombre:d.nombre,cat:d.cat,sub:d.cat==='turismo'?'':d.sub,tipo:d.cat==='turismo'?d.sub:'',
       direccion:d.direccion||'Fusagasugá',desc:d.desc||'Negocio local de Fusagasugá.',imagen:(d.fotos[0]&&(d.fotos[0].src||d.fotos[0].thumb))||'',dias:d.dias,abre:d.abre,cierra:d.cierra,horario:textoHorarioWiz(),tel:d.tel,esPremium:false};
-    cuerpo='<p class="nota">Así verán tu negocio en el directorio:</p><div class="vista-previa" aria-hidden="true">'+cardHTML(vista)+'</div>'
+    cuerpo='<p class="nota">Así verán tu negocio en el directorio:</p><div class="vista-previa" aria-hidden="true">'+tarjetaHTML(vista)+'</div>'
       +(w.editandoId&&w.original&&w.original.estado_publicacion==='aprobado'?'':'<p class="nota">'+icon('clock',14)+' Un administrador revisará la información antes de publicarla.</p>');
   }
   const titulo=w.editandoId?'Editar mi negocio':'Registra tu negocio';
