@@ -213,7 +213,7 @@ function tarjetaEventoHTML(e){
     +'<p class="tc-linea">'+icon('map-pin',12)+esc(e.lugar_nombre)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
 }
 // Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
-const puedePublicarEventos=()=>esAdmin()||esComerciante();
+const puedePublicarEventos=()=>esAdmin()||esComerciante()||esOrganizador();
 const textoSugerir=()=>logueado()&&puedePublicarEventos()?'Publicar un evento':'Sugerir un evento';
 function sugerirEvento(){if(!logueado()){pedirLogin('Inicia sesión para sugerir un evento.');return;}formEvento(null);}
 // Ilustración de línea (calendario con destellos) para el estado vacío
@@ -329,8 +329,10 @@ function formEvento(e,opc={}){
   const admin=esAdmin(),v=k=>esc(e&&e[k]!=null?e[k]:'');
   let foto=e&&e.imagen?{src:e.imagen}:null,lat=e?e.lat:null,lng=e?e.lng:null;
   const lugares=[...database].filter(d=>d.lat&&d.lng).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
-  abrirHoja('<div class="hoja-pad"><h2>'+(e?'Editar evento':admin?'Nuevo evento':esComerciante()?'Publicar un evento':'Sugerir un evento')+'</h2>'
-    +(admin?'':'<p class="nota-c izq">Lo revisamos antes de publicarlo en la agenda.</p>')
+  const directo=admin||organizadorConfiable();let porIA=false;
+  abrirHoja('<div class="hoja-pad"><h2>'+(e?'Editar evento':admin?'Nuevo evento':puedePublicarEventos()?'Publicar un evento':'Sugerir un evento')+'</h2>'
+    +(directo?'':'<p class="nota-c izq">Lo revisamos antes de publicarlo en la agenda.</p>')
+    +(puedeUsarIA()?iaCajaHTML():'')
     +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
     +(foto?'<img src="'+esc(foto.src)+'" alt="Foto del evento. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
     +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
@@ -347,7 +349,7 @@ function formEvento(e,opc={}){
     +'<div class="campo" id="evfPrecioCaja"'+(!e||e.gratis?' hidden':'')+'><label for="evfPrecio">Precio</label><input class="input" id="evfPrecio" maxlength="40" placeholder="Ej.: $10.000" value="'+v('precio')+'"></div>'
     +'<div class="campo"><label for="evfFuente">Enlace de la fuente oficial</label><input class="input" type="url" id="evfFuente" placeholder="https://..." value="'+v('enlace_fuente')+'"></div>'
     +'<div class="campo"><label for="evfDesc">Descripción</label><textarea id="evfDesc" maxlength="1000">'+v('descripcion')+'</textarea></div>'
-    +'<button class="btn btn-primario btn-bloque mt-16" id="evfGuardar">'+(admin?(e&&e.estado!=='publicado'?'Guardar y publicar':e?'Guardar cambios':'Publicar evento'):'Enviar para revisión')+'</button></div>');
+    +'<button class="btn btn-primario btn-bloque mt-16" id="evfGuardar">'+(admin?(e&&e.estado!=='publicado'?'Guardar y publicar':e?'Guardar cambios':'Publicar evento'):directo?'Publicar evento':'Enviar para revisión')+'</button></div>');
   $('#sheetGen').setAttribute('aria-label','Formulario de evento');
   $('#evfGratis').onchange=()=>{$('#evfPrecioCaja').hidden=$('#evfGratis').checked;};
   $('#evfEn').onchange=()=>{const d=buscar($('#evfEn').value);if(!d)return;lat=d.lat;lng=d.lng;if(!$('#evfLugar').value.trim())$('#evfLugar').value=d.nombre;$('#evfPos').textContent='Ubicación de «'+d.nombre+'» guardada';};
@@ -355,6 +357,23 @@ function formEvento(e,opc={}){
   $('#evfFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#evfCaja').classList.add('cargando');
     try{foto=await comprimirFoto(f,1280,250000,.8);$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}catch(err){toast('No pudimos usar esa foto. Prueba con otra.');}
     $('#evfCaja').classList.remove('cargando');};
+  // La IA llena el formulario; la persona revisa, corrige y envía
+  if($('#iaLlenar'))enlazarIAEvento((d,afiche)=>{
+    porIA=true;
+    const pon=(id,val)=>{const el=$(id);if(el&&val!=null&&String(val).trim()!=='')el.value=String(val).trim();};
+    pon('#evfTit',String(d.titulo||'').slice(0,80));pon('#evfDesc',String(d.descripcion||'').slice(0,1000));
+    if(CATS_EVENTO.some(c=>c[0]===d.categoria))$('#evfCat').value=d.categoria;
+    pon('#evfIni',aCampoFecha(d.fecha_inicio));pon('#evfFin',aCampoFecha(d.fecha_fin));
+    if(!$('#evfFin').value&&$('#evfIni').value){const t=new Date($('#evfIni').value).getTime()+2*36e5;$('#evfFin').value=aLocal(t);}
+    pon('#evfLugar',String(d.lugar_nombre||'').slice(0,80));
+    if(['Fusagasugá','Pasca'].includes(d.municipio))$('#evfMun').value=d.municipio;
+    pon('#evfOrg',String(d.organizador||'').slice(0,80));
+    if(/^https:\/\/\S+$/.test(d.enlace_fuente||''))$('#evfFuente').value=d.enlace_fuente;
+    $('#evfGratis').checked=d.gratis!==false;$('#evfPrecioCaja').hidden=$('#evfGratis').checked;
+    if(d.gratis===false)pon('#evfPrecio',String(d.precio||'').slice(0,40));
+    // El afiche también sirve como foto del evento si aún no tiene una
+    if(afiche&&!foto){comprimirFoto(afiche.src,1280,250000,.8).then(f=>{foto=f;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
+  });
   $('#evfGuardar').onclick=async()=>{
     const tit=$('#evfTit').value.trim(),ini=$('#evfIni').value?new Date($('#evfIni').value).getTime():0,fin=$('#evfFin').value?new Date($('#evfFin').value).getTime():0;
     const lugar=$('#evfLugar').value.trim(),fuente=$('#evfFuente').value.trim();
@@ -370,14 +389,164 @@ function formEvento(e,opc={}){
       enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim()};
     $('#evfGuardar').disabled=true;
     try{
-      if(admin&&e)await db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:e.origen||'admin',creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()});
-      else await db.collection('eventos').add({...datos,estado:admin?'publicado':'pendiente',origen:admin?'admin':esComerciante()?'organizador':'usuario',
+      if(admin&&e)await db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()});
+      else await db.collection('eventos').add({...datos,estado:directo?'publicado':'pendiente',
+        origen:porIA?'ia':admin?'admin':(esOrganizador()||esComerciante())?'organizador':'usuario',
         creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
-      cerrar('ovGen');medir(admin?'evento_publicado':'evento_sugerido');
-      toast(admin?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
+      cerrar('ovGen');medir(directo?'evento_publicado':'evento_sugerido');
+      toast(directo?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
       if(vistaActual().tipo==='admin')cargarAdmin();
     }catch(err){console.error(err);toast('No se pudo guardar. Revisa tu conexión.');$('#evfGuardar').disabled=false;}
   };
+}
+
+/* ===== IA: LLENAR UN EVENTO DESDE UN AFICHE O UN TEXTO (v6 · Fase 2.1) =====
+   Firebase AI Logic (SDK web modular firebase/ai) con la Gemini Developer API: funciona en el plan Spark y la clave
+   la guarda Firebase (nunca va en este código). Se carga solo al usarla, en una app de Firebase aparte con la misma
+   configuración: la inicialización principal no cambia. Con App Check (reCAPTCHA v3) si hay clave de sitio.
+   Límite: 20 usos por persona al día (contador en Firestore, validado por las reglas). Si falla, el formulario sigue a mano. */
+const IA={version:'12.19.0',modelo:'gemini-2.5-flash',limiteDia:20,
+  recaptcha:''};   // clave de SITIO reCAPTCHA v3 (es pública) cuando se active App Check en la consola
+let modeloIA=null;
+const esOrganizador=()=>!!(estado.perfil&&estado.perfil.rol==='organizador');
+const organizadorConfiable=()=>esOrganizador()&&estado.perfil.confiable===true;
+const puedeUsarIA=()=>logueado()&&(esAdmin()||esComerciante()||esOrganizador());
+async function obtenerModeloIA(){
+  if(modeloIA)return modeloIA;
+  const base='https://www.gstatic.com/firebasejs/'+IA.version+'/';
+  const {initializeApp,getApps}=await import(base+'firebase-app.js');
+  const {getAI,getGenerativeModel,GoogleAIBackend,Schema}=await import(base+'firebase-ai.js');
+  const app=getApps().find(a=>a.name==='fusa-ia')||initializeApp(firebase.app().options,'fusa-ia');
+  if(IA.recaptcha){
+    const {initializeAppCheck,ReCaptchaV3Provider}=await import(base+'firebase-app-check.js');
+    try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider(IA.recaptcha),isTokenAutoRefreshEnabled:true});}catch(e){}
+  }
+  // Salida estructurada: Gemini responde exactamente estos campos
+  const esquema=Schema.object({properties:{
+      titulo:Schema.string({description:'Nombre del evento, máximo 80 caracteres'}),
+      descripcion:Schema.string({description:'Descripción corta, máximo 300 caracteres'}),
+      categoria:Schema.enumString({enum:CATS_EVENTO.map(c=>c[0])}),
+      fecha_inicio:Schema.string({description:'Inicio en formato AAAA-MM-DDTHH:MM, hora de Colombia'}),
+      fecha_fin:Schema.string({description:'Fin en formato AAAA-MM-DDTHH:MM, hora de Colombia'}),
+      lugar_nombre:Schema.string(),
+      municipio:Schema.enumString({enum:['Fusagasugá','Pasca']}),
+      gratis:Schema.boolean(),
+      precio:Schema.string(),
+      organizador:Schema.string(),
+      enlace_fuente:Schema.string({description:'Enlace https de la publicación oficial, si aparece'})},
+    optionalProperties:['descripcion','fecha_fin','precio','organizador','enlace_fuente']});
+  const ai=getAI(app,{backend:new GoogleAIBackend()});
+  modeloIA=getGenerativeModel(ai,{model:IA.modelo,generationConfig:{responseMimeType:'application/json',responseSchema:esquema,temperature:0}});
+  return modeloIA;
+}
+// Cuenta un uso de hoy (día UTC); las reglas impiden pasar de 20 o saltarse el contador
+async function contarUsoIA(){
+  const ref=db.collection('uso_ia').doc(estado.usuario.uid),dia=Math.floor(Date.now()/864e5);
+  return db.runTransaction(async t=>{
+    const s=await t.get(ref),x=s.exists?s.data():null,n=x&&x.dia===dia?x.n+1:1;
+    if(n>IA.limiteDia)throw Object.assign(new Error('limite'),{code:'limite'});
+    t.set(ref,{dia,n,ultima:FV.serverTimestamp()});return IA.limiteDia-n;
+  });
+}
+function iaCajaHTML(){
+  return '<div class="ia-caja"><p class="bloque-tit">'+icon('sparkles',18)+'Llenar con IA desde un afiche o texto</p>'
+    +'<p class="nota-c izq">Sube la foto del afiche o pega el texto de la publicación. Revisa todo antes de enviar.</p>'
+    +'<label class="btn btn-secundario btn-bloque ia-afiche" id="iaAficheBtn">'+icon('image-plus',18)+'<span id="iaAficheTx">Subir afiche</span><input type="file" accept="image/*" id="iaAfiche" class="sr-only"></label>'
+    +'<div class="campo"><label for="iaTexto">Texto de la publicación</label><textarea id="iaTexto" maxlength="4000" placeholder="Pega aquí el texto del evento"></textarea></div>'
+    +'<button type="button" class="btn btn-tonal btn-bloque" id="iaLlenar">'+icon('sparkles',18)+'Llenar el formulario</button>'
+    +'<p class="ayuda" id="iaEstado" role="status" aria-live="polite"></p></div>';
+}
+// a datetime-local: acepta "AAAA-MM-DDTHH:MM" (con o sin segundos o zona) en hora de Colombia
+const aCampoFecha=s=>{const m=String(s||'').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);return m?m[1]+'T'+m[2]:'';};
+function enlazarIAEvento(alLlenar){
+  let afiche=null;
+  const est=t=>{const e=$('#iaEstado');if(e)e.textContent=t;};
+  $('#iaAfiche').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;
+    try{afiche=await comprimirFoto(f,1280,600000,.85);$('#iaAficheTx').textContent='Afiche listo · cambiar';est('');}catch(e){est('No pudimos leer esa imagen. Prueba con otra.');}};
+  $('#iaLlenar').onclick=async()=>{
+    const texto=$('#iaTexto').value.trim();
+    if(!afiche&&texto.length<15){est('Sube el afiche o pega el texto del evento.');return;}
+    if(!estado.online){est('La IA necesita conexión a internet. Puedes llenar el formulario a mano.');return;}
+    const b=$('#iaLlenar');b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Leyendo…';est('');
+    try{
+      const quedan=await contarUsoIA();
+      const modelo=await obtenerModeloIA();
+      const hoy=new Date(),p=n=>String(n).padStart(2,'0');
+      const pedido='Hoy es '+hoy.getFullYear()+'-'+p(hoy.getMonth()+1)+'-'+p(hoy.getDate())+' en Colombia. Extrae UN evento público de Fusagasugá o Pasca (Cundinamarca) '
+        +'del afiche o texto. Reglas: no inventes datos; si falta el año, usa la próxima fecha futura; si falta la hora, usa 09:00; si falta el fin, 2 horas después; '
+        +'gratis es true si dice entrada libre o gratis; si hay valor, gratis false y precio con el valor; municipio Fusagasugá salvo que diga Pasca. '
+        +'Categorías: '+CATS_EVENTO.map(c=>c[0]+' ('+c[1]+')').join(', ')+'.'+(texto?'\n\nTEXTO:\n'+texto:'');
+      const partes=[{text:pedido}];
+      if(afiche)partes.push({inlineData:{mimeType:afiche.src.slice(5,afiche.src.indexOf(';')),data:afiche.src.split(',')[1]}});
+      const r=await modelo.generateContent(partes);
+      const d=JSON.parse(r.response.text());
+      alLlenar(d,afiche);
+      medir('evento_ia',{con_afiche:!!afiche});
+      est('Listo: revisa y corrige lo que haga falta. Te quedan '+quedan+' usos de IA hoy.');
+    }catch(e){
+      console.warn('IA:',e);
+      est(e.code==='limite'?'Llegaste al límite de '+IA.limiteDia+' usos de IA por hoy. Puedes llenar el formulario a mano.'
+        :/api-not-enabled|permission|403|app-check/i.test(String(e.code)+e.message)?'La IA todavía no está activada en la app. Puedes llenar el formulario a mano.'
+        :'No pudimos leer el evento con IA. Puedes llenar el formulario a mano.');
+    }finally{b.disabled=false;b.innerHTML=icon('sparkles',18)+'Llenar el formulario';}
+  };
+}
+
+/* ===== ORGANIZADORES (v6 · Fase 2.3) =====
+   El admin invita por correo (invitaciones/{correo}). Cuando esa persona entra con ese correo verificado, su cuenta pasa a
+   "organizador": publica eventos que quedan pendientes, o directos si el admin la marcó como confiable. */
+async function aplicarInvitacion(user){
+  if(!user||!user.email||!estado.perfil||estado.perfil.rol!=='usuario')return;
+  try{
+    const correo=user.email.toLowerCase(),inv=await db.collection('invitaciones').doc(correo).get();
+    if(!inv.exists)return;
+    if(!user.emailVerified){toast('Verifica tu correo para activar tu cuenta de organizador de eventos',4000);return;}
+    const confiable=inv.data().confiable===true;
+    await db.collection('usuarios').doc(user.uid).update({rol:'organizador',confiable});
+    estado.perfil.rol='organizador';estado.perfil.confiable=confiable;
+    toast('Tu cuenta quedó como organizador de eventos',4000);render(true);
+  }catch(e){console.warn('Invitación:',e.code||e);}
+}
+function mensajeInvitacion(correo){
+  return 'Hola. Te invitamos a publicar los eventos de tu organización en la agenda de Fusa Conecta. '
+    +'Entra a '+SITIO_URL+' y crea tu cuenta (o ingresa) con este correo: '+correo+'. Luego ve a Perfil → Agenda de eventos → «+».';
+}
+async function cargarOrganizadores(){
+  const [inv,us]=await Promise.all([db.collection('invitaciones').get(),db.collection('usuarios').where('rol','==','organizador').get()]);
+  estado.admin.invitaciones=inv.docs.map(d=>({correo:d.id,...d.data()}));
+  estado.admin.organizadores=us.docs.map(d=>({uid:d.id,...d.data()}));
+}
+function organizadoresAdminHTML(){
+  const A=estado.admin,inv=A.invitaciones||[],org=A.organizadores||[];
+  return '<p class="dash-section">Organizadores de eventos</p>'
+    +'<p class="nota-c izq">Alcaldía, Casa de la Cultura, colegios… Publican eventos que quedan por aprobar; si los marcas como confiables, se publican directo.</p>'
+    +'<div class="campo"><label for="orgCorreo">Correo del organizador</label><input class="input" type="email" id="orgCorreo" autocomplete="off" placeholder="cultura@fusagasuga.gov.co"></div>'
+    +'<label class="switch-row"><span>Confiable: publica sin revisión</span><input type="checkbox" id="orgConfiable"></label>'
+    +'<button class="btn btn-secundario btn-bloque" id="orgInvitar">'+icon('mail',18)+'Invitar organizador</button>'
+    +(A.organizadoresCargando?'<p class="nota-c izq">Cargando…</p>':'')
+    +inv.map(i=>{const u=org.find(o=>(o.correo||'').toLowerCase()===i.correo);
+      return '<div class="adm-fila"><div class="dc-info"><b>'+esc(i.correo)+'</b><span>'+(u?'Activo · '+esc(u.nombre||''):'Pendiente: aún no ha entrado con este correo')+(i.confiable?' · Confiable':'')+'</span></div>'
+        +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" data-orgcopiar="'+esc(i.correo)+'">'+icon('copy',16)+'Copiar invitación</button>'
+        +'<button class="btn btn-ghost" data-orgquitar="'+esc(i.correo)+'">Quitar</button></div></div>';}).join('');
+}
+function enlazarOrganizadoresAdmin(){
+  const A=estado.admin;
+  if(!A.organizadores&&!A.organizadoresCargando){A.organizadoresCargando=true;
+    cargarOrganizadores().catch(()=>{}).finally(()=>{A.organizadoresCargando=false;if(vistaActual().tipo==='admin'&&A.tab==='eventos')render(true);});}
+  const b=$('#orgInvitar');if(b)b.onclick=async()=>{
+    const correo=$('#orgCorreo').value.trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)){toast('Escribe un correo válido');$('#orgCorreo').focus();return;}
+    const confiable=$('#orgConfiable').checked;
+    await adminAccion(async()=>{await db.collection('invitaciones').doc(correo).set({rol:'organizador',confiable,invitado_por:estado.usuario.uid,fecha:FV.serverTimestamp()});A.organizadores=null;},'Invitación creada');
+    try{await navigator.clipboard.writeText(mensajeInvitacion(correo));toast('Invitación creada y mensaje copiado: envíaselo por correo o WhatsApp',4000);}catch(e){}
+  };
+  $$('[data-orgcopiar]').forEach(x=>x.onclick=async()=>{try{await navigator.clipboard.writeText(mensajeInvitacion(x.dataset.orgcopiar));toast('Mensaje copiado');}catch(e){toast(mensajeInvitacion(x.dataset.orgcopiar),6000);}});
+  $$('[data-orgquitar]').forEach(x=>x.onclick=async()=>{
+    const correo=x.dataset.orgquitar,u=(A.organizadores||[]).find(o=>(o.correo||'').toLowerCase()===correo);
+    if(!await confirmar('Quitar organizador',correo+' deja de poder publicar eventos como organizador.','Quitar','Cancelar','user',true))return;
+    await adminAccion(async()=>{const lote=db.batch();lote.delete(db.collection('invitaciones').doc(correo));
+      if(u)lote.update(db.collection('usuarios').doc(u.uid),{rol:'usuario',confiable:false});await lote.commit();A.organizadores=null;},'Organizador quitado');
+  });
 }
 
 /* ---------- Admin · eventos de ejemplo para presentar (demo:true) ---------- */
@@ -417,6 +586,7 @@ function eventosAdminHTML(){
     +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="admEvDemo">'+icon('sparkles',16)+'Cargar eventos de ejemplo</button>'
     +(nDemo?'<button class="btn btn-ghost" id="admEvDemoBorrar">'+icon('trash-2',16)+'Borrar eventos de ejemplo ('+nDemo+')</button>':'')+'</div>'
     +'<p class="nota-c izq">Los de ejemplo sirven para presentar la app: se publican con la etiqueta «Ejemplo» y se borran con un toque.</p>'
+    +organizadoresAdminHTML()
     +'<p class="dash-section">Por aprobar ('+pend.length+')</p>'
     +(pend.length?pend.map(e=>fila(e,'<button class="btn btn-primario btn-sm" data-evpub="'+esc(e.id)+'">'+icon('check',16)+'Publicar</button>'
         +'<button class="btn btn-secundario btn-sm" data-eveditp="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
@@ -430,6 +600,7 @@ function eventosAdminHTML(){
 function enlazarEventosAdmin(){
   const col=db.collection('eventos'),pend=id=>(estado.adminPend.eventos||[]).find(e=>e.id===id),pub=id=>estado.eventos.find(e=>e.id===id);
   const n=$('#admEvNuevo');if(n)n.onclick=()=>formEvento(null);
+  enlazarOrganizadoresAdmin();
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const db_=$('#admEvDemoBorrar');if(db_)db_.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
     adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>b.delete(d.ref));await b.commit();},'Eventos de ejemplo borrados');};
@@ -2703,7 +2874,7 @@ function renderPerfil(){
   const u=estado.usuario,p=estado.perfil||{};
   const cupones=cuponesLocales().filter(c=>estadoCupon(c)==='activo');
   const notifOn=p.notificaciones_push!==false;
-  const rol=esAdmin()?['shield-check','Administrador']:esComerciante()?['store','Vecino con negocio']:['user','Vecino / turista'];
+  const rol=esAdmin()?['shield-check','Administrador']:esComerciante()?['store','Vecino con negocio']:esOrganizador()?['calendar-days','Organizador de eventos'+(organizadorConfiable()?' · confiable':'')]:['user','Vecino / turista'];
   const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
   cuerpo.innerHTML='<div class="vista">'
     +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
@@ -3503,6 +3674,7 @@ async function _procesarUsuario(user){
   escucharPromociones();sincronizarCupones();escucharMisComercios();escucharAdmin();
   // Después del primer registro: "¿Qué te gusta de Fusa?"; luego se retoma lo que iba a hacer (p. ej. registrar su negocio)
   if(cuentaNueva)setTimeout(mostrarBienvenida,400);else retomarAccionPendiente();
+  aplicarInvitacion(user);
   if(typeof adminPendiente!=='undefined'&&adminPendiente&&esAdmin()){adminPendiente=false;ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}
 }
 function pedirConsentimiento(){

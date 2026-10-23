@@ -1456,3 +1456,9 @@ button:disabled{opacity:.6;pointer-events:none}
 /* Etiqueta de los eventos de ejemplo */
 .ev-demo{position:absolute;right:8px;top:8px;z-index:1;padding:2px 8px;border-radius:var(--radius-full);background:var(--blanco);color:var(--tinta-fija);font-size:var(--text-2xs);font-weight:700}
 .ev-chip-demo{background:var(--sun-50);color:var(--sun-800)}
+/* ---------- v6 · Fase 2: IA para eventos ---------- */
+.ia-caja{margin:4px 0 16px;padding:14px;border-radius:var(--radius-lg);background:var(--primary-50);border:1px solid var(--primary-100)}
+.ia-caja .bloque-tit{color:var(--primary-700)}
+.ia-caja textarea{min-height:88px}
+.ia-afiche{margin:8px 0 12px;cursor:pointer}
+.ia-afiche:focus-within{outline:3px solid var(--primary-700);outline-offset:2px}

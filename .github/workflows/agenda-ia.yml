@@ -1,12 +1,11 @@
-# Agenda casi automática (v5 · Fase 4.2). APAGADO por defecto: solo corre a mano (Actions → Agenda con IA → Run workflow).
-# Para que corra solo una vez al día, quita el "#" de las dos líneas de "schedule" de abajo.
+# Agenda casi automática (v6 · Fase 2.2). Corre una vez al día a las 6:00 a. m. y también a mano (Actions → Agenda con IA → Run workflow).
 # Necesita los secretos GEMINI_API_KEY y FIREBASE_SA (Settings → Secrets and variables → Actions). Ver docs/agenda-ia.md.
 name: Agenda con IA
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "0 11 * * *"   # 6:00 a. m. en Colombia
+  schedule:
+    - cron: "0 11 * * *"   # 6:00 a. m. en Colombia (sin los secretos, termina sin hacer nada)
 
 jobs:
   extraer:

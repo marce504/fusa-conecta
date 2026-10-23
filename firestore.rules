@@ -45,11 +45,18 @@ service cloud.firestore {
         && request.resource.data.rol in ['usuario', 'comerciante'];
       // El propio usuario no puede cambiar su rol (salvo pasar de usuario a comerciante)
       // ni la fecha de su consentimiento.
+      // "confiable" (organizador que publica sin revisión) solo lo pone el admin o la invitación.
+      // Pasar a "organizador": solo con una invitación del admin para su correo verificado.
       allow update: if (cuentaReal() && request.auth.uid == uid
           && request.resource.data.fecha_consentimiento == resource.data.fecha_consentimiento
           && request.resource.data.consentimiento_ley1581 == true
-          && (request.resource.data.rol == resource.data.rol
-              || (resource.data.rol == 'usuario' && request.resource.data.rol == 'comerciante')))
+          && ((request.resource.data.get('confiable', false) == resource.data.get('confiable', false)
+              && (request.resource.data.rol == resource.data.rol
+                || (resource.data.rol == 'usuario' && request.resource.data.rol == 'comerciante')))
+            || (resource.data.rol == 'usuario' && request.resource.data.rol == 'organizador'
+              && request.auth.token.email_verified == true
+              && exists(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower()))
+              && request.resource.data.get('confiable', false) == get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.get('confiable', false))))
         || esAdmin();
       allow delete: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
     }
@@ -309,11 +316,35 @@ service cloud.firestore {
         // Solo el admin crea eventos de ejemplo (demo)
         && (esAdmin()
           || (tienePerfil() && request.resource.data.estado == 'pendiente'
-            && request.resource.data.origen in ['organizador', 'usuario']
+            && request.resource.data.origen in ['organizador', 'usuario', 'ia']
+            && request.resource.data.creado_por == request.auth.uid
+            && request.resource.data.get('demo', false) == false)
+          // Organizador confiable: publica directo
+          || (tienePerfil() && perfil().rol == 'organizador' && perfil().get('confiable', false) == true
+            && request.resource.data.estado in ['publicado', 'pendiente']
+            && request.resource.data.origen in ['organizador', 'ia']
             && request.resource.data.creado_por == request.auth.uid
             && request.resource.data.get('demo', false) == false));
       allow update: if esAdmin() && eventoValido(request.resource.data);
       allow delete: if esAdmin();
+    }
+
+    /* ---------- Invitaciones de organizadores (las crea el admin; cada quien lee solo la de su correo) ---------- */
+    match /invitaciones/{correo} {
+      allow read: if esAdmin() || (cuentaReal() && request.auth.token.email != null && request.auth.token.email.lower() == correo);
+    }
+
+    /* ---------- Límite de uso de la IA: 20 al día por persona (día UTC), solo sumando de a 1 ---------- */
+    match /uso_ia/{uid} {
+      allow read: if cuentaReal() && request.auth.uid == uid;
+      allow create, update: if tienePerfil() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['dia', 'n', 'ultima'])
+        && request.resource.data.dia == int(request.time.toMillis() / 86400000)
+        && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 20
+        && request.resource.data.ultima == request.time
+        && (resource == null || resource.data.dia != request.resource.data.dia
+          ? request.resource.data.n == 1
+          : request.resource.data.n == resource.data.n + 1);
     }
 
     /* ---------- Moderación general (CU-18) ----------

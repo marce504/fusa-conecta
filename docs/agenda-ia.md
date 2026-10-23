@@ -1,42 +1,61 @@
-# Agenda casi automática con IA (Fase 4.2)
+# IA para la agenda de eventos (v6 · Fase 2)
 
-## ¿Es viable con el plan gratuito (Spark)?
+Todo lo que crea o propone la IA llega como evento **pendiente** (`origen: 'ia'`) y se aprueba en
+**Panel de administración → Eventos** con un toque (Publicar · Editar · Descartar). Excepción: si lo llena con IA
+el admin o un organizador confiable, ellos mismos lo publican después de revisarlo.
 
-**Sí.** No hace falta Cloud Functions ni el plan Blaze:
+## 2.1 "Llenar con IA desde un afiche o texto" (en la app, plan Spark, costo $0)
 
-- El proceso corre en **GitHub Actions** (gratis: repositorios públicos sin límite; privados 2.000 minutos al mes; esta tarea tarda menos de 1 minuto).
-- Escribe en Firestore con el **SDK de administración** usando una cuenta de servicio (funciona en Spark). Son pocas escrituras al día, muy por debajo del límite gratuito (20.000 escrituras diarias).
-- La IA es la **API de Gemini** en su capa gratuita (modelo Flash). Una corrida diaria usa entre 0 y 20 llamadas.
-- **Costo estimado: $0.** Si se prefiere la API de Claude en lugar de Gemini, costaría centavos de dólar al mes (pocas llamadas cortas), pero ya no sería $0.
+- Está en el formulario de evento del admin, de los organizadores y de los negocios.
+- Usa **Firebase AI Logic** (SDK web `firebase/ai` 12.19.0) con la **Gemini Developer API** (modelo `gemini-2.5-flash`) y salida estructurada (schema) con los campos de `eventos`. La clave la guarda Firebase: no está en el código.
+- Se carga solo al usarla, en una app de Firebase aparte con la misma configuración (la inicialización principal no cambia).
+- Límite: **20 usos por persona al día** (`uso_ia/{uid}`, validado en `firestore.rules`). Si falla o no está activada, el formulario sigue a mano.
 
-Todo lo que encuentra queda con `estado: 'pendiente'` y `origen: 'ia'`. Se aprueba en **Panel de administración → Eventos** con un toque: Publicar, Editar o Descartar.
+### Activarla (lo hace la dueña del proyecto en la consola; 5 minutos)
 
-## Fuentes revisadas (2026-10-23)
+1. https://console.firebase.google.com/project/fusa-conecta/ailogic → **Get started** → elige **Gemini Developer API** (sin costo, plan Spark). Firebase crea y protege la clave.
+2. **App Check** (recomendado, para que solo la app use la IA):
+   1. En https://www.google.com/recaptcha/admin crea una clave **reCAPTCHA v3** para los dominios `fusa-conecta.web.app` y `fusa-conecta.firebaseapp.com`.
+   2. Consola de Firebase → **App Check** → registra la app web con esa clave (proveedor reCAPTCHA v3) y pon la **clave secreta** allí.
+   3. Pásame la **clave de sitio** (es pública): va en `IA.recaptcha` en `app.js`. Con eso la app pide el token de App Check antes de llamar a Gemini.
+   4. Cuando veas tráfico verificado en App Check → Firebase AI Logic, pulsa **Enforce**.
+3. Opcional: en AI Logic → Settings pon un límite de solicitudes por usuario por minuto.
 
-| Fuente | Qué ofrece | ¿Se usa? |
-|---|---|---|
-| Sitio oficial de la Alcaldía `https://www.fusagasuga.gov.co` | Plataforma "Sitios Territoriales" (gov.co) con **API JSON pública**: `GET /api/v1/contents?keyword=…&pageSize=20` (máx. 20 por página). Trae contenidos tipo **Event** (con `startingDate`, `closingDate`, lugar `EventLocation` y organizador `EventHost`) y **Article** (noticias). Tiene las etiquetas "Calendario de actividades" (id 3) y "Noticias" (id 1). | **Sí**: los Event se toman directo (sin IA); las noticias de los últimos 30 días pasan por la IA. |
-| `fusagasuga-cundinamarca.gov.co` | No responde. | No |
-| RSS / ICS oficiales | No se encontraron. | — |
-| Facebook / Instagram de la Alcaldía o la Secretaría de Cultura | Sus términos prohíben extraer datos automáticamente. | **No** (se pueden publicar a mano desde el panel) |
-| Bandsintown y portales comerciales | Listados de terceros, sin licencia clara. | No |
+Capa gratuita de Gemini (Developer API): límites por minuto y por día por proyecto; con 20 usos por persona al día y pocas personas que publican eventos queda muy por debajo. Si algún día se supera, la IA responde con error y el formulario sigue a mano.
 
-Prueba hecha hoy con `node extraer.mjs --simular`: 130 contenidos leídos, **0 eventos estructurados con fecha futura** y 3 noticias recientes para la IA. La Alcaldía publica pocos eventos en su sitio; conviene pedirle a la **Secretaría de Cultura** que use el "Calendario de actividades" del sitio oficial o que publique un calendario en formato ICS. Cualquier fuente nueva (ICS/RSS) se agrega en `herramientas/agenda-ia/extraer.mjs`.
+## 2.2 Agenda automática desde fuentes oficiales (GitHub Actions, costo $0)
 
-## Cómo activarlo
+`herramientas/agenda-ia/extraer.mjs` + `.github/workflows/agenda-ia.yml`: corre **todos los días a las 6:00 a. m.** (y a mano). Sin los secretos termina sin hacer nada.
 
-1. **Clave de la IA**: en https://aistudio.google.com crea una API key de Gemini (gratis).
-2. **Cuenta de servicio de Firebase**: Consola de Firebase → Configuración del proyecto → Cuentas de servicio → *Generar nueva clave privada*. Descarga el JSON (no lo subas al repositorio).
-3. En GitHub: repositorio `marce504/fusa-conecta` → Settings → Secrets and variables → Actions → *New repository secret*:
+### Fuentes revisadas el 2026-10-23
+
+| Fuente | Resultado |
+|---|---|
+| Alcaldía de Fusagasugá `https://www.fusagasuga.gov.co` (API JSON pública `/api/v1/contents?keyword=…`, plataforma gov.co) | **Funciona.** 128 contenidos leídos; hoy 0 eventos con fecha futura y 3 noticias recientes (pasan por la IA). |
+| Alcaldía de Pasca `https://www.pasca-cundinamarca.gov.co` (misma plataforma y API) | **Funciona.** 156 contenidos; **2 eventos futuros reales**: Festival Nacional de Danza Folclórica y Tradicional Zoratama (24 oct.) y Festival de los Reyes de la Papa (25 oct.), ambos en el Parque Principal. |
+| datos.gov.co (catálogo Socrata) | No hay agenda cultural de Fusagasugá, Pasca ni Cundinamarca (solo Cali 2018, Chía, Valle). |
+| RSS / ICS oficiales | No existen en estos sitios. |
+| Facebook / Instagram | **No se usan** (sus términos prohíben extraer datos automáticamente). |
+
+Los eventos con datos estructurados del sitio (tipo "Event": fecha, lugar y organizador) se toman directo, sin IA; las noticias de los últimos 30 días pasan por Gemini. Sin duplicados: título + fecha + lugar contra lo que ya existe.
+
+### Activarlo
+
+1. **Clave de Gemini**: https://aistudio.google.com → *Get API key* (gratis).
+2. **Cuenta de servicio con permisos mínimos** (solo Firestore):
+   1. https://console.cloud.google.com/iam-admin/serviceaccounts?project=fusa-conecta → *Crear cuenta de servicio* "agenda-ia".
+   2. Rol: **Cloud Datastore User** (lee y escribe Firestore; nada más). No le des "Firebase Admin" ni "Editor".
+   3. *Claves* → *Agregar clave* → JSON. No la subas al repositorio.
+3. GitHub → `marce504/fusa-conecta` → Settings → Secrets and variables → Actions:
    - `GEMINI_API_KEY` = la clave del paso 1.
-   - `FIREBASE_SA` = todo el contenido del JSON del paso 2.
-4. Prueba: pestaña **Actions → Agenda con IA → Run workflow**. Revisa los pendientes en el panel.
-5. Para que corra solo cada día a las 6:00 a. m., quita el `#` de las líneas `schedule` en `.github/workflows/agenda-ia.yml`.
+   - `FIREBASE_SA` = el contenido completo del JSON del paso 2.
+4. Prueba: Actions → **Agenda con IA** → *Run workflow*. Los eventos aparecen en el panel → Eventos → Por aprobar.
 
-Las claves **nunca** van en el código de la app: solo en los secretos de GitHub.
+Probar sin claves: `cd herramientas/agenda-ia && node extraer.mjs --simular`.
 
-## Detalles
+## 2.3 Organizadores
 
-- Duplicados: compara título + fecha + lugar (sin tildes ni mayúsculas) contra todos los eventos de hoy en adelante y dentro de la misma corrida.
-- La IA solo recibe texto público del sitio oficial y debe responder JSON; no inventa datos (sin hora → 9:00 a. m.; sin fin → 2 horas después) y nada se publica sin revisión humana.
-- Probar sin claves: `cd herramientas/agenda-ia && node extraer.mjs --simular`.
+Panel → Eventos → **Invitar organizador** (correo + "Confiable"). La app copia un mensaje para enviarle por correo o WhatsApp.
+Cuando esa persona entra con ese correo **verificado** (Google lo verifica solo), su cuenta pasa a "organizador":
+publica eventos que quedan por aprobar, o directo si es confiable. "Quitar" le retira el rol. Las reglas impiden que
+alguien se ponga ese rol o se marque como confiable sin la invitación.
