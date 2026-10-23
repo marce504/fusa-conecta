@@ -263,14 +263,18 @@ service cloud.firestore {
       allow read: if true;
       allow delete: if esAdmin();
       allow create, update: if esAdmin()
-        && request.resource.data.keys().hasOnly(['tipo', 'titulo', 'texto', 'imagen', 'enlace_tipo', 'enlace_valor', 'orden', 'activo', 'comercio_id', 'fecha'])
+        && request.resource.data.keys().hasOnly(['tipo', 'etiqueta', 'titulo', 'texto', 'boton', 'imagen', 'enlace_tipo', 'enlace_valor', 'desde', 'hasta', 'orden', 'activo', 'comercio_id', 'fecha'])
         && ((id == 'destacado' && request.resource.data.tipo == 'destacado' && request.resource.data.comercio_id is string)
           || (id != 'destacado' && request.resource.data.tipo == 'foto'
             && request.resource.data.titulo is string && request.resource.data.titulo.size() > 0 && request.resource.data.titulo.size() <= 60
             && request.resource.data.get('texto', '').size() <= 120
             && request.resource.data.imagen is string && request.resource.data.imagen.matches('data:image/(webp|jpeg);base64,.*')
             && request.resource.data.imagen.size() <= 360000
-            && request.resource.data.get('enlace_tipo', 'ninguno') in ['ninguno', 'negocio', 'categoria']));
+            && request.resource.data.get('etiqueta', '').size() <= 24
+            && request.resource.data.get('boton', '').size() <= 20
+            && request.resource.data.get('desde', '').matches('([0-9]{4}-[0-9]{2}-[0-9]{2})?')
+            && request.resource.data.get('hasta', '').matches('([0-9]{4}-[0-9]{2}-[0-9]{2})?')
+            && request.resource.data.get('enlace_tipo', 'ninguno') in ['ninguno', 'negocio', 'categoria', 'cupones', 'registrar']));
     }
 
     /* ---------- Moderación general (CU-18) ----------

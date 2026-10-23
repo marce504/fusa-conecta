@@ -58,7 +58,9 @@
   --blanco-14:rgba(255,255,255,.14);
   --blanco-60:rgba(255,255,255,.6);
   --velo-foto:linear-gradient(180deg,rgba(27,31,59,0) 30%,rgba(27,31,59,.82) 100%);
-  --velo-banner:linear-gradient(180deg,rgba(27,31,59,.1) 0%,rgba(27,31,59,.5) 40%,rgba(27,31,59,.88) 100%); /* texto blanco AA sobre cualquier foto */
+  /* Banners con foto: capa de la marca de izquierda a derecha (violeta al 85 % → transparente al 60 % del ancho) */
+  --velo-marca:linear-gradient(90deg,rgba(107,78,255,.85) 0%,rgba(107,78,255,.72) 38%,rgba(107,78,255,0) 60%);
+  --sombra-texto:0 1px 3px rgba(27,31,59,.55);
   --whatsapp:#25D366;       /* logo oficial; el glifo blanco va encima (marca: exento de contraste) */
   --google-azul:#4285F4;--google-verde:#34A853;--google-amarillo:#FBBC05;--google-rojo:#EA4335;
   /* Tipografía (Poppins): pantalla 26 px, sección 18 px, texto 16 px, metadatos 13 px, números 30 px */
@@ -1168,19 +1170,23 @@ button:disabled{opacity:.6;pointer-events:none}
 .ticket-mini .ticket-tit{line-height:1.25}
 .ticket-mini .ticket-lado .ic{width:20px;height:20px}
 .carrusel{scroll-padding:0;scroll-padding-inline:16px}
-/* Carrusel del banner: cada diapositiva mide el ancho menos 40 px y se alinea al inicio con 16 px de margen */
-.banner-pista{gap:8px;margin:0 -16px;padding:0 16px;scroll-padding-inline:16px}
-.banner-pista>.slide{flex:0 0 calc(100% - 40px);scroll-snap-align:start}
-/* Banner con foto (negocio destacado y los que publica el admin) */
-.s-foto{justify-content:flex-start;background:var(--tinta-fija);color:var(--sobre-color)}
+/* Carrusel del banner: la pista va de borde a borde; cada diapositiva mide el ancho de la pantalla menos 40 px
+   (16 px de margen a la izquierda y 24 px a la derecha, donde asoma solo el borde de la siguiente).
+   El relleno derecho de 24 px deja que la última también se alinee a 16 px en vez de quedar corrida. */
+.banner-pista{gap:8px;margin:0 -16px;padding:0 24px 0 16px;scroll-padding-inline:16px}
+.banner-pista>.slide{flex:0 0 100%;scroll-snap-align:start}
+/* Banner con foto (propios de la app, negocio destacado y los que publica el admin):
+   la foto llena la diapositiva y el texto blanco ocupa el 60 % izquierdo, sobre la capa violeta */
+.s-foto{background:var(--primary-500);color:var(--sobre-color)}
 .slide-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
-.slide-velo{position:absolute;inset:0;background:var(--velo-banner);z-index:-1}
-.s-foto .slide-tag{display:inline-flex;align-items:center;gap:4px;background:var(--sun-400);color:var(--tinta-fija)}
-.s-foto .slide-tag,.s-foto .slide-tit,.s-foto .slide-sub,.s-foto .slide-pie{max-width:100%}
-.s-foto .slide-tit{margin-top:auto;color:var(--sobre-color)}
-.s-foto .slide-sub{color:var(--blanco-92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
-.s-foto .slide-pie{margin-top:0;padding-top:8px}
-.s-foto .slide-btn{background:var(--bg);color:var(--primary-700)}
+.slide-velo{position:absolute;inset:0;background:var(--velo-marca);z-index:-1}
+.s-foto .slide-tag{display:inline-flex;align-items:center;gap:4px;background:var(--sobre-color);color:var(--tinta-fija)}
+.s-foto.s-destacado .slide-tag{background:var(--sun-400)}
+.s-foto .slide-tag,.s-foto .slide-tit,.s-foto .slide-sub,.s-foto .slide-pie{max-width:60%}
+.s-foto .slide-tit,.s-foto .slide-sub{color:var(--sobre-color);text-shadow:var(--sombra-texto)}
+.s-foto .slide-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s-foto .slide-pie{margin-top:auto;padding-top:10px}
+.s-foto .slide-btn{background:var(--sobre-color);color:var(--primary-500)}
 /* Admin · banners */
 .banner-fila{align-items:center}
 .bf-foto{width:72px;height:44px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0}
@@ -1299,3 +1305,5 @@ button:disabled{opacity:.6;pointer-events:none}
 /* Los pines miden 32 px; un área invisible los lleva a 44 px sin taparse con el mapa */
 .leaflet-marker-icon.pin-fc::after{content:"";position:absolute;inset:-6px}
 .pf-alerta .enlace{display:inline-flex;align-items:center;min-height:44px}
+.fb-fechas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.campo[hidden]{display:none}

@@ -688,44 +688,45 @@ function renderLista(v){
    Con prefers-reduced-motion no avanza sola. */
 const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
 function formaSVG(cls,x,y,t,giro){return '<svg class="forma '+cls+'" style="left:'+x+'%;top:'+y+'%;width:'+t+'px;height:'+t+'px;transform:rotate('+giro+'deg)" viewBox="0 0 100 100" aria-hidden="true"><path d="'+HOJA_SVG+'"/></svg>';}
-const FOTOS_BANNER=['img/comercios/vivero-de-orquideas-de-fusa.jpg','img/comercios/hacienda-coloma-museo-del-cafe.jpg','img/comercios/cafe-sutagao.jpg'];
 function cuponesActivosTotal(){let n=0;database.forEach(d=>n+=cuponesDe(d).length);return n;}
 function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
+// Banners propios de la app: foto real de Fusa con la capa violeta de la marca; el de cupones sigue ilustrado
 function slidesBase(){
   return [
-    {id:'bienvenida',cls:'s-bienvenida',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',sub:'Comercios, campo, rutas y emergencias de Fusagasugá y Pasca en un solo lugar.',
-      boton:'<button class="slide-btn" data-slide="explorar">Explorar'+icon('arrow-right',16)+'</button>',
-      ilu:formaSVG('f-menta',44,-18,70,20)+formaSVG('f-menta2',-10,6,46,-30)
-        +'<span class="ilu-logo">'+logo('iso','lila',{alto:48,decorativo:true})+'</span>'
-        +FOTOS_BANNER.map((f,k)=>'<img class="ilu-foto f'+k+'" src="'+f+'" alt="" loading="lazy" onerror="this.remove()">').join('')},
+    {id:'bienvenida',foto:'img/comercios/pueblito-fusagasugueno.jpg',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
+      sub:'Comercios, rutas y emergencias de Fusa y Pasca.',accion:'explorar',textoBoton:'Explorar'},
     {id:'cupones',cls:'s-cupones',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',sub:'Toma un descuento, muéstralo en caja y ahorra unos pesos.',
       boton:'<button class="slide-btn" data-slide="cupones">Ver cupones</button>',
       ilu:formaSVG('f-blanca',50,-14,64,40)+'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',
       extra:'<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>'},
-    {id:'negocio',cls:'s-negocio',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',sub:'Llega a más vecinos y turistas de la región.',
-      boton:'<button class="slide-btn" data-slide="negocio">Registrar mi negocio</button>',
-      ilu:formaSVG('f-menta',46,-10,62,-15)+formaSVG('f-menta3',-4,24,40,60)
-        +'<span class="ilu-circulo c-menta">'+icon('store',30)+'</span><span class="ilu-chispa">'+icon('sparkles',18)+'</span>'},
-    {id:'opinion',cls:'s-opinion',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',sub:'Cuéntanos qué te gustó y qué cambiarías.',
-      boton:'<button class="slide-btn" data-slide="opinion">Dar mi opinión</button>',
-      ilu:formaSVG('f-violeta',48,-12,60,10)+formaSVG('f-menta',-4,26,42,-40)
-        +'<span class="ilu-circulo c-violeta">'+icon('message-circle-heart',30)+'</span>'}
+    {id:'negocio',foto:'img/comercios/hacienda-coloma-museo-del-cafe.jpg',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',
+      sub:'Llega a más vecinos y turistas de la región.',accion:'negocio',textoBoton:'Registrar mi negocio'},
+    {id:'opinion',foto:'img/comercios/cerro-fusacatan.jpg',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',
+      sub:'Cuéntanos qué te gustó y qué cambiarías.',accion:'opinion',textoBoton:'Dar mi opinión'}
   ];
 }
 const porOrden=(a,b)=>(a.orden||0)-(b.orden||0);
+// Fechas del banner como texto AAAA-MM-DD (fecha local): sin fechas se muestra mientras esté activo
+function hoyISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const bannerVigente=b=>b.activo!==false&&(!b.desde||b.desde<=hoyISO())&&(!b.hasta||b.hasta>=hoyISO());
+function accionBanner(b){
+  const t=b.enlace_tipo||'ninguno';
+  if(t==='negocio'||t==='categoria')return b.enlace_valor?t+':'+b.enlace_valor:'';
+  return t==='cupones'?'cupones':t==='registrar'?'negocio':'';
+}
 function slidesBanner(){
   const l=[],bs=estado.banners||[];
   const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
   if(dc)l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
     tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio'});
-  bs.filter(b=>b.tipo==='foto'&&b.activo!==false&&b.imagen).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:'',tit:b.titulo||'',sub:b.texto||'',
-    accion:b.enlace_tipo&&b.enlace_tipo!=='ninguno'&&b.enlace_valor?b.enlace_tipo+':'+b.enlace_valor:'',textoBoton:b.enlace_tipo==='negocio'?'Ver negocio':'Ver más'}));
+  bs.filter(b=>b.tipo==='foto'&&b.imagen&&bannerVigente(b)).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:b.etiqueta||'',tit:b.titulo||'',sub:b.texto||'',
+    accion:accionBanner(b),textoBoton:b.boton||(b.enlace_tipo==='negocio'?'Ver negocio':'Ver más')}));
   return l.concat(slidesBase());
 }
 function slideHTML(s,i,n){
   const aria=' role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(s.tit)+'" data-sid="'+esc(s.id)+'"';
-  // Banner con foto: el texto va abajo, sobre un velo oscuro que asegura el contraste
-  if('foto' in s)return '<div class="slide s-foto"'+aria+'>'
+  // Banner con foto: el texto va a la izquierda sobre la capa violeta de la marca (85 % → transparente al 60 % del ancho)
+  if('foto' in s)return '<div class="slide s-foto'+(s.comercio?' s-destacado':'')+'"'+aria+'>'
     +(s.foto?'<img class="slide-foto" src="'+esc(s.foto)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'<span class="slide-velo" aria-hidden="true"></span>'
     +(s.tag?'<span class="slide-tag">'+(s.comercio?icon('star',12,'ic-fill'):'')+esc(s.tag)+'</span>':'')
     +'<h2 class="slide-tit">'+esc(s.tit)+'</h2>'+(s.sub?'<p class="slide-sub">'+esc(s.sub)+'</p>':'')
@@ -3456,9 +3457,19 @@ function renderAdmin(){
 /* ---------- Admin · Banners del inicio (v4 · Fase 5) ----------
    banners/destacado: un solo espacio para un negocio (los Premium se turnan). banners/{id}: banners con foto. */
 function textoEnlaceBanner(b){
-  if(b.enlace_tipo==='negocio'){const c=buscar(b.enlace_valor);return 'Abre '+(c?'«'+c.nombre+'»':'un negocio');}
-  if(b.enlace_tipo==='categoria')return 'Abre '+(CAT[b.enlace_valor]?CAT[b.enlace_valor].label:'una categoría');
-  return 'Sin enlace';
+  const t=b.enlace_tipo||'ninguno';
+  if(t==='negocio'){const c=buscar(b.enlace_valor);return 'Abre '+(c?'«'+c.nombre+'»':'un negocio');}
+  if(t==='categoria')return 'Abre '+(CAT[b.enlace_valor]?CAT[b.enlace_valor].label:'una categoría');
+  if(t==='cupones')return 'Abre los cupones';
+  if(t==='registrar')return 'Abre «Registrar mi negocio»';
+  return 'Sin botón';
+}
+const fechaDia=s=>{const [a,m,d]=s.split('-').map(Number);return fechaCorta(new Date(a,m-1,d).getTime());};
+function estadoBanner(b){
+  if(b.activo===false)return 'En pausa';
+  if(b.desde&&b.desde>hoyISO())return 'Programado desde el '+fechaDia(b.desde);
+  if(b.hasta&&b.hasta<hoyISO())return 'Vencido el '+fechaDia(b.hasta);
+  return 'Visible'+(b.hasta?' hasta el '+fechaDia(b.hasta):'');
 }
 function bannersAdminHTML(){
   const bs=estado.banners||[],dest=bs.find(b=>b.id==='destacado'),dc=dest&&buscar(dest.comercio_id);
@@ -3470,10 +3481,12 @@ function bannersAdminHTML(){
     +opciones.map(c=>'<option value="'+esc(c.id)+'"'+(dc&&dc.id===c.id?' selected':'')+'>'+esc(c.nombre)+(premiumVigente(c)?' · Premium':'')+'</option>').join('')+'</select></div>'
     +'<button class="btn btn-secundario btn-sm" id="admDestGuardar">'+icon('star',16)+'Guardar destacado</button>'
     +'<p class="dash-section">Banners con foto ('+fotos.length+')</p>'
+    +'<p class="nota-c izq">Se muestran después del destacado y antes de los banners propios de la app (Bienvenida, Cupones, Negocios y Opinión).</p>'
     +(fotos.length?fotos.map((b,i)=>'<div class="adm-fila banner-fila"><img class="bf-foto" src="'+esc(b.imagen)+'" alt="">'
-        +'<div class="dc-info"><b>'+esc(b.titulo)+'</b><span>'+(b.activo===false?'En pausa':'Visible')+' · '+esc(textoEnlaceBanner(b))+'</span></div>'
+        +'<div class="dc-info"><b>'+esc(b.titulo)+'</b><span>'+esc(estadoBanner(b))+' · '+esc(textoEnlaceBanner(b))+'</span></div>'
         +'<div class="dc-actions"><button class="btn-redondo" data-bmover="'+i+'" data-dir="-1" aria-label="Mover «'+esc(b.titulo)+'» antes"'+(i?'':' disabled')+'>'+icon('arrow-up',18)+'</button>'
         +'<button class="btn-redondo" data-bmover="'+i+'" data-dir="1" aria-label="Mover «'+esc(b.titulo)+'» después"'+(i<fotos.length-1?'':' disabled')+'>'+icon('arrow-down',18)+'</button>'
+        +'<button class="btn btn-secundario btn-sm" data-beditar="'+esc(b.id)+'">'+icon('pencil',16)+'Editar</button>'
         +'<button class="btn btn-secundario btn-sm" data-bpausa="'+esc(b.id)+'">'+(b.activo===false?icon('eye',16)+'Mostrar':icon('eye-off',16)+'Pausar')+'</button>'
         +'<button class="btn btn-ghost" data-bborrar="'+esc(b.id)+'">Eliminar</button></div></div>').join('')
       :'<p class="nota-c izq">Aún no hay banners con foto: el inicio muestra los banners propios de la app.</p>')
@@ -3489,41 +3502,57 @@ function enlazarBannersAdmin(){
     const l=[...fotos];[l[i],l[j]]=[l[j],l[i]];
     adminAccion(()=>{const bt=db.batch();l.forEach((x,k)=>bt.update(col.doc(x.id),{orden:k}));return bt.commit();},'Orden actualizado');
   });
+  $$('[data-beditar]').forEach(b=>b.onclick=()=>formBanner(fotos.find(f=>f.id===b.dataset.beditar)));
   $$('[data-bpausa]').forEach(b=>b.onclick=()=>{const x=fotos.find(f=>f.id===b.dataset.bpausa);
     adminAccion(()=>col.doc(x.id).update({activo:x.activo===false}),x.activo===false?'Banner visible':'Banner en pausa');});
   $$('[data-bborrar]').forEach(b=>b.onclick=async()=>{const x=fotos.find(f=>f.id===b.dataset.bborrar);
     if(!await confirmar('Eliminar banner','«'+x.titulo+'» sale del inicio. Esta acción no se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
     adminAccion(()=>col.doc(x.id).delete(),'Banner eliminado');});
-  const n=$('#admBannerNuevo');if(n)n.onclick=formBanner;
+  const n=$('#admBannerNuevo');if(n)n.onclick=()=>formBanner(null);
 }
-function formBanner(){
-  let foto=null;
+// Crear o editar un banner con foto: imagen, etiqueta, título, subtítulo, texto del botón, destino y fechas
+function formBanner(b){
+  let foto=b?{src:b.imagen}:null;
+  const v=k=>esc(b&&b[k]||'');
   const opcCat=Object.entries(CAT).map(([k,c])=>'<option value="'+k+'">'+esc(c.label)+'</option>').join('');
-  const opcNeg=[...database].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');
-  abrirHoja('<div class="hoja-pad"><h2>Nuevo banner con foto</h2><p class="nota-c izq">Usa una foto horizontal y clara. El título va sobre la parte de abajo de la foto.</p>'
-    +'<label class="foto-banner" id="fbCaja"><input type="file" accept="image/*" id="fbFoto" class="sr-only"><span class="fb-vacio">'+icon('image-plus',28)+'<b>Elegir foto</b></span></label>'
-    +'<div class="campo"><label for="fbTit">Título <span class="req">*</span></label><input class="input" id="fbTit" maxlength="60" placeholder="Ej.: Festival del Café este sábado"></div>'
-    +'<div class="campo"><label for="fbTxt">Texto corto</label><input class="input" id="fbTxt" maxlength="120" placeholder="Ej.: Parque principal, desde las 9 a. m."></div>'
-    +'<div class="campo"><label for="fbEnl">Al tocar «Ver más»</label><select class="input" id="fbEnl"><option value="ninguno">Sin botón</option><option value="negocio">Abrir un negocio</option><option value="categoria">Abrir una categoría</option></select></div>'
+  const opcNeg=[...database].sort((a,c)=>a.nombre.localeCompare(c.nombre,'es')).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.nombre)+'</option>').join('');
+  const DESTINOS=[['ninguno','Sin botón'],['negocio','Abrir un negocio'],['categoria','Abrir una categoría'],['cupones','Abrir los cupones'],['registrar','Registrar mi negocio']];
+  abrirHoja('<div class="hoja-pad"><h2>'+(b?'Editar banner':'Nuevo banner con foto')+'</h2>'
+    +'<p class="nota-c izq">Usa una foto horizontal de un lugar de Fusa. El texto va a la izquierda, sobre una capa violeta que lo hace legible.</p>'
+    +'<label class="foto-banner" id="fbCaja"><input type="file" accept="image/*" id="fbFoto" class="sr-only">'
+    +(foto?'<img src="'+esc(foto.src)+'" alt="Foto actual del banner. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Elegir foto</b></span>')+'</label>'
+    +'<div class="campo"><label for="fbEtq">Etiqueta</label><input class="input" id="fbEtq" maxlength="24" placeholder="Ej.: Este fin de semana" value="'+v('etiqueta')+'"></div>'
+    +'<div class="campo"><label for="fbTit">Título <span class="req">*</span></label><input class="input" id="fbTit" maxlength="60" placeholder="Ej.: Festival del Café" value="'+v('titulo')+'"></div>'
+    +'<div class="campo"><label for="fbTxt">Subtítulo</label><input class="input" id="fbTxt" maxlength="120" placeholder="Ej.: Parque principal, desde las 9 a. m." value="'+v('texto')+'"></div>'
+    +'<div class="campo"><label for="fbEnl">Destino del botón</label><select class="input" id="fbEnl">'+DESTINOS.map(([k,t])=>'<option value="'+k+'"'+((b&&b.enlace_tipo||'ninguno')===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +'<div class="campo" id="fbValCaja" hidden><label for="fbVal">¿Cuál?</label><select class="input" id="fbVal"></select></div>'
-    +'<button class="btn btn-primario btn-bloque mt-16" id="fbGuardar">Publicar banner</button></div>');
-  $('#sheetGen').setAttribute('aria-label','Nuevo banner con foto');
-  $('#fbEnl').onchange=()=>{const t=$('#fbEnl').value;$('#fbValCaja').hidden=t==='ninguno';$('#fbVal').innerHTML=t==='negocio'?opcNeg:t==='categoria'?opcCat:'';};
+    +'<div class="campo" id="fbBotCaja"><label for="fbBot">Texto del botón</label><input class="input" id="fbBot" maxlength="20" placeholder="Ver más" value="'+v('boton')+'"></div>'
+    +'<div class="fb-fechas"><div class="campo"><label for="fbDesde">Desde</label><input class="input" type="date" id="fbDesde" value="'+v('desde')+'"></div>'
+    +'<div class="campo"><label for="fbHasta">Hasta</label><input class="input" type="date" id="fbHasta" value="'+v('hasta')+'"></div></div>'
+    +'<p class="nota-c izq">Sin fechas, el banner se muestra mientras esté activo.</p>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="fbGuardar">'+(b?'Guardar cambios':'Publicar banner')+'</button></div>');
+  $('#sheetGen').setAttribute('aria-label',b?'Editar banner':'Nuevo banner con foto');
+  const pintarDestino=()=>{const t=$('#fbEnl').value;$('#fbValCaja').hidden=!['negocio','categoria'].includes(t);$('#fbBotCaja').hidden=t==='ninguno';
+    $('#fbVal').innerHTML=t==='negocio'?opcNeg:t==='categoria'?opcCat:'';if(b&&b.enlace_tipo===t&&b.enlace_valor)$('#fbVal').value=b.enlace_valor;};
+  $('#fbEnl').onchange=pintarDestino;pintarDestino();
   $('#fbFoto').onchange=async e=>{
     const f=e.target.files[0];if(!f)return;
     $('#fbCaja').classList.add('cargando');
-    try{foto=await comprimirFoto(f,1280,250000,.8);$('#fbCaja').innerHTML='<img src="'+foto.src+'" alt="Foto elegida para el banner">';}
+    try{foto=await comprimirFoto(f,1280,250000,.8);$('#fbCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el banner">';}
     catch(err){toast('No pudimos usar esa foto. Prueba con otra.');}
     $('#fbCaja').classList.remove('cargando');
   };
   $('#fbGuardar').onclick=async()=>{
-    const tit=$('#fbTit').value.trim(),enl=$('#fbEnl').value;
+    const tit=$('#fbTit').value.trim(),enl=$('#fbEnl').value,desde=$('#fbDesde').value,hasta=$('#fbHasta').value;
     if(!foto){toast('Elige una foto para el banner');return;}
     if(!tit){toast('Escribe un título');$('#fbTit').focus();return;}
-    const orden=Math.max(-1,...(estado.banners||[]).filter(b=>b.tipo==='foto').map(b=>b.orden||0))+1;
+    if(desde&&hasta&&hasta<desde){toast('La fecha final debe ser después de la inicial');$('#fbHasta').focus();return;}
+    const orden=b?(b.orden||0):Math.max(-1,...(estado.banners||[]).filter(x=>x.tipo==='foto').map(x=>x.orden||0))+1;
+    const datos={tipo:'foto',etiqueta:$('#fbEtq').value.trim(),titulo:tit,texto:$('#fbTxt').value.trim(),imagen:foto.src,
+      enlace_tipo:enl,enlace_valor:['negocio','categoria'].includes(enl)?$('#fbVal').value:'',boton:enl==='ninguno'?'':$('#fbBot').value.trim(),
+      desde,hasta,orden,activo:b?b.activo!==false:true,fecha:FV.serverTimestamp()};
     $('#fbGuardar').disabled=true;
-    await adminAccion(()=>db.collection('banners').add({tipo:'foto',titulo:tit,texto:$('#fbTxt').value.trim(),imagen:foto.src,
-      enlace_tipo:enl,enlace_valor:enl==='ninguno'?'':$('#fbVal').value,orden,activo:true,fecha:FV.serverTimestamp()}),'Banner publicado en el inicio');
+    await adminAccion(()=>b?db.collection('banners').doc(b.id).set(datos):db.collection('banners').add(datos),b?'Banner actualizado':'Banner publicado en el inicio');
     cerrar('ovGen');
   };
 }
