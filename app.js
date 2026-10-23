@@ -398,7 +398,7 @@ function logo(variante='horizontal',tema='claro',opc={}){
     +isoSVG('logo-iso',tema)+'<span class="logo-nom" aria-hidden="true"><b>Fusa</b><span>Conecta</span></span></span>';
 }
 const MARCA_HTML=logo('horizontal','claro',{alto:36});
-const SOS_HTML='<button class="sos-pill" data-sos aria-label="Emergencias: números de ayuda">'+icon('siren',18)+'SOS</button>';
+const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de emergencia">'+icon('siren',18)+'SOS</button>';
 // Saludo según la hora: "Buenos días / Buenas tardes / Buenas noches" (+ nombre si hay sesión)
 function saludoDeHora(h=new Date().getHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
@@ -1191,7 +1191,7 @@ function cuponesDeLaSemana(){
 function seccionCuponesHTML(){
   const l=cuponesDeLaSemana();if(!l.length)return '';
   return '<section class="cupones-semana" aria-labelledby="tCupSem"><div class="head-v"><h2 id="tCupSem">Cupones de la semana</h2><button class="btn-ghost" id="bConCupon">Ver todos</button></div>'
-    +'<div class="carrusel">'+l.map(({d,c})=>ticketHTML({clase:'ticket-mini',attrs:' role="button" tabindex="0" data-ver-cupon="'+esc(d.id)+'" aria-label="'+esc(c.descripcion+' en '+d.nombre)+'"',
+    +'<div class="carrusel">'+l.map(({d,c})=>ticketHTML({clase:'ticket-mini',attrs:' role="button" tabindex="0" data-ver-cupon="'+esc(d.id)+'"',
       icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c))})).join('')+'</div></section>';
 }
 function enlazarCuponesSemana(){
@@ -3717,10 +3717,12 @@ function botonRadioHTML(id,clase){
 function textoRadio(){
   return {conectando:'Conectando…',sonando:'En vivo',pausada:'En pausa',error:'Sin señal. Toca para reintentar',apagada:'En vivo'}[radio.estado];
 }
-// Píldora junto al saludo: toca para escuchar o pausar (el mini reproductor aparece abajo)
+// Píldora junto al saludo: toca para escuchar o pausar (el mini reproductor aparece abajo).
+// La etiqueta accesible empieza con el texto visible «EN VIVO · 88.1 FM» (WCAG 2.5.3)
+const etiquetaPildora=on=>'En vivo · '+EMISORA.frecuencia+': '+(on?'pausar':'escuchar')+' '+EMISORA.nombre;
 function pildoraRadioHTML(){
   const on=['sonando','conectando'].includes(radio.estado);
-  return '<button class="pildora-radio'+(on?' on':'')+'" id="pRadio" aria-pressed="'+on+'" aria-label="'+(on?'Pausar':'Escuchar')+' '+EMISORA.nombre+' '+EMISORA.frecuencia+' en vivo">'
+  return '<button class="pildora-radio'+(on?' on':'')+'" id="pRadio" aria-pressed="'+on+'" aria-label="'+etiquetaPildora(on)+'">'
     +'<span class="punto-vivo" aria-hidden="true"></span>EN VIVO · '+EMISORA.frecuencia+'</button>';
 }
 function pintarRadio(){
@@ -3738,7 +3740,7 @@ function pintarRadio(){
   // La píldora del saludo refleja el mismo estado (se actualiza sin regenerarla para no perder el foco)
   const p=$('#pRadio');
   if(p){const on=['sonando','conectando'].includes(radio.estado);p.classList.toggle('on',on);p.setAttribute('aria-pressed',on);
-    p.setAttribute('aria-label',(on?'Pausar':'Escuchar')+' '+EMISORA.nombre+' '+EMISORA.frecuencia+' en vivo');}
+    p.setAttribute('aria-label',etiquetaPildora(on));}
   if('mediaSession' in navigator)navigator.mediaSession.playbackState=radio.estado==='sonando'?'playing':radio.estado==='apagada'?'none':'paused';
 }
 window.addEventListener('offline',()=>{if(['sonando','conectando'].includes(radio.estado))radioEstado('error');});

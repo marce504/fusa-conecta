@@ -51,6 +51,7 @@
   --sun-borde:rgba(255,197,49,.55);
   --overlay:rgba(27,31,59,.5);
   --velo-escaner:rgba(27,31,59,.72);
+  --sombra-pin:drop-shadow(0 2px 2px rgba(27,31,59,.35));
   --blanco-92:rgba(255,255,255,.92);
   --sombra-buscador:0 4px 6px -1px rgba(27,31,59,.05);
   --blanco-20:rgba(255,255,255,.2);
@@ -1111,7 +1112,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .mini-mapa.sin{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--ink-2);font-size:var(--text-sm)}
 .mm-teselas{position:absolute;left:0;top:0;width:768px;height:768px}
 .mm-teselas img{position:absolute;width:256px;height:256px;max-width:none}
-.mm-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);color:var(--primary-500);filter:drop-shadow(0 2px 2px rgba(27,31,59,.35))}
+.mm-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);color:var(--primary-500);filter:var(--sombra-pin)}
 .mm-pin .ic{fill:var(--sobre-color)}
 .mm-atrib{position:absolute;right:4px;bottom:2px;padding:0 4px;border-radius:4px;background:var(--blanco-92);color:var(--tinta-fija);font-size:10px}
 .adm-fila{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
@@ -1292,3 +1293,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .relive-fotos{display:flex;gap:8px;overflow-x:auto;margin:16px -16px 0;padding:0 16px;scroll-snap-type:x mandatory;scroll-padding-inline:16px;scrollbar-width:none}
 .relive-fotos img{flex:0 0 auto;width:140px;height:100px;object-fit:cover;border-radius:var(--radius-md);scroll-snap-align:start}
 .relive-acc{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+/* ---------- v4 · Fase 8: áreas táctiles de 44 px en mapas y enlaces ---------- */
+#cuerpo .leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:22px}
+.tres-d .maplibregl-ctrl-group button{width:44px;height:44px}
+/* Los pines miden 32 px; un área invisible los lleva a 44 px sin taparse con el mapa */
+.leaflet-marker-icon.pin-fc::after{content:"";position:absolute;inset:-6px}
+.pf-alerta .enlace{display:inline-flex;align-items:center;min-height:44px}
