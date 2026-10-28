@@ -46,12 +46,15 @@ function cssVarClaro(n){
   if(!refClaro){refClaro=document.createElement('div');refClaro.dataset.tema='claro';refClaro.hidden=true;document.body.appendChild(refClaro);}
   return getComputedStyle(refClaro).getPropertyValue(n).trim();
 }
-/* ===== TEMA: Sistema / Claro / Oscuro (v4 · Fase 6). index.html ya lo puso antes del primer pintado ===== */
-function temaElegido(){try{return localStorage.getItem('fc_tema')||'sistema';}catch(e){return 'sistema';}}
+/* ===== TEMA: Automático / Sistema / Claro / Oscuro (v4 · Fase 6; v7 · Fase 6). index.html ya lo puso antes del primer pintado =====
+   Automático (por defecto): oscuro de 6:00 p. m. a 6:00 a. m. en hora de Colombia (UTC-5), sin importar la zona del teléfono.
+   Se revisa cada minuto y al volver a la app. */
+function temaElegido(){try{return localStorage.getItem('fc_tema')||'automatico';}catch(e){return 'automatico';}}
+const esDeNocheCol=()=>{const h=new Date(Date.now()-5*36e5).getUTCHours();return h>=18||h<6;};
 const temaOscuro=()=>document.documentElement.dataset.tema==='oscuro';
 const consultaOscuro=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
 function aplicarTema(pref=temaElegido()){
-  const o=pref==='oscuro'||(pref==='sistema'&&!!consultaOscuro&&consultaOscuro.matches);
+  const o=pref==='oscuro'||(pref==='automatico'&&esDeNocheCol())||(pref==='sistema'&&!!consultaOscuro&&consultaOscuro.matches);
   if(o===temaOscuro())return;
   document.documentElement.dataset.tema=o?'oscuro':'claro';
   // Barra del sistema y mapas con los colores del tema nuevo
@@ -59,6 +62,8 @@ function aplicarTema(pref=temaElegido()){
   if(typeof render==='function'&&['mapa','ruta'].includes(vistaActual().tipo))render(true);
 }
 function elegirTema(pref){try{localStorage.setItem('fc_tema',pref);}catch(e){}aplicarTema(pref);medir('tema',{tema:pref});}
+setInterval(()=>{if(temaElegido()==='automatico')aplicarTema('automatico');},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&temaElegido()==='automatico')aplicarTema('automatico');});
 if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
 // Teselas del mapa: siempre OpenStreetMap; en modo noche se oscurecen con un filtro solo en el panel de teselas (CSS)
 function capaBase(){
@@ -3598,8 +3603,8 @@ function renderPerfil(){
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
-      +[['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
-      +'</div><p class="nota-c izq">«Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
+      +[['automatico','clock','Automático'],['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
+      +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Novedades</h3><label class="switch-row"><span>Mostrarme las novedades de los comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
