@@ -153,6 +153,18 @@ function reconstruirDirectorio(){
   comerciosNube.forEach(c=>porId.set(c.id,c));
   database=[...porId.values(),...lugaresComunidad];
 }
+/* ===== ARRANQUE (v7 · Fase 5) =====
+   La app está lista cuando se sabe quién es la persona (sesión y perfil) y llegó el directorio (de la nube o de la
+   copia guardada en el teléfono). Sin conexión no se espera a la nube: la app trabaja con los datos guardados. */
+const arranque={auth:false,perfil:false,datos:false,listo:false};
+function appLista(){return arranque.auth&&arranque.perfil&&(arranque.datos||!navigator.onLine);}
+function marcarListo(k){
+  arranque[k]=true;
+  if(arranque.listo||!appLista())return;
+  arranque.listo=true;
+  const sp=$('#splash');sp.classList.add('lista');sp.removeAttribute('aria-busy');$('#splashLento').hidden=true;
+  intentarSalirSplash();
+}
 // La regla pública solo deja leer comercios aprobados; una consulta sin este filtro sería rechazada completa.
 db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapshot(snap=>{
   const lista=[];
@@ -162,8 +174,8 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
     if(!x.propietario_uid&&nombresBase.has(norm(x.nombre).trim())&&!idsBase.has(doc.id))return;
     lista.push(normalizarNube(doc.id,x));
   });
-  comerciosNube=lista;estado.nubeLista=true;reconstruirDirectorio();refrescarVista();
-},err=>console.warn('Comercios sin conexión:',err.code));
+  comerciosNube=lista;estado.nubeLista=true;reconstruirDirectorio();refrescarVista();marcarListo('datos');
+},err=>{console.warn('Comercios sin conexión:',err.code);marcarListo('datos');});
 // Negocios de muestra que el admin ocultó (los de la nube se ocultan con estado "oculto" y ya no llegan al directorio)
 db.collection('config').doc('directorio').onSnapshot(s=>{
   const l=(s.exists&&s.data().ocultos)||[];estado.ocultos=new Set(l);ls.set('fc_ocultos',l);reconstruirDirectorio();refrescarVista();
@@ -4413,11 +4425,13 @@ auth.getRedirectResult().catch(async e=>{
 });
 auth.onAuthStateChanged(user=>{
   marcarSesion(user&&!user.isAnonymous);
+  marcarListo('auth');
+  if(!user||user.isAnonymous)marcarListo('perfil');
   // Se esperaba una sesión que ya no existe: se muestra la entrada completa con sus botones
   if((!user||user.isAnonymous)&&$('#splash').classList.contains('corto'))mostrarSplash();
   if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
-  procesarUsuario(user);
+  procesarUsuario(user).catch(()=>{}).finally(()=>marcarListo('perfil'));
 });
 
 /* ===== PROMOCIONES PUSH (RF-18) ===== */
@@ -5261,20 +5275,26 @@ $$('.overlay .sheet').forEach(sh=>{
 });
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
-function ocultarSplash(){$('#splash').classList.add('oculto');colorBarra('--bg');}
+function ocultarSplash(){const sp=$('#splash');sp.classList.add('oculto');sp.setAttribute('aria-hidden','true');colorBarra('--bg');}
 // Al volver a la pantalla de entrada (p. ej. al cerrar sesión) se ve completa y quieta, con sus botones
-function mostrarSplash(){$('#splash').classList.remove('oculto','corto','demo');$('#splash').classList.add('saltar');colorBarra('--primary-500');}
-/* Pantalla de entrada (v4 · Fase 4). Su HTML se pinta una sola vez y nunca se vuelve a generar.
-   Invitados: animación completa en cada arranque en frío; la pantalla con botones no avanza sola.
-   Con sesión: versión corta de 1,2 s, solo el logo. ?demo=1 siempre muestra la completa. */
+function mostrarSplash(){const sp=$('#splash');sp.classList.remove('oculto','corto','demo');sp.classList.add('saltar');sp.removeAttribute('aria-hidden');colorBarra('--primary-500');}
+/* Pantalla de entrada (v4 · Fase 4; v7 · Fase 5). Su HTML se pinta una sola vez y nunca se vuelve a generar.
+   - Con sesión: animación corta del logo; se va cuando la app está lista y pasaron al menos 1,6 s (se desvanece en 300 ms).
+   - Invitados: animación completa; los botones aparecen cuando la app está lista y la pantalla no avanza sola.
+   - Si a los 8 s la app aún no está lista: «Cargando… revisa tu conexión» con Reintentar.
+   ?demo=1 siempre muestra la completa. */
 // Se cuenta desde que se abrió la página (performance.now() empieza en 0 al navegar), no desde que cargó este archivo
-const SPLASH_CORTO=1200,faltaSplash=()=>SPLASH_CORTO-performance.now();
+const SPLASH={min:1600,lento:8000};
+let salirAlEstarLista=false;
 function marcarSesion(on){try{on?localStorage.setItem('fc_con_sesion','1'):localStorage.removeItem('fc_con_sesion');}catch(e){}}
-// Con sesión, la entrada se queda al menos 1,2 s desde el arranque (salvo en modo demostración)
-function ocultarSplashSesion(){
-  const sp=$('#splash');if(sp.classList.contains('oculto')||sp.classList.contains('demo'))return;
-  const falta=faltaSplash();
-  if(falta>0)setTimeout(()=>{if(!sp.classList.contains('demo'))ocultarSplash();},falta);else ocultarSplash();
+// Con sesión, la entrada se va cuando la app esté lista y hayan pasado 1,6 s desde el arranque (salvo en modo demostración)
+function ocultarSplashSesion(){salirAlEstarLista=true;intentarSalirSplash();}
+function intentarSalirSplash(){
+  const sp=$('#splash');
+  if(!salirAlEstarLista||sp.classList.contains('oculto')||sp.classList.contains('demo')||!appLista())return;
+  const falta=SPLASH.min-performance.now();
+  if(falta>0){setTimeout(intentarSalirSplash,falta);return;}
+  ocultarSplash();
 }
 // Vuelve a reproducir la animación completa sin regenerar el HTML (botón del admin en Perfil)
 function verAnimacionEntrada(){
@@ -5289,7 +5309,12 @@ function verAnimacionEntrada(){
   // Un solo elemento animado por ícono (.splash-ico-in); el contenedor solo lo ubica en el arco
   const arco=ICONOS_ARCO.map(([n,x,y],i)=>'<span class="splash-ico" style="--x:'+x+'px;--y:'+y+'px;--i:'+i+'" aria-hidden="true"><span class="splash-ico-in">'+icon(n,20)+'</span></span>').join('');
   $('#splashMarca').innerHTML=logo('vertical','lila',{alto:120,lema:true,extraIso:arco});
-  if(sp.classList.contains('corto'))setTimeout(()=>{if(sp.classList.contains('corto'))ocultarSplash();},Math.max(0,faltaSplash()));
+  if(sp.classList.contains('corto'))ocultarSplashSesion();
+  // Conexión lenta: a los 8 s se ofrece reintentar o entrar con los datos guardados en el teléfono
+  setTimeout(()=>{if(!arranque.listo&&!sp.classList.contains('oculto')){$('#splashLento').hidden=false;medir('arranque_lento',{online:navigator.onLine});}},Math.max(0,SPLASH.lento-performance.now()));
+  $('#sReintentar').onclick=()=>location.reload();
+  $('#sEntrarIgual').onclick=()=>{arranque.listo=true;sp.classList.add('lista');sp.removeAttribute('aria-busy');$('#splashLento').hidden=true;
+    if(sp.classList.contains('corto')||conCuenta())ocultarSplash();};
   // Un toque salta la animación: el invitado ve de una vez los botones; con sesión, entra
   sp.addEventListener('pointerdown',e=>{
     if(e.target.closest('button'))return;
