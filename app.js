@@ -4450,6 +4450,7 @@ function escucharPromociones(){
       ls.set('fc_promo_visto',Math.max(ls.get('fc_promo_visto',0),aMs(n.fecha_envio)||Date.now()));
       if(!logueado()||(estado.perfil&&estado.perfil.notificaciones_push===false))return;
       if(n.segmento==='favoritos'&&!estado.favoritos.includes(String(n.comercio_id)))return;
+      if(n.destino==='netlify')return;   // aviso de mudanza: solo para la versión vieja
       mostrarPromo(n);
     });
   },()=>{promoUnsub=null;});
@@ -4467,7 +4468,10 @@ function mostrarPromo(n){
 /* ===== NOVEDADES: bandeja con punto de no leído (no es push real; FCM queda para otra versión) ===== */
 estado.novedades=[];
 db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapshot(s=>{
-  estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
+  const l=s.docs.map(d=>({id:d.id,...d.data()}));
+  estado.avisoMudanza=l.find(n=>n.destino==='netlify')||null;
+  estado.novedades=l.filter(n=>n.destino!=='netlify');actualizarCampana();
+  if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
 function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
 function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
@@ -4810,7 +4814,7 @@ function renderAdmin(){
   }else if(A.tab==='eventos'){
     html=eventosAdminHTML();
   }else if(A.tab==='banners'){
-    html=bannersAdminHTML();
+    html=bannersAdminHTML()+avisoMudanzaHTML();
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -4873,7 +4877,7 @@ function renderAdmin(){
     if(!c){toast('No encontramos ese comercio');return;}
     db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
   $$('[data-descartar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('reportes').doc(b.dataset.descartar).update({estado:'descartado',fecha_respuesta:FV.serverTimestamp()}),'Reporte descartado'));
-  enlazarBannersAdmin();enlazarEventosAdmin();enlazarRutasAdmin();
+  enlazarBannersAdmin();enlazarEventosAdmin();enlazarRutasAdmin();enlazarAvisoMudanza();
   // Editor de emergencias
   $$('[data-amun]').forEach(b=>b.onclick=()=>{A.mun=b.dataset.amun;render(true);});
   const mun=A.mun||'fusagasuga';
@@ -4903,6 +4907,36 @@ function estadoBanner(b){
   if(b.desde&&b.desde>hoyISO())return 'Programado desde el '+fechaDia(b.desde);
   if(b.hasta&&b.hasta<hoyISO())return 'Vencido el '+fechaDia(b.hasta);
   return 'Visible'+(b.hasta?' hasta el '+fechaDia(b.hasta):'');
+}
+/* ---------- Admin · Aviso de mudanza (v7 · Fase 7) ----------
+   La versión vieja de fusa-conecta.netlify.app (v29) usa la misma base de datos y escucha "notificaciones":
+   - la campana muestra el aviso (con punto de no leído) a todos los que abren esa versión, con o sin cuenta;
+   - el aviso grande de arriba (y la notificación del teléfono, si dieron permiso) solo a quien tiene cuenta, las
+     Novedades activadas y la app vieja abierta cuando se envía (nunca hubo otras notificaciones, así que la v29
+     solo muestra en grande las que llegan con la app abierta).
+   La app nueva lo ignora (destino "netlify"). No es push real: nadie lo recibe con la app cerrada. */
+const AVISO_MUDANZA={titulo:'Fusa Conecta se mudó',
+  mensaje:'Nuestra nueva dirección es fusa-conecta.web.app. Ábrela en tu navegador e instálala de nuevo: esta versión ya no recibe actualizaciones. Tus favoritos y cupones siguen en tu cuenta.'};
+function avisoMudanzaHTML(){
+  const a=estado.avisoMudanza;
+  return '<p class="dash-section">Aviso de mudanza (versión vieja de Netlify)</p><div class="adm-card">'
+    +'<p class="adm-desc"><b>'+esc(AVISO_MUDANZA.titulo)+'</b><br>'+esc(AVISO_MUDANZA.mensaje)+'</p>'
+    +'<p class="nota-c izq">Lo ven quienes aún abren fusa-conecta.netlify.app: en la campana, todos; como aviso grande, quienes tienen cuenta, las Novedades activadas y la app vieja abierta en el momento del envío. La app nueva no lo muestra.</p>'
+    +(a?'<p class="nota-c izq">'+icon('circle-check',16)+' Enviado el '+esc(fechaHora(aMs(a.fecha_envio)||Date.now()))+'</p>'
+      +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" id="mudRetirar">'+icon('trash-2',16)+'Retirar aviso</button></div>'
+      :'<div class="dc-actions"><button class="btn btn-primario btn-sm" id="mudEnviar">'+icon('megaphone',16)+'Enviar aviso</button></div>')
+    +'</div>';
+}
+function enlazarAvisoMudanza(){
+  const e=$('#mudEnviar');if(e)e.onclick=async()=>{
+    if(!await confirmar('Enviar aviso de mudanza','Aparecerá en la campana de la versión vieja de Netlify para todos los que la abran. La app nueva no lo muestra.','Enviar','Cancelar','megaphone'))return;
+    adminAccion(()=>db.collection('notificaciones').add({...AVISO_MUDANZA,destino:'netlify',tipo:'sistema',segmento:'todos',comercio_id:'',comercio_nombre:'Aviso',
+      enviado_por:estado.usuario.uid,fecha_envio:FV.serverTimestamp()}),'Aviso enviado a la versión de Netlify');
+  };
+  const r=$('#mudRetirar');if(r)r.onclick=async()=>{
+    if(!await confirmar('Retirar aviso','Se quita de la campana de la versión vieja.','Retirar','Cancelar','trash-2',true))return;
+    adminAccion(()=>db.collection('notificaciones').doc(estado.avisoMudanza.id).delete(),'Aviso retirado');
+  };
 }
 function bannersAdminHTML(){
   const bs=estado.banners||[],dest=bs.find(b=>b.id==='destacado'),dc=dest&&buscar(dest.comercio_id);
@@ -5424,3 +5458,29 @@ function rutaHash(){
 }
 window.addEventListener('hashchange',rutaHash);
 rutaHash();
+/* Bienvenida para quien llega desde la dirección vieja (v7 · Fase 7): ?desde=netlify, una sola vez por teléfono */
+(function(){
+  const q=new URLSearchParams(location.search);if(q.get('desde')!=='netlify')return;
+  q.delete('desde');try{history.replaceState(history.state,'',location.pathname+(q.toString()?'?'+q:'')+location.hash);}catch(e){}
+  medir('llegada_netlify');
+  if(ls.get('fc_bienvenida_netlify',0))return;
+  const mostrar=()=>{
+    if(!arranque.listo){setTimeout(mostrar,300);return;}
+    ls.set('fc_bienvenida_netlify',Date.now());ocultarSplash();
+    const paso=(n,t,d,boton)=>'<li class="bn-paso"><span class="bn-num" aria-hidden="true">'+n+'</span><div><b>'+t+'</b><p>'+d+'</p>'+(boton||'')+'</div></li>';
+    abrirHoja('<div class="hoja-pad bienvenida-netlify"><span class="asis-logo" aria-hidden="true">'+icon('house',24)+'</span>'
+      +'<h2 class="hoja-tit">Bienvenido a la nueva Fusa Conecta</h2>'
+      +'<p class="nota">Es la misma app de siempre, ahora en <b>fusa-conecta.web.app</b>. Aquí recibes las novedades, el asistente, las rutas y la agenda al día.</p>'
+      +'<ol class="bn-pasos">'
+      +(appInstalada()?'':paso(1,'Instálala de nuevo','Así la abres desde tu pantalla de inicio, como antes.','<button class="btn btn-primario btn-sm" id="bnInstalar">'+icon('download',16)+'Instalar la app</button>'))
+      +paso(appInstalada()?1:2,'Borra el ícono viejo','Mantén presionado el ícono anterior de Fusa Conecta y elige «Desinstalar» o «Eliminar app».')
+      +paso(appInstalada()?2:3,'Entra con tu mismo correo',logueado()?'Ya entraste: tus favoritos y cupones están aquí.':'Tus favoritos y cupones están guardados en tu cuenta.',
+        logueado()?'':'<button class="btn btn-secundario btn-sm" id="bnEntrar">'+icon('user',16)+'Entrar a mi cuenta</button>')
+      +'</ol><button class="btn btn-primario btn-bloque mt-16" id="bnListo">Empezar a explorar</button></div>');
+    $('#sheetGen').setAttribute('aria-label','Bienvenida a la nueva Fusa Conecta');
+    const bi=$('#bnInstalar');if(bi)bi.onclick=()=>{cerrar('ovGen');instalarApp();};
+    const be=$('#bnEntrar');if(be)be.onclick=()=>{cerrar('ovGen');abrirLogin('login');};
+    $('#bnListo').onclick=()=>{cerrar('ovGen');if(!auth.currentUser)auth.signInAnonymously().catch(()=>{});};
+  };
+  mostrar();
+})();

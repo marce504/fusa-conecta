@@ -31,3 +31,18 @@ curl -I https://fusa-conecta.netlify.app/lugar/c12     # 301 a https://fusa-cone
 curl -s https://fusa-conecta.netlify.app/ | grep "se mudó"
 curl -s https://fusa-conecta.netlify.app/sw.js | head -3
 ```
+
+## v7 · Fase 7
+
+- **Página de mudanza**:
+  - Detecta Android o iPhone y muestra los pasos con ilustraciones: abrir la dirección nueva, instalarla y borrar el ícono viejo.
+  - El botón grande **Ir a la nueva Fusa Conecta** lleva a `fusa-conecta.web.app` con la misma ruta y `?desde=netlify`.
+- **Bienvenida en el sitio nuevo**:
+  - Con `?desde=netlify` aparece una sola vez por teléfono, con Instalar la app, Borrar el ícono viejo y Entrar a mi cuenta.
+  - Después se quita el parámetro de la dirección.
+- **Aviso en la app vieja (v29), antes de que Netlify se pueda publicar**:
+  - Se envía desde Panel de administración → Banners → **Aviso de mudanza**.
+  - La v29 lee la misma colección `notificaciones`:
+    - en la campana lo ven todos los que la abran;
+    - como aviso grande solo lo ven quienes tienen cuenta, las Novedades activadas y la app abierta en el momento del envío.
+  - La app nueva lo ignora (`destino: "netlify"`).

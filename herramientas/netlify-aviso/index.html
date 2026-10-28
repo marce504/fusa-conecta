@@ -8,62 +8,173 @@
 <meta name="robots" content="noindex">
 <link rel="canonical" href="https://fusa-conecta.web.app/">
 <meta name="theme-color" content="#6B4EFF">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" href="https://fusa-conecta.web.app/icono-app.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-  /* Aviso en la dirección vieja de Netlify (v6 · Fase 5). Mismos colores de la app. */
+  /* Página de mudanza en la dirección vieja de Netlify (v6 · Fase 5; v7 · Fase 7). Mismos colores de la app. */
   :root{
-    --bg:#FFFFFF;--soft:#F4F4F8;--line:#E7E8F0;--ink:#1B1F3B;--ink-2:#5B6178;
-    --primary-50:#F1EEFF;--primary-500:#6B4EFF;--primary-600:#5A3DF0;--primary-700:#4F35D8;--blanco:#FFFFFF;
-    --radius-md:12px;--radius-xl:28px;
+    --bg:#FFFFFF;--soft:#F4F4F8;--line:#E7E8F0;--ink:#1B1F3B;--ink-2:#5B6178;--ink-3:#9AA0B4;
+    --primary-50:#F1EEFF;--primary-100:#E2DCFF;--primary-500:#6B4EFF;--primary-600:#5B3DF5;--primary-700:#4F35D8;
+    --mint-50:#E8FBF4;--mint-700:#047857;--blanco:#FFFFFF;
+    --pantalla:#FFFFFF;--marco:#1B1F3B;--resalte:#6B4EFF;--sombra-tab:0 1px 2px rgba(27,31,59,.08);
+    --radius-sm:8px;--radius-md:12px;--radius-lg:20px;--radius-xl:28px;--radius-full:9999px;
+    --shadow-primary:0 8px 20px rgba(107,78,255,.28);
   }
   @media (prefers-color-scheme:dark){:root{
-    --bg:#121420;--soft:#1A1D2E;--line:#2B2F47;--ink:#ECEEF8;--ink-2:#A8AEC6;--primary-50:#221C45;--primary-700:#B7A8FF;
+    --bg:#121420;--soft:#1A1D2E;--line:#2B2F47;--ink:#ECEEF8;--ink-2:#A8AEC6;--ink-3:#6E7491;
+    --primary-50:#221C45;--primary-100:#2E2660;--primary-700:#B7A8FF;--mint-50:#0E2A22;--mint-700:#5EEAD4;
+    --pantalla:#1A1D2E;--marco:#3A3F5C;--resalte:#8B73FF;
   }}
   *{box-sizing:border-box;margin:0}
   body{min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--ink);font-family:Poppins,system-ui,sans-serif;line-height:1.5;
-    display:flex;align-items:center;justify-content:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
-  main{width:100%;max-width:440px;text-align:center}
-  .logo{width:72px;height:72px;border-radius:20px;display:block;margin:0 auto 20px}
+    padding:24px 16px calc(32px + env(safe-area-inset-bottom))}
+  main{width:100%;max-width:480px;margin:0 auto}
+  .cabeza{text-align:center}
+  .logo{width:72px;height:72px;border-radius:20px;display:block;margin:8px auto 16px}
   h1{font-size:26px;font-weight:800;line-height:1.2;margin-bottom:8px}
   p{color:var(--ink-2);font-size:16px}
-  .dir{display:inline-block;margin:16px 0 24px;padding:8px 16px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700);font-weight:600;word-break:break-all}
-  .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:var(--radius-md);
-    background:var(--primary-500);color:var(--blanco);font:600 16px Poppins,system-ui,sans-serif;text-decoration:none;transition:background .2s}
+  .dir{display:inline-block;margin:14px 0 20px;padding:8px 16px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700);font-weight:600;word-break:break-all}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:0 20px;border-radius:var(--radius-lg);border:0;cursor:pointer;
+    background:var(--primary-500);color:var(--blanco);font:600 18px Poppins,system-ui,sans-serif;text-decoration:none;box-shadow:var(--shadow-primary);transition:background .2s}
   .btn:hover{background:var(--primary-600)}
-  .btn:focus-visible{outline:3px solid var(--primary-700);outline-offset:3px}
-  .pasos{margin-top:28px;padding:20px;border:1px solid var(--line);border-radius:var(--radius-xl);background:var(--soft);text-align:left}
-  .pasos h2{font-size:17px;margin-bottom:8px;color:var(--ink)}
-  .pasos ol{padding-left:22px;color:var(--ink-2)}
-  .pasos li{margin-top:6px}
-  .pasos b{color:var(--ink)}
-  .ic{width:20px;height:20px;flex-shrink:0}
-  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  .btn:focus-visible,.tab:focus-visible{outline:3px solid var(--primary-700);outline-offset:3px}
+  .ic{width:22px;height:22px;flex-shrink:0}
+  .seguro{display:flex;gap:8px;align-items:flex-start;margin-top:14px;padding:12px 14px;border-radius:var(--radius-md);background:var(--mint-50);color:var(--mint-700);font-size:14px;text-align:left}
+  .seguro .ic{width:18px;height:18px;margin-top:2px}
+  h2{font-size:19px;margin:32px 0 4px}
+  .sub{font-size:14px}
+  .tabs{display:flex;gap:4px;padding:4px;margin:14px 0 18px;background:var(--soft);border-radius:var(--radius-md)}
+  .tab{flex:1;min-height:44px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink-2);font:500 15px Poppins,system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .tab[aria-selected="true"]{background:var(--bg);color:var(--ink);box-shadow:var(--sombra-tab)}
+  .tab .ic{width:18px;height:18px}
+  .pasos{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px}
+  .paso{display:grid;grid-template-columns:1fr 112px;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg)}
+  .paso b{color:var(--ink)}
+  .paso-tit{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:var(--ink)}
+  .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);font-size:14px;font-weight:600;flex-shrink:0}
+  .paso p{font-size:14px;margin-top:4px}
+  .ilu{width:112px;height:auto;display:block}
+  .ilu .marco{fill:none;stroke:var(--marco);stroke-width:3}
+  .ilu .pant{fill:var(--pantalla)}
+  .ilu .borde{stroke:var(--line);stroke-width:1.5}
+  .ilu .linea{fill:var(--line)}
+  .ilu .res{fill:var(--resalte)}
+  .ilu .res-t{fill:none;stroke:var(--resalte);stroke-width:2.5}
+  .ilu .txt-b{fill:var(--blanco);font:600 9px Poppins,system-ui,sans-serif}
+  .ilu .app-v{fill:var(--ink-3)}
+  .ilu .app-n{fill:var(--primary-500)}
+  [hidden]{display:none!important}
+  .pie{margin-top:28px;font-size:14px;text-align:center}
+  .pie a{color:var(--primary-700);font-weight:600}
+  @media (max-width:360px){.paso{grid-template-columns:1fr}.ilu{margin:0 auto}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <main>
-  <img class="logo" src="https://fusa-conecta.web.app/icono-app.png" alt="" width="72" height="72">
-  <h1>Fusa Conecta se mudó</h1>
-  <p>La app sigue igual, con todos los negocios, cupones, rutas y eventos de Fusagasugá y Pasca. Solo cambió la dirección:</p>
-  <span class="dir">fusa-conecta.web.app</span>
-  <a class="btn" id="ir" href="https://fusa-conecta.web.app/">Abrir la nueva Fusa Conecta
+  <div class="cabeza">
+    <img class="logo" src="https://fusa-conecta.web.app/icono-app.png" alt="" width="72" height="72">
+    <h1>Fusa Conecta se mudó</h1>
+    <p>Es la misma app, con todos los negocios, cupones, rutas y eventos de Fusagasugá y Pasca. Solo cambió la dirección:</p>
+    <span class="dir">fusa-conecta.web.app</span>
+  </div>
+  <a class="btn" id="ir" href="https://fusa-conecta.web.app/?desde=netlify">Ir a la nueva Fusa Conecta
     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
-  <section class="pasos" aria-labelledby="tPasos">
-    <h2 id="tPasos">Si la tenías instalada en tu celular</h2>
-    <ol>
-      <li>Toca <b>Abrir la nueva Fusa Conecta</b>.</li>
-      <li>Instálala de nuevo desde ahí: en Android, menú del navegador → <b>Instalar app</b>; en iPhone, <b>Compartir</b> → <b>Agregar a inicio</b>.</li>
-      <li>Borra el ícono viejo de tu pantalla de inicio.</li>
-    </ol>
-    <p style="margin-top:12px;font-size:14px">Tus favoritos y cupones están en tu cuenta: entra con el mismo correo y siguen ahí.</p>
-  </section>
+  <p class="seguro"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+    <span>Tus favoritos y cupones están guardados en tu cuenta: entra con el mismo correo y siguen ahí.</span></p>
+
+  <h2 id="tPasos">Si la tenías instalada en tu celular</h2>
+  <p class="sub" id="detectado">Instálala de nuevo desde la dirección nueva y borra el ícono viejo.</p>
+  <div class="tabs" role="tablist" aria-labelledby="tPasos">
+    <button class="tab" role="tab" id="tabAndroid" aria-controls="pAndroid" aria-selected="true">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>Android</button>
+    <button class="tab" role="tab" id="tabIphone" aria-controls="pIphone" aria-selected="false" tabindex="-1">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>iPhone</button>
+  </div>
+
+  <!-- Android (Chrome) -->
+  <ol class="pasos" id="pAndroid" role="tabpanel" aria-labelledby="tabAndroid">
+    <li class="paso"><div><p class="paso-tit"><span class="num">1</span>Abre la nueva dirección</p><p>Toca <b>Ir a la nueva Fusa Conecta</b>. Se abre en Chrome.</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Celular con el botón Ir a la nueva Fusa Conecta resaltado">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="app-n" x="44" y="24" width="24" height="24" rx="7"/><rect class="linea" x="24" y="58" width="64" height="7" rx="3"/><rect class="linea" x="30" y="70" width="52" height="5" rx="2"/>
+        <rect class="res" x="18" y="100" width="76" height="22" rx="7"/><text class="txt-b" x="56" y="114" text-anchor="middle">Ir a la nueva</text>
+        <rect class="linea" x="18" y="134" width="76" height="30" rx="7"/></svg></li>
+    <li class="paso"><div><p class="paso-tit"><span class="num">2</span>Instálala de nuevo</p><p>En la nueva Fusa Conecta toca <b>Instalar la app</b>. Si no aparece, abre el menú de los tres puntos de Chrome (arriba a la derecha) y elige <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>.</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Menú de Chrome abierto con la opción Instalar app resaltada">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="linea" x="16" y="14" width="66" height="12" rx="6"/><circle class="res" cx="93" cy="15" r="1.8"/><circle class="res" cx="93" cy="20" r="1.8"/><circle class="res" cx="93" cy="25" r="1.8"/>
+        <rect class="res-t" x="86" y="10" width="14" height="20" rx="5"/>
+        <rect class="pant borde" x="36" y="34" width="62" height="86" rx="6"/>
+        <rect class="linea" x="42" y="42" width="44" height="5" rx="2"/><rect class="linea" x="42" y="56" width="38" height="5" rx="2"/><rect class="linea" x="42" y="70" width="46" height="5" rx="2"/>
+        <rect class="res" x="38" y="82" width="58" height="16" rx="4"/><text class="txt-b" x="67" y="93" text-anchor="middle">Instalar app</text>
+        <rect class="linea" x="42" y="106" width="40" height="5" rx="2"/></svg></li>
+    <li class="paso"><div><p class="paso-tit"><span class="num">3</span>Borra el ícono viejo</p><p>Mantén presionado el ícono anterior de Fusa Conecta y elige <b>Desinstalar</b> (o arrástralo hasta <b>Desinstalar</b>).</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Pantalla de inicio con el ícono viejo presionado y la opción Desinstalar">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="linea" x="20" y="22" width="18" height="18" rx="5"/><rect class="linea" x="47" y="22" width="18" height="18" rx="5"/><rect class="linea" x="74" y="22" width="18" height="18" rx="5"/>
+        <rect class="app-v" x="20" y="54" width="18" height="18" rx="5"/><rect class="res-t" x="16" y="50" width="26" height="26" rx="8"/>
+        <rect class="pant borde" x="18" y="82" width="70" height="40" rx="6"/>
+        <rect class="linea" x="24" y="90" width="40" height="5" rx="2"/>
+        <rect class="res" x="20" y="102" width="66" height="16" rx="4"/><text class="txt-b" x="53" y="113" text-anchor="middle">Desinstalar</text>
+        <rect class="app-n" x="47" y="140" width="18" height="18" rx="5"/></svg></li>
+  </ol>
+
+  <!-- iPhone (Safari) -->
+  <ol class="pasos" id="pIphone" role="tabpanel" aria-labelledby="tabIphone" hidden>
+    <li class="paso"><div><p class="paso-tit"><span class="num">1</span>Abre la nueva dirección en Safari</p><p>Toca <b>Ir a la nueva Fusa Conecta</b>. Si se abre en otra app, copia <b>fusa-conecta.web.app</b> y pégala en Safari.</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Celular con el botón Ir a la nueva Fusa Conecta resaltado">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="app-n" x="44" y="24" width="24" height="24" rx="7"/><rect class="linea" x="24" y="58" width="64" height="7" rx="3"/><rect class="linea" x="30" y="70" width="52" height="5" rx="2"/>
+        <rect class="res" x="18" y="100" width="76" height="22" rx="7"/><text class="txt-b" x="56" y="114" text-anchor="middle">Ir a la nueva</text>
+        <rect class="linea" x="18" y="150" width="76" height="14" rx="7"/></svg></li>
+    <li class="paso"><div><p class="paso-tit"><span class="num">2</span>Agrégala a tu inicio</p><p>Toca <b>Compartir</b> (el cuadro con la flecha hacia arriba), elige <b>Agregar a inicio</b> y luego <b>Agregar</b>.</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Menú Compartir de Safari con la opción Agregar a inicio resaltada">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="pant borde" x="14" y="70" width="84" height="74" rx="8"/>
+        <rect class="linea" x="20" y="80" width="56" height="5" rx="2"/><rect class="linea" x="20" y="94" width="48" height="5" rx="2"/>
+        <rect class="res" x="16" y="106" width="80" height="16" rx="4"/><text class="txt-b" x="56" y="117" text-anchor="middle">Agregar a inicio</text>
+        <rect class="linea" x="20" y="130" width="40" height="5" rx="2"/>
+        <rect class="linea" x="14" y="150" width="84" height="20" rx="6"/>
+        <g class="res-t" stroke-linecap="round" stroke-linejoin="round"><path d="M56 154v8"/><path d="m52.5 157 3.5-3.5 3.5 3.5"/><path d="M53 159h-3v8h12v-8h-3"/></g></svg></li>
+    <li class="paso"><div><p class="paso-tit"><span class="num">3</span>Borra el ícono viejo</p><p>Mantén presionado el ícono anterior de Fusa Conecta, toca <b>Eliminar app</b> y confirma.</p></div>
+      <svg class="ilu" viewBox="0 0 112 180" role="img" aria-label="Pantalla de inicio con el ícono viejo presionado y la opción Eliminar app">
+        <rect class="pant" x="8" y="4" width="96" height="172" rx="14"/><rect class="marco" x="8" y="4" width="96" height="172" rx="14"/>
+        <rect class="linea" x="20" y="22" width="18" height="18" rx="5"/><rect class="linea" x="47" y="22" width="18" height="18" rx="5"/><rect class="linea" x="74" y="22" width="18" height="18" rx="5"/>
+        <rect class="app-v" x="20" y="54" width="18" height="18" rx="5"/><rect class="res-t" x="16" y="50" width="26" height="26" rx="8"/>
+        <rect class="pant borde" x="18" y="82" width="70" height="40" rx="6"/>
+        <rect class="linea" x="24" y="90" width="40" height="5" rx="2"/>
+        <rect class="res" x="20" y="102" width="66" height="16" rx="4"/><text class="txt-b" x="53" y="113" text-anchor="middle">Eliminar app</text>
+        <rect class="app-n" x="47" y="140" width="18" height="18" rx="5"/></svg></li>
+  </ol>
+
+  <p class="pie">¿Usas un computador? Abre <a id="irPie" href="https://fusa-conecta.web.app/?desde=netlify">fusa-conecta.web.app</a> y guárdala en tus favoritos.</p>
 </main>
 <script>
-  // Conserva la ruta y los parámetros (por ejemplo, un enlace compartido) al pasar a la dirección nueva
-  try{var a=document.getElementById('ir');a.href='https://fusa-conecta.web.app'+location.pathname+location.search+location.hash;}catch(e){}
+  (function(){
+    // Conserva la ruta y los parámetros (por ejemplo, un enlace compartido) y marca la llegada para la bienvenida
+    var q=location.search.replace(/^\?/,'').split('&').filter(function(x){return x&&x.indexOf('origen=')!==0&&x.indexOf('desde=')!==0;});
+    q.push('desde=netlify');
+    var ruta=location.pathname.indexOf('/herramientas/')===0?'/':location.pathname;
+    var destino='https://fusa-conecta.web.app'+ruta+'?'+q.join('&')+location.hash;
+    try{document.getElementById('ir').href=destino;document.getElementById('irPie').href=destino;}catch(e){}
+    // Pestañas Android / iPhone: se elige sola según el celular; flechas para cambiar con teclado
+    var ua=navigator.userAgent||'',ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),android=/android/i.test(ua);
+    var tabs={android:document.getElementById('tabAndroid'),iphone:document.getElementById('tabIphone')},
+        paneles={android:document.getElementById('pAndroid'),iphone:document.getElementById('pIphone')};
+    function elegir(k,foco){
+      for(var x in tabs){var on=x===k;tabs[x].setAttribute('aria-selected',on);tabs[x].tabIndex=on?0:-1;paneles[x].hidden=!on;}
+      if(foco)tabs[k].focus();
+    }
+    tabs.android.onclick=function(){elegir('android');};tabs.iphone.onclick=function(){elegir('iphone');};
+    document.querySelector('.tabs').addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();elegir(tabs.android.getAttribute('aria-selected')==='true'?'iphone':'android',true);}});
+    if(ios){elegir('iphone');document.getElementById('detectado').textContent='Detectamos un iPhone. Sigue estos pasos en Safari:';}
+    else if(android)document.getElementById('detectado').textContent='Detectamos un celular Android. Sigue estos pasos en Chrome:';
+  })();
 </script>
 </body>
 </html>

@@ -1441,6 +1441,13 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta-ev .cal-bloque{position:absolute;left:8px;top:8px;z-index:1}
 .tarjeta-ev .tc-linea{display:flex;align-items:center;gap:4px}
 .fallback-ic.c-ev{background:var(--primary-50);color:var(--primary-700)}
+/* Bienvenida desde la dirección vieja (v7 · Fase 7) */
+.bienvenida-netlify .asis-logo{margin-bottom:12px}
+.bn-pasos{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:14px}
+.bn-paso{display:flex;gap:12px;align-items:flex-start}
+.bn-paso b{display:block;font-size:var(--text-base)}
+.bn-paso p{font-size:var(--text-sm);color:var(--ink-2);margin:2px 0 8px}
+.bn-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);font-weight:600;flex-shrink:0}
 /* Rutas de la comunidad (v7 · Fase 4) */
 .ruta-credito{display:flex;align-items:center;gap:6px;margin:4px 0 12px;font-size:var(--text-sm);color:var(--ink-2)}
 .ruta-credito>.ic{color:var(--primary-700)}
