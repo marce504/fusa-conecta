@@ -31,15 +31,25 @@ jobs:
           if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
             echo "::error::Faltan los secretos ANDROID_KEYSTORE_BASE64 y ANDROID_KEYSTORE_PASSWORD (ver android/LEEME.md)."; exit 1
           fi
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
       - name: Android SDK 36 y build-tools
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;$BUILD_TOOLS" > /dev/null
       - name: Compilar (sin firmar)
-        run: chmod +x gradlew && ./gradlew --no-daemon assembleRelease bundleRelease
+        run: |
+          chmod +x gradlew
+          set +e
+          ./gradlew --no-daemon --stacktrace assembleRelease bundleRelease 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+          codigo=${PIPESTATUS[0]}
+          if [ "$codigo" != "0" ]; then
+            # El registro completo solo se ve con sesión; el resumen del error queda como aviso visible en la corrida
+            resumen=$(grep -E "What went wrong|Caused by|error:|FAILURE|> " "$RUNNER_TEMP/gradle.log" | grep -v "^> Task" | head -25 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Gradle falló::$resumen"
+            exit "$codigo"
+          fi
       - name: Firmar el APK y el AAB
         run: |
           BT="$ANDROID_HOME/build-tools/$BUILD_TOOLS"; KS="$RUNNER_TEMP/firma.keystore"
