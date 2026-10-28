@@ -450,20 +450,27 @@ function reportarError(donde,e){const cod=codigoError(e);console.error('['+donde
 // gemini-2.5-flash, 2.5-flash-lite, 2.0-flash-lite y 3.8-flash-lite no existen para proyectos nuevos (404)
 const IA={version:'12.19.0',modelos:['gemini-flash-lite-latest'],limiteDia:20,segundos:25,
   recaptcha:''};   // clave de SITIO reCAPTCHA v3 (es pública) cuando se active App Check en la consola
-let modelosIA=null;
+let modelosIA=null,modIA=null;
 const esOrganizador=()=>!!(estado.perfil&&estado.perfil.rol==='organizador');
 const organizadorConfiable=()=>esOrganizador()&&estado.perfil.confiable===true;
 const puedeUsarIA=()=>logueado()&&(esAdmin()||esComerciante()||esOrganizador());
-async function obtenerModeloIA(){
-  if(modelosIA)return modelosIA;
+// SDK de IA y app "fusa-ia" (una sola vez para el formulario y el asistente)
+async function moduloIA(){
+  if(modIA)return modIA;
   const base='https://www.gstatic.com/firebasejs/'+IA.version+'/';
   const {initializeApp,getApps}=await import(base+'firebase-app.js');
-  const {getAI,getGenerativeModel,GoogleAIBackend,Schema}=await import(base+'firebase-ai.js');
+  const m=await import(base+'firebase-ai.js');
   const app=getApps().find(a=>a.name==='fusa-ia')||initializeApp(firebase.app().options,'fusa-ia');
   if(IA.recaptcha){
     const {initializeAppCheck,ReCaptchaV3Provider}=await import(base+'firebase-app-check.js');
     try{initializeAppCheck(app,{provider:new ReCaptchaV3Provider(IA.recaptcha),isTokenAutoRefreshEnabled:true});}catch(e){}
   }
+  modIA={getGenerativeModel:m.getGenerativeModel,Schema:m.Schema,ai:m.getAI(app,{backend:new m.GoogleAIBackend()})};
+  return modIA;
+}
+async function obtenerModeloIA(){
+  if(modelosIA)return modelosIA;
+  const {getGenerativeModel,Schema,ai}=await moduloIA();
   // Salida estructurada: Gemini responde exactamente estos campos
   const esquema=Schema.object({properties:{
       titulo:Schema.string({description:'Nombre del evento, máximo 80 caracteres'}),
@@ -478,7 +485,6 @@ async function obtenerModeloIA(){
       organizador:Schema.string(),
       enlace_fuente:Schema.string({description:'Enlace https de la publicación oficial, si aparece'})},
     optionalProperties:['descripcion','fecha_fin','precio','organizador','enlace_fuente']});
-  const ai=getAI(app,{backend:new GoogleAIBackend()});
   modelosIA=IA.modelos.map(m=>getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:'application/json',responseSchema:esquema,temperature:0}}));
   return modelosIA;
 }
@@ -538,6 +544,259 @@ function enlazarIAEvento(alLlenar){
         :'No pudimos leer el evento con IA. Llena el formulario a mano. (Error '+cod+')');
     }finally{b.disabled=false;b.innerHTML=icon('sparkles',18)+'Llenar el formulario';}
   };
+}
+
+/* ===== PREGÚNTALE A FUSA (v7 · Fase 3): asistente con IA y llamadas a funciones =====
+   Gemini (Firebase AI Logic) no inventa lugares: responde solo con lo que devuelven estas funciones, que leen los mismos
+   datos de la app (directorio, agenda, rutas, trámites y emergencias). La conversación vive solo en esta pantalla: no se
+   guarda en el servidor. Límite por día (hora de Colombia): 30 preguntas con cuenta y 10 como invitado (la cuenta anónima
+   del dispositivo); el contador lo validan las reglas. La ubicación se pide solo si la pregunta es "cerca de mí". */
+const ASIS={limiteCuenta:30,limiteInvitado:10,rondas:4,recordar:6,maxTarjetas:5,segundos:30};
+estado.asis={msgs:[],historial:[],quedan:null,ocupado:false,parcial:null};
+const diaCol=()=>Math.floor((Date.now()-5*36e5)/864e5);
+const limiteAsis=()=>logueado()?ASIS.limiteCuenta:ASIS.limiteInvitado;
+const CHIPS_ASIS=['¿Qué está abierto ahora?','¿Qué hay para hacer este fin de semana?','Recomiéndame una ruta para caminar',
+  'Quiero comer algo cerca de mí','¿Dónde autentico un documento?','Números de emergencia de Pasca'];
+async function contarPregunta(){
+  const u=auth.currentUser;if(!u)throw Object.assign(new Error('sin sesión'),{code:'sesion'});
+  const ref=db.collection('uso_asistente').doc(u.uid),dia=diaCol(),lim=limiteAsis();
+  return db.runTransaction(async t=>{
+    const s=await t.get(ref),x=s.exists?s.data():null,n=x&&x.dia===dia?x.n+1:1;
+    if(n>lim)throw Object.assign(new Error('limite'),{code:'limite'});
+    t.set(ref,{dia,n,ultima:FV.serverTimestamp()});return lim-n;
+  });
+}
+async function leerCupoAsis(){
+  const u=auth.currentUser;if(!u||estado.asis.quedan!=null)return;
+  try{const s=await db.collection('uso_asistente').doc(u.uid).get(),x=s.exists?s.data():null;
+    estado.asis.quedan=limiteAsis()-(x&&x.dia===diaCol()?x.n:0);pintarNotaAsis();}catch(e){}
+}
+// Fecha de hoy y del fin de semana en Colombia, para que la IA convierta "mañana" o "el sábado" en fechas
+function contextoFecha(){
+  const col=new Date(Date.now()-5*36e5),iso=d=>d.toISOString().slice(0,10),dia=col.getUTCDay();
+  const vie=new Date(col.getTime()+(dia===0?-2:dia===6?-1:5-dia)*864e5),dom=new Date(vie.getTime()+2*864e5);
+  const hora=String(col.getUTCHours()).padStart(2,'0')+':'+String(col.getUTCMinutes()).padStart(2,'0');
+  return 'Hoy es '+DIAS_LARGO[dia]+' '+iso(col)+', son las '+hora+' en Colombia. Este fin de semana va del viernes '+iso(vie)+' al domingo '+iso(dom)+'.';
+}
+function instruccionAsis(){
+  return 'Eres Fusa, el asistente de Fusa Conecta, la guía local de Fusagasugá y Pasca (Cundinamarca, Colombia). '+contextoFecha()+'\n'
+    +'Reglas:\n- Responde en español de Colombia, cálido y breve: máximo 4 frases cortas, sin emojis, sin markdown, sin listas con asteriscos.\n'
+    +'- Para lugares, negocios, comida, servicios, hospedaje, eventos, planes, rutas, trámites o emergencias usa SIEMPRE las funciones. '
+    +'Nunca inventes nombres, horarios, teléfonos, precios ni direcciones: di solo lo que devuelven las funciones y copia los números tal cual (2,17 km, no "dos kilómetros y medio").\n'
+    +'- Menciona por su nombre exacto los lugares o eventos que recomiendes (máximo 3); la app los muestra como tarjetas debajo de tu respuesta.\n'
+    +'- Usa cercaDeMi solo si la persona dice cerca de mí, por aquí o algo parecido.\n'
+    +'- Si no hay resultados, dilo con honestidad y propone otra búsqueda o categoría.\n'
+    +'- Si alguien describe una emergencia (accidente, incendio, violencia, persona herida), indica primero llamar al 123 y llama a la función emergencias.\n'
+    +'- No pidas ni guardes datos personales. Si preguntan algo que no es de Fusagasugá o Pasca, explica con amabilidad que solo ayudas con la región.';
+}
+function herramientasAsis(S){
+  const cats=['comercio','servicios','campo','turismo','hospedaje','bares','tramite'];
+  return [{functionDeclarations:[
+    {name:'buscarLugares',description:'Busca en el directorio de Fusa Conecta: restaurantes, tiendas, panaderías, servicios (belleza, mecánica, veterinaria, salud...), productos del campo, turismo y miradores, hospedaje y bares. Devuelve si está abierto ahora, horario, dirección y distancia.',
+      parameters:S.object({properties:{
+        texto:S.string({description:'Palabras clave cortas, por ejemplo "pizza", "café", "veterinaria", "mirador". Sin palabras como "cerca" o "abierto".'}),
+        categoria:S.enumString({enum:cats,description:'comercio = comida y tiendas; servicios = oficios, belleza, salud, mascotas, mecánica; campo = productos campesinos; turismo = senderos, miradores, fincas; tramite = entidades públicas'}),
+        abiertoAhora:S.boolean({description:'true si la persona quiere lugares abiertos en este momento'}),
+        cercaDeMi:S.boolean({description:'true solo si pide algo cerca de su ubicación'}),
+        municipio:S.enumString({enum:['Fusagasugá','Pasca']})},
+        optionalProperties:['texto','categoria','abiertoAhora','cercaDeMi','municipio']})},
+    {name:'eventosEntre',description:'Eventos publicados en la agenda de Fusa Conecta entre dos fechas, ambas incluidas.',
+      parameters:S.object({properties:{
+        desde:S.string({description:'Fecha inicial AAAA-MM-DD'}),hasta:S.string({description:'Fecha final AAAA-MM-DD'}),
+        categoria:S.enumString({enum:CATS_EVENTO.map(c=>c[0])}),soloGratis:S.boolean()},
+        optionalProperties:['categoria','soloGratis']})},
+    {name:'rutas',description:'Rutas y senderos para caminar con distancia, desnivel, dificultad y duración.',
+      parameters:S.object({properties:{maxKm:S.number({description:'Distancia máxima en kilómetros'}),dificultad:S.string({description:'Baja, Media o Alta'})},
+        optionalProperties:['maxKm','dificultad']})},
+    {name:'tramites',description:'Entidades para trámites y atención ciudadana: alcaldía, notarías (autenticaciones, registro civil, escrituras), comisaría de familia, fiscalía, SENA, bancos.',
+      parameters:S.object({properties:{texto:S.string({description:'Qué trámite o entidad busca, por ejemplo "autenticar", "registro civil", "denuncia"'})},optionalProperties:['texto']})},
+    {name:'emergencias',description:'Números de emergencia de Fusagasugá o Pasca (funcionan sin conexión).',
+      parameters:S.object({properties:{municipio:S.enumString({enum:['Fusagasugá','Pasca']}),
+        tipo:S.enumString({enum:['Seguridad','Salud','Rescate','Atención ciudadana']})},optionalProperties:['municipio','tipo']})}
+  ]}];
+}
+// Lo que la IA recibe de cada lugar (corto, para gastar pocos tokens)
+function resumenLugar(d){
+  const ap=estadoApertura(d),km=distanciaA(d);
+  return {id:String(d.id),nombre:d.nombre,tipo:etiquetaDe(d),municipio:d.municipio||'Fusagasugá',direccion:d.direccion||'',
+    horario:horarioTexto(d),ahora:ap?ap.texto:'Sin horario publicado',distancia_km:km!=null?+km.toFixed(1):null,
+    tiene_cupon:cuponesDe(d).length>0,descripcion:String(d.desc||'').slice(0,140)};
+}
+// Si las palabras juntas no dan resultados, prueba con cualquiera de ellas
+function filtrarTexto(l,texto){
+  if(!texto)return l;
+  const todas=l.filter(d=>coincide(d,texto));if(todas.length)return todas;
+  const ts=tokens(texto).filter(t=>t.length>2);
+  return ts.length?l.filter(d=>ts.some(t=>coincide(d,t))):[];
+}
+const FUNCIONES_ASIS={
+  async buscarLugares(a){
+    let l=database.filter(d=>d.cat!=='tramite'||a.categoria==='tramite'),nota='';
+    if(a.categoria)l=l.filter(d=>d.cat===a.categoria);
+    if(!estado.mayorEdad){const hay=l.some(d=>d.cat==='bares');l=l.filter(d=>d.cat!=='bares');
+      if(hay&&a.categoria==='bares')nota='Los bares solo se muestran a mayores de edad: la persona debe abrir la categoría Bares y confirmar su edad.';}
+    if(a.municipio)l=l.filter(d=>(d.municipio||'Fusagasugá')===a.municipio);
+    l=filtrarTexto(l,a.texto);
+    if(a.abiertoAhora)l=l.filter(d=>{const x=estadoApertura(d);return x&&x.abierto;});
+    if(a.cercaDeMi){
+      const p=estado.pos||await pedirUbicacion();
+      if(p)l=ordenar(l.filter(d=>distanciaA(d)!=null),'cercanos');
+      else{l=ordenar(l,'recomendados');nota+=(nota?' ':'')+'La persona no compartió su ubicación: los resultados no están ordenados por distancia.';}
+    }else l=ordenar(l,'recomendados');
+    return {total:l.length,lugares:l.slice(0,8).map(resumenLugar),...(nota?{nota}:{})};
+  },
+  async eventosEntre(a){
+    const f=(s,h)=>{const m=String(s||'').match(/^\d{4}-\d{2}-\d{2}/);return m?new Date(m[0]+'T'+h+'-05:00').getTime():NaN;};
+    let desde=f(a.desde,'00:00:00'),hasta=f(a.hasta||a.desde,'23:59:59');
+    if(isNaN(desde))desde=Date.now();if(isNaN(hasta)||hasta<desde)hasta=desde+7*864e5;
+    let l=eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde);
+    if(a.categoria)l=l.filter(e=>e.categoria===a.categoria);
+    if(a.soloGratis)l=l.filter(e=>e.gratis);
+    return {total:l.length,eventos:l.slice(0,8).map(e=>({id:e.id,titulo:e.titulo,cuando:fechaEvento(e),lugar:e.lugar_nombre,municipio:e.municipio||'Fusagasugá',
+      precio:precioEv(e),tipo:catEvento(e.categoria)[1],fuente_oficial:!!e.fuente_oficial,descripcion:String(e.descripcion||'').slice(0,140)}))};
+  },
+  async rutas(a){
+    let l=Object.entries(RUTAS).map(([id,r])=>({id,nombre:r.nombre,dificultad:r.dificultad,duracion:r.duracionEstimada,distancia_km:r.distanciaTotal,
+      desnivel_m:r.desnivelPositivo||Math.round((r.elevacionMaxima||0)-(r.elevacionMinima||0)),lugar:(buscar(id)||{}).nombre||''}));
+    if(a.maxKm)l=l.filter(r=>r.distancia_km<=a.maxKm);
+    if(a.dificultad){const d=norm(a.dificultad).slice(0,4),m=l.filter(r=>norm(r.dificultad).startsWith(d));if(m.length)l=m;}
+    const senderos=database.filter(d=>subDe(d)==='sendero'&&!RUTAS[d.id]).slice(0,4).map(d=>({id:String(d.id),nombre:d.nombre,sin_trazado:true}));
+    return {total:l.length,rutas:l,otros_senderos_sin_recorrido_guiado:senderos};
+  },
+  async tramites(a){
+    const base=database.filter(d=>d.cat==='tramite'),l=filtrarTexto(base,a.texto);
+    return {total:l.length,lugares:(l.length?l:base).slice(0,8).map(resumenLugar),...(l.length?{}:{nota:'Ninguna entidad coincide con esas palabras; estas son todas las del directorio.'})};
+  },
+  async emergencias(a){
+    const mun=a.municipio==='Pasca'?'pasca':'fusagasuga';let l=listaEmergencias(mun);
+    if(a.tipo){const m=l.filter(e=>e.tipo===a.tipo);if(m.length)l=m;}
+    return {municipio:mun==='pasca'?'Pasca':'Fusagasugá',numeros:l.map(e=>({entidad:e.entidad,numero:e.numero,tipo:e.tipo,detalle:e.detalle}))};
+  }
+};
+// Tarjetas bajo la respuesta: lo que devolvieron las funciones; si la IA nombró algunos, solo esos
+function tarjetasAsis(resultados,texto){
+  const t=' '+tokens(texto).join(' ')+' ',fuera=new Set(),filas=[];
+  // Nombrado si aparece al menos el 60 % de sus palabras (la IA a veces acorta: «Sendero Cara del Indio»)
+  const nombrado=n=>{const ts=tokens(n).filter(x=>x.length>2);return ts.length>0&&ts.filter(x=>t.includes(' '+x+' ')).length/ts.length>=.6;};
+  const agregar=(clave,html)=>{if(fuera.has(clave)||filas.length>=ASIS.maxTarjetas)return;fuera.add(clave);filas.push(html);};
+  const elegir=l=>{const n=l.filter(x=>nombrado(x.nombre||x.titulo||x.entidad));return n.length?n:l;};
+  for(const {f,r} of resultados){
+    if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(!d)return;
+      agregar('l'+x.id,'<button class="asis-item" data-ver="'+esc(x.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
+        +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(x.ahora!=='Sin horario publicado'?x.ahora:x.tipo)+(x.distancia_km!=null?' · '+fmtDist(x.distancia_km):'')+'</small></span>'+icon('chevron-right',18)+'</button>');});
+    if(r.eventos)elegir(r.eventos).forEach(x=>{const e=estado.eventos.find(y=>y.id===x.id);if(!e)return;
+      agregar('e'+x.id,'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e.ini)
+        +'<span class="asis-item-tx"><b>'+esc(e.titulo)+'</b><small>'+esc(horaEv(e.ini)+' · '+e.lugar_nombre)+'</small></span>'+icon('chevron-right',18)+'</button>');});
+    if(r.rutas)elegir(r.rutas).forEach(x=>agregar('r'+x.id,'<button class="asis-item" data-ruta="'+esc(x.id)+'"><span class="asis-item-ic c-turismo">'+icon('route',20)+'</span>'
+      +'<span class="asis-item-tx"><b>'+esc(x.nombre)+'</b><small>'+esc(String(x.distancia_km).replace('.',',')+' km · '+x.dificultad+' · '+x.duracion)+'</small></span>'+icon('chevron-right',18)+'</button>'));
+    if(r.numeros)elegir(r.numeros).forEach(x=>agregar('n'+x.numero,'<button class="asis-item" data-llamar="'+esc(x.numero)+'" data-ent="'+esc(x.entidad)+'" aria-label="Llamar a '+esc(x.entidad)+', '+esc(x.numero)+'">'
+      +'<span class="asis-item-ic c-sos">'+icon('phone',20)+'</span><span class="asis-item-tx"><b>'+esc(x.entidad)+'</b><small>'+esc(x.numero)+' · '+esc(x.tipo)+'</small></span></button>'));
+  }
+  return filas;
+}
+async function modeloAsistente(){
+  const m=await moduloIA();
+  return m.getGenerativeModel(m.ai,{model:IA.modelos[0],tools:herramientasAsis(m.Schema),systemInstruction:instruccionAsis(),generationConfig:{temperature:0.3}});
+}
+async function preguntarFusa(texto){
+  const A=estado.asis;texto=String(texto||'').trim().slice(0,300);
+  if(!texto||A.ocupado)return;
+  A.msgs.push({rol:'yo',texto});
+  if(!estado.online){A.msgs.push({rol:'fusa',error:true,texto:'Necesito conexión a internet para responder. Los números de emergencia sí funcionan sin conexión.',sos:true});pintarAsis();return;}
+  A.ocupado=true;pintarAsis();
+  try{
+    A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
+    // Cada vuelta con la IA tiene su límite. Gemini tarda entre 5 y 20 s por vuelta: en cuanto las funciones
+    // devuelven datos, las tarjetas aparecen; si la frase final no llega a tiempo, se responde solo con ellas.
+    const resultados=A.parcial=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),ASIS.segundos*1000,'La IA tardó demasiado');
+    const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
+    let x=await enviar(chat,texto),resp='';
+    try{
+      for(let i=0;i<ASIS.rondas;i++){
+        const ll=x.response.functionCalls();if(!ll||!ll.length)break;
+        const partes=[];
+        for(const c of ll){
+          const f=FUNCIONES_ASIS[c.name];let res;
+          try{res=f?await f(c.args||{}):{error:'Esa función no existe'};}catch(e){res={error:'No se pudo consultar'};console.warn('Asistente',c.name,e);}
+          resultados.push({f:c.name,r:res});usadas.push(c.name);partes.push({functionResponse:{name:c.name,response:res}});
+        }
+        pintarAsis();
+        x=await enviar(chat,partes);
+      }
+      try{resp=x.response.text().trim();}catch(e){}
+    }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
+    resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
+    A.msgs.push({rol:'fusa',texto:resp,tarjetas:tarjetasAsis(resultados,resp)});
+    A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:resp}]});
+    A.historial=A.historial.slice(-ASIS.recordar*2);
+    medir('asistente',{funciones:[...new Set(usadas)].join(',')||'ninguna'});
+  }catch(e){
+    const cod=reportarError('asistente',e);
+    A.msgs.push({rol:'fusa',error:true,reintentar:e.code!=='limite',pregunta:texto,
+      texto:e.code==='limite'?'Ya hiciste las '+limiteAsis()+' preguntas de hoy. Vuelve mañana'+(logueado()?'.':', o inicia sesión para tener '+ASIS.limiteCuenta+' preguntas al día.')
+        :e.code==='tiempo'?'Me demoré demasiado en responder. Intenta de nuevo en un momento. (Error '+cod+')'
+        :cod==='E-CUPO'?'Hay muchas preguntas en este momento. Intenta de nuevo en un minuto. (Error '+cod+')'
+        :'No pude responder ahora. Intenta de nuevo en un momento. (Error '+cod+')'});
+    if(e.code==='limite')A.quedan=0;
+  }finally{A.ocupado=false;A.parcial=null;pintarAsis();}
+}
+function burbujaAsis(m,i){
+  if(m.rol==='yo')return '<div class="asis-msg yo"><p>'+esc(m.texto)+'</p></div>';
+  return '<div class="asis-msg fusa'+(m.error?' error':'')+'"><span class="asis-ava" aria-hidden="true">'+icon(m.error?'circle-alert':'sparkles',18)+'</span><div class="asis-cont">'
+    +String(m.texto).split(/\n+/).map(p=>'<p>'+esc(p)+'</p>').join('')
+    +(m.tarjetas&&m.tarjetas.length?'<div class="asis-items">'+m.tarjetas.join('')+'</div>':'')
+    +(m.sos?'<button class="btn btn-secundario btn-sm" data-asis-sos>'+icon('siren',16)+'Ver números de emergencia</button>':'')
+    +(m.reintentar?'<button class="btn btn-secundario btn-sm" data-reintentar="'+i+'">'+icon('refresh-cw',16)+'Intentar de nuevo</button>':'')
+    +(m.rol==='fusa'&&!m.error&&!m.bienvenida?'<p class="asis-ia">Respuesta con IA: confirma horarios y precios antes de ir.</p>':'')+'</div></div>';
+}
+// Mientras la IA trabaja: primero "Buscando", y cuando las funciones devuelven datos, las tarjetas
+function pensandoAsis(parcial){
+  const t=parcial&&parcial.length?tarjetasAsis(parcial,''):[];
+  return '<div class="asis-msg fusa"><span class="asis-ava" aria-hidden="true">'+icon('sparkles',18)+'</span><div class="asis-cont">'
+    +'<p class="asis-pensando">'+(t.length?'Encontré esto. Estoy escribiendo la respuesta':'Buscando en Fusa Conecta')+'<span aria-hidden="true"><i></i><i></i><i></i></span></p>'
+    +(t.length?'<div class="asis-items">'+t.join('')+'</div>':'')+'</div></div>';
+}
+function pintarNotaAsis(){
+  const n=$('#asisCupo');if(!n)return;const q=estado.asis.quedan;
+  n.textContent=q==null?'':q<=0?'No te quedan preguntas hoy. ':'Te quedan '+q+(q===1?' pregunta':' preguntas')+' hoy. ';
+}
+function pintarAsis(){
+  const log=$('#asisLog');if(!log)return;const A=estado.asis;
+  const bienvenida={rol:'fusa',bienvenida:true,texto:'Hola, soy Fusa. Te ayudo a encontrar lugares, planes, rutas, trámites y números de emergencia en Fusagasugá y Pasca.'};
+  log.innerHTML=[bienvenida,...A.msgs].map((m,i)=>burbujaAsis(m,i-1)).join('')
+    +(A.msgs.length?'':'<div class="asis-chips" role="group" aria-label="Preguntas de ejemplo">'+CHIPS_ASIS.map(c=>'<button class="chip-filtro" data-chip>'+esc(c)+'</button>').join('')+'</div>')
+    +(A.ocupado?pensandoAsis(A.parcial):'');
+  $$('#asisLog [data-chip]').forEach(b=>b.onclick=()=>preguntarFusa(b.textContent));
+  $$('#asisLog [data-ver]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.ver));
+  $$('#asisLog [data-evento]').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
+  $$('#asisLog [data-ruta]').forEach(b=>b.onclick=()=>navegar({tipo:'ruta',id:b.dataset.ruta}));
+  $$('#asisLog [data-llamar]').forEach(b=>b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar));
+  $$('#asisLog [data-asis-sos]').forEach(b=>b.onclick=()=>navegar({tipo:'sos'}));
+  $$('#asisLog [data-reintentar]').forEach(b=>b.onclick=()=>{const m=A.msgs[+b.dataset.reintentar];A.msgs.splice(+b.dataset.reintentar-1,2);preguntarFusa(m.pregunta);});
+  const env=$('#asisEnviar');if(env){env.disabled=A.ocupado;env.setAttribute('aria-busy',A.ocupado);}
+  pintarNotaAsis();
+  const c=$('#cuerpo');c.scrollTop=c.scrollHeight;
+}
+function renderAsistente(){
+  $('#cuerpo').innerHTML='<div class="vista asis">'
+    +'<div class="asis-head"><span class="asis-logo" aria-hidden="true">'+icon('sparkles',24)+'</span><div><h2>Pregúntale a Fusa</h2><p>Tu guía de Fusagasugá y Pasca, con IA</p></div></div>'
+    +'<div class="asis-log" id="asisLog" role="log" aria-live="polite" aria-label="Conversación con Fusa"></div>'
+    +'<form class="asis-form" id="asisForm"><label class="sr-only" for="asisTx">Escribe tu pregunta</label>'
+    +'<textarea id="asisTx" rows="1" maxlength="300" enterkeyhint="send" placeholder="Escribe o dicta tu pregunta"></textarea>'
+    +'<button class="asis-enviar" id="asisEnviar" aria-label="Enviar pregunta">'+icon('send-horizontal',22)+'</button></form>'
+    +'<p class="asis-nota">'+icon('mic',14)+'Para dictar, toca el micrófono de tu teclado.</p>'
+    +'<p class="asis-nota"><b id="asisCupo"></b>No guardamos tus conversaciones. Las preguntas las procesa la IA de Google: no escribas datos personales.</p></div>';
+  const tx=$('#asisTx');
+  const enviar=()=>{const v=tx.value;if(!v.trim()||estado.asis.ocupado)return;tx.value='';tx.style.height='';preguntarFusa(v);};
+  $('#asisForm').onsubmit=e=>{e.preventDefault();enviar();};
+  tx.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}};
+  tx.oninput=()=>{tx.style.height='';tx.style.height=Math.min(tx.scrollHeight,120)+'px';};
+  pintarAsis();leerCupoAsis();
+}
+function irAsistente(pregunta){navegar({tipo:'asistente'});if(pregunta)preguntarFusa(pregunta);}
+function asisEntradaHTML(){
+  return '<button class="asis-entrada" id="asisEntrada"><span class="asis-logo" aria-hidden="true">'+icon('sparkles',22)+'</span>'
+    +'<span class="asis-entrada-tx"><b>Pregúntale a Fusa</b><small>¿Dónde almorzar? ¿Qué hacer el sábado?</small></span>'+icon('chevron-right',20)+'</button>';
 }
 
 /* ===== ORGANIZADORES (v6 · Fase 2.3) =====
@@ -857,7 +1116,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -1159,6 +1418,7 @@ function render(conservarScroll){
   else if(v.tipo==='agenda')renderAgenda();
   else if(v.tipo==='recorridos')renderRecorridos();
   else if(v.tipo==='recorrido')renderRecorrido(v.id);
+  else if(v.tipo==='asistente')renderAsistente();
   else renderLista(v);
   renderHeader();renderBottomNav();pintarAvisoGrabando();
   cuerpo.scrollTop=scroll;
@@ -1175,7 +1435,7 @@ function renderLista(v){
   if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
-    html=tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
       +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
       +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>';
@@ -1191,7 +1451,8 @@ function renderLista(v){
       :'No hay lugares que cumplan estos filtros';
     const sug=[['comercio','Comida y tiendas'],['servicios','Servicios'],['turismo','Turismo'],['hospedaje','Hospedaje'],['campo','Campo']];
     html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b><p>Prueba con otra palabra o explora una categoría:</p>'
-      +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div></div>';
+      +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div>'
+      +(estado.q?'<button class="btn btn-secundario mt-16" id="asisDesdeBusqueda">'+icon('sparkles',18)+'Pregúntale a Fusa</button>':'')+'</div>';
   }
   $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>b.onclick=()=>{
@@ -1200,6 +1461,8 @@ function renderLista(v){
   });
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
   enlazarEventos();
+  const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
+  const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
   if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
   else if(items.length)enlazarListado(items);
 }

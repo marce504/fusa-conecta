@@ -1431,6 +1431,53 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta-ev .cal-bloque{position:absolute;left:8px;top:8px;z-index:1}
 .tarjeta-ev .tc-linea{display:flex;align-items:center;gap:4px}
 .fallback-ic.c-ev{background:var(--primary-50);color:var(--primary-700)}
+/* Pregúntale a Fusa (v7 · Fase 3) */
+.asis-entrada{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 14px;margin:4px 0 16px;border-radius:var(--radius-lg);background:var(--primary-50);border:1px solid var(--primary-100);color:var(--ink);text-align:left}
+.asis-entrada>.ic{color:var(--primary-700);flex-shrink:0}
+.asis-entrada-tx{flex:1;min-width:0}
+.asis-entrada-tx b{display:block;font-size:var(--text-base);font-weight:600}
+.asis-entrada-tx small{display:block;font-size:var(--text-xs);color:var(--ink-2)}
+.asis-logo{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);flex-shrink:0}
+.vista.asis{display:flex;flex-direction:column;flex:1;padding-bottom:40px}
+.asis-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.asis-head h2{font-size:var(--text-xl);line-height:1.2}
+.asis-head p{font-size:var(--text-sm);color:var(--ink-2)}
+.asis-log{flex:1;display:flex;flex-direction:column;gap:12px;padding-bottom:12px}
+.asis-msg{display:flex;gap:8px;max-width:100%}
+.asis-msg p{font-size:var(--text-base);line-height:1.5}
+.asis-msg p+p{margin-top:6px}
+.asis-msg.yo{justify-content:flex-end}
+.asis-msg.yo p{max-width:85%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);background:var(--primary-500);color:var(--blanco);overflow-wrap:anywhere}
+.asis-ava{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);flex-shrink:0}
+.asis-msg.error .asis-ava{background:var(--danger-50);color:var(--danger-700)}
+.asis-cont{flex:1;min-width:0;padding:10px 14px;border-radius:var(--radius-sm) var(--radius-lg) var(--radius-lg) var(--radius-lg);background:var(--soft);color:var(--ink)}
+.asis-cont>.btn{margin-top:10px}
+.asis-ia{margin-top:8px;font-size:var(--text-xs)!important;color:var(--ink-2)}
+.asis-items{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.asis-item{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 10px;border-radius:var(--radius-md);background:var(--bg);border:1px solid var(--line);color:var(--ink);text-align:left}
+.asis-item>.ic{color:var(--ink-2);flex-shrink:0}
+.asis-item .cal-bloque{width:40px;height:44px}
+.asis-item-ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--radius-md);background:var(--cc-bg,var(--primary-50));color:var(--cc,var(--primary-700));flex-shrink:0}
+.asis-item-ic.c-sos{background:var(--danger-50);color:var(--danger-700)}
+.asis-item-tx{flex:1;min-width:0}
+.asis-item-tx b{display:block;font-size:var(--text-sm);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asis-item-tx small{display:block;font-size:var(--text-xs);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asis-chips{display:flex;flex-wrap:wrap;gap:8px;padding-left:40px}
+.asis-chips .chip-filtro{min-height:44px;white-space:normal;text-align:left;color:var(--primary-700);border-color:var(--primary-100)}
+.asis-pensando{color:var(--ink-2)}
+.asis-pensando span{display:inline-flex;gap:3px;margin-left:6px}
+.asis-pensando i{width:6px;height:6px;border-radius:50%;background:var(--primary-500);animation:asisPunto 1.2s infinite ease-in-out}
+.asis-pensando i:nth-child(2){animation-delay:.15s}
+.asis-pensando i:nth-child(3){animation-delay:.3s}
+@keyframes asisPunto{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.asis-form{position:sticky;bottom:0;display:flex;align-items:flex-end;gap:8px;padding:10px 0 6px;background:var(--bg)}
+.asis-form textarea{flex:1;min-height:48px;max-height:120px;padding:12px 14px;border-radius:var(--radius-lg);border:1px solid var(--line);background:var(--soft);color:var(--ink);font:inherit;font-size:var(--text-base);resize:none}
+.asis-form textarea:focus{outline:2px solid var(--primary-500);outline-offset:1px}
+.asis-enviar{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);flex-shrink:0}
+.asis-enviar:disabled{opacity:.5}
+.asis-nota{font-size:var(--text-xs);color:var(--ink-2);padding-bottom:4px}
+.asis-nota>.ic{vertical-align:-2px;margin-right:4px}
+.asis-nota #asisCupo{font-weight:600;color:var(--ink)}
 /* Agenda automática (v7 · Fase 2) */
 .tc-linea.ev-oficial{color:var(--mint-700);font-weight:600}
 .ev-chip.ev-chip-oficial{background:var(--mint-50);color:var(--mint-700)}

@@ -337,6 +337,21 @@ service cloud.firestore {
     }
 
     /* ---------- Límite de uso de la IA: 20 al día por persona (día UTC), solo sumando de a 1 ---------- */
+    /* Pregúntale a Fusa (v7 · Fase 3): preguntas por día de Colombia (UTC-5). 30 con cuenta, 10 como invitado
+       (cuenta anónima del dispositivo). Solo se puede sumar de a uno; no se guarda el texto de las preguntas. */
+    match /uso_asistente/{uid} {
+      allow read: if autenticado() && request.auth.uid == uid;
+      allow create, update: if autenticado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['dia', 'n', 'ultima'])
+        && request.resource.data.dia == int((request.time.toMillis() - 18000000) / 86400000)
+        && request.resource.data.n is int && request.resource.data.n >= 1
+        && request.resource.data.n <= (cuentaReal() ? 30 : 10)
+        && request.resource.data.ultima == request.time
+        && (resource == null || resource.data.dia != request.resource.data.dia
+          ? request.resource.data.n == 1
+          : request.resource.data.n == resource.data.n + 1);
+    }
+
     match /uso_ia/{uid} {
       allow read: if cuentaReal() && request.auth.uid == uid;
       allow create, update: if tienePerfil() && request.auth.uid == uid
