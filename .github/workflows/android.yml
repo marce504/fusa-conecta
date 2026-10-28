@@ -1,0 +1,75 @@
+# App Android de Fusa Conecta (Trusted Web Activity). Ver android/LEEME.md.
+# Compila el proyecto de android/ (generado con Bubblewrap desde android/twa-manifest.json) y lo firma con la llave propia.
+# - A mano: Actions → App Android → Run workflow. Deja el APK y el AAB como artefacto «fusa-conecta-android».
+# - Con una etiqueta apk-v* (por ejemplo apk-v1.0.0) además los publica en GitHub Releases (enlace público de descarga).
+# Necesita los secretos ANDROID_KEYSTORE_BASE64 y ANDROID_KEYSTORE_PASSWORD; la llave nunca está en el repositorio.
+name: App Android
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["apk-v*"]
+
+permissions:
+  contents: write   # solo para adjuntar el APK a la Release cuando se usa una etiqueta apk-v*
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    env:
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      BUILD_TOOLS: "36.1.0"
+    steps:
+      - name: Revisar los secretos de firma
+        working-directory: .
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
+            echo "::error::Faltan los secretos ANDROID_KEYSTORE_BASE64 y ANDROID_KEYSTORE_PASSWORD (ver android/LEEME.md)."; exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK 36 y build-tools
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;$BUILD_TOOLS" > /dev/null
+      - name: Compilar (sin firmar)
+        run: chmod +x gradlew && ./gradlew --no-daemon assembleRelease bundleRelease
+      - name: Firmar el APK y el AAB
+        run: |
+          BT="$ANDROID_HOME/build-tools/$BUILD_TOOLS"; KS="$RUNNER_TEMP/firma.keystore"
+          echo "$KS_B64" | base64 -d > "$KS"
+          mkdir -p salida
+          "$BT/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/alineado.apk"
+          "$BT/apksigner" sign --ks "$KS" --ks-key-alias fusaconecta --ks-pass env:KS_PASS --key-pass env:KS_PASS \
+            --out salida/fusa-conecta.apk "$RUNNER_TEMP/alineado.apk"
+          jarsigner -keystore "$KS" -storepass:env KS_PASS -keypass:env KS_PASS -sigalg SHA256withRSA -digestalg SHA-256 \
+            -signedjar salida/fusa-conecta.aab app/build/outputs/bundle/release/app-release.aab fusaconecta > /dev/null
+          rm -f "$KS"
+      - name: Comprobar la firma contra assetlinks.json
+        run: |
+          BT="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
+          HUELLA=$("$BT/apksigner" verify --print-certs salida/fusa-conecta.apk | grep -m1 "SHA-256 digest" | awk '{print toupper($NF)}' | sed 's/../&:/g;s/:$//')
+          echo "Huella del APK: $HUELLA"
+          grep -q "$HUELLA" ../.well-known/assetlinks.json || { echo "::error::La huella del APK no está en .well-known/assetlinks.json"; exit 1; }
+          jarsigner -verify salida/fusa-conecta.aab > /dev/null && echo "AAB firmado correctamente"
+          "$BT/aapt2" dump badging salida/fusa-conecta.apk | grep -E "^package|application-label:"
+          ls -la salida
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fusa-conecta-android
+          path: android/salida/
+          retention-days: 90
+      - name: Publicar en GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/apk-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            android/salida/fusa-conecta.apk
+            android/salida/fusa-conecta.aab
+          body: "App Android de Fusa Conecta (Trusted Web Activity de https://fusa-conecta.web.app). Instala fusa-conecta.apk en el celular; el .aab es para Google Play."

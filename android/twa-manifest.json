@@ -1,0 +1,48 @@
+{
+  "packageId": "co.fusaconecta.app",
+  "host": "fusa-conecta.web.app",
+  "name": "Fusa Conecta",
+  "launcherName": "Fusa Conecta",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#FFFFFF",
+  "themeColorDark": "#121420",
+  "navigationColor": "#FFFFFF",
+  "navigationColorDark": "#121420",
+  "navigationDividerColor": "#FFFFFF",
+  "navigationDividerColorDark": "#121420",
+  "backgroundColor": "#6B4EFF",
+  "enableNotifications": false,
+  "startUrl": "/?origen=app",
+  "iconUrl": "https://fusa-conecta.web.app/img/icons/icon-512.png",
+  "maskableIconUrl": "https://fusa-conecta.web.app/img/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:/Users/Marcela/.fusa-conecta-firma/fusa-conecta.keystore",
+    "alias": "fusaconecta"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    { "name": "Emergencias", "shortName": "SOS", "url": "https://fusa-conecta.web.app/?ir=sos", "chosenIconUrl": "https://fusa-conecta.web.app/img/icons/icon-192.png" },
+    { "name": "Mapa de Fusa", "shortName": "Mapa", "url": "https://fusa-conecta.web.app/?ir=mapa", "chosenIconUrl": "https://fusa-conecta.web.app/img/icons/icon-192.png" }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://fusa-conecta.web.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": true }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://fusa-conecta.web.app/",
+  "minSdkVersion": 21,
+  "fingerprints": [
+    { "name": "fusa-conecta (llave de firma propia)", "value": "EE:27:C7:C0:80:CC:CA:38:5C:6F:6F:C0:1D:51:A1:71:69:E0:E5:87:BC:79:4F:54:FE:AA:AD:EC:F2:FA:93:D6" }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0"
+}

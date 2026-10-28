@@ -1,0 +1,10 @@
+# Salidas de compilación y archivos locales (la llave de firma NUNCA va aquí: vive en C:\Users\Marcela\.fusa-conecta-firma)
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks
+.gradle/
+build/
+app/build/
+local.properties

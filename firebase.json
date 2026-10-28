@@ -10,7 +10,11 @@
       "firestore.rules",
       "_redirects",
       "__/**",
-      "**/.*",
+      "**/.git/**",
+      "**/.github/**",
+      "**/.firebase/**",
+      ".gitignore",
+      "android/**",
       "**/node_modules/**",
       "CLAUDE.md",
       "*.txt",
@@ -37,6 +41,10 @@
       {
         "source": "/",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Cache-Control", "value": "public, max-age=3600" }]
       }
     ]
   }

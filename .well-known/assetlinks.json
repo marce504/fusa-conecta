@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.fusaconecta.app",
+      "sha256_cert_fingerprints": [
+        "EE:27:C7:C0:80:CC:CA:38:5C:6F:6F:C0:1D:51:A1:71:69:E0:E5:87:BC:79:4F:54:FE:AA:AD:EC:F2:FA:93:D6"
+      ]
+    }
+  }
+]
