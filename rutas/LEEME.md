@@ -32,3 +32,9 @@ y una entrada en `rutas/indice.json`. Mientras una ruta no esté en el índice, 
 
 Si tienes un GPX de otra app (Wikiloc, Strava, Garmin), conviértelo a GeoJSON con 150-300 puntos y revisa
 que la licencia permita usarlo. Datos de OpenStreetMap: © OpenStreetMap contributors (ODbL).
+
+## Rutas de la comunidad (v7 · Fase 4)
+
+Las rutas que propone la gente no van en esta carpeta: viven en Firestore (`rutas_comunidad`) con su trazado y sus fotos,
+y entran a la app cuando el administrador las aprueba. Ver `docs/rutas-comunidad.md`. Los límites de Fusagasugá y Pasca
+con los que se validan están en `limites.geojson` (OpenStreetMap, ODbL).

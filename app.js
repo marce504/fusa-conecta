@@ -130,6 +130,7 @@ const nombresBase=new Set(COMERCIOS_BASE.map(c=>norm(c.nombre).trim()));
 const idsBase=new Set(COMERCIOS_BASE.map(c=>c.id));
 let comerciosNube=[];
 let database=COMERCIOS_BASE.map(c=>({...c}));
+let lugaresComunidad=[];   // rutas aprobadas de la comunidad (v7 · Fase 4), como senderos del directorio
 // v6 · Fase 3: Mascotas, Salud, Talleres y Servicios dejaron Comercios y ahora son subcategorías de Servicios
 const SUB_A_SERVICIOS={talleres:'mecanica',mascotas:'mascotas',salud:'salud',servicios:'profesionales'};
 function normalizarNube(id,x){
@@ -150,7 +151,7 @@ function reconstruirDirectorio(){
   // Un negocio reclamado o corregido por el admin se guarda en la nube con el mismo id y reemplaza su copia local
   const porId=new Map(COMERCIOS_BASE.filter(c=>!estado.ocultos.has(c.id)).map(c=>[c.id,{...c}]));
   comerciosNube.forEach(c=>porId.set(c.id,c));
-  database=[...porId.values()];
+  database=[...porId.values(),...lugaresComunidad];
 }
 // La regla pública solo deja leer comercios aprobados; una consulta sin este filtro sería rechazada completa.
 db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapshot(snap=>{
@@ -799,6 +800,336 @@ function asisEntradaHTML(){
     +'<span class="asis-entrada-tx"><b>Pregúntale a Fusa</b><small>¿Dónde almorzar? ¿Qué hacer el sábado?</small></span>'+icon('chevron-right',20)+'</button>';
 }
 
+/* ===== RUTAS DE LA COMUNIDAD (v7 · Fase 4) =====
+   Cualquier persona con cuenta propone una ruta desde un recorrido grabado o un archivo GPX/GeoJSON.
+   - En el teléfono: 0,5 a 40 km, al menos el 80 % del trazado dentro de Fusagasugá o Pasca o a menos de 5 km de sus
+     límites (limites.geojson, de OpenStreetMap), nombre, tipo, dificultad, descripción y al menos 1 foto.
+   - En el servidor (firestore.rules): tamaños, rangos, zona aproximada del inicio y que exista la foto 0.
+   - rutas_comunidad/{id} queda "pendiente" → el admin la revisa en la pestaña Rutas (con vista 3D) y la aprueba o la
+     rechaza con motivo. Las aprobadas entran al directorio como senderos con navegación guiada, con el crédito
+     «Ruta propuesta por…»; quien la propuso gana la insignia «Explorador de Fusa». */
+const LIM_RUTA={minKm:.5,maxKm:40,margenKm:5,dentro:.8,maxPuntos:400,maxFotos:4};
+const TIPOS_RUTA=[['caminata','Caminata','footprints'],['bicicleta','Ciclomontañismo','bike'],['trote','Trote de montaña','activity']];
+const DIFICULTADES=['Baja','Media','Alta'];
+const MOTIVOS_RUTA=['Fuera de Fusagasugá o Pasca','Trazado incompleto o con errores','Duplicada','Fotos inadecuadas','Pasa por propiedad privada o es peligrosa','Otro'];
+estado.rutasComunidad=[];
+// Trazado guardado como texto "lat,lng,alt;…" (Firestore no admite listas dentro de listas)
+const textoDeLinea=pts=>pts.map(p=>p[0].toFixed(5)+','+p[1].toFixed(5)+(p[2]!=null&&isFinite(p[2])?','+Math.round(p[2]):'')).join(';');
+const lineaDeTexto=s=>String(s||'').split(';').map(p=>{const [a,b,c]=p.split(',');return [+a,+b,c==null||c===''?null:+c];}).filter(p=>isFinite(p[0])&&isFinite(p[1]));
+function rutaDeDoc(id,x){
+  const pts=lineaDeTexto(x.linea),rid='rc-'+id,fin=pts[pts.length-1]||[x.inicio_lat,x.inicio_lng];
+  RUTAS[rid]={nombre:x.nombre,dificultad:x.dificultad,duracionEstimada:fmtDuracion((x.duracion_min||0)*60000),rutaWaypoints:pts.map(p=>[p[0],p[1]]),trazado:pts,
+    distanciaTotal:x.distancia_km,desnivelPositivo:x.desnivel_m||0,elevacionMinima:x.elev_min,elevacionMaxima:x.elev_max,perfilElevacion:x.perfil||[],
+    puntoLlegada:[fin[0],fin[1]],puntosInteres:[],comunidad:true,autor:x.autor_nombre};
+  return {id:rid,cat:'turismo',tipo:'sendero',nombre:x.nombre,desc:x.descripcion,direccion:'Inicio del recorrido · '+x.municipio,horario:'De día, con buena luz',
+    tel:'',whatsapp:'',imagen:x.portada||'',lat:x.inicio_lat,lng:x.inicio_lng,ubicacion_aprox:false,municipio:x.municipio,propietario_uid:null,propietario:'Comunidad',
+    rating:0,esPremium:false,prioridadBusqueda:0,redesSociales:{},sitioWeb:'',fotos:Array.from({length:x.n_fotos||0},(_,i)=>String(i)),
+    propuesta_por:x.autor_nombre,autor_uid:x.autor_uid,tipo_ruta:x.tipo,comunidad:true,creado:aMs(x.fecha_revision)||aMs(x.fecha_creacion)||0};
+}
+db.collection('rutas_comunidad').where('estado','==','aprobada').onSnapshot(s=>{
+  Object.keys(RUTAS).filter(k=>k.startsWith('rc-')).forEach(k=>delete RUTAS[k]);
+  estado.rutasComunidad=s.docs.map(d=>({id:d.id,...d.data()}));
+  lugaresComunidad=estado.rutasComunidad.map(x=>rutaDeDoc(x.id,x));
+  reconstruirDirectorio();refrescarVista();
+},()=>{});
+const misRutasAprobadas=()=>logueado()?estado.rutasComunidad.filter(x=>x.autor_uid===estado.usuario.uid).length:0;
+
+/* ---------- Zona: dentro de Fusagasugá o Pasca, o a menos de 5 km de sus límites ---------- */
+let limitesFC=null;
+async function cargarLimites(){if(!limitesFC)limitesFC=await fetch('limites.geojson').then(r=>r.json());return limitesFC;}
+function enAnillo(p,anillo){
+  let c=false;
+  for(let i=0,j=anillo.length-1;i<anillo.length;j=i++){const [xi,yi]=anillo[i],[xj,yj]=anillo[j];
+    if((yi>p[0])!==(yj>p[0])&&p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi)c=!c;}
+  return c;
+}
+function kmAlAnillo(p,anillo){
+  const k=Math.cos(p[0]*Math.PI/180)*111.32,K=110.57;let min=Infinity;
+  for(let i=1;i<anillo.length;i++){
+    const [ax,ay]=anillo[i-1],[bx,by]=anillo[i],px=(p[1]-ax)*k,py=(p[0]-ay)*K,dx=(bx-ax)*k,dy=(by-ay)*K;
+    const t=Math.max(0,Math.min(1,(px*dx+py*dy)/((dx*dx+dy*dy)||1)));min=Math.min(min,Math.hypot(px-t*dx,py-t*dy));
+  }
+  return min;
+}
+function revisarZona(pts,fc){
+  const paso=Math.max(1,Math.floor(pts.length/200)),muestra=pts.filter((_,i)=>i%paso===0),anillos=fc.features.map(f=>[f.properties.municipio,f.geometry.coordinates[0]]);
+  const ok=muestra.filter(p=>anillos.some(([,a])=>enAnillo(p,a)||kmAlAnillo(p,a)<=LIM_RUTA.margenKm)).length;
+  const ini=pts[0],dentro=anillos.find(([,a])=>enAnillo(ini,a));
+  const municipio=dentro?dentro[0]:anillos.map(([m,a])=>[m,kmAlAnillo(ini,a)]).sort((a,b)=>a[1]-b[1])[0][0];
+  return {fraccion:ok/muestra.length,municipio};
+}
+
+/* ---------- Trazado: menos puntos, alturas y cifras ---------- */
+function reducirTrazado(pts){
+  pts=pts.filter(p=>isFinite(p[0])&&isFinite(p[1])&&Math.abs(p[0])<=90&&Math.abs(p[1])<=180);
+  if(pts.length<3)return pts;
+  const paso=Math.max(.005,distanciaDe(pts)/LIM_RUTA.maxPuntos),out=[pts[0]];let acum=0;
+  for(let i=1;i<pts.length-1;i++){acum+=distanciaKm(pts[i-1],pts[i]);if(acum>=paso){out.push(pts[i]);acum=0;}}
+  out.push(pts[pts.length-1]);return out;
+}
+// Si el archivo o el GPS no trae alturas, se piden al modelo de terreno de Open-Meteo (gratis, sin clave, 100 puntos por consulta)
+async function completarAlturas(pts){
+  if(pts.filter(p=>p[2]!=null&&isFinite(p[2])).length>=pts.length*.6)return pts;
+  try{
+    const out=pts.map(p=>[p[0],p[1],null]);
+    for(let i=0;i<out.length;i+=100){
+      const l=out.slice(i,i+100),u='https://api.open-meteo.com/v1/elevation?latitude='+l.map(p=>p[0].toFixed(5)).join(',')+'&longitude='+l.map(p=>p[1].toFixed(5)).join(',');
+      const r=await conTiempoLimite(fetch(u).then(x=>x.json()),10000,'Sin alturas');
+      (r.elevation||[]).forEach((e,k)=>{out[i+k][2]=e;});
+    }
+    return out;
+  }catch(e){return pts;}
+}
+function cifrasRuta(pts,tipo){
+  const km=distanciaDe(pts),alts=pts.map(p=>p[2]).filter(a=>a!=null&&isFinite(a));
+  const desnivel=alts.length>=pts.length*.6?desnivelPositivo(pts):0;
+  const perfil=alts.length>=pts.length*.6?Array.from({length:40},(_,i)=>Math.round(alts[Math.round(i/39*(alts.length-1))])):[];
+  // Tiempo: caminata 4 km/h + 1 h por cada 600 m de subida; trote y bicicleta más rápidos
+  const [vel,sube]={caminata:[4,600],trote:[7,800],bicicleta:[12,1000]}[tipo]||[4,600];
+  return {km:+km.toFixed(2),desnivel,perfil,min:alts.length?Math.round(Math.min(...alts)):null,max:alts.length?Math.round(Math.max(...alts)):null,
+    duracion:Math.max(15,Math.round((km/vel+desnivel/sube)*60))};
+}
+
+/* ---------- Leer un archivo GPX o GeoJSON ---------- */
+async function leerArchivoRuta(f){
+  if(f.size>5e6)throw Object.assign(new Error('El archivo pesa más de 5 MB'),{code:'archivo'});
+  const t=await f.text();
+  if(/\.gpx$/i.test(f.name)||/<gpx[\s>]/i.test(t.slice(0,2000))){
+    const doc=new DOMParser().parseFromString(t,'application/xml');
+    let ns=[...doc.getElementsByTagName('trkpt')];if(!ns.length)ns=[...doc.getElementsByTagName('rtept')];
+    const nom=doc.getElementsByTagName('name')[0];
+    return {pts:ns.map(n=>{const e=n.getElementsByTagName('ele')[0];return [+n.getAttribute('lat'),+n.getAttribute('lon'),e?+e.textContent:null];}),nombre:nom?nom.textContent.trim():''};
+  }
+  let g;try{g=JSON.parse(t);}catch(e){throw Object.assign(new Error('No es un archivo GPX ni GeoJSON'),{code:'archivo'});}
+  const fs=g.type==='FeatureCollection'?g.features:g.type==='Feature'?[g]:[{geometry:g,properties:{}}];
+  const f2=fs.find(x=>x&&x.geometry&&/LineString/.test(x.geometry.type));
+  if(!f2)throw Object.assign(new Error('El archivo no tiene una línea (LineString)'),{code:'archivo'});
+  const co=f2.geometry.type==='MultiLineString'?f2.geometry.coordinates.flat():f2.geometry.coordinates;
+  return {pts:co.map(c=>[+c[1],+c[0],c[2]!=null?+c[2]:null]),nombre:((f2.properties||{}).name||'').trim()};
+}
+
+/* ---------- Empezar una propuesta ---------- */
+async function iniciarPropuesta(fuente,datos){
+  if(!logueado()){pedirLogin('Inicia sesión para proponer una ruta.');return;}
+  toast('Revisando el trazado…');
+  try{
+    const fc=await cargarLimites();
+    let pts=reducirTrazado(datos.pts);
+    if(pts.length<10)throw Object.assign(new Error('El trazado tiene muy pocos puntos'),{code:'archivo'});
+    pts=await completarAlturas(pts);
+    const zona=revisarZona(pts,fc);
+    estado.prop={fuente,recId:datos.recId||null,pts,zona,tipo:'caminata',dificultad:'Media',nombre:(datos.nombre||'').slice(0,60),descripcion:'',
+      fotos:(datos.fotos||[]).slice(0,LIM_RUTA.maxFotos).map(src=>({src})),enviando:false};
+    navegar({tipo:'proponerRuta'});
+  }catch(e){toast(e.code==='archivo'?e.message:'No pudimos leer ese trazado. (Error '+reportarError('proponer ruta',e)+')',4000);}
+}
+async function proponerDesdeRecorrido(id){
+  const r=await IDB.obtener('recorridos',id).catch(()=>null);if(!r)return;
+  const fotos=await IDB.fotosDe(id).catch(()=>[]);
+  iniciarPropuesta('grabacion',{pts:r.puntos.map(p=>[p[0],p[1],p[2]]),recId:id,nombre:'',fotos:fotos.map(f=>f.data)});
+}
+function elegirFuentePropuesta(){
+  if(!logueado()){pedirLogin('Inicia sesión para proponer una ruta.');return;}
+  IDB.todos('recorridos').catch(()=>[]).then(l=>{
+    l=l.filter(r=>r.estado==='terminado'&&!r.simulado&&r.puntos.length>=10).sort((a,b)=>b.inicio-a.inicio);
+    abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Proponer una ruta</h2><p class="nota">Tu ruta aparecerá en Fusa Conecta cuando la revise el equipo. Necesitas el trazado y al menos una foto.</p>'
+      +'<p class="dash-section">Desde un recorrido grabado</p>'
+      +(l.length?l.slice(0,8).map(r=>'<button class="asis-item" data-prop-rec="'+esc(r.id)+'"><span class="asis-item-ic c-turismo">'+icon('footprints',20)+'</span><span class="asis-item-tx"><b>'+esc(r.nombre)+'</b><small>'
+        +fechaCorta(r.inicio)+' · '+fmtKm(r.distancia)+'</small></span>'+icon('chevron-right',18)+'</button>').join('')
+        :'<p class="nota-c izq">Aún no tienes recorridos terminados. Graba uno con «Grabar una ruta nueva».</p>')
+      +'<p class="dash-section">Desde un archivo</p>'
+      +'<label class="btn btn-secundario btn-bloque">'+icon('upload',18)+'Subir GPX o GeoJSON<input type="file" id="propArchivo" class="sr-only" accept=".gpx,.geojson,.json,application/gpx+xml,application/geo+json,application/json"></label>'
+      +'<p class="ayuda">Sirven los archivos que exportan Wikiloc, Strava, Komoot o Google My Maps (máx. 5 MB).</p></div>');
+    $$('#sheetGen [data-prop-rec]').forEach(b=>b.onclick=()=>{cerrar('ovGen');proponerDesdeRecorrido(b.dataset.propRec);});
+    $('#propArchivo').onchange=async e=>{const f=e.target.files[0];if(!f)return;cerrar('ovGen');
+      try{iniciarPropuesta('archivo',await leerArchivoRuta(f));}catch(er){toast(er.code==='archivo'?er.message:'No pudimos leer ese archivo',4000);}};
+  });
+}
+
+/* ---------- Pantalla «Proponer una ruta» ---------- */
+function validarPropuesta(P){
+  const c=P.cifras,errores=[];
+  if(c.km<LIM_RUTA.minKm)errores.push('La ruta mide '+fmtKm(c.km)+': debe tener al menos 0,5 km.');
+  if(c.km>LIM_RUTA.maxKm)errores.push('La ruta mide '+fmtKm(c.km)+': el máximo es 40 km.');
+  if(P.zona.fraccion<LIM_RUTA.dentro)errores.push('Solo el '+Math.round(P.zona.fraccion*100)+' % del trazado está en Fusagasugá, Pasca o a menos de 5 km de sus límites.');
+  return errores;
+}
+function renderProponerRuta(){
+  const P=estado.prop,cuerpo=$('#cuerpo');
+  if(!P){volver();return;}
+  P.cifras=cifrasRuta(P.pts,P.tipo);
+  const c=P.cifras,errs=validarPropuesta(P);
+  const seg=(id,l,val)=>'<div class="seg" role="radiogroup" aria-labelledby="'+id+'L">'+l.map(([k,t,ic])=>'<button type="button" role="radio" aria-checked="'+(val===k)+'" class="'+(val===k?'on':'')+'" data-'+id+'="'+k+'">'+(ic?icon(ic,16):'')+t+'</button>').join('')+'</div>';
+  cuerpo.innerHTML='<div class="vista"><div class="form-head"><h2>Proponer una ruta</h2><p>'+(P.fuente==='archivo'?'Desde un archivo':'Desde tu recorrido grabado')+'</p></div>'
+    +'<div id="propMapa" class="prop-mapa" role="img" aria-label="Mapa del trazado"></div>'
+    +'<div class="ruta-stats"><div><b>'+fmtKm(c.km)+'</b><span>Distancia</span></div><div><b>'+c.desnivel+' m</b><span>Desnivel</span></div>'
+    +'<div><b>'+fmtDuracion(c.duracion*60000)+'</b><span>Tiempo</span></div><div><b>'+esc(P.zona.municipio)+'</b><span>Municipio</span></div></div>'
+    +(c.perfil.length?'<div class="elev-head"><span>Perfil de elevación</span><span>'+c.min+' – '+c.max+' m s. n. m.</span></div>'+perfilSVG({perfilElevacion:c.perfil,elevacionMinima:c.min,elevacionMaxima:c.max}):'')
+    +(errs.length?'<div class="prop-aviso mal" role="alert">'+icon('circle-alert',20)+'<div>'+errs.map(e=>'<p>'+esc(e)+'</p>').join('')+'</div></div>'
+      :'<div class="prop-aviso ok" role="status">'+icon('circle-check',20)+'<p>El trazado cumple: mide entre 0,5 y 40 km y está en la zona de Fusagasugá y Pasca.</p></div>')
+    +'<form id="propForm" novalidate>'
+    +'<div class="campo"><label for="propNombre">Nombre de la ruta</label><input class="input" id="propNombre" maxlength="60" required value="'+esc(P.nombre)+'" placeholder="Ej: Camino de la quebrada Jaboncillo"></div>'
+    +'<div class="campo"><span class="lbl" id="tipoL">Tipo</span>'+seg('tipo',TIPOS_RUTA,P.tipo)+'</div>'
+    +'<div class="campo"><span class="lbl" id="difL">Dificultad</span>'+seg('dif',DIFICULTADES.map(d=>[d,d]),P.dificultad)+'</div>'
+    +'<div class="campo"><label for="propDesc">Descripción</label><textarea id="propDesc" maxlength="500" required placeholder="Por dónde va, qué se ve, dónde parquear, si hay agua o sombra…">'+esc(P.descripcion)+'</textarea>'
+    +'<p class="ayuda"><span id="propCuenta">'+P.descripcion.length+'</span>/500 · mínimo 20 caracteres</p></div>'
+    +'<div class="campo"><span class="lbl" id="fotosL">Fotos (1 a '+LIM_RUTA.maxFotos+')</span><div class="galeria-edit" role="list" aria-labelledby="fotosL">'
+    +P.fotos.map((f,i)=>'<div class="foto-tile" role="listitem"><img src="'+esc(f.src)+'" alt="Foto '+(i+1)+'">'+(i===0?'<span class="foto-portada">Portada</span>':'')
+      +'<button type="button" class="foto-quitar" data-quitar-foto="'+i+'" aria-label="Quitar la foto '+(i+1)+'">'+icon('x',16)+'</button></div>').join('')
+    +(P.fotos.length<LIM_RUTA.maxFotos?'<label class="foto-agregar" for="propFotos">'+icon('image-plus',26)+'<span>Agregar</span></label>':'')
+    +'</div><input type="file" id="propFotos" accept="image/*" multiple class="sr-only"></div>'
+    +'<p class="nota-c izq">Al enviarla aceptas que tu nombre aparezca como «Ruta propuesta por '+esc(nombreCorto(estado.usuario.nombre))+'» y que las fotos se publiquen en la app.</p>'
+    +'<button class="btn btn-primario btn-bloque" id="propEnviar"'+(errs.length||P.enviando?' disabled':'')+'>'+(P.enviando?icon('loader-circle',18,'gira')+'Enviando…':icon('send-horizontal',18)+'Enviar para revisión')+'</button>'
+    +'</form></div>'+footerHTML();
+  const guardarCampos=()=>{P.nombre=$('#propNombre').value;P.descripcion=$('#propDesc').value;};
+  $$('[data-tipo]').forEach(b=>b.onclick=()=>{guardarCampos();P.tipo=b.dataset.tipo;render(true);});
+  $$('[data-dif]').forEach(b=>b.onclick=()=>{guardarCampos();P.dificultad=b.dataset.dif;render(true);});
+  $('#propDesc').oninput=()=>{$('#propCuenta').textContent=$('#propDesc').value.length;};
+  $$('[data-quitar-foto]').forEach(b=>b.onclick=()=>{guardarCampos();P.fotos.splice(+b.dataset.quitarFoto,1);render(true);});
+  $('#propFotos').onchange=async e=>{guardarCampos();
+    for(const f of [...e.target.files].slice(0,LIM_RUTA.maxFotos-P.fotos.length)){
+      try{P.fotos.push({src:(await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado')).src});}catch(er){toast('No pudimos leer una de las fotos');}}
+    render(true);};
+  $('#propForm').onsubmit=e=>{e.preventDefault();guardarCampos();enviarPropuesta();};
+  enlazarFooter();
+  // Mapa del trazado (Leaflet) y botón para verlo en 3D
+  if(estado.online)cargarLeaflet().then(()=>{
+    if(vistaActual().tipo!=='proponerRuta'||!$('#propMapa'))return;
+    const m=L.map('propMapa',{zoomControl:false,attributionControl:true});mapaActivo=m;capaBase().addTo(m);
+    const l=L.polyline(P.pts.map(p=>[p[0],p[1]]),{color:cssVar('--primary-700'),weight:5}).addTo(m);
+    L.marker(P.pts[P.pts.length-1],{icon:pinIcono('flag','pin-fc meta'),title:'Final'}).addTo(m);
+    m.fitBounds(l.getBounds(),{padding:[16,16],animate:false});setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},150);
+  }).catch(()=>{});
+}
+async function enviarPropuesta(){
+  const P=estado.prop;if(!P||P.enviando)return;
+  const nombre=P.nombre.trim().replace(/\s+/g,' '),desc=P.descripcion.trim();
+  const falta=nombre.length<5?'Escribe el nombre de la ruta (mínimo 5 caracteres).':desc.length<20?'Escribe una descripción de al menos 20 caracteres.'
+    :!P.fotos.length?'Agrega al menos una foto de la ruta.':validarPropuesta(P)[0];
+  if(falta){toast(falta,4000);return;}
+  if(!estado.online){toast('Necesitas conexión para enviar la ruta. Tu borrador sigue aquí.',4000);return;}
+  P.enviando=true;render(true);
+  try{
+    const c=P.cifras,ref=db.collection('rutas_comunidad').doc();
+    const fotos=[];for(const f of P.fotos)fotos.push(await conTiempoLimite(comprimirFoto(f.src,1280,200000,.8),10000,'La foto tardó demasiado'));
+    const portada=await miniatura(fotos[0].src);
+    const b=db.batch();
+    b.set(ref,{autor_uid:estado.usuario.uid,autor_nombre:nombreCorto(estado.usuario.nombre),nombre,descripcion:desc,tipo:P.tipo,dificultad:P.dificultad,
+      municipio:P.zona.municipio,distancia_km:c.km,desnivel_m:c.desnivel,elev_min:c.min,elev_max:c.max,perfil:c.perfil,duracion_min:c.duracion,
+      linea:textoDeLinea(P.pts),inicio_lat:+P.pts[0][0].toFixed(5),inicio_lng:+P.pts[0][1].toFixed(5),portada,n_fotos:fotos.length,origen:P.fuente,
+      estado:'pendiente',fecha_creacion:FV.serverTimestamp()});
+    fotos.forEach((f,i)=>b.set(ref.collection('fotos').doc(String(i)),{data:f.src,ancho:f.ancho,alto:f.alto,bytes:f.bytes}));
+    await conTiempoLimite(b.commit(),30000,'Sin confirmación del servidor');
+    medir('ruta_propuesta',{origen:P.fuente,km:c.km});
+    estado.prop=null;estado.misPropuestas=null;volver();
+    toast('¡Gracias! Tu ruta quedó en revisión. Verás su estado en «Mis recorridos».',5000);
+  }catch(e){
+    P.enviando=false;render(true);
+    toast(e.code==='tiempo'?'La conexión está lenta: tu ruta se enviará sola cuando haya señal. (Aviso E-TIEMPO)':'No pudimos enviar la ruta. (Error '+reportarError('enviar ruta',e)+')',5000);
+  }
+}
+
+/* ---------- Mis rutas propuestas (en «Mis recorridos») ---------- */
+async function cargarMisPropuestas(){
+  if(!logueado())return [];
+  if(!estado.misPropuestas){
+    const s=await db.collection('rutas_comunidad').where('autor_uid','==',estado.usuario.uid).get();
+    estado.misPropuestas=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(aMs(b.fecha_creacion)||0)-(aMs(a.fecha_creacion)||0));
+  }
+  return estado.misPropuestas;
+}
+function misPropuestasHTML(l){
+  if(!l.length)return '';
+  const chip={pendiente:['rev','clock','En revisión'],aprobada:['pub','circle-check','Publicada'],rechazada:['rech','circle-x','No aprobada']};
+  return '<p class="dash-section">Rutas que propusiste</p>'+l.map(x=>{const [cl,ic,t]=chip[x.estado]||chip.pendiente;
+    return '<article class="rec-item">'+(x.estado==='aprobada'?'<button class="rec-link" data-ver-ruta="rc-'+esc(x.id)+'" aria-label="Ver la ruta '+esc(x.nombre)+'"></button>':'')
+      +'<span class="rec-ic" aria-hidden="true">'+icon('route',22)+'</span><div class="rec-tx"><b>'+esc(x.nombre)+'</b><span>'+fmtKm(x.distancia_km)+' · '+esc(x.dificultad)+'</span>'
+      +'<span class="chip-estado '+cl+'">'+icon(ic,12)+t+'</span>'+(x.estado==='rechazada'&&x.motivo?'<span>Motivo: '+esc(x.motivo)+'</span>':'')+'</div>'
+      +(x.estado!=='aprobada'?'<button class="btn-redondo rec-borrar" data-borrar-prop="'+esc(x.id)+'" aria-label="Eliminar la propuesta '+esc(x.nombre)+'">'+icon('trash-2',18)+'</button>':'')+'</article>';}).join('');
+}
+async function borrarPropuesta(id){
+  if(!await confirmar('Eliminar propuesta','Se borra la ruta propuesta y sus fotos.','Eliminar','Cancelar','trash-2',true))return;
+  try{
+    const ref=db.collection('rutas_comunidad').doc(id),fs=await ref.collection('fotos').get(),b=db.batch();
+    fs.forEach(f=>b.delete(f.ref));b.delete(ref);await conTiempoLimite(b.commit(),15000,'Sin confirmación');
+    estado.misPropuestas=null;toast('Propuesta eliminada');render(true);
+  }catch(e){toast('No pudimos eliminarla. (Error '+reportarError('borrar propuesta',e)+')');}
+}
+
+/* ---------- Grabar una ruta nueva (sin ruta de referencia) ---------- */
+async function renderGrabarRuta(){
+  const cuerpo=$('#cuerpo');
+  cuerpo.innerHTML='<div class="vista-ruta"><div id="mapaRuta">'+(estado.online?'':'<div class="mapa-off">'+icon('wifi-off',24)+'Mapa base sin conexión. Tu recorrido se sigue grabando.</div>')+'</div>'
+    +'<div class="ruta-panel"><h2>Grabar una ruta nueva</h2>'
+    +'<p class="ruta-nota">Camina el recorrido completo de principio a fin. Al terminar podrás proponerlo como ruta para Fusa Conecta.</p>'
+    +'<div class="grab-panel" id="grabPanel"'+(grab.rec&&!grab.rec.rutaId?'':' hidden')+'><div class="grab-datos" aria-live="off"><div><b id="gTiempo">0 min</b><span>Tiempo</span></div><div><b id="gDist">0,00 km</b><span>Distancia</span></div><div><b id="gDesn">0 m</b><span>Desnivel</span></div></div>'
+    +'<div class="grab-btns"><button class="btn btn-secundario" id="gPausa">'+icon('pause',18)+'Pausar</button>'
+    +'<label class="btn btn-secundario" id="gFotoBtn">'+icon('camera',18)+'Foto<input type="file" accept="image/*" capture="environment" id="gFoto" class="sr-only"></label>'
+    +'<button class="btn btn-primario" id="gTerminar">'+icon('square',18)+'Terminar</button></div>'
+    +'<p class="ruta-nota">La pantalla se mantiene encendida mientras grabas. Si bloqueas el teléfono, el GPS puede detenerse.</p></div>'
+    +'<div class="ruta-btns" id="rutaBtns"'+(grab.rec&&!grab.rec.rutaId?' hidden':'')+'><button class="btn btn-primario" id="rIniciar">'+icon('play')+'Empezar a grabar</button></div>'
+    +'<p class="ruta-prog" id="rutaProg" role="status">'+icon('navigation',18)+'<span>'+(grab.rec&&!grab.rec.rutaId?'Grabando.':'Toca «Empezar a grabar» cuando estés en el inicio de la ruta.')+'</span></p>'
+    +'</div></div>';
+  let m=null,trazo=null,yo=null;
+  if(estado.online){try{await cargarLeaflet();if(vistaActual().tipo!=='grabarRuta')return;
+    m=L.map('mapaRuta');mapaActivo=m;capaBase().addTo(m);m.setView(estado.pos||PLAZA_FUSA,15);setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);}catch(e){}}
+  const pintar=()=>{
+    const r=grab.rec;if(!r||r.rutaId||!$('#gTiempo'))return;
+    $('#gTiempo').textContent=fmtDuracion(tiempoActivo(r));$('#gDist').textContent=fmtKm(distanciaDe(r.puntos));$('#gDesn').textContent=desnivelPositivo(r.puntos)+' m';
+    $('#gPausa').innerHTML=grab.pausado?icon('play',18)+'Seguir':icon('pause',18)+'Pausar';
+    if(m&&r.puntos.length){const pts=r.puntos.map(p=>[p[0],p[1]]),u=pts[pts.length-1];
+      if(!trazo)trazo=L.polyline(pts,{color:cssVar('--primary-700'),weight:5}).addTo(m);else trazo.setLatLngs(pts);
+      if(!yo)yo=L.marker(u,{icon:pinUsuario(),title:'Tu posición'}).addTo(m);else yo.setLatLng(u);if(mapaActivo===m)m.panTo(u,{animate:false});}
+  };
+  grab.alCambiar=()=>{if(vistaActual().tipo==='grabarRuta')pintar();};
+  const reloj=setInterval(()=>{if(vistaActual().tipo!=='grabarRuta'||!$('#gTiempo')){clearInterval(reloj);return;}pintar();},1000);
+  $('#rIniciar').onclick=async()=>{
+    if(grab.rec){toast('Ya estás grabando un recorrido');return;}
+    if(!navigator.geolocation){toast('Tu dispositivo no permite usar el GPS');return;}
+    await empezarGrabacion(null,false);$('#grabPanel').hidden=false;$('#rutaBtns').hidden=true;
+    $('#rutaProg').innerHTML=icon('navigation',18)+'<span>Buscando tu ubicación GPS…</span>';pintar();
+  };
+  $('#gPausa').onclick=()=>{grab.pausado?reanudarGrabacion():pausarGrabacion();pintar();};
+  $('#gFoto').onchange=async e=>{await fotoDeRecorrido(e.target.files[0]);e.target.value='';};
+  $('#gTerminar').onclick=async()=>{
+    if(!await confirmar('Terminar recorrido','Se guarda en «Mis recorridos». Desde ahí puedes proponerlo como ruta.','Terminar','Seguir grabando','flag'))return;
+    const rec=await terminarGrabacion(false);if(rec)navegar({tipo:'recorrido',id:rec.id});
+  };
+  pintar();
+}
+
+/* ---------- Admin · pestaña Rutas ---------- */
+function tarjetaRutaAdmin(x,acciones){
+  const t=TIPOS_RUTA.find(y=>y[0]===x.tipo)||TIPOS_RUTA[0];
+  return '<div class="adm-card"><div class="adm-head"><div class="dc-ico">'+(x.portada?'<img src="'+esc(x.portada)+'" alt="">':icon('route'))+'</div><div class="dc-info"><h3>'+esc(x.nombre)+'</h3>'
+    +'<p>Propuesta por '+esc(x.autor_nombre||'')+' · '+fechaCorta(aMs(x.fecha_creacion)||Date.now())+' · '+(x.origen==='archivo'?'archivo':'grabación')+'</p></div></div>'
+    +'<p class="ev-chips"><span class="ev-chip">'+icon(t[2],12)+t[1]+'</span><span class="ev-chip">'+esc(x.dificultad)+'</span><span class="ev-chip">'+esc(x.municipio)+'</span></p>'
+    +'<div class="ruta-stats"><div><b>'+fmtKm(x.distancia_km)+'</b><span>Distancia</span></div><div><b>'+(x.desnivel_m||0)+' m</b><span>Desnivel</span></div><div><b>'+fmtDuracion((x.duracion_min||0)*60000)+'</b><span>Tiempo</span></div></div>'
+    +(x.perfil&&x.perfil.length?perfilSVG({perfilElevacion:x.perfil,elevacionMinima:x.elev_min,elevacionMaxima:x.elev_max}):'')
+    +'<p class="adm-desc">'+esc(x.descripcion)+'</p>'
+    +'<div class="ruta-fotos-adm" data-fotos-ruta="'+esc(x.id)+'" data-n="'+(x.n_fotos||0)+'">'+(x.portada?'<img src="'+esc(x.portada)+'" alt="Foto 1 de '+esc(x.nombre)+'">':'')+'</div>'
+    +'<div class="dc-actions"><button class="btn btn-tonal btn-sm" data-ruta3d="'+esc(x.id)+'">'+icon('mountain',16)+'Ver en 3D</button>'+acciones+'</div></div>';
+}
+function rutasAdminHTML(){
+  const pend=(estado.adminPend.rutas||[]).slice().sort((a,b)=>(aMs(a.fecha_creacion)||0)-(aMs(b.fecha_creacion)||0)),pub=estado.rutasComunidad;
+  return '<p class="dash-section">Por revisar ('+pend.length+')</p>'
+    +(pend.length?pend.map(x=>tarjetaRutaAdmin(x,'<button class="btn btn-primario btn-sm" data-ruta-ok="'+esc(x.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-ruta-no="'+esc(x.id)+'">Rechazar</button>')).join('')
+      :'<div class="vacio">'+icon('route',48)+'<b>No hay rutas por revisar</b><p>Las personas proponen rutas desde «Mis recorridos».</p></div>')
+    +'<p class="dash-section">Publicadas ('+pub.length+')</p>'
+    +(pub.length?pub.map(x=>tarjetaRutaAdmin(x,'<button class="btn btn-ghost" data-ruta-retirar="'+esc(x.id)+'">'+icon('eye-off',16)+'Retirar</button>')).join(''):'<p class="nota-c izq">Ninguna por ahora.</p>');
+}
+function enlazarRutasAdmin(){
+  const todas=()=>[...(estado.adminPend.rutas||[]),...estado.rutasComunidad],ruta=id=>todas().find(x=>x.id===id);
+  const col=db.collection('rutas_comunidad');
+  $$('[data-ruta3d]').forEach(b=>b.onclick=()=>{const x=ruta(b.dataset.ruta3d);abrir3D({titulo:x.nombre,linea:lineaDeTexto(x.linea).map(p=>[p[0],p[1]])});});
+  $$('[data-ruta-ok]').forEach(b=>b.onclick=()=>adminAccion(()=>col.doc(b.dataset.rutaOk).update({estado:'aprobada',fecha_revision:FV.serverTimestamp()}),'Ruta aprobada y publicada'));
+  $$('[data-ruta-no]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar «'+ruta(b.dataset.rutaNo).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaNo).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta rechazada. La persona verá el motivo.'),MOTIVOS_RUTA));
+  $$('[data-ruta-retirar]').forEach(b=>b.onclick=()=>pedirMotivo('Retirar «'+ruta(b.dataset.rutaRetirar).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaRetirar).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta retirada de la app'),MOTIVOS_RUTA));
+  // Todas las fotos de cada ruta (la portada ya está en la tarjeta)
+  $$('[data-fotos-ruta]').forEach(c=>{if(+c.dataset.n<2)return;
+    col.doc(c.dataset.fotosRuta).collection('fotos').get().then(s=>{c.innerHTML=s.docs.sort((a,b)=>a.id-b.id).map((f,i)=>'<img src="'+f.data().data+'" alt="Foto '+(i+1)+'">').join('');}).catch(()=>{});});
+}
+
 /* ===== ORGANIZADORES (v6 · Fase 2.3) =====
    El admin invita por correo (invitaciones/{correo}). Cuando esa persona entra con ese correo verificado, su cuenta pasa a
    "organizador": publica eventos que quedan pendientes, o directos si el admin la marcó como confiable. */
@@ -1116,7 +1447,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -1419,6 +1750,8 @@ function render(conservarScroll){
   else if(v.tipo==='recorridos')renderRecorridos();
   else if(v.tipo==='recorrido')renderRecorrido(v.id);
   else if(v.tipo==='asistente')renderAsistente();
+  else if(v.tipo==='proponerRuta')renderProponerRuta();
+  else if(v.tipo==='grabarRuta')renderGrabarRuta();
   else renderLista(v);
   renderHeader();renderBottomNav();pintarAvisoGrabando();
   cuerpo.scrollTop=scroll;
@@ -1753,6 +2086,7 @@ function formatearHorario(h){
 }
 let indiceRutas=null;
 async function trazadoReal(id){
+  if(RUTAS[id]&&RUTAS[id].trazado)return RUTAS[id].trazado;   // rutas de la comunidad: el trazado viene con la ruta
   try{
     if(!indiceRutas)indiceRutas=await fetch('rutas/indice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}));
     const info=indiceRutas[id];if(!info)return null;
@@ -1869,6 +2203,7 @@ function abrirDetalle(id){
     +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
+    +(d.propuesta_por?'<p class="ruta-credito">'+icon('user',16)+'Ruta propuesta por '+esc(d.propuesta_por)+'</p>':'')
     +'<div class="datos">'
     +filaDato('map-pin','Dirección',esc(d.direccion)+(km!=null?' · a '+fmtDist(km)+' de ti':''))
     +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
@@ -2751,10 +3086,10 @@ async function fotoDeRecorrido(archivo){
 // Aviso fijo mientras se graba y estás en otra pantalla
 function pintarAvisoGrabando(){
   let a=$('#avisoGrabando');
-  const ver=!!grab.rec&&!(vistaActual().tipo==='ruta'&&vistaActual().id===grab.rec.rutaId);
+  const ver=!!grab.rec&&!(vistaActual().tipo==='ruta'&&vistaActual().id===grab.rec.rutaId)&&!(vistaActual().tipo==='grabarRuta'&&!grab.rec.rutaId);
   if(!ver){if(a)a.remove();return;}
   if(!a){a=document.createElement('button');a.id='avisoGrabando';a.className='aviso-grabando';document.body.appendChild(a);
-    a.onclick=()=>{if(grab.rec)navegar({tipo:'ruta',id:grab.rec.rutaId});};}
+    a.onclick=()=>{if(grab.rec)navegar(grab.rec.rutaId?{tipo:'ruta',id:grab.rec.rutaId}:{tipo:'grabarRuta'});};}
   a.innerHTML='<span class="punto-grab" aria-hidden="true"></span>'+(grab.pausado?'Recorrido en pausa':'Grabando tu recorrido')+' · Volver';
 }
 
@@ -2765,12 +3100,13 @@ const INSIGNIAS=[
   ['km50','mountain','50 km','Suma 50 km recorridos',s=>s.km>=50],
   ['escalador','trending-up','Escalador','Sube 500 m de desnivel en total',s=>s.desnivel>=500],
   ['fusacatan','flag','Cumbre del Fusacatán','Llega a la meta del Cerro Fusacatán',s=>s.rutas.has('c21')],
-  ['explorador','binoculars','Explorador del Sumapaz','Completa todos los senderos con ruta',s=>Object.keys(RUTAS).every(k=>s.rutas.has(k))],
+  ['explorador','binoculars','Explorador del Sumapaz','Completa todos los senderos con ruta',s=>Object.keys(RUTAS).filter(k=>!RUTAS[k].comunidad).every(k=>s.rutas.has(k))],
+  ['exploradorfusa','map','Explorador de Fusa','Propón una ruta y que sea publicada',s=>s.propuestas>=1],
   ['madrugador','sun','Madrugador','Empieza un recorrido antes de las 7 a. m.',s=>s.madrugador],
   ['fotografo','camera','Fotógrafo de senderos','Toma 10 fotos en tus recorridos',s=>s.fotos>=10]
 ];
 function resumenInsignias(lista){
-  const s={n:0,km:0,desnivel:0,rutas:new Set(),madrugador:false,fotos:0};
+  const s={n:0,km:0,desnivel:0,rutas:new Set(),madrugador:false,fotos:0,propuestas:misRutasAprobadas()};
   lista.filter(r=>r.estado==='terminado'&&!r.simulado).forEach(r=>{
     s.n++;s.km+=r.distancia||0;s.desnivel+=r.desnivel||0;s.fotos+=(r.fotos||[]).length;
     if(r.completo)s.rutas.add(r.rutaId);if(new Date(r.inicio).getHours()<7)s.madrugador=true;});
@@ -2787,13 +3123,17 @@ async function renderRecorridos(){
   const cuerpo=$('#cuerpo');
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mis recorridos</h2></div><div class="vacio">'+icon('loader-circle',40,'gira')+'</div></div>';
   let lista=[];try{lista=await IDB.todos('recorridos');}catch(e){}
+  let props=[];try{props=await cargarMisPropuestas();}catch(e){}
   if(vistaActual().tipo!=='recorridos')return;
   lista.sort((a,b)=>b.inicio-a.inicio);
   const gan=insigniasGanadas(lista),s=resumenInsignias(lista);
   cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Mis recorridos</h2></div>'
+    +'<div class="rec-acc"><button class="btn btn-primario" id="recGrabarNueva">'+icon('footprints',18)+'Grabar una ruta nueva</button>'
+    +'<button class="btn btn-secundario" id="recProponer">'+icon('route',18)+'Proponer una ruta</button></div>'
     +'<div class="metricas"><div class="metrica">'+icon('footprints',18)+'<b>'+s.n+'</b><span>Recorridos</span></div><div class="metrica">'+icon('route',18)+'<b>'+fmtKm(s.km)+'</b><span>Distancia total</span></div>'
     +'<div class="metrica">'+icon('trending-up',18)+'<b>'+s.desnivel+' m</b><span>Desnivel total</span></div><div class="metrica">'+icon('award',18)+'<b>'+gan.size+' de '+INSIGNIAS.length+'</b><span>Insignias</span></div></div>'
     +'<p class="dash-section">Insignias</p>'+insigniasHTML(gan)
+    +misPropuestasHTML(props)
     +'<p class="dash-section">Historial</p>'
     +(lista.length?lista.map(r=>'<article class="rec-item"><button class="rec-link" data-rec="'+esc(r.id)+'" aria-label="Ver '+esc(r.nombre)+' del '+fechaCorta(r.inicio)+'"></button>'
         +'<span class="rec-ic" aria-hidden="true">'+icon(r.completo?'flag':'footprints',22)+'</span><div class="rec-tx"><b>'+esc(r.nombre)+'</b>'
@@ -2809,6 +3149,10 @@ async function renderRecorridos(){
     if(grab.rec&&grab.rec.id===b.dataset.borrarRec){detenerSensores();grab.rec=null;pintarAvisoGrabando();}
     await borrarRecorrido(b.dataset.borrarRec);toast('Recorrido eliminado');render(true);});
   const ir=$('#recIrSenderos');if(ir)ir.onclick=()=>navegar({tipo:'lista',cat:'turismo',sub:'sendero'});
+  $('#recGrabarNueva').onclick=()=>navegar({tipo:'grabarRuta'});
+  $('#recProponer').onclick=elegirFuentePropuesta;
+  $$('[data-ver-ruta]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.verRuta));
+  $$('[data-borrar-prop]').forEach(b=>b.onclick=()=>borrarPropuesta(b.dataset.borrarProp));
   enlazarFooter();
 }
 
@@ -2842,6 +3186,7 @@ async function renderRecorrido(id){
     +'<button class="btn btn-secundario btn-bloque" id="rlVideo"'+(r.puntos.length<2?' disabled':'')+'>'+icon('video',18)+'Crear video para compartir</button>'
     +'<button class="btn btn-secundario btn-bloque" id="rlTarjeta"'+(r.puntos.length<2?' disabled':'')+'>'+icon('image',18)+'Compartir tarjeta</button>'
     +(esAdmin()&&r.rutaId&&r.puntos.length>=20&&!r.simulado?'<button class="btn btn-secundario btn-bloque" id="rlTrazado">'+icon('download',18)+'Descargar trazado para la ruta (GeoJSON)</button>':'')
+    +(r.estado==='terminado'&&!r.simulado&&r.puntos.length>=10?'<button class="btn btn-secundario btn-bloque" id="rlProponer">'+icon('route',18)+'Proponer como ruta nueva</button>':'')
     +'<button class="btn btn-ghost btn-bloque" id="rlMis">'+icon('award',18)+'Mis recorridos e insignias</button></div>'
     +(r.puntos.length<2?'<p class="nota-c">Este recorrido no alcanzó a guardar suficientes puntos de GPS para dibujarlo.</p>':'')
     +'</div>'+footerHTML();
@@ -2850,6 +3195,7 @@ async function renderRecorrido(id){
   $('#rlVideo').onclick=()=>abrir3D({...datos3D(),video:true});
   $('#rlTarjeta').onclick=()=>compartirTarjeta(r,fotos);
   $('#rlMis').onclick=()=>navegar({tipo:'recorridos'});
+  const rp=$('#rlProponer');if(rp)rp.onclick=()=>proponerDesdeRecorrido(r.id);
   const rt=$('#rlTrazado');if(rt)rt.onclick=()=>{const g=trazadoParaRutas(r);if(!g)return;
     entregarArchivo(new File([JSON.stringify(g)],r.rutaId+'.geojson',{type:'application/geo+json'}),'Trazado de '+r.nombre);};
   enlazarFooter();
@@ -3049,9 +3395,9 @@ async function renderRuta(id){
   if(!d||!r){cuerpo.innerHTML='<div class="vacio">'+icon('route',48)+'<b>Ruta no disponible</b></div>';return;}
   cuerpo.innerHTML='<div class="vista-ruta">'
     +'<div id="mapaRuta">'+(estado.online?'':'<div class="mapa-off">'+icon('wifi-off',24)+'Mapa base sin conexión. La ruta y tu progreso siguen disponibles.</div>')+'</div>'
-    +'<div class="ruta-panel"><h2>'+esc(r.nombre)+'</h2>'
+    +'<div class="ruta-panel"><h2>'+esc(r.nombre)+'</h2>'+(r.autor?'<p class="ruta-credito">'+icon('user',16)+'Ruta propuesta por '+esc(r.autor)+'</p>':'')
     +'<div class="ruta-stats"><div><b>'+String(r.distanciaTotal).replace('.',',')+' km</b><span>Distancia</span></div><div><b>'+esc(r.duracionEstimada)+'</b><span>Tiempo</span></div><div><b>'+(r.desnivelPositivo||r.elevacionMaxima-r.elevacionMinima)+' m</b><span>Desnivel</span></div><div><b>'+esc(r.dificultad)+'</b><span>Dificultad</span></div></div>'
-    +'<div class="elev-head"><span>Perfil de elevación</span><span>'+r.elevacionMinima+' – '+r.elevacionMaxima+' m s. n. m.</span></div>'+perfilSVG(r)
+    +(r.perfilElevacion&&r.perfilElevacion.length?'<div class="elev-head"><span>Perfil de elevación</span><span>'+r.elevacionMinima+' – '+r.elevacionMaxima+' m s. n. m.</span></div>'+perfilSVG(r):'')
     +'<div id="grabPendiente"></div>'
     +'<div class="ruta-prog" id="rutaProg" role="status">'+icon('navigation',18)+'<span>Toca «Grabar recorrido» para seguir tu posición y guardar tu recorrido con fotos.</span></div>'
     +'<div class="grab-panel" id="grabPanel" hidden><div class="grab-datos" aria-live="off"><div><b id="gTiempo">0 min</b><span>Tiempo</span></div><div><b id="gDist">0,00 km</b><span>Distancia</span></div><div><b id="gDesn">0 m</b><span>Desnivel</span></div></div>'
@@ -3470,7 +3816,8 @@ function miniatura(src){return comprimirFoto(src,320,25000,.7).then(r=>r.src);}
 function idFoto(){return 'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 async function cargarFotosDe(cid,ids){
   if(!ids||!ids.length)return {};
-  const s=await db.collection('comercios').doc(String(cid)).collection('fotos').get();
+  // Las rutas de la comunidad (id rc-…) guardan sus fotos en rutas_comunidad/{id}/fotos
+  const s=await (String(cid).startsWith('rc-')?db.collection('rutas_comunidad').doc(String(cid).slice(3)):db.collection('comercios').doc(String(cid))).collection('fotos').get();
   const m={};s.forEach(x=>{m[x.id]=x.data().data;});return m;
 }
 
@@ -4104,7 +4451,7 @@ db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapsh
   estado.novedades=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();
 },()=>{});
 function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
-function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length:0;}
+function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
 function campanaHTML(){
   const n=noLeidas(),p=pendientesAdmin();
   return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
@@ -4128,7 +4475,7 @@ function abrirNovedades(){
 
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
-estado.adminPend={comercios:[],solicitudes:[],eventos:[]};
+estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[]};
 function escucharAdmin(){
   if(adminUnsubs.length||!esAdmin())return;
   adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
@@ -4142,13 +4489,18 @@ function escucharAdmin(){
   // Estado de la agenda automática (lo escribe el proceso de GitHub Actions)
   adminUnsubs.push(db.collection('config').doc('agenda_auto').onSnapshot(s=>{estado.agendaAuto=s.exists?s.data():null;
     if(vistaActual().tipo==='admin'&&estado.admin.tab==='eventos')render(true);},()=>{}));
+  // Rutas propuestas por la comunidad (v7 · Fase 4)
+  adminUnsubs.push(db.collection('rutas_comunidad').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.rutas=s.docs.map(d=>({id:d.id,...d.data()}));avisosAdminCambiaron();
+    if(vistaActual().tipo==='admin'&&estado.admin.tab==='rutas')render(true);
+  },()=>{}));
   // Eventos sugeridos o publicados por organizadores (y los de la IA), pendientes de revisión
   adminUnsubs.push(db.collection('eventos').where('estado','==','pendiente').onSnapshot(s=>{
     estado.adminPend.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin),fecha:aMs(x.fecha_creacion)||0};});
     avisosAdminCambiaron();
   },()=>{}));
 }
-function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[]};}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[]};}
 // "Por aprobar" = comercios nuevos + reclamos de negocio
 function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
 function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
@@ -4384,7 +4736,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -4434,6 +4786,8 @@ function renderAdmin(){
       :'<div class="vacio">'+icon('flag',48)+'<b>No hay reportes pendientes</b></div>';
   }else if(A.tab==='opiniones'){
     html=opinionesAdminHTML(D.opiniones||[]);
+  }else if(A.tab==='rutas'){
+    html=rutasAdminHTML();
   }else if(A.tab==='eventos'){
     html=eventosAdminHTML();
   }else if(A.tab==='banners'){
@@ -4500,7 +4854,7 @@ function renderAdmin(){
     if(!c){toast('No encontramos ese comercio');return;}
     db.collection('reportes').doc(r.id).update({estado:'resuelto',accion:'ficha_editada',fecha_respuesta:FV.serverTimestamp()}).catch(()=>{});abrirFormComercio(c);});
   $$('[data-descartar]').forEach(b=>b.onclick=()=>adminAccion(()=>db.collection('reportes').doc(b.dataset.descartar).update({estado:'descartado',fecha_respuesta:FV.serverTimestamp()}),'Reporte descartado'));
-  enlazarBannersAdmin();enlazarEventosAdmin();
+  enlazarBannersAdmin();enlazarEventosAdmin();enlazarRutasAdmin();
   // Editor de emergencias
   $$('[data-amun]').forEach(b=>b.onclick=()=>{A.mun=b.dataset.amun;render(true);});
   const mun=A.mun||'fusagasuga';
@@ -4853,7 +5207,7 @@ function renderBottomNav(){
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido'].includes(v.tipo))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
+      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });

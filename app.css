@@ -1431,6 +1431,21 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta-ev .cal-bloque{position:absolute;left:8px;top:8px;z-index:1}
 .tarjeta-ev .tc-linea{display:flex;align-items:center;gap:4px}
 .fallback-ic.c-ev{background:var(--primary-50);color:var(--primary-700)}
+/* Rutas de la comunidad (v7 · Fase 4) */
+.ruta-credito{display:flex;align-items:center;gap:6px;margin:4px 0 12px;font-size:var(--text-sm);color:var(--ink-2)}
+.ruta-credito>.ic{color:var(--primary-700)}
+.prop-mapa{height:220px;border-radius:var(--radius-lg);overflow:hidden;background:var(--soft);margin-bottom:12px}
+.prop-aviso{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-md);margin:12px 0 16px;font-size:var(--text-sm)}
+.prop-aviso>.ic{flex-shrink:0}
+.prop-aviso p+p{margin-top:4px}
+.prop-aviso.ok{background:var(--mint-50);color:var(--mint-700)}
+.prop-aviso.mal{background:var(--danger-50);color:var(--danger-700)}
+.rec-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}
+.rec-acc .btn{padding:0 10px;font-size:var(--text-sm)}
+.rec-tx .chip-estado{display:flex;width:fit-content;margin:4px 0 0}
+.rec-tx span+span:not(.chip-estado){display:block;margin-top:2px}
+.ruta-fotos-adm{display:flex;gap:6px;overflow-x:auto;margin:8px 0}
+.ruta-fotos-adm img{width:96px;height:72px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0}
 /* Pregúntale a Fusa (v7 · Fase 3) */
 .asis-entrada{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 14px;margin:4px 0 16px;border-radius:var(--radius-lg);background:var(--primary-50);border:1px solid var(--primary-100);color:var(--ink);text-align:left}
 .asis-entrada>.ic{color:var(--primary-700);flex-shrink:0}

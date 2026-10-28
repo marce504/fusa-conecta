@@ -337,6 +337,65 @@ service cloud.firestore {
     }
 
     /* ---------- Límite de uso de la IA: 20 al día por persona (día UTC), solo sumando de a 1 ---------- */
+    /* Rutas de la comunidad (v7 · Fase 4). Una persona con cuenta propone; queda pendiente hasta que el admin la apruebe
+       o la rechace con motivo. El teléfono valida la distancia y la zona con limites.geojson; aquí se validan tamaños,
+       rangos, que el inicio quede en la zona de Fusagasugá y Pasca y que venga al menos una foto. */
+    function rutaValida(d) {
+      return d.keys().hasOnly(['autor_uid', 'autor_nombre', 'nombre', 'descripcion', 'tipo', 'dificultad', 'municipio',
+          'distancia_km', 'desnivel_m', 'elev_min', 'elev_max', 'perfil', 'duracion_min', 'linea', 'inicio_lat', 'inicio_lng',
+          'portada', 'n_fotos', 'origen', 'estado', 'fecha_creacion'])
+        && d.autor_uid == request.auth.uid
+        && d.autor_nombre is string && d.autor_nombre.size() <= 40
+        && d.nombre is string && d.nombre.size() >= 5 && d.nombre.size() <= 60
+        && d.descripcion is string && d.descripcion.size() >= 20 && d.descripcion.size() <= 500
+        && d.tipo in ['caminata', 'bicicleta', 'trote']
+        && d.dificultad in ['Baja', 'Media', 'Alta']
+        && d.municipio in ['Fusagasugá', 'Pasca']
+        && d.distancia_km is number && d.distancia_km >= 0.5 && d.distancia_km <= 40
+        && d.desnivel_m is int && d.desnivel_m >= 0 && d.desnivel_m <= 6000
+        && (d.elev_min == null || d.elev_min is int) && (d.elev_max == null || d.elev_max is int)
+        && d.perfil is list && d.perfil.size() <= 60
+        && d.duracion_min is int && d.duracion_min >= 1 && d.duracion_min <= 3000
+        && d.linea is string && d.linea.size() >= 100 && d.linea.size() <= 20000
+        && d.inicio_lat is number && d.inicio_lat >= 4.0 && d.inicio_lat <= 4.6
+        && d.inicio_lng is number && d.inicio_lng >= -74.6 && d.inicio_lng <= -74.0
+        && d.portada is string && d.portada.size() <= 56000 && d.portada.matches('data:image/.*')
+        && d.n_fotos is int && d.n_fotos >= 1 && d.n_fotos <= 4
+        && d.origen in ['grabacion', 'archivo']
+        && d.estado == 'pendiente'
+        && d.fecha_creacion == request.time;
+    }
+    match /rutas_comunidad/{id} {
+      function autor() { return cuentaReal() && resource.data.autor_uid == request.auth.uid; }
+      allow read: if resource.data.estado == 'aprobada' || autor() || esAdmin();
+      allow create: if tienePerfil() && rutaValida(request.resource.data)
+        && existsAfter(/databases/$(database)/documents/rutas_comunidad/$(id)/fotos/0);
+      // Solo el admin la revisa: cambia el estado, el motivo y la fecha de revisión; rechazar exige motivo
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'motivo', 'fecha_revision'])
+        && request.resource.data.estado in ['aprobada', 'rechazada']
+        && request.resource.data.fecha_revision == request.time
+        && (request.resource.data.estado == 'aprobada'
+          || (request.resource.data.motivo is string && request.resource.data.motivo.size() >= 4 && request.resource.data.motivo.size() <= 300));
+      // Quien la propuso puede retirarla mientras no esté publicada; el admin, siempre
+      allow delete: if esAdmin() || (autor() && resource.data.estado != 'aprobada');
+
+      // Fotos: una por documento (0 a 3), en el mismo lote que la ruta
+      match /fotos/{n} {
+        function ruta() { return get(/databases/$(database)/documents/rutas_comunidad/$(id)).data; }
+        function rutaDespues() { return getAfter(/databases/$(database)/documents/rutas_comunidad/$(id)).data; }
+        allow read: if ruta().estado == 'aprobada' || ruta().autor_uid == request.auth.uid || esAdmin();
+        allow create: if cuentaReal()
+          && rutaDespues().autor_uid == request.auth.uid && rutaDespues().estado == 'pendiente'
+          && n in ['0', '1', '2', '3'] && int(n) < rutaDespues().n_fotos
+          && request.resource.data.keys().hasOnly(['data', 'ancho', 'alto', 'bytes'])
+          && request.resource.data.data is string && request.resource.data.data.size() <= 280000
+          && request.resource.data.data.matches('data:image/.*');
+        allow update: if false;
+        allow delete: if esAdmin() || (cuentaReal() && ruta().autor_uid == request.auth.uid && ruta().estado != 'aprobada');
+      }
+    }
+
     /* Pregúntale a Fusa (v7 · Fase 3): preguntas por día de Colombia (UTC-5). 30 con cuenta, 10 como invitado
        (cuenta anónima del dispositivo). Solo se puede sumar de a uno; no se guarda el texto de las preguntas. */
     match /uso_asistente/{uid} {
@@ -365,10 +424,10 @@ service cloud.firestore {
     }
 
     /* ---------- Moderación general (CU-18) ----------
-       El admin puede todo, salvo en banners y eventos: ahí también debe cumplir la validación de su bloque. */
+       El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['banners', 'eventos']);
+      allow write: if esAdmin() && !(coleccion in ['banners', 'eventos', 'rutas_comunidad']);
     }
   }
 }
