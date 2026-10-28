@@ -192,6 +192,21 @@ db.collection('banners').onSnapshot(s=>{
   if(!$('#plegBanner').hidden)montarBanner();
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
+/* ===== API REST (Python · FastAPI, carpeta api/) =====
+   Calendario ICS, GPX de las rutas, reporte del negocio y estado en Diagnóstico. En el plan gratuito de Render el servicio
+   se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo. */
+const API_URL=new URLSearchParams(location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
+async function pedirAPI(ruta,{token=false,segundos=70}={}){
+  const h={};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
+  const r=await conTiempoLimite(fetch(API_URL+ruta,{headers:h}),segundos*1000,'La API no respondió');
+  if(!r.ok){let d='';try{d=(await r.json()).error;}catch(e){}throw Object.assign(new Error(d||('HTTP '+r.status)),{code:'api-'+r.status});}
+  return r;
+}
+async function descargarDeAPI(ruta,nombre,tipo,texto,opc){
+  const r=await pedirAPI(ruta,opc);
+  entregarArchivo(new File([await r.blob()],nombre,{type:tipo}),texto);
+}
+
 /* ===== QUÉ HACER EN FUSA: EVENTOS Y AGENDA (v5 · Fase 4) =====
    Colección eventos. Lectura pública solo de los publicados; cualquier cuenta real puede sugerir (queda pendiente)
    y el admin publica, edita o descarta. Los eventos que ya terminaron se ocultan solos. */
@@ -314,12 +329,14 @@ function renderAgenda(){
       :avisos?'<div class="vacio">'+icon('megaphone',48)+'<b>No hay avisos del municipio '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+'</b><p>Aquí aparecen las jornadas y anuncios de las alcaldías de Fusagasugá y Pasca.</p></div>'
       :'<div class="vacio">'+icon('calendar-days',48)+'<b>No hay eventos '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+(A.cat?' de '+catEvento(A.cat)[1].toLowerCase():'')+'</b><p>¿Sabes de alguno? Cuéntanos y lo publicamos después de revisarlo.</p></div>')
     +'<button class="btn btn-secundario btn-bloque mt-16" id="agSugerir">'+icon('calendar-plus',18)+quien+'</button>'
+    +'<button class="btn btn-ghost btn-bloque" id="agSuscribir">'+icon('calendar-sync',18)+'Suscribirme a la agenda</button>'
     +'</div>'+footerHTML();
   $$('#cuerpo [data-rango]').forEach(b=>b.onclick=()=>{A.rango=b.dataset.rango;render(true);});
   $$('#cuerpo [data-evcat]').forEach(b=>b.onclick=()=>{A.cat=A.cat===b.dataset.evcat?'':b.dataset.evcat;render(true);});
   $$('#cuerpo [data-agvista]').forEach(b=>b.onclick=()=>{A.vista=b.dataset.agvista;render(true);});
   $$('#cuerpo .ev-link').forEach(b=>b.onclick=()=>abrirEvento(b.dataset.evento));
   $('#agSugerir').onclick=sugerirEvento;
+  $('#agSuscribir').onclick=suscribirAgenda;
   // Botón flotante "+" (dentro de la app, encima de la barra inferior; se quita al salir de la Agenda)
   const fab=document.createElement('button');fab.className='fab-agenda';fab.id='agFab';fab.setAttribute('aria-label',textoSugerir());
   fab.innerHTML=icon('plus',28);fab.onclick=sugerirEvento;$('#shell').appendChild(fab);
@@ -336,6 +353,20 @@ async function mapaAgenda(l){
   if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
   m.on('popupopen',ev=>{const b=ev.popup.getElement().querySelector('[data-evento]');if(b)b.onclick=()=>abrirEvento(b.dataset.evento);});
   setTimeout(()=>m.invalidateSize(),200);
+}
+
+// Calendario suscribible (GET /v1/eventos.ics): el calendario del teléfono trae los eventos nuevos solo
+function suscribirAgenda(){
+  const ics=API_URL+'/v1/eventos.ics',webcal=ics.replace(/^https?:/,'webcal:');
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Suscribirme a la agenda</h2>'
+    +'<p class="nota">Los eventos y avisos de Fusa Conecta aparecen en tu calendario y se actualizan solos cada pocas horas.</p>'
+    +'<div class="ev-acc"><a class="btn btn-primario btn-bloque" id="susGoogle" href="https://calendar.google.com/calendar/r?cid='+encodeURIComponent(webcal)+'" target="_blank" rel="noopener">'+icon('calendar-plus',18)+'Agregar a Google Calendar</a>'
+    +'<a class="btn btn-secundario btn-bloque" href="'+webcal+'">'+icon('calendar-days',18)+'Abrir en el calendario del teléfono</a>'
+    +'<button class="btn btn-ghost btn-bloque" id="susCopiar">'+icon('copy',18)+'Copiar el enlace</button></div>'
+    +'<p class="nota-c izq">En iPhone usa «Abrir en el calendario». En Outlook: Agregar calendario → Desde Internet y pega el enlace.</p></div>');
+  $('#sheetGen').setAttribute('aria-label','Suscribirme a la agenda');
+  $('#susGoogle').onclick=()=>medir('agenda_suscripcion',{donde:'google'});
+  $('#susCopiar').onclick=async()=>{try{await navigator.clipboard.writeText(ics);toast('Enlace copiado');}catch(e){toast(ics,8000);}medir('agenda_suscripcion',{donde:'copiar'});};
 }
 
 /* ---------- Ficha del evento ---------- */
@@ -2193,6 +2224,13 @@ async function trazadoReal(id){
     return info._coords.length>=150?info._coords:null;
   }catch(e){return null;}
 }
+// GPX del trazado real (GET /v1/rutas/{id}.gpx): para Wikiloc, Strava, Komoot, OsmAnd o un GPS
+async function descargarGPX(d){
+  const b=$('#detGPX'),antes=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Preparando GPX…';
+  try{await descargarDeAPI('/v1/rutas/'+encodeURIComponent(d.id)+'.gpx',norm(d.nombre).replace(/[^a-z0-9]+/g,'-')+'.gpx','application/gpx+xml','Trazado de '+d.nombre);medir('ruta_gpx',{ruta:d.nombre});}
+  catch(e){toast('No se pudo descargar el GPX. '+(e.code==='tiempo'?'El servicio está despertando: intenta de nuevo en un minuto.':'Intenta más tarde.')+' (Error '+reportarError('gpx',e)+')',5000);}
+  b.disabled=false;b.innerHTML=antes;
+}
 // Vista previa pequeña del relieve en la ficha (MapLibre sin interacción); se elimina al cerrar la ficha
 let mapaPrevia=null;
 function quitarPreviaRelieve(){if(mapaPrevia){try{mapaPrevia.remove();}catch(e){}mapaPrevia=null;}}
@@ -2343,8 +2381,10 @@ function abrirDetalle(id){
     trazadoReal(d.id).then(coords=>{
       const t=$('#detTrazado');if(!t||!$('#ovDetalle').classList.contains('abierto'))return;
       if(coords){
-        t.innerHTML='<button class="btn btn-primario btn-bloque" id="det3D">'+icon('mountain',18)+'Ver ruta en 3D</button>';
+        t.innerHTML='<button class="btn btn-primario btn-bloque" id="det3D">'+icon('mountain',18)+'Ver ruta en 3D</button>'
+          +'<button class="btn btn-secundario btn-bloque mt-8" id="detGPX">'+icon('download',18)+'Descargar GPX</button>';
         $('#det3D').onclick=()=>abrir3D({titulo:d.nombre,linea:coords.map(c=>[c[0],c[1]])});
+        $('#detGPX').onclick=()=>descargarGPX(d);
         const ll=$('#detLlegar');if(ll)ll.href='https://www.google.com/maps/dir/?api=1&destination='+coords[0][0]+','+coords[0][1];
       }else t.innerHTML='<p class="trazado-prep" role="status">'+icon('route',16)+'Trazado en preparación. Pronto podrás ver la ruta en 3D.</p>';
       previaRelieve(d,coords);
@@ -3760,6 +3800,27 @@ function registrarEvento(d,campo){
   if(logueado()&&d.propietario_uid===estado.usuario.uid)return; // el dueño no infla sus propias cifras
   db.collection('comercios').doc(String(d.id)).collection('estadisticas').doc(mesClave()).set({[campo]:FV.increment(1)},{merge:true}).catch(()=>{});
 }
+// Reporte del mes en Excel o PDF (GET /v1/comercios/{id}/reporte, con el token de Firebase del dueño)
+function formReporte(d){
+  const meses=[...Array(6)].map((_,i)=>{const t=new Date();t.setDate(1);t.setMonth(t.getMonth()-i);return mesClave(t);});
+  const nombreMes=m=>{const [a,n]=m.split('-');return new Date(+a,+n-1,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'});};
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Descargar reporte</h2><p class="nota">Vistas de tu ficha, toques en WhatsApp y Llamar, y cupones obtenidos y canjeados de «'+esc(d.nombre)+'».</p>'
+    +'<div class="campo mt-16"><label for="repMes">Mes</label><select class="input" id="repMes">'+meses.map(m=>'<option value="'+m+'">'+nombreMes(m)+'</option>').join('')+'</select></div>'
+    +'<div class="ev-acc"><button class="btn btn-primario btn-bloque" data-formato="xlsx">'+icon('file-spreadsheet',18)+'Excel (.xlsx)</button>'
+    +'<button class="btn btn-secundario btn-bloque" data-formato="pdf">'+icon('file-text',18)+'PDF</button></div>'
+    +'<p class="nota-c izq" id="repEstado" role="status"></p></div>');
+  $('#sheetGen').setAttribute('aria-label','Descargar reporte');
+  $$('#sheetGen [data-formato]').forEach(b=>b.onclick=async()=>{
+    const f=b.dataset.formato,m=$('#repMes').value,botones=$$('#sheetGen [data-formato]');botones.forEach(x=>x.disabled=true);
+    $('#repEstado').textContent='Preparando el reporte… la primera vez del día puede tardar hasta un minuto.';
+    try{
+      await descargarDeAPI('/v1/comercios/'+encodeURIComponent(d.id)+'/reporte?formato='+f+'&mes='+m,'reporte-'+norm(d.nombre).replace(/[^a-z0-9]+/g,'-')+'-'+m+'.'+f,
+        f==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Reporte de '+d.nombre,{token:true});
+      $('#repEstado').textContent='';medir('reporte_negocio',{formato:f});
+    }catch(e){$('#repEstado').textContent='No se pudo generar el reporte: '+(e.code==='api-403'?'solo el dueño puede descargarlo.':e.code==='api-404'?'el negocio aún no está publicado.':e.code==='tiempo'?'el servicio está despertando; intenta de nuevo en un minuto.':'intenta más tarde.')+' (Error '+reportarError('reporte',e)+')';}
+    botones.forEach(x=>x.disabled=false);
+  });
+}
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
   if(!logueado()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de mi negocio</b><p>Inicia sesión para ver y administrar tu negocio.</p></div>';return;}
@@ -3803,6 +3864,7 @@ function renderDashboard(){
     +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar']].concat(prem?[['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]:[])
       .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')
     +(prem?'':'<button class="metrica bloqueada" data-planes>'+icon('trending-up',18)+chipPremium()+'<span>Estadísticas completas: cupones obtenidos y canjeados</span></button>')+'</div>'
+    +(e==='aprobado'?'<button class="btn btn-secundario btn-bloque mt-8" id="aReporte">'+icon('file-down',18)+'Descargar reporte</button>':'')
     +'<div class="acciones-grid">'
     +'<button class="accion destacada" id="aEscanear">'+icon('scan-line',28)+'<b>Escanear cupón</b><span>Valida el cupón de un cliente</span></button>'
     +(prem?'<button class="accion" id="aCupon">'+icon('ticket',28)+'<b>Crear cupón</b><span>Atrae clientes con un beneficio</span></button>'
@@ -3829,6 +3891,7 @@ function renderDashboard(){
   $('#aCupon').onclick=()=>prem?formCupon(d):irAPlanes(d);
   $('#aEditar').onclick=()=>abrirFormComercio(d);
   $('#aQR').onclick=()=>miCodigoQR(d);
+  const ar=$('#aReporte');if(ar)ar.onclick=()=>formReporte(d);
   $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
   $('#aPlan').onclick=()=>irAPlanes(d);
   const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
@@ -4827,6 +4890,7 @@ const PRUEBAS_DIAG=[
   ['Escritura de prueba (diagnostico/'+'tu cuenta)',15000,()=>db.collection('diagnostico').doc(estado.usuario.uid)
     .set({fecha:FV.serverTimestamp(),version:VERSION_APP,navegador:navigator.userAgent.slice(0,200),en_linea:navigator.onLine})],
   ['Cola de escrituras del teléfono',10000,()=>db.waitForPendingWrites()],
+  ['API REST (/v1/salud)',70000,async()=>{const r=await(await pedirAPI('/v1/salud')).json();if(!r.firestore)throw new Error('La API responde, pero no llega a Firestore');}],
   ['Llamada a la IA ('+IA.modelos[0]+')',IA.segundos*1000,async()=>{const m=(await obtenerModeloIA())[0];
     const r=await m.generateContent('Responde {"titulo":"Prueba","categoria":"otro"} sin cambiar nada.');JSON.parse(r.response.text());}]
 ];

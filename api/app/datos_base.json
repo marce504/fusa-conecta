@@ -1,0 +1,2845 @@
+{
+ "generado_desde": "datos.js y rutas/ (node api/exportar_datos.mjs)",
+ "categorias": {
+  "campo": "Vitrina del Campo",
+  "comercio": "Comida y tiendas",
+  "servicios": "Servicios",
+  "turismo": "Turismo y Rutas",
+  "hospedaje": "Hospedaje",
+  "bares": "Bares y Licores",
+  "tramite": "Trámites Municipales"
+ },
+ "subcategorias": {
+  "comercio": [
+   {
+    "k": "comidas",
+    "t": "Comidas"
+   },
+   {
+    "k": "panaderias",
+    "t": "Panaderías"
+   },
+   {
+    "k": "tiendas",
+    "t": "Tiendas"
+   },
+   {
+    "k": "ferreterias",
+    "t": "Ferreterías"
+   }
+  ],
+  "servicios": [
+   {
+    "k": "hogar",
+    "t": "Hogar y reparaciones"
+   },
+   {
+    "k": "belleza",
+    "t": "Belleza"
+   },
+   {
+    "k": "lavanderia",
+    "t": "Lavandería"
+   },
+   {
+    "k": "mecanica",
+    "t": "Mecánica y talleres"
+   },
+   {
+    "k": "tecnologia",
+    "t": "Tecnología"
+   },
+   {
+    "k": "transporte",
+    "t": "Transporte"
+   },
+   {
+    "k": "profesionales",
+    "t": "Profesionales"
+   },
+   {
+    "k": "salud",
+    "t": "Salud y bienestar"
+   },
+   {
+    "k": "mascotas",
+    "t": "Mascotas"
+   },
+   {
+    "k": "educacion",
+    "t": "Educación"
+   }
+  ],
+  "turismo": [
+   {
+    "k": "sendero",
+    "t": "Senderos"
+   },
+   {
+    "k": "mirador",
+    "t": "Miradores"
+   },
+   {
+    "k": "cultural",
+    "t": "Cultura"
+   },
+   {
+    "k": "finca",
+    "t": "Fincas y haciendas"
+   }
+  ]
+ },
+ "plaza": [
+  4.3443,
+  -74.3619
+ ],
+ "comercios": [
+  {
+   "id": "c01",
+   "cat": "campo",
+   "rating": 4.8,
+   "nombre": "Café Sutagao",
+   "desc": "Café de origen cultivado y tostado por familias campesinas del piedemonte fusagasugueño, con secado al sol y tueste artesanal. Catación los fines de semana.",
+   "horario": "Sáb y Dom · 7–2 p.m.",
+   "direccion": "Vereda Bermejal",
+   "tel": "3101110001",
+   "whatsapp": "3101110001",
+   "imagen": "img/comercios/cafe-sutagao.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": true,
+   "prioridadBusqueda": 1,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c02",
+   "cat": "campo",
+   "rating": 4.9,
+   "nombre": "Miel La Aguadita",
+   "desc": "Miel pura de abejas, polen y propóleo del corregimiento de La Aguadita. Recorridos guiados por el apiario con cita previa.",
+   "horario": "Lun-Sáb · 8–4 p.m.",
+   "direccion": "Cto La Aguadita",
+   "tel": "3101110002",
+   "whatsapp": "3101110002",
+   "imagen": "img/comercios/miel-la-aguadita.jpg",
+   "lat": 4.38834,
+   "lng": -74.32489,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c03",
+   "cat": "campo",
+   "rating": 4.7,
+   "nombre": "Artesanías de Balay",
+   "desc": "Cestería y artesanías tradicionales tejidas a mano en fibras naturales por artesanas locales. Piezas por encargo.",
+   "horario": "Lun-Sáb · 8–5 p.m.",
+   "direccion": "Vereda Bosachoque",
+   "tel": "3101110003",
+   "whatsapp": "3101110003",
+   "imagen": "img/comercios/artesanias-de-balay.jpg",
+   "lat": 4.37055,
+   "lng": -74.38747,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c04",
+   "cat": "campo",
+   "rating": 5,
+   "nombre": "Vivero de Orquídeas de Fusa",
+   "desc": "Cattleyas, phalaenopsis y orquídeas nativas cultivadas en Ciudad Jardín. Plantas en flor, sustratos y asesoría.",
+   "horario": "Mar-Dom · 9–5 p.m.",
+   "direccion": "Vereda Bosachoque",
+   "tel": "3101110004",
+   "whatsapp": "3101110004",
+   "imagen": "img/comercios/vivero-de-orquideas-de-fusa.jpg",
+   "lat": 4.37055,
+   "lng": -74.38747,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c05",
+   "cat": "campo",
+   "rating": 4.7,
+   "nombre": "Quesos Campesinos El Triunfo",
+   "desc": "Queso doble crema, campesino y cuajada fresca elaborados a diario con leche de la vereda de forma tradicional.",
+   "horario": "Todos los días · 6–1 p.m.",
+   "direccion": "Vereda El Triunfo",
+   "tel": "3101110005",
+   "whatsapp": "3101110005",
+   "imagen": "img/comercios/quesos-campesinos-el-triunfo.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c06",
+   "cat": "campo",
+   "rating": 4.5,
+   "nombre": "Conservas Doña Rosa",
+   "desc": "Mermeladas de mora, fresa y uchuva hechas sin conservantes con fruta fresca de fincas vecinas y cocción lenta.",
+   "horario": "Mié-Dom · 9–4 p.m.",
+   "direccion": "Vereda Sardinas",
+   "tel": "3101110006",
+   "whatsapp": "3101110006",
+   "imagen": "img/comercios/conservas-dona-rosa.jpg",
+   "lat": 4.31072,
+   "lng": -74.35456,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c07",
+   "cat": "campo",
+   "rating": 4.8,
+   "nombre": "Huerta Orgánica San José",
+   "desc": "Verduras y hortalizas orgánicas sin agroquímicos, cosechadas el mismo día. Canastas semanales a domicilio.",
+   "horario": "Lun/Mié/Vie · 7–12 m.",
+   "direccion": "Vereda Usatama",
+   "tel": "3101110007",
+   "whatsapp": "3101110007",
+   "imagen": "img/comercios/huerta-organica-san-jose.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c08",
+   "cat": "campo",
+   "rating": 4.6,
+   "nombre": "Lácteos La Pradera",
+   "desc": "Leche fresca, yogurt natural y kumis de finca propia. Del establo a tu mesa.",
+   "horario": "Todos los días · 5:30–11 a.m.",
+   "direccion": "Vereda La Cascada",
+   "tel": "3101110008",
+   "whatsapp": "3101110008",
+   "imagen": "img/comercios/lacteos-la-pradera.jpg",
+   "lat": 4.38471,
+   "lng": -74.3904,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c09",
+   "cat": "campo",
+   "rating": 4.9,
+   "nombre": "Tejidos Manos Campesinas",
+   "desc": "Mochilas, ruanas y tejidos en lana por mujeres artesanas del campo, combinando diseños tradicionales y contemporáneos.",
+   "horario": "Jue-Dom · 9–5 p.m.",
+   "direccion": "Vereda Tierra Negra",
+   "tel": "3101110009",
+   "whatsapp": "3101110009",
+   "imagen": "img/comercios/tejidos-manos-campesinas.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c10",
+   "cat": "campo",
+   "rating": 4.7,
+   "nombre": "Vivero Verde Plantas Nativas",
+   "desc": "Plántulas ornamentales, frutales y árboles nativos. Asesoría en siembra y paisajismo.",
+   "horario": "Mar-Dom · 8–5 p.m.",
+   "direccion": "Vereda Novillero",
+   "tel": "3101110010",
+   "whatsapp": "3101110010",
+   "imagen": "img/comercios/vivero-verde-plantas-nativas.jpg",
+   "lat": 4.34539,
+   "lng": -74.40025,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c11",
+   "cat": "comercio",
+   "sub": "ferreterias",
+   "rating": 4.5,
+   "nombre": "Ferretería El Tornillo de Oro",
+   "desc": "Herramientas, materiales de construcción, pintura y eléctricos con asesoría para obra. Despacho a domicilio.",
+   "horario": "Lun-Sáb · 7–7 p.m.",
+   "direccion": "Cra 7 # 6-32, Centro",
+   "tel": "3102220011",
+   "whatsapp": "3102220011",
+   "imagen": "img/comercios/ferreteria-el-tornillo-de-oro.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c12",
+   "cat": "comercio",
+   "sub": "comidas",
+   "rating": 4.7,
+   "nombre": "Pizzería Nápoles Fusa",
+   "desc": "Pizza artesanal en horno de leña, pastas frescas y entradas italianas. Domicilios en todo el casco urbano.",
+   "horario": "Mar-Dom · 4–10:30 p.m.",
+   "direccion": "Cll 18 # 8-15, Balmoral",
+   "tel": "3102220012",
+   "whatsapp": "3102220012",
+   "imagen": "img/comercios/pizzeria-napoles-fusa.jpg",
+   "lat": 4.3331,
+   "lng": -74.36398,
+   "ubicacion_aprox": false,
+   "esPremium": true,
+   "prioridadBusqueda": 1,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c13",
+   "cat": "comercio",
+   "sub": "comidas",
+   "rating": 4.8,
+   "nombre": "La Casona Sumapaceña",
+   "desc": "Cocina típica del Sumapaz: ajiaco, mute, sancocho y bandeja paisa con sazón casera.",
+   "horario": "Todos los días · 11–8 p.m.",
+   "direccion": "Cra 6 # 10-40, Centro",
+   "tel": "3102220013",
+   "whatsapp": "3102220013",
+   "imagen": "img/comercios/la-casona-sumapacena.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c14",
+   "cat": "comercio",
+   "sub": "panaderias",
+   "rating": 4.6,
+   "nombre": "Panadería y Café El Cedro",
+   "desc": "Pan fresco del día, pastelería y café de la región. Encargos de tortas para eventos.",
+   "horario": "Todos los días · 5:30–8 p.m.",
+   "direccion": "Cll 8 # 12-09, Pekín",
+   "tel": "3102220014",
+   "whatsapp": "3102220014",
+   "imagen": "img/comercios/panaderia-y-cafe-el-cedro.jpg",
+   "lat": 4.34387,
+   "lng": -74.35265,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c15",
+   "cat": "servicios",
+   "sub": "salud",
+   "rating": 4.4,
+   "nombre": "Droguería Salud Total",
+   "desc": "Medicamentos, cuidado personal y primeros auxilios. Toma de presión gratuita y domicilio.",
+   "horario": "Todos los días · 7–10 p.m.",
+   "direccion": "Cra 8 # 7-21, Centro",
+   "tel": "3102220015",
+   "whatsapp": "3102220015",
+   "imagen": "img/comercios/drogueria-salud-total.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c16",
+   "cat": "comercio",
+   "sub": "tiendas",
+   "rating": 4.3,
+   "nombre": "Calzado El Paso",
+   "desc": "Calzado para toda la familia: deportivo, formal, escolar y de trabajo.",
+   "horario": "Lun-Sáb · 9–7:30 p.m.",
+   "direccion": "Cll 16 # 7-50, E. Sierra",
+   "tel": "3102220016",
+   "whatsapp": "3102220016",
+   "imagen": "img/comercios/calzado-el-paso.jpg",
+   "lat": 4.34444,
+   "lng": -74.35949,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c17",
+   "cat": "comercio",
+   "sub": "comidas",
+   "rating": 4.7,
+   "nombre": "Heladería Fusa Fresh",
+   "desc": "Helados artesanales, malteadas y postres fríos con frutas frescas de la región.",
+   "horario": "Todos los días · 12–9 p.m.",
+   "direccion": "Cra 7 # 12-18, Centro",
+   "tel": "3102220017",
+   "whatsapp": "3102220017",
+   "imagen": "img/comercios/heladeria-fusa-fresh.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c18",
+   "cat": "comercio",
+   "sub": "tiendas",
+   "rating": 4.5,
+   "nombre": "Papelería Mil Ideas",
+   "desc": "Útiles escolares, fotocopias e impresiones a color, recargas y trámites en línea.",
+   "horario": "Lun-Sáb · 8–7 p.m.",
+   "direccion": "Cll 10 # 9-30, San Mateo",
+   "tel": "3102220018",
+   "whatsapp": "3102220018",
+   "imagen": "img/comercios/papeleria-mil-ideas.jpg",
+   "lat": 4.33305,
+   "lng": -74.37344,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c19",
+   "cat": "servicios",
+   "sub": "mecanica",
+   "rating": 4.6,
+   "nombre": "Taller RápidoMoto",
+   "desc": "Mantenimiento, repuestos y mecánica express para motos de todas las marcas.",
+   "horario": "Lun-Sáb · 7:30–6 p.m.",
+   "direccion": "Av. Las Palmas # 22-14",
+   "tel": "3102220019",
+   "whatsapp": "3102220019",
+   "imagen": "img/comercios/taller-rapidomoto.jpg",
+   "lat": 4.34116,
+   "lng": -74.36677,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c20",
+   "cat": "servicios",
+   "sub": "mascotas",
+   "rating": 4.9,
+   "nombre": "Veterinaria Huellitas",
+   "desc": "Consulta, vacunación, peluquería canina, guardería y urgencias. Planes de salud preventiva.",
+   "horario": "Lun-Sáb · 8–7 · Dom 9–1",
+   "direccion": "Cll 14 # 6-22, Centro",
+   "tel": "3102220020",
+   "whatsapp": "3102220020",
+   "imagen": "img/comercios/veterinaria-huellitas.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c21",
+   "cat": "turismo",
+   "rating": 4.8,
+   "nombre": "Cerro Fusacatán",
+   "desc": "Cerro tutelar de Fusagasugá y uno de sus principales miradores. Caminata y avistamiento de aves al amanecer.",
+   "horario": "Recom. 5–4 p.m.",
+   "direccion": "Costado oriental",
+   "tel": "3103330021",
+   "whatsapp": "3103330021",
+   "imagen": "img/comercios/cerro-fusacatan.jpg",
+   "lat": 4.33237,
+   "lng": -74.33815,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "sendero",
+   "nivelDificultad": "Media"
+  },
+  {
+   "id": "c22",
+   "cat": "turismo",
+   "rating": 4.6,
+   "nombre": "Sendero Cara del Indio",
+   "desc": "Formación rocosa con perfil de indígena. Vistas panorámicas del paisaje sumapaceño.",
+   "horario": "Diurna · 6–5 p.m.",
+   "direccion": "Camino Real del Quininí, Tibacuy (entrada por la vía Viotá–Tibacuy)",
+   "tel": "3103330022",
+   "whatsapp": "3103330022",
+   "imagen": "img/comercios/sendero-cara-del-indio.jpg",
+   "lat": 4.322,
+   "lng": -74.48805,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "sendero",
+   "nivelDificultad": "Media"
+  },
+  {
+   "id": "c23",
+   "cat": "turismo",
+   "rating": 4.7,
+   "nombre": "Corregimiento La Aguadita",
+   "desc": "Clima frío y niebla a 20 min del centro. Senderos de montaña y bosque altoandino.",
+   "horario": "Todo el día · lleva abrigo",
+   "direccion": "Cto La Aguadita",
+   "tel": "3103330023",
+   "whatsapp": "3103330023",
+   "imagen": "img/comercios/corregimiento-la-aguadita.jpg",
+   "lat": 4.38834,
+   "lng": -74.32489,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "sendero",
+   "nivelDificultad": "Alta"
+  },
+  {
+   "id": "c24",
+   "cat": "turismo",
+   "rating": 4.5,
+   "nombre": "Pueblito Fusagasugueño",
+   "desc": "Réplica colonial con artesanías, gastronomía típica y eventos culturales.",
+   "horario": "Mar-Dom · 9–6 p.m.",
+   "direccion": "Sector turístico",
+   "tel": "3103330024",
+   "whatsapp": "3103330024",
+   "imagen": "img/comercios/pueblito-fusagasugueno.jpg",
+   "lat": 4.34582,
+   "lng": -74.37689,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "cultural",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c25",
+   "cat": "turismo",
+   "rating": 4.6,
+   "nombre": "Ruta de los Sutagaos",
+   "desc": "Senderismo por paisajes rurales, miradores y caminos ancestrales del municipio.",
+   "horario": "Guiado · mañana",
+   "direccion": "Zona rural",
+   "tel": "3103330025",
+   "whatsapp": "3103330025",
+   "imagen": "img/comercios/ruta-de-los-sutagaos.jpg",
+   "lat": 4.34495,
+   "lng": -74.36742,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "sendero",
+   "nivelDificultad": "Media"
+  },
+  {
+   "id": "c26",
+   "cat": "turismo",
+   "rating": 4.5,
+   "nombre": "Camino Real de Alaska",
+   "desc": "Antiguo camino empedrado colonial en la vereda Alaska. Caminatas ecológicas y fotografía.",
+   "horario": "Diurna · clima templado",
+   "direccion": "Vereda Alaska",
+   "tel": "3103330026",
+   "whatsapp": "3103330026",
+   "imagen": "img/comercios/camino-real-de-alaska.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "sendero",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c27",
+   "cat": "turismo",
+   "rating": 4.4,
+   "nombre": "Mirador de Ricaurte",
+   "desc": "Punto elevado con vistas del valle y la zona rural. Contemplar el atardecer.",
+   "horario": "Recom. 6–5 p.m.",
+   "direccion": "Sector Ricaurte",
+   "tel": "3103330027",
+   "whatsapp": "3103330027",
+   "imagen": "img/comercios/mirador-de-ricaurte.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "mirador",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c28",
+   "cat": "turismo",
+   "rating": 4.5,
+   "nombre": "Alto de San Benito",
+   "desc": "Sector campestre con miradores naturales. Punto de partida de rutas ecológicas.",
+   "horario": "Todo el día",
+   "direccion": "Sector San Benito",
+   "tel": "3103330028",
+   "whatsapp": "3103330028",
+   "imagen": "img/comercios/alto-de-san-benito.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "mirador",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c29",
+   "cat": "turismo",
+   "rating": 4.6,
+   "nombre": "Iglesia de Belén",
+   "desc": "Templo referente religioso y arquitectónico del centro. Recorrido patrimonial.",
+   "horario": "Según horario misas",
+   "direccion": "Barrio Belén",
+   "tel": "3103330029",
+   "whatsapp": "3103330029",
+   "imagen": "img/comercios/iglesia-de-belen.jpg",
+   "lat": 4.34404,
+   "lng": -74.36126,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "cultural",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c30",
+   "cat": "turismo",
+   "rating": 4.9,
+   "nombre": "Hacienda Coloma – Museo del Café",
+   "desc": "Hacienda cafetera con catación, tienda y senderos. Uno de los grandes atractivos de Fusagasugá.",
+   "horario": "Mar-Dom · 9–4 p.m.",
+   "direccion": "Vía Fusa-Bogotá km 4",
+   "tel": "3103330030",
+   "whatsapp": "3103330030",
+   "imagen": "img/comercios/hacienda-coloma-museo-del-cafe.jpg",
+   "lat": 4.34286,
+   "lng": -74.37764,
+   "ubicacion_aprox": false,
+   "esPremium": true,
+   "prioridadBusqueda": 1,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "finca",
+   "nivelDificultad": "Baja"
+  },
+  {
+   "id": "c31",
+   "cat": "hospedaje",
+   "rating": 4.5,
+   "nombre": "Hotel Casa Tarará",
+   "desc": "Hotel céntrico con habitaciones cómodas, wifi, parqueadero y desayuno incluido.",
+   "horario": "Recepción 24h",
+   "direccion": "Cra 7 # 8-40, Centro",
+   "tel": "3104440031",
+   "whatsapp": "3104440031",
+   "imagen": "img/comercios/hotel-casa-tarara.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c32",
+   "cat": "hospedaje",
+   "rating": 4.7,
+   "nombre": "Hotel Boutique La Quinta",
+   "desc": "Hotel boutique con jardines y zona de descanso. Habitaciones temáticas y atención personalizada.",
+   "horario": "Recepción 24h",
+   "direccion": "Cll 12 # 6-18, Centro",
+   "tel": "3104440032",
+   "whatsapp": "3104440032",
+   "imagen": "img/comercios/hotel-boutique-la-quinta.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": true,
+   "prioridadBusqueda": 1,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c33",
+   "cat": "hospedaje",
+   "rating": 4.4,
+   "nombre": "Hostal Viajero Sumapaz",
+   "desc": "Hostal económico con habitaciones privadas y compartidas. Cocina común para mochileros.",
+   "horario": "Rec. 7–10 p.m.",
+   "direccion": "Cll 16 # 9-25",
+   "tel": "3104440033",
+   "whatsapp": "3104440033",
+   "imagen": "img/comercios/hostal-viajero-sumapaz.jpg",
+   "lat": 4.34495,
+   "lng": -74.36742,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c34",
+   "cat": "hospedaje",
+   "rating": 4.8,
+   "nombre": "Glamping Cielo Verde",
+   "desc": "Domos panorámicos en la montaña con fogata y vistas al valle. Incluye desayuno.",
+   "horario": "Check-in 3p · out 12m",
+   "direccion": "Vereda Bermejal alto",
+   "tel": "3104440034",
+   "whatsapp": "3104440034",
+   "imagen": "img/comercios/glamping-cielo-verde.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c35",
+   "cat": "hospedaje",
+   "rating": 4.6,
+   "nombre": "Hotel Campestre El Vergel",
+   "desc": "Hotel campestre con piscina, zonas verdes y salones para eventos.",
+   "horario": "Recepción 24h",
+   "direccion": "Vía Fusa-Arbeláez km 2",
+   "tel": "3104440035",
+   "whatsapp": "3104440035",
+   "imagen": "img/comercios/hotel-campestre-el-vergel.jpg",
+   "lat": 4.32334,
+   "lng": -74.36584,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c36",
+   "cat": "hospedaje",
+   "rating": 4.3,
+   "nombre": "Aparta-hotel Ciudad Jardín",
+   "desc": "Apartamentos amoblados por noche o temporada con cocina equipada y wifi.",
+   "horario": "Rec. 6–11 p.m.",
+   "direccion": "Cll 6 # 5-12, Centro",
+   "tel": "3104440036",
+   "whatsapp": "3104440036",
+   "imagen": "img/comercios/aparta-hotel-ciudad-jardin.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c37",
+   "cat": "hospedaje",
+   "rating": 4.5,
+   "nombre": "Glamping Bosque de Niebla",
+   "desc": "Glamping de clima frío en La Aguadita. Domos cálidos y fogatas nocturnas.",
+   "horario": "Check-in 3p · out 12m",
+   "direccion": "Cto La Aguadita",
+   "tel": "3104440037",
+   "whatsapp": "3104440037",
+   "imagen": "img/comercios/glamping-bosque-de-niebla.jpg",
+   "lat": 4.38834,
+   "lng": -74.32489,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c38",
+   "cat": "hospedaje",
+   "rating": 4.4,
+   "nombre": "Hotel Plaza Centro",
+   "desc": "Hotel funcional frente a zonas comerciales. Bien ubicado para trámites o compras.",
+   "horario": "Recepción 24h",
+   "direccion": "Cra 6 # 7-55, Centro",
+   "tel": "3104440038",
+   "whatsapp": "3104440038",
+   "imagen": "img/comercios/hotel-plaza-centro.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c39",
+   "cat": "hospedaje",
+   "rating": 4.6,
+   "nombre": "Finca-Hotel Los Cerezos",
+   "desc": "Finca-hotel con piscina, juegos y restaurante. Celebraciones en ambiente campestre.",
+   "horario": "Recepción 24h",
+   "direccion": "Vereda Guavio",
+   "tel": "3104440039",
+   "whatsapp": "3104440039",
+   "imagen": "img/comercios/finca-hotel-los-cerezos.jpg",
+   "lat": 4.28138,
+   "lng": -74.39673,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c40",
+   "cat": "hospedaje",
+   "rating": 4.5,
+   "nombre": "Hostal Mochilero Fusa",
+   "desc": "Hostal juvenil con terraza y planes de senderismo. Ambiente social para viajeros.",
+   "horario": "Rec. 7–11 p.m.",
+   "direccion": "Cll 18 # 7-30, Balmoral",
+   "tel": "3104440040",
+   "whatsapp": "3104440040",
+   "imagen": "img/comercios/hostal-mochilero-fusa.jpg",
+   "lat": 4.3331,
+   "lng": -74.36398,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c41",
+   "cat": "bares",
+   "rating": 4.6,
+   "nombre": "Gastrobar La Terraza",
+   "desc": "Coctelería de autor y música en vivo los fines de semana. Terraza con vista a la ciudad.",
+   "horario": "Jue-Sáb · 5–2 a.m.",
+   "direccion": "Cll 17 # 7-22, Centro",
+   "tel": "3105550041",
+   "whatsapp": "3105550041",
+   "imagen": "img/comercios/gastrobar-la-terraza.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": true,
+   "prioridadBusqueda": 1,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c42",
+   "cat": "bares",
+   "rating": 4.4,
+   "nombre": "Discoteca Luna Club",
+   "desc": "Reguetón, crossover y electrónica. Zona VIP y la mejor rumba del fin de semana.",
+   "horario": "Vie/Sáb · 9–3 a.m.",
+   "direccion": "Av. Las Palmas # 18-40",
+   "tel": "3105550042",
+   "whatsapp": "3105550042",
+   "imagen": "img/comercios/discoteca-luna-club.jpg",
+   "lat": 4.34116,
+   "lng": -74.36677,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c43",
+   "cat": "bares",
+   "rating": 4.5,
+   "nombre": "Estanco El Trago Express",
+   "desc": "Amplia variedad de licores con domicilio rápido en todo el casco urbano.",
+   "horario": "Todos · 10–12 a.m.",
+   "direccion": "Cra 8 # 14-10, Centro",
+   "tel": "3105550043",
+   "whatsapp": "3105550043",
+   "imagen": "img/comercios/estanco-el-trago-express.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c44",
+   "cat": "bares",
+   "rating": 4.7,
+   "nombre": "Bar de Vinos Uvas & Co",
+   "desc": "Carta nacional e importada, tablas de quesos y maridajes guiados en ambiente íntimo.",
+   "horario": "Mié-Sáb · 4–12 a.m.",
+   "direccion": "Cll 12 # 8-05, Centro",
+   "tel": "3105550044",
+   "whatsapp": "3105550044",
+   "imagen": "img/comercios/bar-de-vinos-uvas-co.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c45",
+   "cat": "bares",
+   "rating": 4.6,
+   "nombre": "Cervecería Artesanal Fusa Beer",
+   "desc": "Estilos de barril locales, hamburguesas y alitas. Growlers y domicilios de cerveza fría.",
+   "horario": "Mar-Dom · 3–11 p.m.",
+   "direccion": "Cra 7 # 20-15, Balmoral",
+   "tel": "3105550045",
+   "whatsapp": "3105550045",
+   "imagen": "img/comercios/cerveceria-artesanal-fusa-beer.jpg",
+   "lat": 4.3331,
+   "lng": -74.36398,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c46",
+   "cat": "bares",
+   "rating": 4.3,
+   "nombre": "Karaoke Las Vegas",
+   "desc": "Cabinas privadas con gran catálogo de canciones, cocteles y pasabocas.",
+   "horario": "Jue-Sáb · 6–2 a.m.",
+   "direccion": "Cll 16 # 6-28, Centro",
+   "tel": "3105550046",
+   "whatsapp": "3105550046",
+   "imagen": "img/comercios/karaoke-las-vegas.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c47",
+   "cat": "bares",
+   "rating": 4.5,
+   "nombre": "Licorera 24h Don Licor",
+   "desc": "Domicilios nocturnos de cervezas, aguardiente, ron y mezcladores las 24 horas.",
+   "horario": "Todos · 24 horas",
+   "direccion": "Av. Las Palmas # 25-03",
+   "tel": "3105550047",
+   "whatsapp": "3105550047",
+   "imagen": "img/comercios/licorera-24h-don-licor.jpg",
+   "lat": 4.34243,
+   "lng": -74.36934,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c48",
+   "cat": "bares",
+   "rating": 4.5,
+   "nombre": "Lounge Bar Selva",
+   "desc": "Coctelería tiki, música chill y zona al aire libre. After office y noches tranquilas.",
+   "horario": "Mié-Sáb · 5–1 a.m.",
+   "direccion": "Cll 19 # 8-50, Centro",
+   "tel": "3105550048",
+   "whatsapp": "3105550048",
+   "imagen": "img/comercios/lounge-bar-selva.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c49",
+   "cat": "bares",
+   "rating": 4.4,
+   "nombre": "Bar Rockola El Recuerdo",
+   "desc": "Música popular con clásicos del despecho y la salsa. Tradición rumbera del centro.",
+   "horario": "Jue-Dom · 4–1 a.m.",
+   "direccion": "Cra 6 # 13-12, Centro",
+   "tel": "3105550049",
+   "whatsapp": "3105550049",
+   "imagen": "img/comercios/bar-rockola-el-recuerdo.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c50",
+   "cat": "bares",
+   "rating": 4.7,
+   "nombre": "Cocktail Bar Mixología 360",
+   "desc": "Coctelería de autor con bartenders profesionales y barra en vivo.",
+   "horario": "Jue-Sáb · 6–2 a.m.",
+   "direccion": "Cll 17 # 9-14, Centro",
+   "tel": "3105550050",
+   "whatsapp": "3105550050",
+   "imagen": "img/comercios/cocktail-bar-mixologia-360.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c51",
+   "cat": "tramite",
+   "rating": 4.2,
+   "nombre": "Alcaldía Municipal de Fusagasugá",
+   "desc": "Trámites de gobierno, hacienda, planeación y atención ciudadana.",
+   "horario": "Lun-Vie · 8–12 y 2–6",
+   "direccion": "Calle 6 N° 6-24, Centro",
+   "tel": "6018868181",
+   "whatsapp": "",
+   "imagen": "img/comercios/alcaldia-municipal-de-fusagasuga.jpg",
+   "lat": 4.3443,
+   "lng": -74.36194,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "https://www.fusagasuga-cundinamarca.gov.co",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c52",
+   "cat": "tramite",
+   "rating": 4.3,
+   "nombre": "Notaría Primera de Fusagasugá",
+   "desc": "Autenticaciones, registro civil, escrituras, matrimonios y sucesiones.",
+   "horario": "Lun-Vie · 8–1 y 2–5",
+   "direccion": "Calle 9 N° 7-21, Centro",
+   "tel": "6018731234",
+   "whatsapp": "",
+   "imagen": "img/comercios/notaria-primera-de-fusagasuga.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c53",
+   "cat": "tramite",
+   "rating": 4.2,
+   "nombre": "Notaría Segunda de Fusagasugá",
+   "desc": "Jornada continua: autenticación, registro civil, matrimonios y sucesiones.",
+   "horario": "Lun-Vie · 8–5 · Sáb 8–12",
+   "direccion": "Cra 8 N° 8-13, Centro",
+   "tel": "6018735678",
+   "whatsapp": "",
+   "imagen": "img/comercios/notaria-segunda-de-fusagasuga.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c54",
+   "cat": "tramite",
+   "rating": 4.9,
+   "nombre": "Bomberos Voluntarios de Fusagasugá",
+   "desc": "Incendios, rescates y emergencias 24 horas. Capacitaciones e inspecciones.",
+   "horario": "Emergencias · 24h",
+   "direccion": "Carrera 5 N° 9-02",
+   "tel": "3115853577",
+   "whatsapp": "3115853577",
+   "imagen": "img/comercios/bomberos-voluntarios-de-fusagasuga.jpg",
+   "lat": 4.3289,
+   "lng": -74.3653,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c55",
+   "cat": "tramite",
+   "rating": 4.6,
+   "nombre": "SENA – Centro Agroecológico",
+   "desc": "Formación gratuita en áreas agroindustriales, administrativas y turismo.",
+   "horario": "Lun-Vie · 7–5 p.m.",
+   "direccion": "Av. Manuel H. Cárdenas, Calle 16",
+   "tel": "6018673476",
+   "whatsapp": "",
+   "imagen": "img/comercios/sena-centro-agroecologico.jpg",
+   "lat": 4.33911,
+   "lng": -74.36644,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "https://www.sena.edu.co",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c56",
+   "cat": "tramite",
+   "rating": 4.7,
+   "nombre": "Cruz Roja – Fusagasugá",
+   "desc": "Atención prehospitalaria, primeros auxilios y capacitaciones. Línea 132.",
+   "horario": "Lun-Vie · 8–12 y 2–5",
+   "direccion": "Centro, Fusagasugá",
+   "tel": "132",
+   "whatsapp": "",
+   "imagen": "img/comercios/cruz-roja-fusagasuga.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c57",
+   "cat": "tramite",
+   "rating": 4,
+   "nombre": "Fiscalía General – Fusagasugá",
+   "desc": "Denuncias y actuaciones penales. Orientación a víctimas. Línea 122.",
+   "horario": "Lun-Vie · 8–5 p.m.",
+   "direccion": "Centro, Fusagasugá",
+   "tel": "122",
+   "whatsapp": "",
+   "imagen": "img/comercios/fiscalia-general-fusagasuga.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c58",
+   "cat": "tramite",
+   "rating": 4.1,
+   "nombre": "Comisaría de Familia",
+   "desc": "Violencia intrafamiliar, conciliaciones y medidas de protección con acompañamiento.",
+   "horario": "Lun-Vie · 8–12 y 2–6",
+   "direccion": "Calle 6 N° 6-24",
+   "tel": "6018868181",
+   "whatsapp": "",
+   "imagen": "img/comercios/comisaria-de-familia.jpg",
+   "lat": 4.34047,
+   "lng": -74.3656,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c59",
+   "cat": "tramite",
+   "rating": 4.4,
+   "nombre": "Casa de la Mujer",
+   "desc": "Orientación, asesoría jurídica y psicológica. Línea Púrpura 155.",
+   "horario": "Lun-Vie · 8–12 y 2–6",
+   "direccion": "Centro, Fusagasugá",
+   "tel": "155",
+   "whatsapp": "",
+   "imagen": "img/comercios/casa-de-la-mujer.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c60",
+   "cat": "tramite",
+   "rating": 4,
+   "nombre": "Bancolombia – Sucursal Fusagasugá",
+   "desc": "Retiros, consignaciones y asesoría financiera. Cajeros automáticos y atención en caja.",
+   "horario": "Lun-Vie · 9–4 p.m.",
+   "direccion": "Centro, Fusagasugá",
+   "tel": "6014040",
+   "whatsapp": "",
+   "imagen": "img/comercios/bancolombia-sucursal-fusagasuga.jpg",
+   "lat": 4.34307,
+   "lng": -74.36328,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c61",
+   "cat": "campo",
+   "rating": 4.5,
+   "nombre": "Ofalahiatu Vivero",
+   "desc": "Venta de todo tipo de plantas",
+   "horario": "Consultar directamente",
+   "direccion": "La Palma 3",
+   "tel": "3015472950",
+   "whatsapp": "3015472950",
+   "imagen": "img/comercios/ofalahiatu-vivero.jpg",
+   "lat": 4.3369,
+   "lng": -74.3638,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c62",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licorera La Tasca VIP",
+   "desc": "Licorera abierta las 24 horas con domicilios en Fusagasugá y Chinauta. Licores nacionales e importados, cervezas y mezcladores.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cl. 22 # 5-14 (una cuadra arriba del semáforo de la 22 con 6ª)",
+   "tel": "3203175876",
+   "whatsapp": "3203175876",
+   "imagen": "",
+   "lat": 4.3283136,
+   "lng": -74.3666462,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c63",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licores & Estanco B Y K 24/7",
+   "desc": "Licores y estanco abierto todo el día y toda la noche. Venta en el punto y pedidos a domicilio.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Diagonal 24A # 39A-95 · Cl. 7A # 12-07",
+   "tel": "3214280188",
+   "whatsapp": "3214280188",
+   "imagen": "",
+   "lat": 4.3425495,
+   "lng": -74.3657166,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c64",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licorera Alquimia CC",
+   "desc": "Tienda de bebidas alcohólicas abierta las 24 horas. Venta en el punto y domicilios.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cra. 3 # 17-75",
+   "tel": "3108996802",
+   "whatsapp": "3108996802",
+   "imagen": "",
+   "lat": 4.3322388,
+   "lng": -74.3630423,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c65",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licorera 24 Horas El Beber Me Llama",
+   "desc": "Licorera con servicio a domicilio las 24 horas en Fusagasugá.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Transversal 37",
+   "tel": "3160438182",
+   "whatsapp": "3160438182",
+   "imagen": "",
+   "lat": 4.3297018,
+   "lng": -74.3796163,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c66",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Beer City Fusagasugá",
+   "desc": "Licores y cerveza fría las 24 horas en el centro de Fusagasugá.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cra. 7 # 18-48",
+   "tel": "3228585656",
+   "whatsapp": "3228585656",
+   "imagen": "",
+   "lat": 4.3328402,
+   "lng": -74.3650873,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c67",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licores Express Fusa",
+   "desc": "Licores las 24 horas. Venta en el punto y pedidos por teléfono o WhatsApp.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cra. 3 # 18E-19",
+   "tel": "3008575460",
+   "whatsapp": "3008575460",
+   "imagen": "",
+   "lat": 4.3299842,
+   "lng": -74.3633404,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c68",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licores San Valentín",
+   "desc": "Licorera abierta las 24 horas.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cl. 9B # 1A-01",
+   "tel": "3243467138",
+   "whatsapp": "3243467138",
+   "imagen": "",
+   "lat": 4.3399063,
+   "lng": -74.3579594,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c69",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Licorera Barril sin Fondo",
+   "desc": "Licorera abierta las 24 horas.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cl. 10A # 1B-45",
+   "tel": "3046351223",
+   "whatsapp": "3046351223",
+   "imagen": "",
+   "lat": 4.3356354,
+   "lng": -74.3651128,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c70",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "La Tequilera Licores",
+   "desc": "Licores y discoteca abierta las 24 horas, frente al Hotel Catama.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Cl. 22, frente al Hotel Catama",
+   "tel": "3115473710",
+   "whatsapp": "3115473710",
+   "imagen": "",
+   "lat": 4.3301842,
+   "lng": -74.3810164,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  },
+  {
+   "id": "c71",
+   "cat": "bares",
+   "rating": 0,
+   "nombre": "Regional Licores",
+   "desc": "Tienda de bebidas alcohólicas abierta las 24 horas. Consulta la dirección por teléfono.",
+   "horario": "Todos los días · 24 horas",
+   "direccion": "Fusagasugá (consultar dirección por teléfono)",
+   "tel": "3219147653",
+   "whatsapp": "3219147653",
+   "imagen": "",
+   "lat": 4.3278093,
+   "lng": -74.3917879,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá"
+  }
+ ],
+ "rutas": {
+  "c21": {
+   "nombre": "Sendero al Cerro Fusacatán",
+   "dificultad": "Media",
+   "duracion": "2h 30min",
+   "distancia_km": 2.17,
+   "desnivel_m": 483,
+   "elevacion_min": 1784,
+   "elevacion_max": 2267
+  },
+  "c22": {
+   "nombre": "Sendero Cara del Indio por el Camino Real del Quininí",
+   "dificultad": "Media",
+   "duracion": "1h 30min de subida",
+   "distancia_km": 3.98,
+   "desnivel_m": 421,
+   "elevacion_min": 1485,
+   "elevacion_max": 1901
+  },
+  "c23": {
+   "nombre": "Ruta a La Aguadita",
+   "dificultad": "Alta",
+   "duracion": "3h 30min",
+   "distancia_km": 5.49,
+   "desnivel_m": 215,
+   "elevacion_min": 1799,
+   "elevacion_max": 2014
+  }
+ },
+ "trazados": {
+  "c22": {
+   "nombre": "Sendero Cara del Indio por el Camino Real del Quininí",
+   "fuente": "OpenStreetMap (© OpenStreetMap contributors, ODbL): Camino Real del Quininí y sendero Panorámica; alturas SRTM 30 m",
+   "fecha": "2026-10-23",
+   "puntos": 200,
+   "distancia_km": 3.98,
+   "desnivel_m": 421,
+   "coordenadas": [
+    [
+     4.335865,
+     -74.484855,
+     1488
+    ],
+    [
+     4.335826,
+     -74.485031,
+     1490
+    ],
+    [
+     4.335802,
+     -74.485209,
+     1491
+    ],
+    [
+     4.335772,
+     -74.485387,
+     1490
+    ],
+    [
+     4.335738,
+     -74.485564,
+     1488
+    ],
+    [
+     4.335698,
+     -74.48574,
+     1487
+    ],
+    [
+     4.335622,
+     -74.485902,
+     1485
+    ],
+    [
+     4.335532,
+     -74.486058,
+     1486
+    ],
+    [
+     4.335439,
+     -74.486212,
+     1487
+    ],
+    [
+     4.335337,
+     -74.48636,
+     1488
+    ],
+    [
+     4.33523,
+     -74.486505,
+     1490
+    ],
+    [
+     4.335117,
+     -74.486644,
+     1492
+    ],
+    [
+     4.334997,
+     -74.486778,
+     1493
+    ],
+    [
+     4.334866,
+     -74.486902,
+     1493
+    ],
+    [
+     4.334743,
+     -74.487033,
+     1493
+    ],
+    [
+     4.334626,
+     -74.48717,
+     1493
+    ],
+    [
+     4.334467,
+     -74.487233,
+     1494
+    ],
+    [
+     4.334288,
+     -74.48723,
+     1495
+    ],
+    [
+     4.334115,
+     -74.487267,
+     1497
+    ],
+    [
+     4.333937,
+     -74.487288,
+     1499
+    ],
+    [
+     4.333761,
+     -74.487268,
+     1502
+    ],
+    [
+     4.333603,
+     -74.487183,
+     1503
+    ],
+    [
+     4.333444,
+     -74.487097,
+     1504
+    ],
+    [
+     4.333286,
+     -74.487012,
+     1504
+    ],
+    [
+     4.333128,
+     -74.486927,
+     1504
+    ],
+    [
+     4.33297,
+     -74.486841,
+     1502
+    ],
+    [
+     4.332811,
+     -74.486756,
+     1501
+    ],
+    [
+     4.332733,
+     -74.486827,
+     1503
+    ],
+    [
+     4.332858,
+     -74.486956,
+     1507
+    ],
+    [
+     4.332955,
+     -74.487106,
+     1510
+    ],
+    [
+     4.333042,
+     -74.487264,
+     1513
+    ],
+    [
+     4.333128,
+     -74.487422,
+     1515
+    ],
+    [
+     4.33324,
+     -74.487562,
+     1517
+    ],
+    [
+     4.33336,
+     -74.487696,
+     1519
+    ],
+    [
+     4.333456,
+     -74.487845,
+     1520
+    ],
+    [
+     4.333394,
+     -74.488007,
+     1524
+    ],
+    [
+     4.333264,
+     -74.488129,
+     1528
+    ],
+    [
+     4.333215,
+     -74.488299,
+     1530
+    ],
+    [
+     4.333232,
+     -74.488478,
+     1533
+    ],
+    [
+     4.333293,
+     -74.488647,
+     1535
+    ],
+    [
+     4.333361,
+     -74.488813,
+     1537
+    ],
+    [
+     4.33343,
+     -74.48898,
+     1538
+    ],
+    [
+     4.333494,
+     -74.489148,
+     1541
+    ],
+    [
+     4.33356,
+     -74.489315,
+     1544
+    ],
+    [
+     4.333636,
+     -74.489479,
+     1548
+    ],
+    [
+     4.33359,
+     -74.489639,
+     1554
+    ],
+    [
+     4.33347,
+     -74.489768,
+     1558
+    ],
+    [
+     4.333406,
+     -74.489937,
+     1562
+    ],
+    [
+     4.33331,
+     -74.490086,
+     1565
+    ],
+    [
+     4.333185,
+     -74.490215,
+     1567
+    ],
+    [
+     4.333078,
+     -74.490357,
+     1571
+    ],
+    [
+     4.333006,
+     -74.490517,
+     1576
+    ],
+    [
+     4.332854,
+     -74.490481,
+     1580
+    ],
+    [
+     4.332688,
+     -74.490466,
+     1583
+    ],
+    [
+     4.332513,
+     -74.490469,
+     1586
+    ],
+    [
+     4.332354,
+     -74.490386,
+     1585
+    ],
+    [
+     4.332194,
+     -74.490304,
+     1583
+    ],
+    [
+     4.332033,
+     -74.490224,
+     1585
+    ],
+    [
+     4.331866,
+     -74.490159,
+     1587
+    ],
+    [
+     4.331694,
+     -74.490108,
+     1589
+    ],
+    [
+     4.33152,
+     -74.490087,
+     1593
+    ],
+    [
+     4.331617,
+     -74.490212,
+     1594
+    ],
+    [
+     4.331678,
+     -74.490379,
+     1597
+    ],
+    [
+     4.331693,
+     -74.490559,
+     1600
+    ],
+    [
+     4.331704,
+     -74.490737,
+     1602
+    ],
+    [
+     4.331791,
+     -74.490893,
+     1606
+    ],
+    [
+     4.331869,
+     -74.491051,
+     1613
+    ],
+    [
+     4.331909,
+     -74.491227,
+     1619
+    ],
+    [
+     4.331912,
+     -74.491406,
+     1622
+    ],
+    [
+     4.331881,
+     -74.491584,
+     1625
+    ],
+    [
+     4.331851,
+     -74.491761,
+     1629
+    ],
+    [
+     4.331835,
+     -74.491941,
+     1633
+    ],
+    [
+     4.331749,
+     -74.492097,
+     1636
+    ],
+    [
+     4.331713,
+     -74.492273,
+     1640
+    ],
+    [
+     4.331731,
+     -74.49245,
+     1646
+    ],
+    [
+     4.33183,
+     -74.492599,
+     1648
+    ],
+    [
+     4.331955,
+     -74.492724,
+     1648
+    ],
+    [
+     4.332105,
+     -74.492824,
+     1649
+    ],
+    [
+     4.332251,
+     -74.492928,
+     1654
+    ],
+    [
+     4.332365,
+     -74.493067,
+     1662
+    ],
+    [
+     4.332404,
+     -74.493234,
+     1668
+    ],
+    [
+     4.332338,
+     -74.493401,
+     1672
+    ],
+    [
+     4.332259,
+     -74.493563,
+     1674
+    ],
+    [
+     4.33218,
+     -74.493725,
+     1676
+    ],
+    [
+     4.332101,
+     -74.493886,
+     1679
+    ],
+    [
+     4.332022,
+     -74.494048,
+     1681
+    ],
+    [
+     4.331956,
+     -74.494216,
+     1683
+    ],
+    [
+     4.331898,
+     -74.494386,
+     1686
+    ],
+    [
+     4.331834,
+     -74.494553,
+     1688
+    ],
+    [
+     4.331721,
+     -74.494693,
+     1688
+    ],
+    [
+     4.331608,
+     -74.494834,
+     1691
+    ],
+    [
+     4.331496,
+     -74.494974,
+     1693
+    ],
+    [
+     4.331389,
+     -74.495119,
+     1695
+    ],
+    [
+     4.331293,
+     -74.495271,
+     1697
+    ],
+    [
+     4.331281,
+     -74.495448,
+     1704
+    ],
+    [
+     4.331275,
+     -74.495628,
+     1709
+    ],
+    [
+     4.331265,
+     -74.495808,
+     1713
+    ],
+    [
+     4.331245,
+     -74.495987,
+     1717
+    ],
+    [
+     4.331181,
+     -74.496155,
+     1721
+    ],
+    [
+     4.331136,
+     -74.496327,
+     1725
+    ],
+    [
+     4.330986,
+     -74.496376,
+     1727
+    ],
+    [
+     4.330807,
+     -74.496382,
+     1727
+    ],
+    [
+     4.330632,
+     -74.496416,
+     1729
+    ],
+    [
+     4.330465,
+     -74.496374,
+     1733
+    ],
+    [
+     4.330293,
+     -74.496324,
+     1738
+    ],
+    [
+     4.330117,
+     -74.496303,
+     1743
+    ],
+    [
+     4.329992,
+     -74.496392,
+     1754
+    ],
+    [
+     4.329816,
+     -74.496364,
+     1753
+    ],
+    [
+     4.329639,
+     -74.496389,
+     1757
+    ],
+    [
+     4.32954,
+     -74.49647,
+     1766
+    ],
+    [
+     4.3295,
+     -74.496525,
+     1772
+    ],
+    [
+     4.329387,
+     -74.496608,
+     1784
+    ],
+    [
+     4.329288,
+     -74.496704,
+     1797
+    ],
+    [
+     4.329278,
+     -74.496833,
+     1806
+    ],
+    [
+     4.329399,
+     -74.496967,
+     1809
+    ],
+    [
+     4.329523,
+     -74.497097,
+     1813
+    ],
+    [
+     4.329558,
+     -74.497242,
+     1821
+    ],
+    [
+     4.3297,
+     -74.497351,
+     1821
+    ],
+    [
+     4.329777,
+     -74.497488,
+     1826
+    ],
+    [
+     4.329603,
+     -74.497534,
+     1835
+    ],
+    [
+     4.329547,
+     -74.497652,
+     1844
+    ],
+    [
+     4.329677,
+     -74.497776,
+     1846
+    ],
+    [
+     4.329793,
+     -74.497913,
+     1851
+    ],
+    [
+     4.329684,
+     -74.497942,
+     1857
+    ],
+    [
+     4.329512,
+     -74.497912,
+     1860
+    ],
+    [
+     4.329356,
+     -74.497821,
+     1859
+    ],
+    [
+     4.3292,
+     -74.497732,
+     1860
+    ],
+    [
+     4.329051,
+     -74.497631,
+     1859
+    ],
+    [
+     4.328897,
+     -74.497542,
+     1859
+    ],
+    [
+     4.328729,
+     -74.497491,
+     1859
+    ],
+    [
+     4.32857,
+     -74.497408,
+     1858
+    ],
+    [
+     4.328405,
+     -74.497359,
+     1859
+    ],
+    [
+     4.328316,
+     -74.497236,
+     1860
+    ],
+    [
+     4.328157,
+     -74.497169,
+     1862
+    ],
+    [
+     4.328026,
+     -74.497044,
+     1870
+    ],
+    [
+     4.32791,
+     -74.496914,
+     1878
+    ],
+    [
+     4.327831,
+     -74.496778,
+     1887
+    ],
+    [
+     4.327683,
+     -74.496678,
+     1888
+    ],
+    [
+     4.327642,
+     -74.496511,
+     1889
+    ],
+    [
+     4.32763,
+     -74.496332,
+     1890
+    ],
+    [
+     4.327619,
+     -74.496152,
+     1891
+    ],
+    [
+     4.327608,
+     -74.495972,
+     1892
+    ],
+    [
+     4.327587,
+     -74.495793,
+     1892
+    ],
+    [
+     4.327562,
+     -74.495615,
+     1893
+    ],
+    [
+     4.327537,
+     -74.495436,
+     1892
+    ],
+    [
+     4.327499,
+     -74.495264,
+     1893
+    ],
+    [
+     4.327369,
+     -74.495141,
+     1893
+    ],
+    [
+     4.327238,
+     -74.495017,
+     1897
+    ],
+    [
+     4.327147,
+     -74.494864,
+     1899
+    ],
+    [
+     4.327065,
+     -74.494703,
+     1901
+    ],
+    [
+     4.326983,
+     -74.494543,
+     1894
+    ],
+    [
+     4.326895,
+     -74.494386,
+     1889
+    ],
+    [
+     4.326795,
+     -74.494237,
+     1885
+    ],
+    [
+     4.326695,
+     -74.494087,
+     1884
+    ],
+    [
+     4.326596,
+     -74.493937,
+     1885
+    ],
+    [
+     4.326496,
+     -74.493787,
+     1887
+    ],
+    [
+     4.326396,
+     -74.493637,
+     1892
+    ],
+    [
+     4.326279,
+     -74.4935,
+     1886
+    ],
+    [
+     4.32616,
+     -74.493366,
+     1881
+    ],
+    [
+     4.326041,
+     -74.493231,
+     1878
+    ],
+    [
+     4.325922,
+     -74.493096,
+     1875
+    ],
+    [
+     4.325794,
+     -74.492971,
+     1873
+    ],
+    [
+     4.325649,
+     -74.492865,
+     1870
+    ],
+    [
+     4.325504,
+     -74.492758,
+     1866
+    ],
+    [
+     4.325394,
+     -74.492617,
+     1860
+    ],
+    [
+     4.325286,
+     -74.492473,
+     1856
+    ],
+    [
+     4.325196,
+     -74.492318,
+     1855
+    ],
+    [
+     4.32512,
+     -74.492155,
+     1854
+    ],
+    [
+     4.325043,
+     -74.491991,
+     1853
+    ],
+    [
+     4.324991,
+     -74.491819,
+     1851
+    ],
+    [
+     4.32494,
+     -74.491647,
+     1847
+    ],
+    [
+     4.324876,
+     -74.491481,
+     1839
+    ],
+    [
+     4.324753,
+     -74.49135,
+     1838
+    ],
+    [
+     4.324626,
+     -74.491224,
+     1837
+    ],
+    [
+     4.32446,
+     -74.491154,
+     1841
+    ],
+    [
+     4.324295,
+     -74.491084,
+     1841
+    ],
+    [
+     4.324132,
+     -74.49101,
+     1840
+    ],
+    [
+     4.32402,
+     -74.490869,
+     1839
+    ],
+    [
+     4.323908,
+     -74.490728,
+     1837
+    ],
+    [
+     4.323796,
+     -74.490587,
+     1835
+    ],
+    [
+     4.323646,
+     -74.490494,
+     1832
+    ],
+    [
+     4.323487,
+     -74.49041,
+     1830
+    ],
+    [
+     4.323348,
+     -74.490296,
+     1829
+    ],
+    [
+     4.323208,
+     -74.490183,
+     1825
+    ],
+    [
+     4.323069,
+     -74.490069,
+     1823
+    ],
+    [
+     4.32293,
+     -74.489955,
+     1822
+    ],
+    [
+     4.32279,
+     -74.489842,
+     1822
+    ],
+    [
+     4.322678,
+     -74.489705,
+     1824
+    ],
+    [
+     4.322588,
+     -74.489549,
+     1824
+    ],
+    [
+     4.322498,
+     -74.489393,
+     1825
+    ],
+    [
+     4.322408,
+     -74.489237,
+     1824
+    ],
+    [
+     4.322322,
+     -74.489079,
+     1826
+    ],
+    [
+     4.322207,
+     -74.488945,
+     1833
+    ],
+    [
+     4.322072,
+     -74.488826,
+     1833
+    ],
+    [
+     4.321959,
+     -74.488687,
+     1832
+    ],
+    [
+     4.321833,
+     -74.488559,
+     1830
+    ],
+    [
+     4.321735,
+     -74.488416,
+     1829
+    ],
+    [
+     4.321731,
+     -74.488245,
+     1826
+    ],
+    [
+     4.321836,
+     -74.488109,
+     1810
+    ],
+    [
+     4.321998,
+     -74.488045,
+     1786
+    ]
+   ]
+  }
+ },
+ "emergencias": {
+  "fusagasuga": [
+   {
+    "entidad": "Línea única de emergencias",
+    "tipo": "Seguridad",
+    "numero": "123",
+    "detalle": "Policía, tránsito y atención de emergencias 24 h"
+   },
+   {
+    "entidad": "Fiscalía (denuncias)",
+    "tipo": "Seguridad",
+    "numero": "122",
+    "detalle": "Denuncias y orientación a víctimas"
+   },
+   {
+    "entidad": "Hospital San Rafael",
+    "tipo": "Salud",
+    "numero": "6018672051",
+    "detalle": "Urgencias médicas · Fusagasugá"
+   },
+   {
+    "entidad": "Cruz Roja",
+    "tipo": "Salud",
+    "numero": "132",
+    "detalle": "Atención prehospitalaria"
+   },
+   {
+    "entidad": "Ambulancias",
+    "tipo": "Salud",
+    "numero": "125",
+    "detalle": "Servicio de ambulancias"
+   },
+   {
+    "entidad": "Bomberos Voluntarios Fusagasugá",
+    "tipo": "Rescate",
+    "numero": "3115853577",
+    "detalle": "Incendios y rescates 24 h"
+   },
+   {
+    "entidad": "Bomberos (línea nacional)",
+    "tipo": "Rescate",
+    "numero": "119",
+    "detalle": "Incendios y rescates"
+   },
+   {
+    "entidad": "Defensa Civil",
+    "tipo": "Rescate",
+    "numero": "144",
+    "detalle": "Desastres y búsqueda"
+   },
+   {
+    "entidad": "Alcaldía de Fusagasugá",
+    "tipo": "Atención ciudadana",
+    "numero": "6018868181",
+    "detalle": "Gestión del riesgo y atención al ciudadano"
+   },
+   {
+    "entidad": "Línea Púrpura / Mujer",
+    "tipo": "Atención ciudadana",
+    "numero": "155",
+    "detalle": "Orientación a mujeres víctimas de violencia"
+   },
+   {
+    "entidad": "ICBF",
+    "tipo": "Atención ciudadana",
+    "numero": "141",
+    "detalle": "Protección de niñas, niños y adolescentes"
+   }
+  ],
+  "pasca": [
+   {
+    "entidad": "Línea única de emergencias",
+    "tipo": "Seguridad",
+    "numero": "123",
+    "detalle": "Policía y emergencias 24 h · opera en Pasca"
+   },
+   {
+    "entidad": "Cruz Roja",
+    "tipo": "Salud",
+    "numero": "132",
+    "detalle": "Atención prehospitalaria"
+   },
+   {
+    "entidad": "Ambulancias",
+    "tipo": "Salud",
+    "numero": "125",
+    "detalle": "Servicio de ambulancias"
+   },
+   {
+    "entidad": "Bomberos (línea nacional)",
+    "tipo": "Rescate",
+    "numero": "119",
+    "detalle": "Incendios y rescates"
+   },
+   {
+    "entidad": "Defensa Civil",
+    "tipo": "Rescate",
+    "numero": "144",
+    "detalle": "Desastres y búsqueda en zona rural"
+   },
+   {
+    "entidad": "Línea Púrpura / Mujer",
+    "tipo": "Atención ciudadana",
+    "numero": "155",
+    "detalle": "Orientación a mujeres víctimas de violencia"
+   },
+   {
+    "entidad": "ICBF",
+    "tipo": "Atención ciudadana",
+    "numero": "141",
+    "detalle": "Protección de niñas, niños y adolescentes"
+   }
+  ]
+ }
+}

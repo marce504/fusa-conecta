@@ -1,0 +1,29 @@
+# Despliegue gratuito de la API REST en Render (https://render.com) · ver api/LEEME.md
+# Render → New → Blueprint → elige este repositorio. Pide el valor del secreto FIREBASE_SA (sync: false).
+services:
+  - type: web
+    name: fusa-conecta-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
+    healthCheckPath: /v1/salud
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - api/**
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+      - key: FIREBASE_PROJECT
+        value: fusa-conecta
+      - key: ORIGENES
+        value: https://fusa-conecta.web.app
+      - key: API_URL
+        value: https://fusa-conecta-api.onrender.com
+      - key: LIMITE
+        value: 60/minute
+      - key: FIREBASE_SA
+        sync: false
