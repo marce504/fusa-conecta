@@ -52,14 +52,18 @@ jobs:
           fi
       - name: Firmar el APK y el AAB
         run: |
-          BT="$ANDROID_HOME/build-tools/$BUILD_TOOLS"; KS="$RUNNER_TEMP/firma.keystore"
-          echo "$KS_B64" | base64 -d > "$KS"
+          BT="$ANDROID_HOME/build-tools/$BUILD_TOOLS"; KS="$RUNNER_TEMP/firma.keystore"; ERR="$RUNNER_TEMP/err.txt"
+          falla() { echo "::error title=Firma: $1::$(head -c 1500 "$ERR" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"; rm -f "$KS"; exit 1; }
+          # Al copiar y pegar los secretos se cuelan espacios o saltos de línea: se quitan (la contraseña y el base64 no los usan)
+          export KS_PASS="$(printf '%s' "$KS_PASS" | tr -d '[:space:]')"
+          printf '%s' "$KS_B64" | tr -d '[:space:]' | base64 -d > "$KS" 2> "$ERR" || falla "el secreto ANDROID_KEYSTORE_BASE64 no es un base64 válido"
+          echo "Llave: $(wc -c < "$KS") bytes (debe ser 2786)"
+          keytool -list -keystore "$KS" -storepass:env KS_PASS -alias fusaconecta > "$ERR" 2>&1 || falla "la llave no abre con ANDROID_KEYSTORE_PASSWORD (contraseña o llave equivocada)"
+          ls app/build/outputs/apk/release/ app/build/outputs/bundle/release/
           mkdir -p salida
-          "$BT/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/alineado.apk"
-          "$BT/apksigner" sign --ks "$KS" --ks-key-alias fusaconecta --ks-pass env:KS_PASS --key-pass env:KS_PASS \
-            --out salida/fusa-conecta.apk "$RUNNER_TEMP/alineado.apk"
-          jarsigner -keystore "$KS" -storepass:env KS_PASS -keypass:env KS_PASS -sigalg SHA256withRSA -digestalg SHA-256 \
-            -signedjar salida/fusa-conecta.aab app/build/outputs/bundle/release/app-release.aab fusaconecta > /dev/null
+          "$BT/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/alineado.apk" > "$ERR" 2>&1 || falla "zipalign"
+          "$BT/apksigner" sign --ks "$KS" --ks-key-alias fusaconecta --ks-pass env:KS_PASS --key-pass env:KS_PASS             --out salida/fusa-conecta.apk "$RUNNER_TEMP/alineado.apk" > "$ERR" 2>&1 || falla "apksigner (APK)"
+          jarsigner -keystore "$KS" -storepass:env KS_PASS -keypass:env KS_PASS -sigalg SHA256withRSA -digestalg SHA-256             -signedjar salida/fusa-conecta.aab app/build/outputs/bundle/release/app-release.aab fusaconecta > "$ERR" 2>&1 || falla "jarsigner (AAB)"
           rm -f "$KS"
       - name: Comprobar la firma contra assetlinks.json
         run: |
