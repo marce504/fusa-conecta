@@ -37,6 +37,9 @@
   --cat-tramites-bg:#EEF2F7;  --cat-tramites:#334155;  /* Trámites: pizarra */
   --cat-eventos-bg:#FFF1F2;   --cat-eventos:#BE123C;   /* Eventos: frambuesa (6.3:1 sobre su fondo) */
   --cat-servicios-bg:#EEF2FF; --cat-servicios:#4338CA; /* Servicios: índigo */
+  /* Fondos de los mosaicos del inicio (v7 · Fase 8): todos en el mismo tono para que pesen igual (ícono ≥ 4.5:1 sobre su fondo) */
+  --tile-comer-bg:#FFEDD5;--tile-servicios-bg:#E0E7FF;--tile-campo-bg:#DCFCE7;--tile-turismo-bg:#E0F2FE;--tile-hospedaje-bg:#FAE8FF;
+  --tile-eventos-bg:#FFE4E6;--tile-bares-bg:#FEF3C7;--tile-tramites-bg:#E2E8F0;--tile-mas-bg:#ECEDF3;
   /* Semánticos: rojo solo para SOS y errores */
   --danger-50:#FEF2F2;--danger-600:#DC2626;
   --danger-700:#B91C1C;    /* texto pequeño sobre --danger-50 (con 600 da 4.41:1) */
@@ -1257,6 +1260,8 @@ button:disabled{opacity:.6;pointer-events:none}
   --cat-tramites-bg:#1E2533;--cat-tramites:#B7C3D6;
   --cat-eventos-bg:#3B1422;--cat-eventos:#FDA4AF;
   --cat-servicios-bg:#1E1B4B;--cat-servicios:#A5B4FC;
+  --tile-comer-bg:var(--cat-comer-bg);--tile-servicios-bg:var(--cat-servicios-bg);--tile-campo-bg:var(--cat-campo-bg);--tile-turismo-bg:var(--cat-turismo-bg);
+  --tile-hospedaje-bg:var(--cat-hospedaje-bg);--tile-eventos-bg:var(--cat-eventos-bg);--tile-bares-bg:var(--cat-bares-bg);--tile-tramites-bg:var(--cat-tramites-bg);--tile-mas-bg:var(--soft);
   --danger-50:#3B1417;--danger-700:#FCA5A5;
   --warning-700:#FBBF24;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow-md:0 6px 20px rgba(0,0,0,.45);--shadow-nav:0 -4px 16px rgba(0,0,0,.4);
@@ -1413,14 +1418,16 @@ button:disabled{opacity:.6;pointer-events:none}
 .tile-cat:focus-visible{outline:none}
 .tile-cat:focus-visible .tile-ic{box-shadow:0 0 0 3px var(--primary-700)}
 .tile-tx{font-size:12px;font-weight:500;color:var(--ink);text-align:center;line-height:1.2}
-.tile-ic.c-comer{background:var(--cat-comer-bg);color:var(--cat-comer)}
-.tile-ic.c-servicios{background:var(--cat-servicios-bg);color:var(--cat-servicios)}
-.tile-ic.c-campo{background:var(--cat-campo-bg);color:var(--cat-campo)}
-.tile-ic.c-turismo{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
-.tile-ic.c-hospedaje{background:var(--cat-hospedaje-bg);color:var(--cat-hospedaje)}
-.tile-ic.c-bares{background:var(--cat-bares-bg);color:var(--cat-bares)}
-.tile-ic.c-tramites{background:var(--cat-tramites-bg);color:var(--cat-tramites)}
-.tile-ic.c-mas{background:var(--soft);color:var(--ink-2)}
+.tile-ic.c-comer{background:var(--tile-comer-bg);color:var(--cat-comer)}
+.tile-ic.c-servicios{background:var(--tile-servicios-bg);color:var(--cat-servicios)}
+/* El ícono de Servicios (mano) es más bajo que los demás: se agranda para que pese igual */
+.tile-ic.c-servicios .ic{transform:scale(1.25)}
+.tile-ic.c-campo{background:var(--tile-campo-bg);color:var(--cat-campo)}
+.tile-ic.c-turismo{background:var(--tile-turismo-bg);color:var(--cat-turismo)}
+.tile-ic.c-hospedaje{background:var(--tile-hospedaje-bg);color:var(--cat-hospedaje)}
+.tile-ic.c-bares{background:var(--tile-bares-bg);color:var(--cat-bares)}
+.tile-ic.c-tramites{background:var(--tile-tramites-bg);color:var(--cat-tramites)}
+.tile-ic.c-mas{background:var(--tile-mas-bg);color:var(--ink-2)}
 @media (max-width:340px){.tile-ic{width:64px;height:64px}}
 /* Barra del listado: orden y vista */
 .lista-barra{display:flex;align-items:center;gap:8px;margin:-4px 0 16px}
@@ -1551,7 +1558,7 @@ button:disabled{opacity:.6;pointer-events:none}
 #evInteresa.on{background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-700)}
 #evInteresa.on .ic{fill:currentColor}
 /* ---------- v6 · Fase 1: eventos siempre visibles ---------- */
-.tile-ic.c-eventos{background:var(--cat-eventos-bg);color:var(--cat-eventos)}
+.tile-ic.c-eventos{background:var(--tile-eventos-bg);color:var(--cat-eventos)}
 /* Estado vacío de "Qué hacer en Fusa" */
 .ev-vacio{display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--radius-lg);background:var(--cat-eventos-bg);color:var(--ink)}
 .ev-vacio-ilu{width:80px;height:80px;flex-shrink:0;color:var(--cat-eventos)}

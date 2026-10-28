@@ -1531,7 +1531,8 @@ function logo(variante='horizontal',tema='claro',opc={}){
 const MARCA_HTML=logo('horizontal','claro',{alto:36});
 const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de emergencia">'+icon('siren',18)+'SOS</button>';
 // Saludo según la hora: "Buenos días / Buenas tardes / Buenas noches" (+ nombre si hay sesión)
-function saludoDeHora(h=new Date().getHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
+// Hora de Colombia (UTC-5), aunque el teléfono esté en otra zona horaria (v7 · Fase 8)
+function saludoDeHora(h=new Date(Date.now()-5*36e5).getUTCHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
   const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
   $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en Fusa?</span></div>'+pildoraRadioHTML();
