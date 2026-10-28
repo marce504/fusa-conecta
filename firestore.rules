@@ -293,7 +293,8 @@ service cloud.firestore {
     function campoTexto(d, k, max) { return d.get(k, '') is string && d.get(k, '').size() <= max; }
     function eventoValido(d) {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
-          'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo'])
+          'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
+          'fuente_oficial'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 40) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -303,10 +304,11 @@ service cloud.firestore {
         && (d.get('lat', null) == null || d.lat is number) && (d.get('lng', null) == null || d.lng is number)
         && d.get('gratis', true) is bool
         && d.get('demo', false) is bool
+        && d.get('fuente_oficial', false) is bool
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']
-        && d.origen in ['admin', 'organizador', 'usuario', 'ia']
+        && d.origen in ['admin', 'organizador', 'usuario', 'ia', 'automatico']
         && d.creado_por is string;
     }
     match /eventos/{id} {

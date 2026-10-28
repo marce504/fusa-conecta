@@ -213,6 +213,7 @@ function tarjetaEventoHTML(e){
     +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
+    +(e.fuente_oficial?'<p class="tc-linea ev-oficial">'+icon('badge-check',12)+'Fuente oficial</p>':'')
     +'<p class="tc-linea">'+icon('map-pin',12)+esc(e.lugar_nombre)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
 }
 // Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
@@ -250,7 +251,7 @@ function filaEventoHTML(e){
   return '<article class="ev-fila">'+calBloque(e.ini)
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+esc(e.lugar_nombre)+'</p>'
-    +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
+    +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
     +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':'')+'</article>';
 }
 function renderAgenda(){
@@ -304,7 +305,8 @@ function abrirEvento(id){
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
   abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':'<span class="fallback-ic c-ev">'+icon(c[2],40)+'</span>')+calBloque(e.ini)+'</div>'
-    +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
+    +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
+    +(e.fuente_oficial?' <span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
@@ -394,7 +396,8 @@ function formEvento(e,opc={}){
     const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
     // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor
     const escritura=admin&&e
-      ?db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()})
+      ?db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp(),
+        ...(e.fuente_oficial?{fuente_oficial:true}:{})})
       :db.collection('eventos').add({...datos,estado:directo?'publicado':'pendiente',
         origen:porIA?'ia':admin?'admin':(esOrganizador()||esComerciante())?'organizador':'usuario',
         creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
@@ -619,10 +622,35 @@ async function cargarEventosDemo(){
 }
 
 /* ---------- Admin · pestaña Eventos ---------- */
+/* ===== AGENDA AUTOMÁTICA (v7 · Fase 2): estado del proceso de GitHub Actions (config/agenda_auto) y «Buscar eventos ahora» =====
+   La app no guarda ninguna clave de GitHub: el botón deja un pedido en Firestore y el proceso lo revisa cada 15 minutos. */
+const ACCIONES_AGENDA='https://github.com/marce504/fusa-conecta/actions/workflows/agenda.yml';
+const horaCol=ms=>new Date(ms).toLocaleString('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'America/Bogota'});
+function agendaAutoAdminHTML(){
+  const a=estado.agendaAuto||{},ult=aMs(a.ultima_corrida),ped=aMs(a.solicitado_en),pendiente=ped&&(!ult||ped>ult);
+  const n=(v,t)=>'<div class="metrica"><b>'+(v||0)+'</b><span>'+t+'</span></div>';
+  return '<p class="dash-section">Agenda automática</p><div class="adm-card agenda-auto">'
+    +(ult?'<p class="nota-c izq"><b>Última búsqueda:</b> '+esc(horaCol(ult))+' · '+esc(a.modo||'')+(a.duracion_s?' · '+a.duracion_s+' s':'')+'</p>'
+      +'<div class="metricas aa-metricas">'+n(a.encontrados,'Encontrados')+n(a.publicados,'Publicados solos')+n(a.pendientes,'Por aprobar')+n(a.duplicados,'Ya existían')+'</div>'
+      +'<ul class="aa-fuentes">'+(a.fuentes||[]).map(f=>'<li class="'+(f.ok?'ok':'mal')+'">'+icon(f.ok?'circle-check':'circle-x',18)+'<div><b>'+esc(f.nombre)+'</b><small>'
+        +(f.contenidos||0)+' contenidos · '+(f.eventos||0)+' eventos con fecha · '+(f.noticias||0)+' noticias recientes'+(f.error?' · '+esc(f.error):'')+'</small></div></li>').join('')+'</ul>'
+      +'<p class="nota-c izq">'+(a.con_ia?(a.noticias_leidas||0)+' noticias leídas con IA'+(a.noticias_sin_ia?' · '+a.noticias_sin_ia+' no se pudieron leer':''):'Sin clave de IA: '+(a.noticias_sin_ia||0)+' noticias quedaron sin leer (falta GEMINI_API_KEY en GitHub).')+'</p>'
+      :'<p class="nota-c izq">Todavía no ha corrido con las claves. Cuando agregues los secretos en GitHub (docs/agenda-ia.md), busca eventos todos los días a las 6:00 a. m. en las alcaldías de Fusagasugá y Pasca y en IDECUT.</p>')
+    +(pendiente?'<p class="nota-c izq aa-pedido" role="status">'+icon('clock',16)+'Pedido enviado ('+esc(horaCol(ped))+'). El proceso lo toma en los próximos 15 minutos.</p>':'')
+    +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" id="admAgendaYa"'+(pendiente?' disabled':'')+'>'+icon('refresh-cw',16)+'Buscar eventos ahora</button>'
+    +'<a class="btn btn-ghost" href="'+ACCIONES_AGENDA+'" target="_blank" rel="noopener">'+icon('external-link',16)+'Ver en GitHub</a></div></div>';
+}
+function enlazarAgendaAutoAdmin(){
+  const b=$('#admAgendaYa');if(!b)return;
+  b.onclick=async()=>{b.disabled=true;
+    try{await conTiempoLimite(db.collection('config').doc('agenda_auto').set({solicitado_en:FV.serverTimestamp(),solicitado_por:estado.usuario.uid},{merge:true}),15000,'Sin confirmación del servidor');
+      toast('Listo: el proceso buscará eventos en los próximos 15 minutos');}
+    catch(e){toast('No se pudo enviar el pedido. (Error '+reportarError('agenda automática',e)+')',5000);b.disabled=false;}};
+}
 function eventosAdminHTML(){
   const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
   const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e.ini)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
-    +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA'}[e.origen]||e.origen)+'</p>'
+    +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA',automatico:'agenda automática'+(e.fuente_oficial?' (fuente oficial)':'')}[e.origen]||e.origen)+'</p>'
     +(e.descripcion?'<p class="adm-desc">'+esc(e.descripcion.slice(0,220))+'</p>':'')
     +(e.enlace_fuente?'<p class="nota-c izq"><a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la fuente</a></p>':'')
     +'<div class="dc-actions">'+botones+'</div></div>';
@@ -631,7 +659,7 @@ function eventosAdminHTML(){
     +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="admEvDemo">'+icon('sparkles',16)+'Cargar eventos de ejemplo</button>'
     +(nDemo?'<button class="btn btn-ghost" id="admEvDemoBorrar">'+icon('trash-2',16)+'Borrar eventos de ejemplo ('+nDemo+')</button>':'')+'</div>'
     +'<p class="nota-c izq">Los de ejemplo sirven para presentar la app: se publican con la etiqueta «Ejemplo» y se borran con un toque.</p>'
-    +organizadoresAdminHTML()
+    +agendaAutoAdminHTML()+organizadoresAdminHTML()
     +'<p class="dash-section">Por aprobar ('+pend.length+')</p>'
     +(pend.length?pend.map(e=>fila(e,'<button class="btn btn-primario btn-sm" data-evpub="'+esc(e.id)+'">'+icon('check',16)+'Publicar</button>'
         +'<button class="btn btn-secundario btn-sm" data-eveditp="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
@@ -645,7 +673,7 @@ function eventosAdminHTML(){
 function enlazarEventosAdmin(){
   const col=db.collection('eventos'),pend=id=>(estado.adminPend.eventos||[]).find(e=>e.id===id),pub=id=>estado.eventos.find(e=>e.id===id);
   const n=$('#admEvNuevo');if(n)n.onclick=()=>formEvento(null);
-  enlazarOrganizadoresAdmin();
+  enlazarOrganizadoresAdmin();enlazarAgendaAutoAdmin();
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const db_=$('#admEvDemoBorrar');if(db_)db_.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
     adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>b.delete(d.ref));await b.commit();},'Eventos de ejemplo borrados');};
@@ -3848,6 +3876,9 @@ function escucharAdmin(){
     estado.adminPend.solicitudes=s.docs.map(d=>({id:d.id,...d.data(),fecha:aMs(d.data().fecha)||0}));
     avisosAdminCambiaron();
   },()=>{}));
+  // Estado de la agenda automática (lo escribe el proceso de GitHub Actions)
+  adminUnsubs.push(db.collection('config').doc('agenda_auto').onSnapshot(s=>{estado.agendaAuto=s.exists?s.data():null;
+    if(vistaActual().tipo==='admin'&&estado.admin.tab==='eventos')render(true);},()=>{}));
   // Eventos sugeridos o publicados por organizadores (y los de la IA), pendientes de revisión
   adminUnsubs.push(db.collection('eventos').where('estado','==','pendiente').onSnapshot(s=>{
     estado.adminPend.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin),fecha:aMs(x.fecha_creacion)||0};});

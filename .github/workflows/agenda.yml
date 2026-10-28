@@ -1,0 +1,49 @@
+# Agenda automática (v7 · Fase 2). Ver docs/agenda-ia.md.
+# - Todos los días a las 6:00 a. m. (hora de Colombia) y a mano: Actions → Agenda automática → Run workflow.
+# - Cada 15 minutos revisa si el admin tocó «Buscar eventos ahora» en la app; si no, termina en segundos.
+# Necesita los secretos GEMINI_API_KEY y FIREBASE_SA (Settings → Secrets and variables → Actions); sin ellos no hace nada.
+name: Agenda automática
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * *"      # 6:00 a. m. en Colombia (UTC-5)
+    - cron: "*/15 * * * *"    # pedidos desde la app
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agenda
+  cancel-in-progress: false
+
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: herramientas/agenda-ia
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+    steps:
+      - name: Sin secretos no hay nada que hacer
+        if: env.FIREBASE_SA == ''
+        working-directory: .
+        run: echo "Falta el secreto FIREBASE_SA. Ver docs/agenda-ia.md."
+      - uses: actions/checkout@v4
+        if: env.FIREBASE_SA != ''
+      - uses: actions/setup-node@v4
+        if: env.FIREBASE_SA != ''
+        with:
+          node-version: 20
+      - name: Instalar
+        if: env.FIREBASE_SA != ''
+        run: npm install --no-audit --no-fund
+      - name: Corrida diaria o manual
+        if: env.FIREBASE_SA != '' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 11 * * *')
+        run: node extraer.mjs --modo=${{ github.event_name == 'workflow_dispatch' && 'manual' || 'diaria' }}
+      - name: Pedido desde la app
+        if: env.FIREBASE_SA != '' && github.event.schedule == '*/15 * * * *'
+        run: node extraer.mjs --revisar

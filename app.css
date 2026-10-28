@@ -1431,6 +1431,17 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta-ev .cal-bloque{position:absolute;left:8px;top:8px;z-index:1}
 .tarjeta-ev .tc-linea{display:flex;align-items:center;gap:4px}
 .fallback-ic.c-ev{background:var(--primary-50);color:var(--primary-700)}
+/* Agenda automática (v7 · Fase 2) */
+.tc-linea.ev-oficial{color:var(--mint-700);font-weight:600}
+.ev-chip.ev-chip-oficial{background:var(--mint-50);color:var(--mint-700)}
+.aa-metricas{grid-template-columns:repeat(2,1fr);margin:12px 0}
+.aa-fuentes{list-style:none;padding:0;margin:0 0 8px}
+.aa-fuentes li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.aa-fuentes li b{display:block;font-size:var(--text-sm)}
+.aa-fuentes small{display:block;font-size:13px;color:var(--ink-2)}
+.aa-fuentes li.ok>.ic{color:var(--mint-700)}
+.aa-fuentes li.mal>.ic{color:var(--danger-700)}
+.aa-pedido{display:flex;gap:6px;align-items:center;color:var(--primary-700)}
 /* Agenda */
 .ag-rango{margin:-4px 0 12px}
 .ag-rango .chip-filtro,.lista-barra .chip-filtro{min-height:44px}
