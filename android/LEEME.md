@@ -63,7 +63,7 @@ Hazlo una sola vez. En https://github.com/marce504/fusa-conecta/settings/secrets
 | Name | Secret |
 |---|---|
 | `ANDROID_KEYSTORE_BASE64` | Todo el contenido de `C:\Users\Marcela\.fusa-conecta-firma\keystore-base64-para-github.txt` |
-| `ANDROID_KEYSTORE_PASSWORD` | La contraseña de `LEEME-CONTRASENA.txt` |
+| `ANDROID_KEYSTORE_PASSWORD` | Todo el contenido de `C:\Users\Marcela\.fusa-conecta-firma\contrasena-para-github.txt` (solo la contraseña) |
 
 Luego:
 
