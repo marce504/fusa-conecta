@@ -12,6 +12,16 @@ y una entrada en `rutas/indice.json`. Mientras una ruta no esté en el índice, 
 | `c21` Cerro Fusacatán | En preparación: el sendero no está en OpenStreetMap. Grabarlo en campo (ver `docs/grabar-ruta.md`). |
 | `c23` La Aguadita | En preparación: no hay senderos mapeados en OpenStreetMap. Grabarlo en campo. |
 
+## Trazados grabados desde la app (v8, sin tocar el código)
+
+En OpenStreetMap (revisado el 2026-10-28) están los picos «Cerro de Fusacatán» (1800 m) y «Cuchilla de La Aguadita», pero **no sus senderos**:
+alrededor del Fusacatán solo hay 2 carreteables sin nombre, y en La Aguadita 16 carreteables y un andén del pueblo. Por eso se graban en campo.
+
+**Panel → Rutas → Senderos oficiales** muestra el estado de cada sendero y una guía de 5 pasos. El admin graba el recorrido desde la
+ficha del sendero y, en el resumen, toca **Publicar como trazado oficial**. El trazado (150 a 300 puntos) queda en Firestore,
+`rutas_oficiales/{id}`: lectura pública y solo el admin escribe (`firestore.rules`). La app lo usa cuando el sendero no tiene
+archivo en esta carpeta. Si después quieres guardarlo también aquí, **Descargar trazado para la ruta (GeoJSON)** sigue disponible.
+
 ## Formato
 
 - GeoJSON con un `LineString` de **150 a 300 puntos** en orden, desde el inicio del sendero hasta la meta.

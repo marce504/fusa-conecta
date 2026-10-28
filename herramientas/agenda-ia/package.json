@@ -8,6 +8,7 @@
     "extraer": "node extraer.mjs"
   },
   "dependencies": {
-    "firebase-admin": "^12.7.0"
+    "firebase-admin": "^12.7.0",
+    "sharp": "^0.33.5"
   }
 }

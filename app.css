@@ -40,6 +40,11 @@
   /* Fondos de los mosaicos del inicio (v7 · Fase 8): todos en el mismo tono para que pesen igual (ícono ≥ 4.5:1 sobre su fondo) */
   --tile-comer-bg:#FFEDD5;--tile-servicios-bg:#E0E7FF;--tile-campo-bg:#DCFCE7;--tile-turismo-bg:#E0F2FE;--tile-hospedaje-bg:#FAE8FF;
   --tile-eventos-bg:#FFE4E6;--tile-bares-bg:#FEF3C7;--tile-tramites-bg:#E2E8F0;--tile-mas-bg:#ECEDF3;
+  /* v8: color de cada categoría de evento (ilustración de los eventos sin foto); en oscuro heredan los --cat-* oscuros */
+  --ev-cultura-bg:var(--cat-hospedaje-bg);--ev-cultura:var(--cat-hospedaje);--ev-musica-bg:var(--cat-servicios-bg);--ev-musica:var(--cat-servicios);
+  --ev-deporte-bg:var(--cat-campo-bg);--ev-deporte:var(--cat-campo);--ev-gastronomia-bg:var(--cat-comer-bg);--ev-gastronomia:var(--cat-comer);
+  --ev-feria-bg:var(--cat-eventos-bg);--ev-feria:var(--cat-eventos);--ev-religioso-bg:var(--cat-bares-bg);--ev-religioso:var(--cat-bares);
+  --ev-institucional-bg:var(--cat-turismo-bg);--ev-institucional:var(--cat-turismo);--ev-otro-bg:var(--cat-eventos-bg);--ev-otro:var(--cat-eventos);
   /* Semánticos: rojo solo para SOS y errores */
   --danger-50:#FEF2F2;--danger-600:#DC2626;
   --danger-700:#B91C1C;    /* texto pequeño sobre --danger-50 (con 600 da 4.41:1) */
@@ -1578,3 +1583,35 @@ button:disabled{opacity:.6;pointer-events:none}
 .ia-caja textarea{min-height:88px}
 .ia-afiche{margin:8px 0 12px;cursor:pointer}
 .ia-afiche:focus-within{outline:3px solid var(--primary-700);outline-offset:2px}
+
+/* ===== v8 · Agenda, asistente, inicio y senderos ===== */
+/* Eventos sin foto: ilustración de línea sobre el color de su categoría */
+.ev-c-cultura{--evc-bg:var(--ev-cultura-bg);--evc:var(--ev-cultura)}
+.ev-c-musica{--evc-bg:var(--ev-musica-bg);--evc:var(--ev-musica)}
+.ev-c-deporte{--evc-bg:var(--ev-deporte-bg);--evc:var(--ev-deporte)}
+.ev-c-gastronomia{--evc-bg:var(--ev-gastronomia-bg);--evc:var(--ev-gastronomia)}
+.ev-c-feria{--evc-bg:var(--ev-feria-bg);--evc:var(--ev-feria)}
+.ev-c-religioso{--evc-bg:var(--ev-religioso-bg);--evc:var(--ev-religioso)}
+.ev-c-institucional{--evc-bg:var(--ev-institucional-bg);--evc:var(--ev-institucional)}
+.ev-c-otro{--evc-bg:var(--ev-otro-bg);--evc:var(--ev-otro)}
+.ev-ilu{position:relative;display:grid;place-items:center;overflow:hidden;background:var(--evc-bg);color:var(--evc)}
+.ev-ilu-deco{position:absolute;inset:0;width:100%;height:100%;opacity:.4}
+.ev-ilu>.ic{position:relative}
+.tc-foto .tc-ilu,.ev-hero .hero-ilu{position:absolute;inset:0}
+.ev-hero .hero-ilu>.ic{margin-bottom:24px}
+/* Avisos del municipio */
+.chip-avisos .contador{margin-left:2px}
+.ev-chip.ev-chip-aviso{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
+.novedad .nv-ic.nv-aviso{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
+/* Asistente: enlace a la fuente oficial bajo la tarjeta del evento */
+.asis-ev{display:flex;flex-direction:column;gap:2px}
+.asis-fuente{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;font-size:var(--text-sm);font-weight:600;color:var(--primary-700)}
+/* Mis negocios: invitar a subir una foto */
+.mn-foto{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 12px;padding:12px;border-radius:var(--radius-md);background:var(--sun-50);color:var(--sun-800);font-size:var(--text-sm)}
+.mn-foto>span{flex:1 1 180px;color:var(--ink)}
+.mn-foto .btn{margin:0}
+/* Panel → Rutas: senderos oficiales y guía para grabarlos */
+.guia-trazado .aa-fuentes li{align-items:center}
+.guia-trazado .aa-fuentes li>div{flex:1;min-width:0}
+.guia-trazado .aa-fuentes li.prep>.ic{color:var(--sun-800)}
+.guia-trazado .bn-pasos{margin-top:8px}

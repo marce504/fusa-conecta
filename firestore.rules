@@ -294,7 +294,7 @@ service cloud.firestore {
     function eventoValido(d) {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
-          'fuente_oficial'])
+          'fuente_oficial', 'tipo'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 40) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -305,6 +305,8 @@ service cloud.firestore {
         && d.get('gratis', true) is bool
         && d.get('demo', false) is bool
         && d.get('fuente_oficial', false) is bool
+        // v8: plan para la gente o aviso del municipio (jornadas de salud, vacunación, cortes de servicio)
+        && d.get('tipo', 'plan') in ['plan', 'aviso']
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']
@@ -328,6 +330,22 @@ service cloud.firestore {
             && request.resource.data.creado_por == request.auth.uid
             && request.resource.data.get('demo', false) == false));
       allow update: if esAdmin() && eventoValido(request.resource.data);
+      allow delete: if esAdmin();
+    }
+
+    /* ---------- Trazados oficiales (v8): el admin graba un sendero del directorio con la app y lo publica ----------
+       Lectura pública. Solo el admin escribe; 150 a 300 puntos guardados como texto "lat,lng,alt;…". */
+    match /rutas_oficiales/{id} {
+      allow read: if true;
+      allow create, update: if esAdmin()
+        && request.resource.data.keys().hasOnly(['linea', 'puntos', 'distancia_km', 'desnivel_m', 'fuente', 'fecha', 'publicado_por'])
+        && request.resource.data.linea is string && request.resource.data.linea.size() <= 12000
+        && request.resource.data.puntos is int && request.resource.data.puntos >= 150 && request.resource.data.puntos <= 300
+        && request.resource.data.distancia_km is number && request.resource.data.distancia_km > 0 && request.resource.data.distancia_km <= 60
+        && request.resource.data.desnivel_m is int && request.resource.data.desnivel_m >= 0
+        && request.resource.data.fuente is string && request.resource.data.fuente.size() <= 120
+        && request.resource.data.fecha == request.time
+        && request.resource.data.publicado_por == request.auth.uid;
       allow delete: if esAdmin();
     }
 
@@ -427,7 +445,7 @@ service cloud.firestore {
        El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['banners', 'eventos', 'rutas_comunidad']);
+      allow write: if esAdmin() && !(coleccion in ['banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales']);
     }
   }
 }

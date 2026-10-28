@@ -57,3 +57,10 @@ de emergencia que existen en Fusa Conecta**, con tarjetas que abren su ficha.
 
 - `rulestest/v7f3.mjs`: 17 pruebas de las reglas del cupo.
 - `lh/v7f3.mjs`: recorrido completo en el emulador con la IA real (invitado, sin cupo, con cuenta, seguimiento y tarjetas).
+
+## Ajustes v8
+
+- La nota «Respuesta con IA: confirma horarios y precios antes de ir» solo aparece cuando la respuesta recomienda lugares, eventos o rutas (no en saludos ni en preguntas fuera de tema).
+- Los eventos de la agenda automática llevan debajo de su tarjeta el enlace **«Ver fuente oficial»** a la publicación de la alcaldía.
+- La instrucción del sistema prohíbe agregar datos que no estén en los resultados de las funciones (horarios, requisitos o recomendaciones como «lleva copia» solo si están en la ficha).
+- Los eventos de ejemplo (`demo:true`) nunca llegan al asistente. Los avisos del municipio llegan marcados (`es_aviso_municipal`) y el asistente los menciona solo si la persona pregunta por ellos.

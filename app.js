@@ -205,16 +205,37 @@ db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
   estado.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};});
   if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
   if(!$('#plegBanner').hidden)montarBanner();
-  refrescarVista();
+  if(esAdmin())borrarDemosVencidos();
+  refrescarVista();actualizarCampana();
 },()=>{});
+/* v8: eventos de ejemplo (demo:true) para presentar la app. Solo se ven en la Agenda, con la etiqueta «Ejemplo», durante
+   24 horas; nunca en el asistente, el banner ni «Qué hacer en Fusa». Después los borra el proceso de la agenda automática
+   (cada 15 minutos) o el panel del admin, lo que ocurra primero. */
+const DEMO_HORAS=24;
+const demoVencido=e=>!!e.demo&&(aMs(e.fecha_creacion)||0)<Date.now()-DEMO_HORAS*36e5;
+let borrandoDemos=false;
+function borrarDemosVencidos(){
+  const l=estado.eventos.filter(demoVencido);if(!l.length||borrandoDemos)return;
+  borrandoDemos=true;const b=db.batch();l.forEach(e=>b.delete(db.collection('eventos').doc(e.id)));
+  b.commit().catch(e=>reportarError('borrar eventos de ejemplo',e)).finally(()=>{borrandoDemos=false;});
+}
+/* v8: avisos del municipio (jornadas de salud, vacunación, lavado de tanques, cortes de servicio). Van en el filtro
+   «Avisos del municipio» de la Agenda y en Novedades; el banner y «Qué hacer en Fusa» muestran solo planes.
+   La agenda automática marca tipo:'aviso'; para los eventos anteriores a v8 se decide por la categoría o el título. */
+const RE_AVISO=/vacunaci|jornada de (salud|vacun)|lavado de tanques|fumigaci|tamizaje|brigada de salud|cortes? de (agua|luz|energ|servicio)|suspensi[oó]n del servicio|racionamiento/i;
+const esAviso=e=>e.tipo==='aviso'||(!e.tipo&&(e.categoria==='institucional'||RE_AVISO.test(e.titulo||'')));
 // Próximos o en curso (los que ya terminaron no se muestran), del más cercano al más lejano
-function eventosVigentes(){const ahora=Date.now();return estado.eventos.filter(e=>e.ini&&e.fin&&e.fin>=ahora).sort((a,b)=>a.ini-b.ini);}
+function eventosVigentes(){const ahora=Date.now();return estado.eventos.filter(e=>e.ini&&e.fin&&e.fin>=ahora&&!demoVencido(e)).sort((a,b)=>a.ini-b.ini);}
+// Planes para la gente: sin avisos del municipio ni eventos de ejemplo
+const planesVigentes=()=>eventosVigentes().filter(e=>!e.demo&&!esAviso(e));
+const avisosVigentes=()=>eventosVigentes().filter(e=>!e.demo&&esAviso(e));
 function finDelDomingo(){const d=new Date();d.setHours(23,59,59,999);d.setDate(d.getDate()+((7-d.getDay())%7));return d.getTime();}
 function inicioDelViernes(){const d=new Date();if([0,5,6].includes(d.getDay()))return Date.now();d.setHours(0,0,0,0);d.setDate(d.getDate()+(5-d.getDay()));return d.getTime();}
 function eventosEn(rango,cat){
   const ahora=Date.now(),hoyFin=new Date().setHours(23,59,59,999);
   const [desde,hasta]=rango==='hoy'?[ahora,hoyFin]:rango==='finde'?[inicioDelViernes(),finDelDomingo()]:[ahora,ahora+30*864e5];
-  return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&(!cat||e.categoria===cat));
+  // «Avisos del municipio» es un filtro aparte; las demás vistas de la Agenda muestran solo planes
+  return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&(cat==='avisos'?esAviso(e):!esAviso(e)&&(!cat||e.categoria===cat)));
 }
 function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
 function fechaEvento(e){
@@ -224,10 +245,15 @@ function fechaEvento(e){
 }
 const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};
 const precioEv=e=>e.gratis?'Gratis':(e.precio||'Con costo');
+// Eventos sin foto: ilustración de línea sobre el color de su categoría (no un gris)
+const DECO_EV='<svg class="ev-ilu-deco" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">'
+  +'<circle cx="22" cy="20" r="6"/><path d="M132 14l6 6m0-6l-6 6M40 44h8M44 40v8M118 46h6M121 43v6"/><circle cx="142" cy="72" r="3"/>'
+  +'<path d="M-4 86c20-14 36-14 52 0s32 14 52 0 32-14 64 0"/></svg>';
+const iluEvento=(e,tam,clase)=>{const c=catEvento(e.categoria);return '<span class="ev-ilu ev-c-'+c[0]+(clase?' '+clase:'')+'" aria-hidden="true">'+DECO_EV+icon(c[2],tam)+'</span>';};
 // Tarjeta de evento para el carrusel del inicio (mismo tamaño que la tarjeta compacta)
 function tarjetaEventoHTML(e){
   const c=catEvento(e.categoria);
-  return '<article class="tarjeta tarjeta-ev"><div class="tc-foto"><span class="fallback-ic c-ev">'+icon(c[2],28)+'</span>'
+  return '<article class="tarjeta tarjeta-ev"><div class="tc-foto">'+iluEvento(e,32,'tc-ilu')
     +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
@@ -243,7 +269,7 @@ const ILU_EVENTOS='<svg class="ev-vacio-ilu" viewBox="0 0 96 96" fill="none" str
   +'<rect x="16" y="22" width="56" height="54" rx="10"/><path d="M16 38h56M30 14v14M58 14v14"/><path d="M30 52h6M44 52h6M30 64h6M44 64h6"/>'
   +'<path d="M80 50v12M74 56h12M76 24l4 4M84 20v6"/></svg>';
 function seccionEventosHTML(){
-  const l=eventosVigentes().slice(0,10);
+  const l=planesVigentes().slice(0,10);
   return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en Fusa</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
     +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
       :'<div class="ev-vacio">'+ILU_EVENTOS+'<div class="ev-vacio-tx"><p>Aún no hay eventos esta semana. ¿Sabes de uno?</p>'
@@ -252,7 +278,7 @@ function seccionEventosHTML(){
 }
 // Primera diapositiva del banner si hay eventos entre hoy y el domingo
 function slideFinDeSemana(){
-  const e=eventosVigentes().find(x=>x.ini<=finDelDomingo());if(!e)return null;
+  const e=planesVigentes().find(x=>x.ini<=finDelDomingo());if(!e)return null;
   return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en Fusa',tit:e.titulo,
     sub:fechaEvento(e)+' · '+e.lugar_nombre,accion:'agenda',textoBoton:'Ver agenda',ilu:'<span class="ilu-circulo">'+icon('calendar-days',30)+'</span>'};
 }
@@ -270,18 +296,22 @@ function filaEventoHTML(e){
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+esc(e.lugar_nombre)+'</p>'
     +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
-    +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':'')+'</article>';
+    +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':iluEvento(e,28,'ev-img'))+'</article>';
 }
 function renderAgenda(){
-  const A=estado.agenda,l=eventosEn(A.rango,A.cat);
+  const A=estado.agenda,l=eventosEn(A.rango,A.cat),avisos=A.cat==='avisos',nAvisos=eventosEn(A.rango,'avisos').length;
   const quien=textoSugerir();
-  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>Qué hacer en Fusa</h2><span class="conteo">'+l.length+(l.length===1?' evento':' eventos')+'</span></div>'
+  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>'+(avisos?'Avisos del municipio':'Qué hacer en Fusa')+'</h2><span class="conteo">'+l.length+(avisos?(l.length===1?' aviso':' avisos'):(l.length===1?' evento':' eventos'))+'</span></div>'
     +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
       .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
-    +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'+CATS_EVENTO.map(([k,t,ic])=>'<button type="button" aria-pressed="'+(A.cat===k)+'" class="chip-filtro'+(A.cat===k?' on':'')+'" data-evcat="'+k+'">'+icon(ic,14)+t+'</button>').join('')+'</div>'
+    +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'
+      +'<button type="button" aria-pressed="'+avisos+'" class="chip-filtro chip-avisos'+(avisos?' on':'')+'" data-evcat="avisos">'+icon('megaphone',14)+'Avisos del municipio'+(nAvisos?' <span class="contador gris">'+nAvisos+'</span>':'')+'</button>'
+      +CATS_EVENTO.filter(c=>c[0]!=='institucional').map(([k,t,ic])=>'<button type="button" aria-pressed="'+(A.cat===k)+'" class="chip-filtro'+(A.cat===k?' on':'')+'" data-evcat="'+k+'">'+icon(ic,14)+t+'</button>').join('')+'</div>'
     +'<div class="lb-vista" role="radiogroup" aria-label="Vista"><button type="button" role="radio" aria-checked="'+(A.vista!=='mapa')+'" class="'+(A.vista!=='mapa'?'on':'')+'" data-agvista="lista" aria-label="Lista">'+icon('calendar-days',20)+'</button>'
     +'<button type="button" role="radio" aria-checked="'+(A.vista==='mapa')+'" class="'+(A.vista==='mapa'?'on':'')+'" data-agvista="mapa" aria-label="Mapa">'+icon('map',20)+'</button></div></div>'
+    +(avisos?'<p class="nota-c izq">Jornadas de salud, vacunación, cortes de servicio y otras informaciones de las alcaldías.</p>':'')
     +(l.length?(A.vista==='mapa'?'<div id="mapaAgenda" class="mapa-lista" role="region" aria-label="Mapa de los eventos"></div>':'<div class="ev-lista">'+l.map(filaEventoHTML).join('')+'</div>')
+      :avisos?'<div class="vacio">'+icon('megaphone',48)+'<b>No hay avisos del municipio '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+'</b><p>Aquí aparecen las jornadas y anuncios de las alcaldías de Fusagasugá y Pasca.</p></div>'
       :'<div class="vacio">'+icon('calendar-days',48)+'<b>No hay eventos '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+(A.cat?' de '+catEvento(A.cat)[1].toLowerCase():'')+'</b><p>¿Sabes de alguno? Cuéntanos y lo publicamos después de revisarlo.</p></div>')
     +'<button class="btn btn-secundario btn-bloque mt-16" id="agSugerir">'+icon('calendar-plus',18)+quien+'</button>'
     +'</div>'+footerHTML();
@@ -322,8 +352,8 @@ function abrirEvento(id){
   enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
-  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':'<span class="fallback-ic c-ev">'+icon(c[2],40)+'</span>')+calBloque(e.ini)+'</div>'
-    +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
+  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e.ini)+'</div>'
+    +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
     +(e.fuente_oficial?' <span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
@@ -603,6 +633,8 @@ function instruccionAsis(){
     +'Nunca inventes nombres, horarios, teléfonos, precios ni direcciones: di solo lo que devuelven las funciones y copia los números tal cual (2,17 km, no "dos kilómetros y medio").\n'
     +'- Menciona por su nombre exacto los lugares o eventos que recomiendes (máximo 3); la app los muestra como tarjetas debajo de tu respuesta.\n'
     +'- Usa cercaDeMi solo si la persona dice cerca de mí, por aquí o algo parecido.\n'
+    +'- No agregues datos que no estén en los resultados de las funciones: horarios, requisitos, precios o recomendaciones (como «lleva copia» o «llega temprano») solo si aparecen en la ficha que devolvió la función.\n'
+    +'- Los eventos con es_aviso_municipal=true son anuncios de la alcaldía (jornadas, vacunación, cortes de servicio), no planes: menciónalos solo si la persona pregunta por eso.\n'
     +'- Si no hay resultados, dilo con honestidad y propone otra búsqueda o categoría.\n'
     +'- Si alguien describe una emergencia (accidente, incendio, violencia, persona herida), indica primero llamar al 123 y llama a la función emergencias.\n'
     +'- No pidas ni guardes datos personales. Si preguntan algo que no es de Fusagasugá o Pasca, explica con amabilidad que solo ayudas con la región.';
@@ -667,11 +699,11 @@ const FUNCIONES_ASIS={
     const f=(s,h)=>{const m=String(s||'').match(/^\d{4}-\d{2}-\d{2}/);return m?new Date(m[0]+'T'+h+'-05:00').getTime():NaN;};
     let desde=f(a.desde,'00:00:00'),hasta=f(a.hasta||a.desde,'23:59:59');
     if(isNaN(desde))desde=Date.now();if(isNaN(hasta)||hasta<desde)hasta=desde+7*864e5;
-    let l=eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde);
+    let l=eventosVigentes().filter(e=>!e.demo&&e.ini<=hasta&&e.fin>=desde);   // los de ejemplo nunca llegan al asistente
     if(a.categoria)l=l.filter(e=>e.categoria===a.categoria);
     if(a.soloGratis)l=l.filter(e=>e.gratis);
     return {total:l.length,eventos:l.slice(0,8).map(e=>({id:e.id,titulo:e.titulo,cuando:fechaEvento(e),lugar:e.lugar_nombre,municipio:e.municipio||'Fusagasugá',
-      precio:precioEv(e),tipo:catEvento(e.categoria)[1],fuente_oficial:!!e.fuente_oficial,descripcion:String(e.descripcion||'').slice(0,140)}))};
+      precio:precioEv(e),tipo:catEvento(e.categoria)[1],fuente_oficial:!!e.fuente_oficial,es_aviso_municipal:esAviso(e),descripcion:String(e.descripcion||'').slice(0,140)}))};
   },
   async rutas(a){
     let l=Object.entries(RUTAS).map(([id,r])=>({id,nombre:r.nombre,dificultad:r.dificultad,duracion:r.duracionEstimada,distancia_km:r.distanciaTotal,
@@ -702,14 +734,19 @@ function tarjetasAsis(resultados,texto){
     if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(!d)return;
       agregar('l'+x.id,'<button class="asis-item" data-ver="'+esc(x.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
         +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(x.ahora!=='Sin horario publicado'?x.ahora:x.tipo)+(x.distancia_km!=null?' · '+fmtDist(x.distancia_km):'')+'</small></span>'+icon('chevron-right',18)+'</button>');});
+    // Eventos de la agenda automática: con el enlace a la publicación oficial
     if(r.eventos)elegir(r.eventos).forEach(x=>{const e=estado.eventos.find(y=>y.id===x.id);if(!e)return;
-      agregar('e'+x.id,'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e.ini)
-        +'<span class="asis-item-tx"><b>'+esc(e.titulo)+'</b><small>'+esc(horaEv(e.ini)+' · '+e.lugar_nombre)+'</small></span>'+icon('chevron-right',18)+'</button>');});
+      const fuente=e.origen==='automatico'&&/^https:\/\//.test(e.enlace_fuente||'');
+      agregar('e'+x.id,(fuente?'<div class="asis-ev">':'')+'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e.ini)
+        +'<span class="asis-item-tx"><b>'+esc(e.titulo)+'</b><small>'+esc(horaEv(e.ini)+' · '+e.lugar_nombre)+'</small></span>'+icon('chevron-right',18)+'</button>'
+        +(fuente?'<a class="asis-fuente" href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">'+icon('external-link',14)+'Ver fuente oficial</a></div>':''));});
     if(r.rutas)elegir(r.rutas).forEach(x=>agregar('r'+x.id,'<button class="asis-item" data-ruta="'+esc(x.id)+'"><span class="asis-item-ic c-turismo">'+icon('route',20)+'</span>'
       +'<span class="asis-item-tx"><b>'+esc(x.nombre)+'</b><small>'+esc(String(x.distancia_km).replace('.',',')+' km · '+x.dificultad+' · '+x.duracion)+'</small></span>'+icon('chevron-right',18)+'</button>'));
     if(r.numeros)elegir(r.numeros).forEach(x=>agregar('n'+x.numero,'<button class="asis-item" data-llamar="'+esc(x.numero)+'" data-ent="'+esc(x.entidad)+'" aria-label="Llamar a '+esc(x.entidad)+', '+esc(x.numero)+'">'
       +'<span class="asis-item-ic c-sos">'+icon('phone',20)+'</span><span class="asis-item-tx"><b>'+esc(x.entidad)+'</b><small>'+esc(x.numero)+' · '+esc(x.tipo)+'</small></span></button>'));
   }
+  // La nota «confirma horarios y precios» solo cuando se recomiendan lugares, eventos o rutas
+  filas.recomienda=[...fuera].some(k=>/^[ler]/.test(k));
   return filas;
 }
 async function modeloAsistente(){
@@ -744,7 +781,8 @@ async function preguntarFusa(texto){
       try{resp=x.response.text().trim();}catch(e){}
     }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
     resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
-    A.msgs.push({rol:'fusa',texto:resp,tarjetas:tarjetasAsis(resultados,resp)});
+    const tarjetas=tarjetasAsis(resultados,resp);
+    A.msgs.push({rol:'fusa',texto:resp,tarjetas,recomienda:!!tarjetas.recomienda});
     A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:resp}]});
     A.historial=A.historial.slice(-ASIS.recordar*2);
     medir('asistente',{funciones:[...new Set(usadas)].join(',')||'ninguna'});
@@ -765,7 +803,7 @@ function burbujaAsis(m,i){
     +(m.tarjetas&&m.tarjetas.length?'<div class="asis-items">'+m.tarjetas.join('')+'</div>':'')
     +(m.sos?'<button class="btn btn-secundario btn-sm" data-asis-sos>'+icon('siren',16)+'Ver números de emergencia</button>':'')
     +(m.reintentar?'<button class="btn btn-secundario btn-sm" data-reintentar="'+i+'">'+icon('refresh-cw',16)+'Intentar de nuevo</button>':'')
-    +(m.rol==='fusa'&&!m.error&&!m.bienvenida?'<p class="asis-ia">Respuesta con IA: confirma horarios y precios antes de ir.</p>':'')+'</div></div>';
+    +(m.rol==='fusa'&&!m.error&&m.recomienda?'<p class="asis-ia">Respuesta con IA: confirma horarios y precios antes de ir.</p>':'')+'</div></div>';
 }
 // Mientras la IA trabaja: primero "Buscando", y cuando las funciones devuelven datos, las tarjetas
 function pensandoAsis(parcial){
@@ -1127,9 +1165,29 @@ function tarjetaRutaAdmin(x,acciones){
     +'<div class="ruta-fotos-adm" data-fotos-ruta="'+esc(x.id)+'" data-n="'+(x.n_fotos||0)+'">'+(x.portada?'<img src="'+esc(x.portada)+'" alt="Foto 1 de '+esc(x.nombre)+'">':'')+'</div>'
     +'<div class="dc-actions"><button class="btn btn-tonal btn-sm" data-ruta3d="'+esc(x.id)+'">'+icon('mountain',16)+'Ver en 3D</button>'+acciones+'</div></div>';
 }
+/* v8: los senderos oficiales sin trazado (no están en OpenStreetMap) se graban en campo con la app y se publican desde aquí */
+const PASOS_TRAZADO=[
+  ['battery-charging','Prepara el celular','Batería cargada, ubicación precisa activada y la app abierta (Panel → Diagnóstico para revisar). Ve al inicio real del sendero.'],
+  ['play','Empieza en la ficha del sendero','Toca «Abrir ficha» aquí abajo y luego «Grabar mi recorrido». Mantén la app abierta; puedes pausar si te detienes.'],
+  ['camera','Camina hasta la meta','Sigue el camino de siempre y toma fotos en los miradores. En la meta toca «Terminar».'],
+  ['mountain','Revisa el resultado','En el resumen toca «Ver mi recorrido en 3D» y confirma que la línea sigue el sendero de principio a fin.'],
+  ['badge-check','Publícalo','Toca «Publicar como trazado oficial». La ficha cambia «Trazado en preparación» por «Ver ruta en 3D» para todos.']];
+function senderosOficialesHTML(){
+  const l=Object.keys(RUTAS).filter(id=>sinTrazadoArchivo(id)&&buscar(id)).map(id=>({id,d:buscar(id),of:estado.rutasOficiales[id]}));
+  const listos=id=>indiceRutas&&indiceRutas[id];
+  if(!indiceRutas)trazadoReal('').then(()=>{if(vistaActual().tipo==='admin'&&estado.admin.tab==='rutas')render(true);});
+  const falta=l.filter(x=>!x.of&&!listos(x.id));
+  return '<p class="dash-section">Senderos oficiales</p><div class="adm-card guia-trazado">'
+    +'<ul class="aa-fuentes">'+l.map(x=>'<li class="'+(x.of||listos(x.id)?'ok':'prep')+'">'+icon(x.of||listos(x.id)?'circle-check':'clock',18)+'<div><b>'+esc(x.d.nombre)+'</b><small>'
+      +(listos(x.id)?'Trazado real (OpenStreetMap)':x.of?'Grabado por ti · '+fmtKm(x.of.distancia_km)+' · '+fechaCorta(aMs(x.of.fecha)):'Trazado en preparación: no está en OpenStreetMap')+'</small></div>'
+      +'<button class="btn btn-ghost" data-abrir-sendero="'+esc(x.id)+'">Abrir ficha</button></li>').join('')+'</ul>'
+    +(falta.length?'<p class="nota-c izq"><b>Cómo grabar '+(falta.length===1?'el que falta':'los que faltan')+' (5 pasos)</b></p><ol class="bn-pasos">'
+      +PASOS_TRAZADO.map(([ic,t,d],i)=>'<li class="bn-paso"><span class="bn-num" aria-hidden="true">'+(i+1)+'</span><div><b>'+t+'</b><p>'+d+'</p></div></li>').join('')+'</ol>':'')
+    +'</div>';
+}
 function rutasAdminHTML(){
   const pend=(estado.adminPend.rutas||[]).slice().sort((a,b)=>(aMs(a.fecha_creacion)||0)-(aMs(b.fecha_creacion)||0)),pub=estado.rutasComunidad;
-  return '<p class="dash-section">Por revisar ('+pend.length+')</p>'
+  return senderosOficialesHTML()+'<p class="dash-section">Por revisar ('+pend.length+')</p>'
     +(pend.length?pend.map(x=>tarjetaRutaAdmin(x,'<button class="btn btn-primario btn-sm" data-ruta-ok="'+esc(x.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-ruta-no="'+esc(x.id)+'">Rechazar</button>')).join('')
       :'<div class="vacio">'+icon('route',48)+'<b>No hay rutas por revisar</b><p>Las personas proponen rutas desde «Mis recorridos».</p></div>')
     +'<p class="dash-section">Publicadas ('+pub.length+')</p>'
@@ -1138,6 +1196,7 @@ function rutasAdminHTML(){
 function enlazarRutasAdmin(){
   const todas=()=>[...(estado.adminPend.rutas||[]),...estado.rutasComunidad],ruta=id=>todas().find(x=>x.id===id);
   const col=db.collection('rutas_comunidad');
+  $$('[data-abrir-sendero]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.abrirSendero));
   $$('[data-ruta3d]').forEach(b=>b.onclick=()=>{const x=ruta(b.dataset.ruta3d);abrir3D({titulo:x.nombre,linea:lineaDeTexto(x.linea).map(p=>[p[0],p[1]])});});
   $$('[data-ruta-ok]').forEach(b=>b.onclick=()=>adminAccion(()=>col.doc(b.dataset.rutaOk).update({estado:'aprobada',fecha_revision:FV.serverTimestamp()}),'Ruta aprobada y publicada'));
   $$('[data-ruta-no]').forEach(b=>b.onclick=()=>pedirMotivo('Rechazar «'+ruta(b.dataset.rutaNo).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaNo).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta rechazada. La persona verá el motivo.'),MOTIVOS_RUTA));
@@ -1786,6 +1845,7 @@ function renderLista(v){
   if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
+    vistosInicio=new Set();
     html=asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
       +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
@@ -2015,9 +2075,17 @@ function enlazarTiles(){
   };
 }
 
-/* ===== SECCIONES DEL INICIO (carruseles de tarjetas compactas) ===== */
+/* ===== SECCIONES DEL INICIO (carruseles de tarjetas compactas) =====
+   v8: un mismo lugar aparece una sola vez entre «Abierto ahora», «Del campo a tu mesa» y «Recién llegados», y en esos
+   carruseles van primero los que tienen foto (los demás siguen en «Ver todos» y en las búsquedas). */
+const conFoto=d=>!!(imgSegura(d.imagen)||(d.fotos&&d.fotos.length));
+let vistosInicio=new Set();
+function paraCarrusel(l){
+  const r=l.filter(d=>!vistosInicio.has(d.id)).map((d,i)=>[d,i]).sort((a,b)=>(conFoto(b[0])-conFoto(a[0]))||a[1]-b[1]).map(x=>x[0]).slice(0,10);
+  r.forEach(d=>vistosInicio.add(d.id));return r;
+}
 function seccionAbiertosHTML(){
-  const l=itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}).slice(0,10);
+  const l=paraCarrusel(itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}));
   return carruselHTML('Abiertos','Abierto ahora',l,'abierto');
 }
 function seccionCercaHTML(){
@@ -2025,7 +2093,7 @@ function seccionCercaHTML(){
   const l=itemsVisibles('todas','',false).filter(d=>{const k=distanciaA(d);return k!=null&&k<=3;}).sort((a,b)=>distanciaA(a)-distanciaA(b)).slice(0,10);
   return carruselHTML('Cerca','Cerca de ti',l,'cercanos');
 }
-function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',itemsVisibles('campo','',false).slice(0,10),'campo');}
+function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
   const l=database.filter(d=>RUTAS[d.id]||subDe(d)==='sendero').sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
@@ -2033,7 +2101,7 @@ function seccionRutasHTML(){
 }
 // Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
 function seccionRecientesHTML(){
-  const l=database.filter(d=>d.creado).sort((a,b)=>b.creado-a.creado).slice(0,10);
+  const l=paraCarrusel(database.filter(d=>d.creado).sort((a,b)=>b.creado-a.creado));
   return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
 }
 function enlazarSecciones(){
@@ -2103,8 +2171,17 @@ function formatearHorario(h){
   return (pre?pre+' ':'')+rangos.map(([s,e])=>horaTexto(s)+' – '+horaTexto(e)).join(', ');
 }
 let indiceRutas=null;
+/* v8: trazados oficiales que el admin graba con la app y publica desde el resumen del recorrido (sin tocar el código).
+   Valen para los senderos del directorio que no tienen trazado en rutas/ (Cerro Fusacatán, La Aguadita). */
+estado.rutasOficiales={};
+db.collection('rutas_oficiales').onSnapshot(s=>{
+  estado.rutasOficiales=Object.fromEntries(s.docs.map(d=>[d.id,{...d.data(),coords:lineaDeTexto(d.data().linea)}]));
+  refrescarVista();
+},()=>{});
+const sinTrazadoArchivo=id=>!!RUTAS[id]&&!RUTAS[id].comunidad;
 async function trazadoReal(id){
   if(RUTAS[id]&&RUTAS[id].trazado)return RUTAS[id].trazado;   // rutas de la comunidad: el trazado viene con la ruta
+  const of=estado.rutasOficiales[id];if(of&&of.coords.length>=150)return of.coords;
   try{
     if(!indiceRutas)indiceRutas=await fetch('rutas/indice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}));
     const info=indiceRutas[id];if(!info)return null;
@@ -3203,6 +3280,7 @@ async function renderRecorrido(id){
     +'<button class="btn btn-primario btn-bloque" id="rlVer3D"'+(r.puntos.length<2?' disabled':'')+'>'+icon('mountain',18)+'Ver mi recorrido en 3D</button>'
     +'<button class="btn btn-secundario btn-bloque" id="rlVideo"'+(r.puntos.length<2?' disabled':'')+'>'+icon('video',18)+'Crear video para compartir</button>'
     +'<button class="btn btn-secundario btn-bloque" id="rlTarjeta"'+(r.puntos.length<2?' disabled':'')+'>'+icon('image',18)+'Compartir tarjeta</button>'
+    +(esAdmin()&&r.rutaId&&r.puntos.length>=20&&!r.simulado&&sinTrazadoArchivo(r.rutaId)?'<button class="btn btn-primario btn-bloque" id="rlOficial">'+icon('badge-check',18)+'Publicar como trazado oficial</button>':'')
     +(esAdmin()&&r.rutaId&&r.puntos.length>=20&&!r.simulado?'<button class="btn btn-secundario btn-bloque" id="rlTrazado">'+icon('download',18)+'Descargar trazado para la ruta (GeoJSON)</button>':'')
     +(r.estado==='terminado'&&!r.simulado&&r.puntos.length>=10?'<button class="btn btn-secundario btn-bloque" id="rlProponer">'+icon('route',18)+'Proponer como ruta nueva</button>':'')
     +'<button class="btn btn-ghost btn-bloque" id="rlMis">'+icon('award',18)+'Mis recorridos e insignias</button></div>'
@@ -3214,9 +3292,22 @@ async function renderRecorrido(id){
   $('#rlTarjeta').onclick=()=>compartirTarjeta(r,fotos);
   $('#rlMis').onclick=()=>navegar({tipo:'recorridos'});
   const rp=$('#rlProponer');if(rp)rp.onclick=()=>proponerDesdeRecorrido(r.id);
+  const ro=$('#rlOficial');if(ro)ro.onclick=()=>publicarTrazadoOficial(r);
   const rt=$('#rlTrazado');if(rt)rt.onclick=()=>{const g=trazadoParaRutas(r);if(!g)return;
     entregarArchivo(new File([JSON.stringify(g)],r.rutaId+'.geojson',{type:'application/geo+json'}),'Trazado de '+r.nombre);};
   enlazarFooter();
+}
+
+// El admin publica su recorrido como trazado oficial del sendero: la ficha deja de decir «Trazado en preparación»
+async function publicarTrazadoOficial(r){
+  const g=trazadoParaRutas(r);if(!g)return;
+  const f=g.features[0],coords=f.geometry.coordinates.map(c=>[c[1],c[0],c[2]==null?null:c[2]]),nombre=(buscar(r.rutaId)||{}).nombre||r.nombre;
+  const ya=estado.rutasOficiales[r.rutaId];
+  if(!await confirmar('Publicar trazado oficial','Tu recorrido de '+fmtKm(f.properties.distancia_km)+' será el trazado de «'+nombre+'» para todos: ruta guiada y vista 3D.'
+    +(ya?' Reemplaza el que publicaste el '+fechaCorta(aMs(ya.fecha))+'.':''),'Publicar','Cancelar','badge-check'))return;
+  adminAccion(()=>db.collection('rutas_oficiales').doc(r.rutaId).set({linea:textoDeLinea(coords),puntos:coords.length,distancia_km:f.properties.distancia_km,
+    desnivel_m:Math.round(f.properties.desnivel_m||0),fuente:'Recorrido real grabado con Fusa Conecta',fecha:FV.serverTimestamp(),publicado_por:estado.usuario.uid}),
+    'Trazado publicado: «'+nombre+'» ya tiene ruta en 3D');
 }
 
 /* ---------- Vista 3D (MapLibre + relieve) con vuelo de cámara y video opcional ---------- */
@@ -3977,6 +4068,8 @@ function misNegociosHTML(){
       +(c.estado_publicacion==='rechazado'?'<p class="mn-motivo">'+icon('info',14)+(c.motivo_rechazo?'Motivo: '+esc(c.motivo_rechazo):'Revisa los datos y envíalo de nuevo.')+'</p><button class="btn btn-tonal btn-sm" data-corregir="'+esc(c.id)+'">'+icon('pencil',16)+'Corregir y reenviar</button>'
         :c.estado_publicacion==='oculto'?'<p class="mn-motivo">'+icon('info',14)+'No aparece en el directorio. Escríbenos desde «Ayúdanos a mejorar» si crees que es un error.</p>'
         :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
+      +(conFoto(c)?'':'<div class="mn-foto" role="note">'+icon('camera',20)+'<span><b>Agrega una foto:</b> los negocios con foto reciben más visitas.</span>'
+        +'<button class="btn btn-tonal btn-sm" data-minegocio="'+esc(c.id)+'">'+icon('image-plus',16)+'Agregar foto</button></div>')
       +'</div>').join('')+'</div>';
 }
 function enlazarMisNegocios(){
@@ -4474,7 +4567,8 @@ db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapsh
   estado.novedades=l.filter(n=>n.destino!=='netlify');actualizarCampana();
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
-function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
+function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length
+  +avisosVigentes().filter(e=>(aMs(e.fecha_creacion)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
 function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
 function campanaHTML(){
   const n=noLeidas(),p=pendientesAdmin();
@@ -4486,13 +4580,22 @@ function abrirNovedades(){
   const pa=esAdmin()?porAprobar():0,pp=esAdmin()?premiumPorActivar():0;
   const bloqueAdmin=(pa||pp)?'<button class="aviso-admin" id="nvAdmin">'+icon('shield-check',22)+'<span><b>'+(pa?pa+' por aprobar':'Nada por aprobar')+'</b>'
     +'<small>'+(pp?pp+' solicitud'+(pp>1?'es':'')+' de Premium · ':'')+'Toca para abrir el panel</small></span>'+icon('chevron-right')+'</button>':'';
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2>'+bloqueAdmin+'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
+  // v8: avisos del municipio vigentes (jornadas, vacunación, cortes de servicio) arriba de las promociones
+  const avisos=avisosVigentes().slice(0,5);
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2>'+bloqueAdmin
+    +(avisos.length?'<p class="dash-section">Avisos del municipio</p><div class="novedades">'+avisos.map(e=>'<button class="novedad'+((aMs(e.fecha_creacion)||0)>visto?' nueva':'')+'" data-aviso="'+esc(e.id)+'">'
+        +'<span class="nv-ic nv-aviso">'+icon('landmark',18)+'</span><span class="nv-tx"><b>'+esc(e.titulo)+'</b><span>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</span>'
+        +'<small>'+esc(e.organizador||'Alcaldía')+'</small></span></button>').join('')+'</div>'
+        +'<button class="btn btn-ghost" id="nvAvisos">'+icon('megaphone',16)+'Ver todos los avisos</button><p class="dash-section">Promociones</p>':'')
+    +'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
     +(lista.length?'<div class="novedades">'+lista.map(n=>'<button class="novedad'+((aMs(n.fecha_envio)||0)>visto?' nueva':'')+'" data-com="'+esc(n.comercio_id)+'">'
         +'<span class="nv-ic">'+icon('megaphone',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
         +'<small>'+esc(n.comercio_nombre||'')+' · '+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>'
       :'<div class="vacio">'+icon('bell',48)+'<b>Aún no hay novedades</b><p>Aquí verás las promociones de los comercios destacados.</p></div>')
     +'</div>');
   $$('#sheetGen [data-com]').forEach(b=>b.onclick=()=>{cerrar('ovGen');abrirDetalle(b.dataset.com);});
+  $$('#sheetGen [data-aviso]').forEach(b=>b.onclick=()=>{cerrar('ovGen');abrirEvento(b.dataset.aviso);});
+  const nv=$('#nvAvisos');if(nv)nv.onclick=()=>{cerrar('ovGen');estado.agenda.cat='avisos';irAgenda('30');};
   const na=$('#nvAdmin');if(na)na.onclick=irAlPanelAdmin;
   ls.set('fc_novedades_leido',Date.now());actualizarCampana();
 }
@@ -5170,8 +5273,11 @@ function enlazarInstalar(){
 setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrarInstalar())render(true);},30500);
 
 /* ===== Estado abierto/cerrado: una sola función (estadoApertura), refrescada cada 60 s ===== */
+let diaVisto=new Date().toDateString();
 setInterval(()=>{
   $$('[data-estado]').forEach(el=>{const d=buscar(el.dataset.estado),ap=d&&estadoApertura(d);if(ap)el.outerHTML=estadoHTML(ap,d.id);});
+  // A medianoche los cupones del día anterior vencen: se quitan del inicio, de «Con cupón» y del botón central
+  const hoy=new Date().toDateString();if(hoy!==diaVisto){diaVisto=hoy;pintarGloboCupones();refrescarVista();}
 },60000);
 
 /* ===== RADIO EN VIVO: Vive Fusagasugá 88.1 FM (emisora de la Alcaldía) =====

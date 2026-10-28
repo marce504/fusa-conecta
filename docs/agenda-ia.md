@@ -26,7 +26,12 @@ Capa gratuita de Gemini (Developer API): límites por minuto y por día por proy
 - **Todos los días a las 6:00 a. m.** (hora de Colombia) y a mano (*Run workflow*).
 - **«Buscar eventos ahora»** en Panel → Eventos → Agenda automática: deja un pedido en `config/agenda_auto` y el proceso, que revisa cada 15 minutos, lo toma. La app no guarda ninguna clave de GitHub.
 - **Publicación automática**: si la fuente es una alcaldía (`fusagasuga.gov.co`, `pasca-cundinamarca.gov.co`) y el evento tiene título, día **y hora**, y lugar exacto, se publica solo con la etiqueta **«Fuente oficial»**. Si falta algo, o la fuente es IDECUT, queda **pendiente** para el admin.
-- **Sin duplicados**: título + día + lugar contra todo lo que ya existe (publicado, pendiente o descartado).
+- **Sin duplicados**: título + día + lugar, o el mismo lugar a la misma hora, contra todo lo que ya existe (publicado, pendiente o descartado). Una noticia con varias actividades crea un evento por cada lugar y hora distintos.
+- **Títulos de máximo 60 caracteres** (v8): Gemini devuelve `titulo_corto` y la campaña aparte; la campaña va al inicio de la descripción («Hace parte de: Semana de Acción contra el Mosquito.»). Los eventos estructurados del sitio se acortan cortando en « - » o «: » y sin palabras de enlace al final.
+- **Plan o aviso** (v8, campo `tipo`): los planes (cultura, música, deporte, feria, gastronomía, religioso) salen en «Qué hacer en Fusa» y en el banner; los **avisos del municipio** (jornadas de salud, vacunación, lavado de tanques, fumigación, cortes de servicio) solo en el filtro «Avisos del municipio» de la Agenda y en la campana de Novedades. La app aplica la misma lista de palabras a los eventos anteriores sin `tipo`.
+- **Imagen** (v8): la imagen principal de la noticia (`defaultImage` de la API gov.co, o `og:image` de la página) se baja y se guarda en WebP de máximo 200 KB, igual que las fotos que suben las personas. Si no hay o el sitio no responde, la app muestra una ilustración de línea con el color de la categoría, y la siguiente corrida lo vuelve a intentar.
+- **Reparación** (v8): cada corrida completa arregla los automáticos guardados antes (título corto, `tipo`, imagen). Solo eso, sin leer los sitios: `node extraer.mjs --reparar`.
+- **Eventos de ejemplo**: cada corrida (también las de cada 15 minutos) borra los `demo:true` con más de 24 horas. El panel del admin también los borra al abrirse.
 - Al terminar escribe el resumen en `config/agenda_auto` (fecha, fuentes leídas, encontrados, publicados, pendientes, ya existían), que el panel muestra.
 - Sin los secretos termina en segundos sin hacer nada.
 
@@ -58,7 +63,7 @@ Capa gratuita de Gemini (Developer API): límites por minuto y por día por proy
 
 GitHub pausa los procesos programados de un repositorio público después de 60 días sin cambios: si pasa, en la misma página de Actions aparece **Enable workflow**.
 
-Probar sin claves: `cd herramientas/agenda-ia && node extraer.mjs --simular`.
+Probar sin claves: `cd herramientas/agenda-ia && node extraer.mjs --simular` (con `--imagenes` también baja y comprime las imágenes).
 
 ## 2.3 Organizadores
 
