@@ -1057,6 +1057,16 @@ button:disabled{opacity:.6;pointer-events:none}
 .ecualizador i:nth-child(3){animation-delay:-.6s}
 @keyframes barraEq{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
 .gira{animation:girar 1s linear infinite}
+/* Diagnóstico (v7 · Fase 1) */
+.dash-top:has(.dash-top-acc){flex-wrap:wrap}
+.dash-top-acc{display:flex;align-items:center;gap:8px;margin-left:auto}
+.diag-lista{list-style:none;padding:0;margin:16px 0 0}
+.diag-fila{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);min-height:56px}
+.diag-fila b{display:block;font-size:var(--text-sm);color:var(--ink)}
+.diag-fila small{display:block;font-size:13px;color:var(--ink-2);word-break:break-word}
+.diag-ic{flex-shrink:0;color:var(--ink-2);margin-top:2px}
+.diag-fila.ok .diag-ic,.diag-fila.ok small{color:var(--mint-700)}
+.diag-fila.mal .diag-ic,.diag-fila.mal small{color:var(--danger-700)}
 @keyframes girar{to{transform:rotate(360deg)}}
 /* ---------- v4 · Fase 1: registro, mis negocios y fotos ---------- */
 .btn-google.grande{min-height:56px;font-size:var(--text-lg);border-color:var(--primary-300);box-shadow:var(--shadow-md)}

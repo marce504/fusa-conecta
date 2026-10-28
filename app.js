@@ -358,7 +358,8 @@ function formEvento(e,opc={}){
   $('#evfEn').onchange=()=>{const d=buscar($('#evfEn').value);if(!d)return;lat=d.lat;lng=d.lng;if(!$('#evfLugar').value.trim())$('#evfLugar').value=d.nombre;$('#evfPos').textContent='Ubicación de «'+d.nombre+'» guardada';};
   $('#evfAqui').onclick=async()=>{const p=await pedirUbicacion();if(!p){toast('No pudimos ver tu ubicación');return;}[lat,lng]=p;$('#evfPos').textContent='Tu ubicación actual quedó guardada';};
   $('#evfFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#evfCaja').classList.add('cargando');
-    try{foto=await comprimirFoto(f,1280,250000,.8);$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}catch(err){toast('No pudimos usar esa foto. Prueba con otra.');}
+    try{foto=await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado');$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}
+    catch(err){toast('No pudimos usar esa foto. Prueba con otra. (Error '+reportarError('foto evento',err)+')');}
     $('#evfCaja').classList.remove('cargando');};
   // La IA llena el formulario; la persona revisa, corrige y envía
   if($('#iaLlenar'))enlazarIAEvento((d,afiche)=>{
@@ -375,7 +376,7 @@ function formEvento(e,opc={}){
     $('#evfGratis').checked=d.gratis!==false;$('#evfPrecioCaja').hidden=$('#evfGratis').checked;
     if(d.gratis===false)pon('#evfPrecio',String(d.precio||'').slice(0,40));
     // El afiche también sirve como foto del evento si aún no tiene una
-    if(afiche&&!foto){comprimirFoto(afiche.src,1280,250000,.8).then(f=>{foto=f;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
+    if(afiche&&!foto){conTiempoLimite(comprimirFoto(afiche.src,1280,200000,.8),10000,'La foto tardó demasiado').then(f=>{foto=f;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
   });
   $('#evfGuardar').onclick=async()=>{
     const tit=$('#evfTit').value.trim(),ini=$('#evfIni').value?new Date($('#evfIni').value).getTime():0,fin=$('#evfFin').value?new Date($('#evfFin').value).getTime():0;
@@ -390,26 +391,61 @@ function formEvento(e,opc={}){
     const datos={titulo:tit,descripcion:$('#evfDesc').value.trim(),categoria:$('#evfCat').value,fecha_inicio:TS.fromMillis(ini),fecha_fin:TS.fromMillis(fin),
       lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:foto?foto.src:'',organizador:$('#evfOrg').value.trim(),
       enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim()};
-    $('#evfGuardar').disabled=true;
-    try{
-      if(admin&&e)await db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()});
-      else await db.collection('eventos').add({...datos,estado:directo?'publicado':'pendiente',
+    const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
+    // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor
+    const escritura=admin&&e
+      ?db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp()})
+      :db.collection('eventos').add({...datos,estado:directo?'publicado':'pendiente',
         origen:porIA?'ia':admin?'admin':(esOrganizador()||esComerciante())?'organizador':'usuario',
         creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
+    try{
+      await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
       cerrar('ovGen');medir(directo?'evento_publicado':'evento_sugerido');
       toast(directo?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
       if(vistaActual().tipo==='admin')cargarAdmin();
-    }catch(err){console.error(err);toast('No se pudo guardar. Revisa tu conexión.');$('#evfGuardar').disabled=false;}
+    }catch(err){
+      const cod=reportarError('guardar evento',err);
+      if(err.code==='tiempo'){
+        // Sigue en cola en el teléfono: se envía sola al volver la conexión, y si el servidor la rechaza se avisa
+        escritura.then(()=>{toast('Evento «'+tit+'» guardado en el servidor');if(vistaActual().tipo==='admin')cargarAdmin();})
+          .catch(e2=>toast('No se pudo guardar «'+tit+'». (Error '+reportarError('guardar evento',e2)+')',6000));
+        cerrar('ovGen');toast('Se guardará cuando haya conexión. (Aviso '+cod+')',5000);
+      }else{toast('No se pudo guardar, intenta de nuevo. (Error '+cod+')',5000);b.disabled=false;b.innerHTML=textoBoton;}
+    }
   };
 }
+
+/* ===== TIEMPOS LÍMITE Y CÓDIGOS DE ERROR (v7 · Fase 1) =====
+   Nada que espere a la red o a la IA puede dejar la pantalla cargando para siempre. El aviso lleva un código corto
+   (E-PERM, E-RED, E-TIEMPO…) para reportarlo; el error completo queda en la consola. */
+function conTiempoLimite(promesa,ms,mensaje){
+  let t;const limite=new Promise((_,no)=>{t=setTimeout(()=>no(Object.assign(new Error(mensaje||'Tiempo agotado'),{code:'tiempo'})),ms);});
+  return Promise.race([promesa,limite]).finally(()=>clearTimeout(t));
+}
+function codigoError(e){
+  const c=String(e&&e.code||''),m=String(e&&e.message||'');
+  if(c==='tiempo')return 'E-TIEMPO';
+  if(c==='limite')return 'E-LIMITE';
+  if(/permission-denied/.test(c))return 'E-PERM';
+  if(/api-not-enabled/.test(c)||/\b403\b/.test(m))return 'E-IA-OFF';
+  if(/\b404\b/.test(m))return 'E-IA-MODELO';
+  if(/resource-exhausted/.test(c)||/\b429\b|quota/i.test(m))return 'E-CUPO';
+  if(/\b50\d\b/.test(m))return 'E-IA-SERV';
+  if(/unavailable/.test(c)||/Failed to fetch|NetworkError|offline/i.test(m))return 'E-RED';
+  if(/invalid-argument|out-of-range/.test(c))return 'E-DATOS';
+  if(/unauthenticated/.test(c))return 'E-SESION';
+  return 'E-'+(c.replace(/[^a-z]/gi,'').slice(0,8).toUpperCase()||'DESC');
+}
+function reportarError(donde,e){const cod=codigoError(e);console.error('['+donde+'] '+cod,e);return cod;}
 
 /* ===== IA: LLENAR UN EVENTO DESDE UN AFICHE O UN TEXTO (v6 · Fase 2.1) =====
    Firebase AI Logic (SDK web modular firebase/ai) con la Gemini Developer API: funciona en el plan Spark y la clave
    la guarda Firebase (nunca va en este código). Se carga solo al usarla, en una app de Firebase aparte con la misma
    configuración: la inicialización principal no cambia. Con App Check (reCAPTCHA v3) si hay clave de sitio.
    Límite: 20 usos por persona al día (contador en Firestore, validado por las reglas). Si falla, el formulario sigue a mano. */
-// Modelos en orden: el rápido primero; si está saturado o sin cupo, el siguiente (gemini-2.5-flash ya no se ofrece a proyectos nuevos)
-const IA={version:'12.19.0',modelos:['gemini-flash-lite-latest','gemini-3.8-flash'],limiteDia:20,
+// Solo modelos verificados con una llamada real (2026-10-28): gemini-3.8-flash y gemini-flash-latest no responden en 25 s;
+// gemini-2.5-flash, 2.5-flash-lite, 2.0-flash-lite y 3.8-flash-lite no existen para proyectos nuevos (404)
+const IA={version:'12.19.0',modelos:['gemini-flash-lite-latest'],limiteDia:20,segundos:25,
   recaptcha:''};   // clave de SITIO reCAPTCHA v3 (es pública) cuando se active App Check en la consola
 let modelosIA=null;
 const esOrganizador=()=>!!(estado.perfil&&estado.perfil.rol==='organizador');
@@ -466,15 +502,15 @@ function enlazarIAEvento(alLlenar){
   let afiche=null;
   const est=t=>{const e=$('#iaEstado');if(e)e.textContent=t;};
   $('#iaAfiche').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;
-    try{afiche=await comprimirFoto(f,1280,600000,.85);$('#iaAficheTx').textContent='Afiche listo · cambiar';est('');}catch(e){est('No pudimos leer esa imagen. Prueba con otra.');}};
+    try{afiche=await conTiempoLimite(comprimirFoto(f,1280,600000,.85),10000,'La foto tardó demasiado');$('#iaAficheTx').textContent='Afiche listo · cambiar';est('');}
+    catch(e){est('No pudimos leer esa imagen. Prueba con otra. (Error '+reportarError('IA afiche',e)+')');}};
   $('#iaLlenar').onclick=async()=>{
     const texto=$('#iaTexto').value.trim();
     if(!afiche&&texto.length<15){est('Sube el afiche o pega el texto del evento.');return;}
     if(!estado.online){est('La IA necesita conexión a internet. Puedes llenar el formulario a mano.');return;}
     const b=$('#iaLlenar');b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Leyendo…';est('');
     try{
-      const quedan=await contarUsoIA();
-      const modelos=await obtenerModeloIA();
+      const quedan=await conTiempoLimite(contarUsoIA(),10000,'El contador de usos no respondió');
       const hoy=new Date(),p=n=>String(n).padStart(2,'0');
       const pedido='Hoy es '+hoy.getFullYear()+'-'+p(hoy.getMonth()+1)+'-'+p(hoy.getDate())+' en Colombia. Extrae UN evento público de Fusagasugá o Pasca (Cundinamarca) '
         +'del afiche o texto. Reglas: no inventes datos; si falta el año, usa la próxima fecha futura; si falta la hora, usa 09:00; si falta el fin, 2 horas después; '
@@ -482,20 +518,21 @@ function enlazarIAEvento(alLlenar){
         +'Categorías: '+CATS_EVENTO.map(c=>c[0]+' ('+c[1]+')').join(', ')+'.'+(texto?'\n\nTEXTO:\n'+texto:'');
       const partes=[{text:pedido}];
       if(afiche)partes.push({inlineData:{mimeType:afiche.src.slice(5,afiche.src.indexOf(';')),data:afiche.src.split(',')[1]}});
-      let r=null;
-      for(let i=0;i<modelos.length;i++){
-        try{r=await modelos[i].generateContent(partes);break;}
-        catch(e){if(i===modelos.length-1||!/(404|429|500|503)|high demand|quota|no longer available/i.test(e.message))throw e;}
-      }
+      const r=await conTiempoLimite((async()=>{
+        const modelos=await obtenerModeloIA();let ultimo=null;
+        for(const m of modelos){try{return await m.generateContent(partes);}catch(e){ultimo=e;console.warn('IA:',e);}}
+        throw ultimo;
+      })(),IA.segundos*1000,'La IA tardó demasiado');
       const d=JSON.parse(r.response.text());
       alLlenar(d,afiche);
       medir('evento_ia',{con_afiche:!!afiche});
       est('Listo: revisa y corrige lo que haga falta. Te quedan '+quedan+' usos de IA hoy.');
     }catch(e){
-      console.warn('IA:',e);
-      est(e.code==='limite'?'Llegaste al límite de '+IA.limiteDia+' usos de IA por hoy. Puedes llenar el formulario a mano.'
-        :/api-not-enabled|permission|403|app-check/i.test(String(e.code)+e.message)?'La IA todavía no está activada en la app. Puedes llenar el formulario a mano.'
-        :'No pudimos leer el evento con IA. Puedes llenar el formulario a mano.');
+      const cod=reportarError('IA evento',e);
+      est(e.code==='limite'?'Llegaste al límite de '+IA.limiteDia+' usos de IA por hoy. Llena el formulario a mano.'
+        :e.code==='tiempo'?'La IA tardó demasiado, llena el formulario a mano. (Error '+cod+')'
+        :cod==='E-IA-OFF'?'La IA no está disponible en este momento. Llena el formulario a mano. (Error '+cod+')'
+        :'No pudimos leer el evento con IA. Llena el formulario a mano. (Error '+cod+')');
     }finally{b.disabled=false;b.innerHTML=icon('sparkles',18)+'Llenar el formulario';}
   };
 }
@@ -4011,6 +4048,40 @@ function chipEstadoAdmin(c){
   return e==='aprobado'?'<span class="chip-estado pub">Publicado</span>':e==='oculto'?'<span class="chip-estado rech">Oculto</span>'
     :e==='rechazado'?'<span class="chip-estado rech">Rechazado</span>':'<span class="chip-estado rev">En revisión</span>';
 }
+/* ===== DIAGNÓSTICO (v7 · Fase 1): prueba lo que usa la app y muestra verde/rojo con el tiempo de cada cosa ===== */
+const PRUEBAS_DIAG=[
+  ['Lectura de Firestore (servidor)',10000,()=>db.collection('config').doc('directorio').get({source:'server'})],
+  ['Escritura de prueba (diagnostico/'+'tu cuenta)',15000,()=>db.collection('diagnostico').doc(estado.usuario.uid)
+    .set({fecha:FV.serverTimestamp(),version:VERSION_APP,navegador:navigator.userAgent.slice(0,200),en_linea:navigator.onLine})],
+  ['Cola de escrituras del teléfono',10000,()=>db.waitForPendingWrites()],
+  ['Llamada a la IA ('+IA.modelos[0]+')',IA.segundos*1000,async()=>{const m=(await obtenerModeloIA())[0];
+    const r=await m.generateContent('Responde {"titulo":"Prueba","categoria":"otro"} sin cambiar nada.');JSON.parse(r.response.text());}]
+];
+function abrirDiagnostico(){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Diagnóstico</h2><p class="nota">Prueba la conexión con la base de datos y con la IA desde este teléfono. Versión '+VERSION_APP
+    +' · '+(navigator.onLine?'con internet':'sin internet')+'.</p><ul class="diag-lista" id="diagLista" aria-live="polite">'
+    +PRUEBAS_DIAG.map(([t],i)=>'<li class="diag-fila" id="diag'+i+'"><span class="diag-ic" aria-hidden="true">'+icon('loader-circle',22,'gira')+'</span><div><b>'+t+'</b><small>Probando…</small></div></li>').join('')
+    +'</ul><button class="btn btn-secundario btn-bloque mt-16" id="diagCopiar" disabled>'+icon('copy',18)+'Copiar resultado</button>'
+    +'<button class="btn btn-ghost btn-bloque" id="diagOtra" disabled>'+icon('refresh-cw',18)+'Probar de nuevo</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Diagnóstico');
+  const res=[];
+  (async()=>{
+    for(let i=0;i<PRUEBAS_DIAG.length;i++){
+      const [t,ms,fn]=PRUEBAS_DIAG[i],t0=performance.now();let ok=true,det='';
+      try{await conTiempoLimite(Promise.resolve().then(fn),ms,'Sin respuesta en '+ms/1000+' s');}catch(e){ok=false;det=reportarError('diagnóstico · '+t,e)+' · '+String(e.message||e).slice(0,140);}
+      const seg=((performance.now()-t0)/1000).toFixed(1).replace('.',',')+' s';
+      res.push((ok?'OK':'FALLA')+' · '+t+' · '+seg+(det?' · '+det:''));
+      const li=$('#diag'+i);if(!li)return;
+      li.classList.add(ok?'ok':'mal');
+      li.querySelector('.diag-ic').innerHTML=icon(ok?'circle-check':'circle-x',22);
+      li.querySelector('small').textContent=(ok?'Funciona':'Falla')+' · '+seg+(det?' · '+det:'');
+    }
+    const c=$('#diagCopiar'),o=$('#diagOtra');if(!c)return;c.disabled=o.disabled=false;
+    c.onclick=async()=>{const txt='Diagnóstico Fusa Conecta '+VERSION_APP+' · '+new Date().toLocaleString('es-CO')+'\n'+res.join('\n');
+      try{await navigator.clipboard.writeText(txt);toast('Resultado copiado');}catch(e){toast(txt,8000);}};
+    o.onclick=abrirDiagnostico;
+  })();
+}
 function renderAdmin(){
   const cuerpo=$('#cuerpo');
   if(!esAdmin()){cuerpo.innerHTML='<div class="vacio">'+icon('shield-check',48)+'<b>Panel de administración</b><p>Solo disponible para administradores.</p></div>';return;}
@@ -4092,13 +4163,15 @@ function renderAdmin(){
   // El admin las migra solo al abrir el panel (una vez por sesión); el botón queda por si alguna falla
   if(fotosAntiguas.length&&!A.migracionAuto){A.migracionAuto=true;
     migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen}))).then(n=>{if(n){toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();}});}
-  cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div>'
+  cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2><div class="dash-top-acc"><button class="btn btn-secundario btn-sm" id="admDiag">'+icon('activity',18)+'Diagnóstico</button>'
+      +'<button class="btn-redondo" id="admRecargar" aria-label="Actualizar datos">'+icon('refresh-cw',20)+'</button></div></div>'
     +'<div class="metricas">'+[['store',database.length,'Negocios publicados'],['clock',nNegocios+premium.length,'Por aprobar'],['ticket',D.canjesMes,'Cupones canjeados este mes'],['users',D.usuarios,'Usuarios registrados']]
       .map(([ic,n,t])=>'<div class="metrica">'+icon(ic,18)+'<b>'+n+'</b><span>'+t+'</span></div>').join('')+'</div>'
     +(fotosAntiguas.length?'<button class="btn btn-tonal btn-bloque mt-16" id="admMigrar">'+icon('images',18)+'Pasar '+fotosAntiguas.length+(fotosAntiguas.length===1?' foto antigua':' fotos antiguas')+' a la galería</button>':'')
     +'<div class="adm-tabs" role="tablist">'+tabs.map(([k,t,ic,n])=>'<button role="tab" aria-selected="'+(A.tab===k)+'" class="'+(A.tab===k?'on':'')+'" data-atab="'+k+'">'+icon(ic,18)+t+(n?'<span class="contador alerta">'+n+'</span>':'')+'</button>').join('')+'</div>'
     +'<div class="adm-cuerpo">'+html+'</div></div>';
   $('#admRecargar').onclick=()=>{toast('Actualizando…');cargarAdmin();};
+  $('#admDiag').onclick=abrirDiagnostico;
   const mg=$('#admMigrar');if(mg)mg.onclick=async()=>{mg.disabled=true;mg.textContent='Pasando fotos…';
     const n=await migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen})));
     toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();};
