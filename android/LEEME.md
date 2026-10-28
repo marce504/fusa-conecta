@@ -10,7 +10,7 @@ publicar la web: no hay que subir un APK nuevo por cada cambio de la app.
 | Paquete | `co.fusaconecta.app` |
 | Versión | 1.0.0 (código 1) |
 | Abre | `https://fusa-conecta.web.app/?origen=app` |
-| Android mínimo | 5.0 (API 21); compila con la API 36 |
+| Android mínimo | 7.0 (API 24, lo que exige la librería de Google para TWA); compila con la API 36 |
 | Ícono | `img/icons/icon-512.png` e `icon-maskable-512.png` (los mismos de la PWA) |
 | Pantalla de inicio | Fondo violeta `#6B4EFF` con el ícono, como el splash de la PWA |
 | Barras del sistema | Blancas en modo claro y `#121420` en oscuro |
