@@ -330,10 +330,13 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
 // Avisos al celular (v1.2.0). FCM no se puede probar sin un celular real: aquí se prueba lo que sí depende de la app
 // (no pedir permiso al abrir, la pregunta después de registrar el negocio, las reglas de dispositivos y la campana).
 test('avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» en la campana', async ({ page }, info) => {
-  // Cuenta las veces que la app pide el permiso de notificaciones
+  // Cuenta las veces que la app pide el permiso de notificaciones. El estado del permiso se fija a mano: Chromium sin
+  // ventana (el del CI) lo trae bloqueado, y Chrome, por preguntar
   await page.addInitScript(() => {
     window.pidioPermiso = 0;
+    window.permisoSimulado = 'default';
     if (window.Notification) {
+      Object.defineProperty(window.Notification, 'permission', { get: () => window.permisoSimulado });
       window.Notification.requestPermission = async () => {
         window.pidioPermiso += 1;
         return 'default';
@@ -414,8 +417,17 @@ test('avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» e
   // Abrir el aviso no debe parecer «Atrás»: no aparece la pregunta de salir de la app
   await expect(page.locator('#ovConfirm')).not.toHaveClass(/abierto/);
 
+  // Con el permiso bloqueado no se insiste: no aparece la pregunta
+  await page.evaluate(() => {
+    window.permisoSimulado = 'denied';
+    window.ofrecerAvisoAprobacion('Vivero de Prueba E2E');
+  });
+  await expect(page.locator('#ovGen')).not.toHaveClass(/abierto/);
   // Después de registrar un negocio se ofrece el aviso (una sola vez) con «Sí, avisarme» y «Ahora no»
-  await page.evaluate(() => window.ofrecerAvisoAprobacion('Vivero de Prueba E2E'));
+  await page.evaluate(() => {
+    window.permisoSimulado = 'default';
+    window.ofrecerAvisoAprobacion('Vivero de Prueba E2E');
+  });
   const hoja = page.locator('#sheetGen');
   await expect(hoja).toContainText('¿Quieres que te avisemos aquí cuando tu negocio sea aprobado?');
   await expect(hoja.locator('#aaSi')).toHaveText('Sí, avisarme');
