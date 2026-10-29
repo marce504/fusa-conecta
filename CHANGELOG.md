@@ -8,6 +8,9 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Agregado
+- `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
+
 ## [1.1.0] - 2026-10-28 · Plan de pruebas con evidencias
 
 ### Agregado
