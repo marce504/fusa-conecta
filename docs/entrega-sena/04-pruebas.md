@@ -2,17 +2,17 @@
 
 El plan completo, los criterios de aceptación y la tabla caso por caso están en `docs/pruebas.md`.
 
-## Resultados (v1.1.0, 2026-10-28)
+## Resultados (v1.2.0, 2026-10-29)
 
 | Suite | Herramienta | Casos | Resultado |
 |---|---|---|---|
-| Unitarias JavaScript (código real de `app.js`) | Vitest 2 | 36 | 36 pasan |
-| Unitarias y de API Python | pytest 8 | 40 | 36 pasan, 4 de integración se corren aparte |
-| Procesos automáticos Python | pytest 8 | 21 | 19 pasan, 2 de integración se corren aparte |
-| Integración: API contra el emulador | pytest + Firebase Emulator Suite | 4 | 4 pasan |
-| Integración: procesos contra el emulador | pytest + Firebase Emulator Suite | 2 | 2 pasan |
-| Extremo a extremo en celular 390×844 | Playwright 1.55 | 4 | 4 pasan |
-| **Total** | | **107** | **101 pasan, 0 fallan** (las 6 omitidas son las de integración, que pasan en su propia suite) |
+| Unitarias JavaScript (código real de `app.js`) | Vitest 2 | 50 | 50 pasan |
+| Unitarias y de API Python | pytest 8 | 61 | 56 pasan, 5 de integración se corren aparte |
+| Procesos automáticos Python | pytest 8 | 27 | 24 pasan, 3 de integración se corren aparte |
+| Integración: API contra el emulador | pytest + Firebase Emulator Suite | 5 | 5 pasan |
+| Integración: procesos contra el emulador | pytest + Firebase Emulator Suite | 3 | 3 pasan |
+| Extremo a extremo en celular 390×844 | Playwright 1.55 | 9 | 9 pasan |
+| **Total** | | **155** | **147 pasan, 0 fallan** (las 8 omitidas son las de integración, que pasan en su propia suite) |
 
 **Lighthouse 11** (móvil, mediana de 3 corridas):
 
@@ -26,7 +26,7 @@ El plan completo, los criterios de aceptación y la tabla caso por caso están e
 
 El rendimiento se reporta como advertencia: con la simulación de celular lento de Lighthouse, la primera pintura tarda 9,3 s, porque la entrada espera a que la app esté lista. El bloqueo total es de 0 ms y el cambio de diseño, de 0.
 
-**Cobertura de la API:** 83 % (el CI exige al menos 80 %).
+**Cobertura de la API:** 84 % (el CI exige al menos 80 %).
 
 ## Casos de prueba de aceptación del capítulo 9 cubiertos por pruebas automáticas
 
@@ -109,7 +109,7 @@ En GitHub Actions todo esto corre solo en cada Pull Request y cada push. El info
 | [capturas/01-ci-github-actions-verde.png](capturas/01-ci-github-actions-verde.png) | La corrida de integración continua con los 8 trabajos en verde |
 | [capturas/02-api-docs-produccion.png](capturas/02-api-docs-produccion.png) | La documentación OpenAPI de la API en producción |
 | [capturas/04-lighthouse-movil.png](capturas/04-lighthouse-movil.png) | Lighthouse en móvil: 56, 100, 100, 100 y PWA aprobada |
-| [capturas/05-playwright-informe.png](capturas/05-playwright-informe.png) | Informe de Playwright con los 4 flujos |
+| [capturas/05-playwright-informe.png](capturas/05-playwright-informe.png) | Informe de Playwright (captura de la v1.1.0, con los 4 flujos de entonces; hoy son 9) |
 | [capturas/06-cobertura-api.png](capturas/06-cobertura-api.png) | Cobertura de la API por archivo |
 | [capturas/07-pytest-informe.png](capturas/07-pytest-informe.png) | Informe HTML de pytest |
 | [../evidencias/pruebas/informe-pruebas.png](../evidencias/pruebas/informe-pruebas.png) | Resumen de todas las suites |

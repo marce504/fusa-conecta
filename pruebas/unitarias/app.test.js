@@ -291,3 +291,24 @@ describe('Avisos al celular: permiso y textos del panel admin', () => {
     expect(textoAviso({ destinatario: null }, 'aprobado')).toBe('');
   });
 });
+
+// ---------------------------------------------------------------- ficha incompleta en Mi negocio (v1.2.0)
+describe('fichaIncompleta: aviso para el dueño', () => {
+  const { fichaIncompleta } = cargar(['imgSegura', 'conFoto', 'fichaIncompleta']);
+  it('sin foto ni WhatsApp (caso real: Ornamentación Primiciero)', () => {
+    expect(fichaIncompleta({ imagen: '', fotos: [], whatsapp: '' })).toBe(
+      'Tu ficha está incompleta: agrega una foto y tu WhatsApp para recibir más clientes',
+    );
+  });
+  it('solo le falta una de las dos', () => {
+    expect(fichaIncompleta({ fotos: ['img/x.jpg'], whatsapp: '' })).toBe(
+      'Tu ficha está incompleta: agrega tu WhatsApp para recibir más clientes',
+    );
+    expect(fichaIncompleta({ imagen: '', whatsapp: '3102220014' })).toBe(
+      'Tu ficha está incompleta: agrega una foto para recibir más clientes',
+    );
+  });
+  it('completa: sin aviso', () => {
+    expect(fichaIncompleta({ fotos: ['img/x.jpg'], whatsapp: '310 222 0014' })).toBe('');
+  });
+});

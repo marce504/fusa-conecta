@@ -1,4 +1,4 @@
-# Entrega SENA · Fusa Conecta v1.1.0
+# Entrega SENA · Fusa Conecta v1.2.0
 
 Material para actualizar los capítulos 3 a 11 del documento técnico (GFPI-F-135, numerales 3.3 y 3.4) con lo que
 **realmente se construyó**. Todo lo que hay aquí se puede comprobar en los enlaces, el código o las capturas.
@@ -8,7 +8,7 @@ Material para actualizar los capítulos 3 a 11 del documento técnico (GFPI-F-13
 | Qué | Enlace |
 |---|---|
 | Aplicación web (PWA) | https://fusa-conecta.web.app |
-| Aplicación Android (APK y AAB) | Compilación firmada: https://github.com/marce504/fusa-conecta/actions/workflows/android.yml (artefacto «fusa-conecta-android»). Para un enlace público permanente, crea la Release con la etiqueta `apk-v1.0.0` (`android/LEEME.md`); quedará en https://github.com/marce504/fusa-conecta/releases |
+| Aplicación Android (APK y AAB) | https://github.com/marce504/fusa-conecta/releases (`apk-v1.1.0`, con avisos al celular; `apk-v1.0.0`, la primera). Se compilan y firman en GitHub Actions (`android.yml`) |
 | API REST: documentación interactiva (OpenAPI) | https://fusa-conecta-api.onrender.com/docs |
 | API REST: estado | https://fusa-conecta-api.onrender.com/v1/salud |
 | Repositorio | https://github.com/marce504/fusa-conecta |
@@ -40,8 +40,8 @@ Evidencias que ya existen en el repositorio y se citan aquí:
 | Aplicación web o móvil funcional | PWA en producción y app Android (TWA) del mismo código | Enlaces de arriba · `android/LEEME.md` |
 | Servicios web REST | API FastAPI `/v1` con 10 endpoints, JSON, ICS, GPX, Excel, PDF y avisos push (FCM), OpenAPI | `02-endpoints.md` · `api/` |
 | Integración de módulos | La PWA consume la API (calendario, GPX, reportes, Diagnóstico); la agenda en Python escribe en Firestore lo que la PWA y la API leen | `01-arquitectura.md` |
-| Control de versiones | Git y GitHub, ramas `main` y `develop`, Conventional Commits, etiquetas v0.1.0 a v1.1.0, CHANGELOG | `03-estructura-repositorio.md` |
+| Control de versiones | Git y GitHub, ramas `main` y `develop`, Conventional Commits, etiquetas v0.1.0 a v1.2.0 y `apk-v1.0.0`, `apk-v1.1.0`, CHANGELOG | `03-estructura-repositorio.md` |
 | Estándares de codificación | ESLint (Airbnb adaptada) y Prettier; black, flake8 (PEP 8) y type hints; 0 errores en CI | `docs/estandares.md` |
 | Tecnologías emergentes | IA generativa con llamadas a funciones, mapas 3D con relieve, PWA offline-first, TWA | `docs/tecnologias-emergentes.md` |
-| Plan de pruebas con evidencias | 101 pruebas en 6 suites + Lighthouse (accesibilidad y PWA 100), informe HTML en cada corrida | `04-pruebas.md` · `docs/pruebas.md` |
+| Plan de pruebas con evidencias | 147 pruebas en 6 suites + Lighthouse (accesibilidad y PWA 100), informe HTML en cada corrida | `04-pruebas.md` · `docs/pruebas.md` |
 | Módulos en Java, Python, PHP o C# | **Python**: API REST (`api/`) y procesos automáticos (`automatizacion/`) | `api/LEEME.md` · `automatizacion/LEEME.md` |

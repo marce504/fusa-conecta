@@ -41,6 +41,17 @@ def test_negocios_sin_foto():
     assert [c["nombre"] for c in limpieza.sin_foto(lista)] == ["Arepas", "Zapatería"]
 
 
+def test_negocios_sin_whatsapp():
+    # Caso real: Ornamentación Primiciero no tiene foto ni WhatsApp
+    lista = [
+        {"id": "1", "nombre": "Ornamentación Primiciero", "whatsapp": ""},
+        {"id": "2", "nombre": "Arepas", "whatsapp": " - "},
+        {"id": "3", "nombre": "MG Washers", "whatsapp": "310 222 0014"},
+        {"id": "4", "nombre": "Bicicletas"},
+    ]
+    assert [c["nombre"] for c in limpieza.sin_whatsapp(lista)] == ["Arepas", "Bicicletas", "Ornamentación Primiciero"]
+
+
 @pytest.mark.integracion
 @pytest.mark.skipif(not os.environ.get("FIRESTORE_EMULATOR_HOST"), reason="sin emulador de Firestore")
 def test_corrida_contra_el_emulador():
@@ -74,5 +85,7 @@ def test_corrida_contra_el_emulador():
         r["cupones_vencidos"] >= 1
         and r["ejemplos_borrados"] >= 1
         and any(c["id"] == "lim-sinfoto" for c in r["sin_foto"])
+        and any(c["id"] == "lim-sinfoto" for c in r["sin_whatsapp"])
+        and r["sin_whatsapp_total"] >= 1
         and r["registro"]
     )

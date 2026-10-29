@@ -5,8 +5,8 @@
    en la
    billetera de cada persona no cambian: allí pasan solos a «Vencidos».
 2. Eventos de ejemplo (demo:true) con más de 24 horas: se borran.
-3. Negocios publicados sin foto: se listan en el resumen para el admin. Cada dueño ya ve en «Mis negocios» el aviso
-   «Agrega una foto: los negocios con foto reciben más visitas».
+3. Negocios publicados sin foto o sin WhatsApp: se listan en el resumen para el admin. Cada dueño ve en «Mi negocio» el
+   aviso «Tu ficha está incompleta: agrega una foto y tu WhatsApp para recibir más clientes».
 
 El resumen queda en config/limpieza y se ve en Panel → Eventos → Procesos automáticos.
 
@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import time
 from typing import Any
@@ -51,6 +52,18 @@ def sin_foto(comercios: list[dict]) -> list[dict]:
     )
 
 
+def sin_whatsapp(comercios: list[dict]) -> list[dict]:
+    """Publicados sin un número de WhatsApp (v1.2.0): el dueño ve en Mi negocio que su ficha está incompleta."""
+    return sorted(
+        (
+            {"id": c["id"], "nombre": c.get("nombre", "")}
+            for c in comercios
+            if not re.sub(r"\D", "", str(c.get("whatsapp") or ""))
+        ),
+        key=lambda c: c["nombre"].lower(),
+    )
+
+
 def _docs(consulta: Any) -> list[tuple[Any, dict]]:
     return [(d.reference, {**(d.to_dict() or {}), "id": d.id}) for d in consulta.stream()]
 
@@ -71,9 +84,8 @@ def main(argv: list[str] | None = None) -> int:
         for ref, e in _docs(db.collection("eventos").where(filter=igual("demo", True)))
         if ejemplos_vencidos([e], ahora)
     ]
-    faltan_foto = sin_foto(
-        [c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))]
-    )
+    publicados = [c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))]
+    faltan_foto, faltan_wa = sin_foto(publicados), sin_whatsapp(publicados)
     for _, c in vencidos:
         log.info(
             "Cupón vencido el %s: %s · %s", c.get("vigencia"), c.get("comercio_nombre", ""), c.get("descripcion", "")
@@ -82,12 +94,16 @@ def main(argv: list[str] | None = None) -> int:
         log.info("Evento de ejemplo con más de 24 horas: %s", e.get("titulo", ""))
     for c in faltan_foto:
         log.info("Negocio publicado sin foto: %s", c["nombre"])
+    for c in faltan_wa:
+        log.info("Negocio publicado sin WhatsApp: %s", c["nombre"])
     if args.simular:
         log.info(
-            "Simulación: %d cupones vencidos, %d eventos de ejemplo, %d negocios sin foto. No se cambió nada.",
+            "Simulación: %d cupones vencidos, %d eventos de ejemplo, %d negocios sin foto, %d sin WhatsApp. "
+            "No se cambió nada.",
             len(vencidos),
             len(demos),
             len(faltan_foto),
+            len(faltan_wa),
         )
         return 0
     lote = db.batch()
@@ -97,10 +113,12 @@ def main(argv: list[str] | None = None) -> int:
         lote.delete(ref)
     lote.commit()
     log.info(
-        "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d negocios sin foto.",
+        "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d negocios sin foto · "
+        "%d sin WhatsApp.",
         len(vencidos),
         len(demos),
         len(faltan_foto),
+        len(faltan_wa),
     )
     db.collection("config").document("limpieza").set(
         {
@@ -111,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
             "ejemplos_borrados": len(demos),
             "sin_foto": faltan_foto[:50],
             "sin_foto_total": len(faltan_foto),
+            "sin_whatsapp": faltan_wa[:50],
+            "sin_whatsapp_total": len(faltan_wa),
             "registro": memoria.lineas[-20:],
         }
     )

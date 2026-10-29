@@ -393,7 +393,9 @@ function abrirEvento(id){
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
     +filaDato('ticket','Entrada',esc(precioEv(e)))
-    +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'):'')+'</div>'
+    +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'
+      // Eventos unidos por la agenda automática (v1.2.0): las demás noticias que hablan del mismo evento
+      +(e.fuentes||[]).filter(u=>u!==e.enlace_fuente&&/^https:\/\//.test(u)).slice(0,3).map((u,i)=>'<br><a href="'+esc(u)+'" target="_blank" rel="noopener">Otra publicación'+(i?' ('+(i+1)+')':'')+'</a>').join('')):'')+'</div>'
     +(e.descripcion?'<p class="det-desc">'+esc(e.descripcion)+'</p>':'')
     +'<div class="ev-acc"><button class="btn btn-primario btn-bloque" id="evCal">'+icon('calendar-plus',18)+'Agregar a mi calendario</button>'
     +'<div class="ev-acc2"><button class="btn btn-secundario'+(on?' on':'')+'" id="evInteresa" aria-pressed="'+on+'">'+icon('heart',18)+(on?'Te interesa':'Me interesa')+'</button>'
@@ -1334,7 +1336,7 @@ function agendaAutoAdminHTML(){
       +'<ul class="aa-fuentes">'+(a.fuentes||[]).map(f=>'<li class="'+(f.ok?'ok':'mal')+'">'+icon(f.ok?'circle-check':'circle-x',18)+'<div><b>'+esc(f.nombre)+'</b><small>'
         +(f.contenidos||0)+' contenidos · '+(f.eventos||0)+' eventos con fecha · '+(f.noticias||0)+' noticias recientes'+(f.error?' · '+esc(f.error):'')+'</small></div></li>').join('')+'</ul>'
       +'<p class="nota-c izq">'+(a.con_ia?(a.noticias_leidas||0)+' noticias leídas con IA'+(a.noticias_sin_ia?' · '+a.noticias_sin_ia+' no se pudieron leer':''):'Sin clave de IA: '+(a.noticias_sin_ia||0)+' noticias quedaron sin leer (falta GEMINI_API_KEY en GitHub).')
-        +(a.reparados?' · '+a.reparados+' eventos anteriores arreglados':'')+(a.ejemplos_borrados?' · '+a.ejemplos_borrados+' de ejemplo borrados':'')+'</p>'
+        +(a.reparados?' · '+a.reparados+' eventos anteriores arreglados':'')+(a.unidos?' · '+a.unidos+(a.unidos===1?' duplicado unido':' duplicados unidos'):'')+(a.ejemplos_borrados?' · '+a.ejemplos_borrados+' de ejemplo borrados':'')+'</p>'
       +registroHTML(a.registro,a.motor)
       :'<p class="nota-c izq">Todavía no ha corrido con las claves. Cuando agregues los secretos en GitHub (docs/agenda-ia.md), busca eventos todos los días a las 6:00 a. m. en las alcaldías de Fusagasugá y Pasca y en IDECUT.</p>')
     +(pendiente?'<p class="nota-c izq aa-pedido" role="status">'+icon('clock',16)+'Pedido enviado ('+esc(horaCol(ped))+'). El proceso lo toma en los próximos 15 minutos.</p>':'')
@@ -1353,9 +1355,11 @@ function limpiezaAdminHTML(){
   const n=(v,t)=>'<div class="metrica"><b>'+(v||0)+'</b><span>'+t+'</span></div>';
   return '<p class="dash-section">Limpieza diaria</p><div class="adm-card">'
     +'<p class="nota-c izq"><b>Última limpieza:</b> '+esc(horaCol(ult))+(l.duracion_s!=null?' · '+l.duracion_s+' s':'')+'</p>'
-    +'<div class="metricas aa-metricas">'+n(l.cupones_vencidos,'Cupones vencidos ocultados')+n(l.ejemplos_borrados,'Eventos de ejemplo borrados')+n(l.sin_foto_total,'Negocios sin foto')+'</div>'
+    +'<div class="metricas aa-metricas">'+n(l.cupones_vencidos,'Cupones vencidos ocultados')+n(l.ejemplos_borrados,'Eventos de ejemplo borrados')+n(l.sin_foto_total,'Negocios sin foto')+(l.sin_whatsapp_total!=null?n(l.sin_whatsapp_total,'Negocios sin WhatsApp'):'')+'</div>'
     +((l.sin_foto||[]).length?'<p class="nota-c izq">Sin foto (cada dueño ve en «Mis negocios» el aviso para agregarla):</p><ul class="aa-fuentes">'
       +l.sin_foto.map(c=>'<li class="prep">'+icon('camera',18)+'<div><b>'+esc(c.nombre)+'</b></div><button class="btn btn-ghost" data-ver-negocio="'+esc(c.id)+'">Ver ficha</button></li>').join('')+'</ul>':'')
+    +((l.sin_whatsapp||[]).length?'<p class="nota-c izq">Sin WhatsApp (cada dueño ve en «Mi negocio» que su ficha está incompleta):</p><ul class="aa-fuentes">'
+      +l.sin_whatsapp.map(c=>'<li class="prep">'+icon('phone',18)+'<div><b>'+esc(c.nombre)+'</b></div><button class="btn btn-ghost" data-ver-negocio="'+esc(c.id)+'">Ver ficha</button></li>').join('')+'</ul>':'')
     +registroHTML(l.registro,'python')+'</div>';
 }
 function enlazarAgendaAutoAdmin(){
@@ -2658,8 +2662,10 @@ function renderCuponesDisponibles(){
     +(l.length?'<div class="lista-tickets">'+l.map(({d,c})=>ticketHTML({icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c)),
         accion:'<div class="ticket-acc"><button class="btn btn-tonal btn-sm" data-obtener="'+esc(c.id)+'" data-com="'+esc(d.id)+'">'+(yaTengoCupon(c.id)?icon('wallet',18)+'Ver en mi billetera':'Obtener cupón')+'</button>'
           +'<button class="btn btn-ghost" data-vercom="'+esc(d.id)+'">Ver lugar</button></div>'})).join('')+'</div>'
-      :'<div class="vacio">'+icon('ticket',48)+'<b>Aún no hay cupones activos</b><p>Los comercios destacados publican cupones nuevos cada semana.</p></div>')
+      :'<div class="vacio">'+icon('ticket',48)+'<b>Aún no hay cupones activos</b><p>Pronto habrá cupones de los negocios de Fusa. ¿Tienes un negocio? Publica el tuyo.</p>'
+        +'<button class="btn btn-primario" id="bcNegocio">'+icon('store',18)+'Registrar mi negocio</button></div>')
     +'</div>'+footerHTML();
+  const bn=$('#bcNegocio');if(bn)bn.onclick=registrarMiNegocio;
   const be=$('#bcEntrar');if(be)be.onclick=()=>abrirLogin('ingresar',false,'Inicia sesión para guardar tus cupones.');
   $$('[data-obtener]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.com);generarCupon(d,cuponesDe(d).find(c=>c.id===b.dataset.obtener),b);}));
   $$('[data-vercom]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vercom)));
@@ -3852,6 +3858,16 @@ function formReporte(d){
     botones.forEach(x=>(x.disabled=false));
   }));
 }
+// Ficha incompleta (v1.2.0): sin foto o sin WhatsApp el negocio recibe menos clientes
+function fichaIncompleta(c){
+  const falta=[];if(!conFoto(c))falta.push('una foto');if(!String(c.whatsapp||'').replace(/\D/g,''))falta.push('tu WhatsApp');
+  return falta.length?'Tu ficha está incompleta: agrega '+falta.join(' y ')+' para recibir más clientes':'';
+}
+function avisoFichaHTML(c,id){
+  const t=fichaIncompleta(c);if(!t)return '';
+  return '<div class="mn-foto" role="note">'+icon(conFoto(c)?'phone':'camera',20)+'<span>'+t+'.</span>'
+    +'<button class="btn btn-tonal btn-sm" '+id+'>'+icon('pencil',16)+'Completar mi ficha</button></div>';
+}
 function renderDashboard(){
   const cuerpo=$('#cuerpo');
   if(!logueado()){cuerpo.innerHTML='<div class="vacio">'+icon('store',48)+'<b>Panel de mi negocio</b><p>Inicia sesión para ver y administrar tu negocio.</p></div>';return;}
@@ -3890,7 +3906,7 @@ function renderDashboard(){
   cuerpo.innerHTML='<div class="vista">'
     +'<div class="dash-top"><h2>Mi negocio</h2>'
     +(mis.length>1?'<label class="sr-only" for="selComercio">Elegir negocio</label><select class="input" id="selComercio">'+mis.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===d.id?' selected':'')+'>'+esc(x.nombre)+'</option>').join('')+'</select>':'<p class="dash-nombre">'+esc(d.nombre)+'</p>')
-    +'</div>'+tarjetaEstado+plan
+    +'</div>'+tarjetaEstado+avisoFichaHTML(d,'id="bCompletarFicha"')+plan
     +'<p class="dash-section">Este mes</p><div class="metricas">'
     +[['mVistas','eye','Vistas de la ficha'],['mToques','phone','Toques en WhatsApp o llamar']].concat(prem?[['mObt','ticket','Cupones obtenidos'],['mCanj','badge-check','Cupones canjeados']]:[])
       .map(([id,ic,t])=>'<div class="metrica">'+icon(ic,18)+'<b id="'+id+'">…</b><span>'+t+'</span></div>').join('')
@@ -3921,6 +3937,7 @@ function renderDashboard(){
   $('#aEscanear').onclick=()=>abrirEscaner(d);
   $('#aCupon').onclick=()=>prem?formCupon(d):irAPlanes(d);
   $('#aEditar').onclick=()=>abrirFormComercio(d);
+  const cf=$('#bCompletarFicha');if(cf)cf.onclick=()=>abrirFormComercio(d);
   $('#aQR').onclick=()=>miCodigoQR(d);
   const ar=$('#aReporte');if(ar)ar.onclick=()=>formReporte(d);
   $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
@@ -4162,8 +4179,7 @@ function misNegociosHTML(){
       +(c.estado_publicacion==='rechazado'?'<p class="mn-motivo">'+icon('info',14)+(c.motivo_rechazo?'Motivo: '+esc(c.motivo_rechazo):'Revisa los datos y envíalo de nuevo.')+'</p><button class="btn btn-tonal btn-sm" data-corregir="'+esc(c.id)+'">'+icon('pencil',16)+'Corregir y reenviar</button>'
         :c.estado_publicacion==='oculto'?'<p class="mn-motivo">'+icon('info',14)+'No aparece en el directorio. Escríbenos desde «Ayúdanos a mejorar» si crees que es un error.</p>'
         :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
-      +(conFoto(c)?'':'<div class="mn-foto" role="note">'+icon('camera',20)+'<span><b>Agrega una foto:</b> los negocios con foto reciben más visitas.</span>'
-        +'<button class="btn btn-tonal btn-sm" data-minegocio="'+esc(c.id)+'">'+icon('image-plus',16)+'Agregar foto</button></div>')
+      +avisoFichaHTML(c,'data-minegocio="'+esc(c.id)+'"')
       +'</div>').join('')+'</div>';
 }
 function enlazarMisNegocios(){

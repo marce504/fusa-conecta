@@ -68,13 +68,22 @@ Hazlo una sola vez. En https://github.com/marce504/fusa-conecta/settings/secrets
 Luego:
 
 - **Probar:** abre Actions → **App Android** → **Run workflow**. En unos 5 minutos el artefacto **fusa-conecta-android** trae `fusa-conecta.apk` y `fusa-conecta.aab`.
-- **Publicar con enlace de descarga:** crea la etiqueta `apk-v1.0.0`. El APK queda en *Releases*:
+- **Publicar con enlace de descarga:** crea una etiqueta `apk-v…` con la versión de `twa-manifest.json`. El APK queda en
+  *Releases* (https://github.com/marce504/fusa-conecta/releases):
   ```bash
-  git tag apk-v1.0.0
+  git tag apk-v1.1.0
   ```
   ```bash
-  git push origin apk-v1.0.0
+  git push origin apk-v1.1.0
   ```
+
+| Versión | Qué cambió |
+|---|---|
+| 1.0.0 (`apk-v1.0.0`) | Primera versión: TWA de la PWA, atajos SOS y Mapa, ubicación delegada |
+| 1.1.0 (`apk-v1.1.0`, `versionCode` 2) | Avisos al celular: `enableNotifications: true`. Los avisos salen como «Fusa Conecta», con el isotipo en blanco (`res/drawable/ic_notification_icon.xml`), y en Android 13 o superior la app pide el permiso `POST_NOTIFICATIONS` cuando la web lo pide. Atajo nuevo: Agenda (`?ir=agenda`) |
+
+El proyecto se generó con Bubblewrap. Los cambios de 1.1.0 se hicieron a mano, igual que los haría `bubblewrap update`,
+en `twa-manifest.json`, `app/build.gradle` y `AndroidManifest.xml`.
 
 El proceso verifica que la huella del APK coincida con `assetlinks.json` y muestra el paquete y el nombre con `aapt2`.
 

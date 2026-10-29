@@ -95,7 +95,7 @@ def test_guardar_reparar_y_borrar_ejemplos():
         ahora,
     )
     r = agenda.guardar(db, None, unicos, ahora)
-    assert r == {"publicados": 1, "pendientes": 2, "duplicados": 1, "reparados": 1}
+    assert r == {"publicados": 1, "pendientes": 2, "duplicados": 1, "reparados": 1, "unidos": 0}
     eventos = {d.to_dict()["titulo"]: d.to_dict() for d in db.collection("eventos").stream()}
     assert (
         eventos["Concierto de prueba"]["estado"] == "publicado"
@@ -112,3 +112,74 @@ def test_guardar_reparar_y_borrar_ejemplos():
     assert a_ms(eventos["Concierto de prueba"]["fecha_inicio"]) == manana + 3_600_000
     # Segunda corrida igual: no crea nada nuevo
     assert agenda.guardar(db, None, unicos, ahora)["duplicados"] == 4
+
+
+def test_une_los_dia_dulce_ya_guardados():
+    """Repara los duplicados guardados: queda uno de 9:00 a 16:00 con las dos fuentes; el de una persona no se borra."""
+    db, ahora = firestore_cliente(), ahora_ms()
+    for d in db.collection("eventos").stream():
+        d.reference.delete()
+    dia = datetime.fromtimestamp(ahora / 1000, timezone.utc).astimezone(timezone(timedelta(hours=-5))) + timedelta(
+        days=2
+    )
+    a_las = lambda h: dia.replace(hour=h, minute=0, second=0, microsecond=0)  # noqa: E731
+    comun = {"origen": "automatico", "estado": "publicado", "categoria": "cultura", "imagen": "", "tipo": "plan"}
+    db.collection("eventos").document("manana").set(
+        {
+            **comun,
+            "titulo": "Celebración del Día Dulce",
+            "lugar_nombre": "Estadio Fernando Mazuera",
+            "fecha_inicio": a_las(9),
+            "fecha_fin": a_las(11),
+            "descripcion": "Con las familias.",
+            "enlace_fuente": "https://www.fusagasuga.gov.co/noticias/familias",
+        }
+    )
+    db.collection("eventos").document("tarde").set(
+        {
+            **comun,
+            "titulo": "Día Dulce",
+            "lugar_nombre": "Estadio municipal Fernando Mazuera",
+            "fecha_inicio": a_las(14),
+            "fecha_fin": a_las(16),
+            "descripcion": "Dulces y diversión para niños y niñas.",
+            "enlace_fuente": "https://www.fusagasuga.gov.co/noticias/preparate-dia-dulce",
+            "imagen": "data:image/webp;base64,AAAA",
+        }
+    )
+    # Un evento parecido que publicó una persona nunca se borra
+    db.collection("eventos").document("de-persona").set(
+        {
+            **comun,
+            "origen": "organizador",
+            "titulo": "Feria del Día Dulce",
+            "lugar_nombre": "Coliseo Carlos Lleras",
+            "fecha_inicio": a_las(10),
+            "fecha_fin": a_las(12),
+        }
+    )
+    r = agenda.guardar(db, None, [], ahora)
+    assert r["unidos"] == 1
+    ids = {d.id for d in db.collection("eventos").stream()}
+    assert ids == {"tarde", "de-persona"}
+    x = db.collection("eventos").document("tarde").get().to_dict()
+    assert x["titulo"] == "Día Dulce" and x["lugar_nombre"] == "Estadio municipal Fernando Mazuera"
+    assert (a_ms(x["fecha_inicio"]), a_ms(x["fecha_fin"])) == (
+        int(a_las(9).timestamp() * 1000),
+        int(a_las(16).timestamp() * 1000),
+    )
+    assert x["fuentes"] == [
+        "https://www.fusagasuga.gov.co/noticias/preparate-dia-dulce",
+        "https://www.fusagasuga.gov.co/noticias/familias",
+    ]
+    # Una corrida nueva que trae otra vez la noticia de la mañana no lo vuelve a crear
+    manana = {
+        "titulo": "Celebración del Día Dulce",
+        "inicio": int(a_las(9).timestamp() * 1000),
+        "fin": int(a_las(11).timestamp() * 1000),
+        "lugar_nombre": "Estadio Fernando Mazuera",
+        "enlace": "https://www.fusagasuga.gov.co/noticias/familias",
+    }
+    r = agenda.guardar(db, None, [manana], ahora)
+    assert r["duplicados"] == 1 and r["publicados"] == 0 and r["unidos"] == 0
+    assert {d.id for d in db.collection("eventos").stream()} == {"tarde", "de-persona"}

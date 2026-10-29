@@ -8,7 +8,7 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
-Lo que va de la v1.2.0 (se publica por partes).
+## [1.2.0] - 2026-10-29 · Entrada más corta, barra con Inicio al centro y avisos al celular
 
 ### Cambiado
 - **Entrada más corta (parte 1).** Con sesión, la pantalla de entrada se va con lo primero que pase: la app está lista (mínimo 1,6 s) o se cumplen 3 s (`SPLASH.max`). Ya no espera a la nube: si el teléfono tiene una copia del directorio (`datos.js` y la persistencia de Firestore de una visita anterior, marcada con `fc_nube_ok`) o el perfil guardado (`fc_perfil_<uid>`), entra con eso y `onSnapshot` actualiza la vista cuando llegan los datos.
@@ -23,11 +23,19 @@ Lo que va de la v1.2.0 (se publica por partes).
 - El permiso **nunca** se pide al abrir la app: solo al terminar «Registrar mi negocio» («¿Quieres que te avisemos aquí cuando tu negocio sea aprobado?») o con el interruptor «Avisos en este celular» de Perfil. Si está bloqueado, se explica cómo activarlo. En iPhone se avisa que hace falta la app instalada (iOS 16.4 o superior).
 - La campana muestra «Para ti» con las aprobaciones y rechazos (`usuarios/{uid}/notificaciones`), aunque la persona no haya dado permiso. Al tocar un aviso se abre la pantalla correcta (`#/mi-negocio`, `#/evento/…`, `#/recorridos`).
 - `sw.js` recibe el push y muestra el aviso con el ícono de la marca. PWA v66 (`fusa-v59`).
+- **Cupones (parte 4).** Cuando no hay cupones activos, la pantalla ya no dice que se publican cada semana. Ahora dice «Pronto habrá cupones de los negocios de Fusa. ¿Tienes un negocio? Publica el tuyo», con un botón a «Registrar mi negocio».
+- **Mi negocio:** si la ficha no tiene foto o WhatsApp, avisa «Tu ficha está incompleta: agrega una foto y tu WhatsApp para recibir más clientes», con el botón «Completar mi ficha». El aviso también sale en «Mis negocios» de Perfil.
+- **Limpieza diaria:** además de los negocios sin foto, cuenta y lista los que no tienen WhatsApp (`sin_whatsapp`). El panel admin los muestra.
+- **App Android 1.1.0** (`apk-v1.1.0`, `versionCode` 2). Los avisos salen como «Fusa Conecta» (`enableNotifications: true`), con el isotipo en blanco. En Android 13 o superior la app pide `POST_NOTIFICATIONS`. Atajo nuevo: Agenda.
+- PWA v67 (`fusa-v60`).
 
 ### Corregido
+- **Agenda: eventos duplicados con otro título u hora.** Caso real: «Celebración del Día Dulce» (31/10, 9:00, «Estadio Fernando Mazuera») y «Día Dulce» (31/10, 14:00, «Estadio municipal Fernando Mazuera»). Regla nueva en `agenda.py` (`parecidos`): mismo día; lugar con al menos 60 % de palabras en común, sin contar «municipal», «estadio», etc.; y un título dentro del otro o con similitud ≥ 0,6. Los parecidos se unen en uno con el horario más amplio (9:00 a 16:00) y las dos fuentes (`fuentes`). La ficha del evento muestra «Otra publicación».
+- La agenda repara también los duplicados ya guardados (`unir_guardados`). Nunca borra un evento que publicó una persona. El panel muestra cuántos se unieron.
 - Escáner de cupones: si el navegador tardaba en negar la cámara, el aviso «Necesitamos permiso para usar la cámara» aparecía tarde y tapaba el resultado del código escrito a mano.
 
 ### Agregado
+- Releases de la app Android en GitHub: `apk-v1.0.0` (la que cita el documento técnico) y `apk-v1.1.0`.
 - API: `POST /v1/notificaciones/aprobacion` (el endpoint 10). Usa una cuenta de servicio aparte, `FIREBASE_SA_FCM` («Firebase Cloud Messaging API Admin»), solo en Render. Pasos en `api/LEEME.md`. Es idempotente y borra los tokens inválidos. CORS admite POST.
 - Reglas: `usuarios/{uid}/dispositivos/{token}`: solo la persona los crea y borra, nadie los lee desde la app. `usuarios/{uid}/notificaciones`: solo la API escribe; la persona lee y marca como leídas.
 - `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
@@ -40,6 +48,11 @@ Lo que va de la v1.2.0 (se publica por partes).
 - pytest: el endpoint de avisos (401, 403, 404, 409, 422 y 503; aprobado y rechazado; tokens inválidos borrados; sin repetir; sin push para quien no dio permiso), `AvisadorFCM` con `messaging` simulado y el repositorio, que solo escribe en novedades y dispositivos. Integración contra el emulador. Cobertura de la API: 84 %.
 - Vitest: `estadoAvisos`, `refrescarDispositivo` (nunca pide el permiso al abrir) y `textoAviso`.
 - Playwright: reglas de dispositivos, «Para ti» en la campana y la pregunta después de registrar el negocio.
+- pytest: el caso real del Día Dulce (`parecidos`, `unir`, `unir_parecidos`) y, contra el emulador, la reparación de los ya guardados (queda uno de 9:00 a 16:00 con las dos fuentes; el de una persona no se borra; una corrida nueva no lo vuelve a crear). También los negocios sin WhatsApp.
+- Vitest: `fichaIncompleta`.
+
+### Revisado sin cambios
+- **Fotos en base64.** Se midieron los negocios publicados en producción el 2026-10-29: el más grande, MG WASHERS, pesa 27 KB, y los cuatro juntos, 68 KB. Desde la v4, el documento solo guarda una miniatura de portada; `firestore.rules` la limita a 56 000 caracteres (≈ 40 KB). Las fotos grandes van en la subcolección `comercios/{id}/fotos`, que solo se lee al abrir la ficha. Ningún documento se acerca a 200 KB.
 
 ## [1.1.0] - 2026-10-28 · Plan de pruebas con evidencias
 
@@ -129,7 +142,8 @@ Lo que va de la v1.2.0 (se publica por partes).
 ## [0.1.0] - 2026-06-13 · Prototipo
 - Primer prototipo del directorio de Fusagasugá.
 
-[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.1.0...develop
+[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.2.0...develop
+[1.2.0]: https://github.com/marce504/fusa-conecta/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/marce504/fusa-conecta/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/marce504/fusa-conecta/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/marce504/fusa-conecta/compare/v0.8.0...v0.9.0

@@ -18,7 +18,7 @@ Todas las pruebas usan el **emulador de Firebase** o datos de prueba: **nunca** 
 | Nivel | Herramienta | Qué cubre | Criterio de aceptación |
 |---|---|---|---|
 | Unitarias JavaScript | **Vitest 2** (`pruebas/unitarias/`) | Código **real** de `app.js` y `datos.js`, cargado sin modificar (`cargar-app.js` extrae las funciones con espree): `estadoApertura` (abierto, cierra pronto, próxima apertura, medianoche, senderos), `formatearHora` y `horaTexto`, búsqueda sin tildes ni plurales (`norm`, `raiz`, `tokens`, `coincide`), validación de cupones (`cuponesDe`, `estadoCupon`, `premiumVigente`, `codigoCupon`, `leerTextoQR`, `aMs`), pantalla de entrada (`appLista`, `salidaSplash`), avisos al celular (`estadoAvisos`, `refrescarDispositivo`, `textoAviso`: el permiso nunca se pide al abrir la app) | 100 % pasan |
-| Unitarias Python | **pytest 8** (`api/tests`, `automatizacion/tests`) | Utilidades de la API, estado abierto o cerrado (traducido de la app), exportación **GPX** e **ICS**, reportes **Excel y PDF**, deduplicación y títulos de la agenda, limpieza diaria, **paridad** con la versión anterior en JavaScript | 100 % pasan; cobertura de la API ≥ 80 % |
+| Unitarias Python | **pytest 8** (`api/tests`, `automatizacion/tests`) | Utilidades de la API, estado abierto o cerrado (traducido de la app), exportación **GPX** e **ICS**, reportes **Excel y PDF**, deduplicación y títulos de la agenda (incluidos los eventos parecidos, como el caso real del Día Dulce), negocios sin foto o sin WhatsApp, limpieza diaria, **paridad** con la versión anterior en JavaScript | 100 % pasan; cobertura de la API ≥ 80 % |
 | API (servicio) | pytest + `TestClient` de FastAPI con repositorio falso | Los 10 endpoints: filtros, paginación, errores 401/403/404/409/422/503, CORS solo para la web, límite de peticiones (429); avisos con FCM simulado (tokens inválidos que se borran, mensajes de aprobado y rechazado, sin repetir) | 100 % pasan |
 | Integración | pytest contra los **emuladores de Firestore y Auth** (`firebase emulators:exec`) | La API real con tokens reales del emulador (solo lo publicado sale; reporte del dueño; estadísticas del admin) y los procesos guardando, deduplicando, reparando y limpiando | 100 % pasan |
 | Extremo a extremo | **Playwright 1.55** (`pruebas/e2e/`) en un celular de **390×844** contra el emulador | Ver los nueve flujos, abajo | 100 % pasan |
@@ -97,7 +97,7 @@ Abre la corrida → **Artifacts** → **informe-pruebas**.
 ## Resultados
 
 <!-- resultados:inicio -->
-Última corrida: 2026-10-29. Total: **138 pasan, 0 fallan, 2 omitidas**.
+Última corrida: 2026-10-29. Total: **147 pasan, 0 fallan, 8 omitidas**.
 
 **Lighthouse** (mediana de 3 corridas, móvil): Rendimiento 56 · Accesibilidad 100 · Buenas prácticas 100 · SEO 100 · PWA 100
 
@@ -106,11 +106,11 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 
 | Suite | Casos | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| Unitarias JavaScript (Vitest) | 47 | 47 | 0 | 0 |
-| Unitarias y de API Python (pytest) | 56 | 56 | 0 | 0 |
-| Procesos automáticos Python (pytest) | 21 | 19 | 0 | 2 |
+| Unitarias JavaScript (Vitest) | 50 | 50 | 0 | 0 |
+| Unitarias y de API Python (pytest) | 61 | 56 | 0 | 5 |
+| Procesos automáticos Python (pytest) | 27 | 24 | 0 | 3 |
 | Integración: API contra el emulador | 5 | 5 | 0 | 0 |
-| Integración: procesos contra el emulador | 2 | 2 | 0 | 0 |
+| Integración: procesos contra el emulador | 3 | 3 | 0 | 0 |
 | Extremo a extremo (Playwright, 390×844) | 9 | 9 | 0 | 0 |
 
 | Suite | Caso | Resultado | Fecha |
@@ -162,6 +162,9 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
@@ -199,6 +202,11 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
@@ -218,6 +226,10 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
@@ -226,6 +238,8 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-29 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
 | Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
@@ -244,6 +258,7 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
 | Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
 | Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
+| Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-29 |
 | Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-29 |
 | Integración: procesos contra el emulador | tests.test_limpieza | Pasa | 2026-10-29 |
 | Extremo a extremo (Playwright, 390×844) | explorar: entrada → «Solo explorar» → buscar «café» → ficha → WhatsApp | Pasa | 2026-10-29 |

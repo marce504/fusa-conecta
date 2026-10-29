@@ -30,6 +30,7 @@ import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
+from difflib import SequenceMatcher
 from typing import Any
 from urllib.parse import quote, urljoin
 
@@ -177,6 +178,73 @@ def clave(e: dict) -> str:
 def clave_lugar_hora(e: dict) -> str:
     """Mismo lugar a la misma hora = mismo evento aunque el título cambie."""
     return norm(e["lugar_nombre"]) + "|" + str(_redondear(e["inicio"] / 60_000))
+
+
+# ---------- Eventos parecidos (v1.2.0) ----------
+# «Celebración del Día Dulce» (9:00, Estadio Fernando Mazuera) y «Día Dulce» (14:00, Estadio municipal Fernando Mazuera)
+# son el mismo evento contado en dos noticias: ni la clave ni la hora coinciden, así que se comparan por similitud.
+VACIAS_LUGAR = {
+    "municipal", "estadio", "coliseo", "parque", "plaza", "polideportivo", "centro", "barrio", "vereda", "sede",
+    "principal", "auditorio", "salon", "de", "del", "la", "las", "el", "los", "y", "en", "al",
+}  # fmt: skip
+
+
+def palabras_lugar(lugar: Any) -> set[str]:
+    return {p for p in norm(lugar).split() if p not in VACIAS_LUGAR and len(p) > 1}
+
+
+def dia_col_de(ms: int) -> str:
+    return de_ms(ms - 5 * 3_600_000).strftime("%Y-%m-%d")
+
+
+def parecidos(a: dict, b: dict) -> bool:
+    """Mismo día, lugar con ≥ 60 % de palabras en común (sin «municipal», «estadio»…) y un título dentro del otro
+    o con similitud ≥ 0,6."""
+    if dia_col_de(a["inicio"]) != dia_col_de(b["inicio"]):
+        return False
+    la, lb = palabras_lugar(a["lugar_nombre"]), palabras_lugar(b["lugar_nombre"])
+    if la and lb:
+        if len(la & lb) / min(len(la), len(lb)) < 0.6:
+            return False
+    elif norm(a["lugar_nombre"]) != norm(b["lugar_nombre"]):
+        return False
+    ta, tb = norm(a["titulo"]), norm(b["titulo"])
+    if not ta or not tb:
+        return False
+    return ta in tb or tb in ta or SequenceMatcher(None, ta, tb).ratio() >= 0.6
+
+
+def fuentes_de(e: dict) -> list[str]:
+    """Enlaces de las noticias que hablan del evento (el principal primero, sin repetir)."""
+    lista = [e.get("enlace") or e.get("enlace_fuente") or ""] + list(e.get("fuentes") or [])
+    return [u for i, u in enumerate(lista) if u and u not in lista[:i]]
+
+
+def unir(a: dict, b: dict) -> dict:
+    """Un solo evento: el horario más amplio, el título más corto (el otro lo contiene), el lugar más completo,
+    la descripción más larga y las dos fuentes."""
+    principal, otro = (a, b) if len(a["titulo"]) <= len(b["titulo"]) else (b, a)
+    r = dict(principal)
+    r["inicio"], r["fin"] = min(a["inicio"], b["inicio"]), max(a["fin"], b["fin"])
+    r["lugar_nombre"] = max(a["lugar_nombre"], b["lugar_nombre"], key=len)
+    r["descripcion"] = max(a.get("descripcion") or "", b.get("descripcion") or "", key=len)
+    r["fuentes"] = fuentes_de({**principal, "fuentes": fuentes_de(principal) + fuentes_de(otro)})
+    if not r.get("imagen") and otro.get("imagen"):
+        r["imagen"] = otro["imagen"]
+    return r
+
+
+def unir_parecidos(eventos: list[dict]) -> list[dict]:
+    """Une, dentro de una corrida, los eventos que la regla de similitud considera el mismo."""
+    res: list[dict] = []
+    for e in eventos:
+        i = next((k for k, x in enumerate(res) if parecidos(x, e)), None)
+        if i is None:
+            res.append(e)
+        else:
+            res[i] = unir(res[i], e)
+            log.info("Unidos por parecidos: «%s» y «%s»", res[i]["titulo"], e["titulo"])
+    return res
 
 
 # ---------- Red ----------
@@ -475,7 +543,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
     existentes = list(
         db.collection("eventos").where(filter=FieldFilter("fecha_inicio", ">=", de_ms(ahora - DIA_MS))).stream()
     )
-    ya, ya_lh = set(), set()
+    ya, ya_lh, guardados = set(), set(), []
     for d in existentes:
         x = d.to_dict() or {}
         e = {
@@ -485,10 +553,18 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         }
         ya.add(clave(e))
         ya_lh.add(clave_lugar_hora(e))
+        if e["inicio"] is not None and x.get("estado") in ("publicado", "pendiente"):
+            guardados.append((d, {**e, "fin": a_ms(x.get("fecha_fin")) or e["inicio"]}))
     publicados = pendientes = duplicados = 0
     lote, imagenes = db.batch(), {}  # una descarga por noticia aunque traiga varias actividades
-    for e in unicos:
+    for e in unir_parecidos(unicos):
         if clave(e) in ya or clave_lugar_hora(e) in ya_lh:
+            duplicados += 1
+            continue
+        igual_a = next((d for d, g in guardados if parecidos(g, e)), None)
+        if igual_a is not None:
+            # Ya está guardado con otro título u hora: se amplía el guardado (horario y fuentes) en vez de duplicarlo
+            ampliar(igual_a, e)
             duplicados += 1
             continue
         est = decidir(e)
@@ -511,6 +587,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
                 "imagen": imagenes[e["enlace"]],
                 "organizador": e["organizador"],
                 "enlace_fuente": recortar(e["enlace"], 500),
+                "fuentes": [recortar(u, 500) for u in fuentes_de(e)][:5],
                 "gratis": e["gratis"],
                 "precio": e["precio"],
                 "fuente_oficial": e["F"].oficial,
@@ -523,7 +600,92 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         log.info("Nuevo [%s · %s] %s · %s", est, e["tipo"], e["titulo"], e["lugar_nombre"])
     lote.commit()
     reparados = reparar(db, cliente, existentes, imagenes)
-    return {"publicados": publicados, "pendientes": pendientes, "duplicados": duplicados, "reparados": reparados}
+    unidos = unir_guardados(existentes)
+    return {
+        "publicados": publicados,
+        "pendientes": pendientes,
+        "duplicados": duplicados,
+        "reparados": reparados,
+        "unidos": unidos,
+    }
+
+
+def ampliar(doc: Any, e: dict) -> None:
+    """Amplía un evento guardado con el horario y la fuente de otro parecido."""
+    x = doc.to_dict() or {}
+    ini, fin = a_ms(x.get("fecha_inicio")), a_ms(x.get("fecha_fin")) or a_ms(x.get("fecha_inicio"))
+    cambios: dict[str, Any] = {}
+    if e["inicio"] < ini:
+        cambios["fecha_inicio"] = de_ms(e["inicio"])
+    if e["fin"] > fin:
+        cambios["fecha_fin"] = de_ms(e["fin"])
+    fuentes = fuentes_de({"enlace_fuente": x.get("enlace_fuente"), "fuentes": (x.get("fuentes") or []) + fuentes_de(e)})
+    if fuentes != fuentes_de(x):
+        cambios["fuentes"] = fuentes[:5]
+    if cambios:
+        doc.reference.update(cambios)
+        log.info("Ampliado: %s", x.get("titulo"))
+
+
+def unir_guardados(existentes: list) -> int:
+    """Repara los duplicados que ya están guardados: deja uno con el horario más amplio y las dos fuentes y borra
+    el otro. Nunca borra un evento que publicó una persona: solo los de la agenda automática."""
+    docs = []
+    for d in existentes:
+        x = d.to_dict() or {}
+        ini = a_ms(x.get("fecha_inicio"))
+        if ini is None or x.get("estado") not in ("publicado", "pendiente") or x.get("demo"):
+            continue
+        docs.append(
+            {
+                "d": d,
+                "x": x,
+                "titulo": x.get("titulo", ""),
+                "inicio": ini,
+                "fin": a_ms(x.get("fecha_fin")) or ini,
+                "lugar_nombre": x.get("lugar_nombre", ""),
+                "descripcion": x.get("descripcion") or "",
+                "enlace_fuente": x.get("enlace_fuente") or "",
+                "fuentes": x.get("fuentes") or [],
+                "imagen": x.get("imagen") or "",
+            }
+        )
+    borrados: set[str] = set()
+    unidos = 0
+    for i, a in enumerate(docs):
+        if a["d"].id in borrados:
+            continue
+        for b in docs[i + 1 :]:
+            if b["d"].id in borrados or not parecidos(a, b):
+                continue
+            auto_a, auto_b = a["x"].get("origen") == "automatico", b["x"].get("origen") == "automatico"
+            if not (auto_a or auto_b):
+                continue  # dos eventos de personas: los revisa el admin
+            # Se conserva el de una persona; entre automáticos, el publicado y luego el de título más corto
+            if auto_a != auto_b:
+                queda, sale = (b, a) if auto_a else (a, b)
+            else:
+                queda, sale = sorted(
+                    (a, b), key=lambda e: (e["x"].get("estado") != "publicado", len(e["titulo"]), e["d"].id)
+                )
+            u = unir(queda, sale)
+            u["titulo"] = queda["titulo"]  # el título del que queda (si es de una persona, no se cambia)
+            cambios = {
+                "fecha_inicio": de_ms(u["inicio"]),
+                "fecha_fin": de_ms(u["fin"]),
+                "lugar_nombre": u["lugar_nombre"],
+                "descripcion": u["descripcion"],
+                "fuentes": [recortar(f, 500) for f in u["fuentes"]][:5],
+            }
+            if u.get("imagen") and not queda["imagen"]:
+                cambios["imagen"] = u["imagen"]
+            queda["d"].reference.update(cambios)
+            sale["d"].reference.delete()
+            borrados.add(sale["d"].id)
+            queda.update(u)
+            unidos += 1
+            log.info("Unidos (ya guardados): «%s» + «%s»", queda["titulo"], sale["titulo"])
+    return unidos
 
 
 def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:

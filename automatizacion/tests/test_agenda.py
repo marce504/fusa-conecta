@@ -102,3 +102,55 @@ def test_imagen_webp_de_maximo_200_kb():
     crudo = base64.b64decode(url.split(",", 1)[1])
     assert url.startswith("data:image/webp;base64,") and len(crudo) <= 200_000
     assert Image.open(io.BytesIO(crudo)).width <= 1280
+
+
+# ---------------------------------------------------------------- eventos parecidos (v1.2.0): el caso real del Día Dulce
+DIA_DULCE_MANANA = ev(
+    "Celebración del Día Dulce",
+    1793455200000,  # 2026-10-31 9:00 en Colombia
+    "Estadio Fernando Mazuera",
+    fin=1793462400000,
+    enlace="https://www.fusagasuga.gov.co/noticias/familias-de-fusagasuga-participaron",
+    descripcion="Celebración con las familias.",
+)
+DIA_DULCE_TARDE = ev(
+    "Día Dulce",
+    1793473200000,  # 2026-10-31 14:00
+    "Estadio municipal Fernando Mazuera",
+    fin=1793480400000,
+    enlace="https://www.fusagasuga.gov.co/noticias/preparate-para-un-dia-dulce-lleno-de-diversion",
+    descripcion="Actividades, dulces y diversión para niños y niñas en el estadio.",
+)
+
+
+def test_dia_dulce_son_el_mismo_evento():
+    assert agenda.palabras_lugar("Estadio municipal Fernando Mazuera") == {"fernando", "mazuera"}
+    assert agenda.parecidos(DIA_DULCE_MANANA, DIA_DULCE_TARDE)
+
+
+def test_no_son_parecidos_otro_dia_otro_lugar_u_otro_titulo():
+    otro_dia = {**DIA_DULCE_TARDE, "inicio": DIA_DULCE_TARDE["inicio"] + 86_400_000}
+    otro_lugar = {**DIA_DULCE_TARDE, "lugar_nombre": "Coliseo Carlos Lleras"}
+    otro_titulo = {**DIA_DULCE_TARDE, "titulo": "Jornada de vacunación"}
+    for e in (otro_dia, otro_lugar, otro_titulo):
+        assert not agenda.parecidos(DIA_DULCE_MANANA, e)
+    # Títulos con similitud ≥ 0,6 aunque ninguno contenga al otro
+    assert agenda.parecidos(
+        ev("Festival de la Cosecha", DIA_DULCE_TARDE["inicio"], "Parque principal de Pasca"),
+        ev("Festival de la Cosecha 2026", DIA_DULCE_TARDE["inicio"] + 3_600_000, "Parque de Pasca"),
+    )
+
+
+def test_unir_horario_mas_amplio_y_las_dos_fuentes():
+    u = agenda.unir(DIA_DULCE_MANANA, DIA_DULCE_TARDE)
+    assert u["titulo"] == "Día Dulce"
+    assert (u["inicio"], u["fin"]) == (DIA_DULCE_MANANA["inicio"], DIA_DULCE_TARDE["fin"])  # 9:00 a 16:00
+    assert u["lugar_nombre"] == "Estadio municipal Fernando Mazuera"
+    assert u["descripcion"].startswith("Actividades, dulces")
+    assert u["fuentes"] == [DIA_DULCE_TARDE["enlace"], DIA_DULCE_MANANA["enlace"]]
+
+
+def test_unir_parecidos_en_una_corrida():
+    otro = ev("Feria Ruta Mujer Emprende", DIA_DULCE_TARDE["inicio"], "La Querencia Centro Comercial")
+    res = agenda.unir_parecidos([DIA_DULCE_MANANA, otro, DIA_DULCE_TARDE])
+    assert [e["titulo"] for e in res] == ["Día Dulce", "Feria Ruta Mujer Emprende"]
