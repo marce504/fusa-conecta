@@ -216,3 +216,78 @@ describe('Entrada: appLista y salidaSplash', () => {
     expect(e.salidaSplash(3000)).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------- avisos al celular (FCM): cuándo se pide el permiso
+describe('Avisos al celular: permiso y textos del panel admin', () => {
+  const entorno = ({
+    ua = 'Mozilla/5.0 (Linux; Android 14) Chrome/130',
+    permiso = 'default',
+    instalada = false,
+  } = {}) => {
+    const Notification = { permission: permiso, requestPermission: vi.fn(async () => 'granted') };
+    const navigator = { userAgent: ua, platform: 'Linux', maxTouchPoints: 5, serviceWorker: {}, standalone: false };
+    const window = { PushManager: {}, matchMedia: () => ({ matches: instalada }) };
+    return { Notification, navigator, window };
+  };
+  const cargarAvisos = (e, extra = {}) =>
+    cargar(['estadoAvisos', 'refrescarDispositivo', 'textoAviso'], {
+      ...e,
+      estado: { perfil: { notificaciones_push: true } },
+      ls: { get: () => 0, set: () => {} },
+      registrarDispositivo: vi.fn(async () => true),
+      ...extra,
+    });
+
+  it('estadoAvisos: Android con permiso por preguntar, concedido o bloqueado', () => {
+    expect(cargarAvisos(entorno()).estadoAvisos()).toBe('default');
+    expect(cargarAvisos(entorno({ permiso: 'granted' })).estadoAvisos()).toBe('granted');
+    expect(cargarAvisos(entorno({ permiso: 'denied' })).estadoAvisos()).toBe('denied');
+  });
+  it('estadoAvisos: en iPhone solo con la app instalada (iOS 16.4+)', () => {
+    const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604.1';
+    expect(cargarAvisos(entorno({ ua: iphone })).estadoAvisos()).toBe('iphone-sin-instalar');
+    expect(cargarAvisos(entorno({ ua: iphone, instalada: true })).estadoAvisos()).toBe('default');
+  });
+  it('al abrir la app nunca se pide el permiso: solo se renueva el token si ya estaba concedido', () => {
+    const e = entorno();
+    const registrarDispositivo = vi.fn(async () => true);
+    cargarAvisos(e, { registrarDispositivo }).refrescarDispositivo();
+    expect(e.Notification.requestPermission).not.toHaveBeenCalled();
+    expect(registrarDispositivo).not.toHaveBeenCalled();
+    const conPermiso = entorno({ permiso: 'granted' });
+    cargarAvisos(conPermiso, { registrarDispositivo }).refrescarDispositivo();
+    expect(conPermiso.Notification.requestPermission).not.toHaveBeenCalled();
+    expect(registrarDispositivo).toHaveBeenCalledTimes(1);
+  });
+  it('quien apagó los avisos no recibe un token nuevo', () => {
+    const registrarDispositivo = vi.fn(async () => true);
+    cargarAvisos(entorno({ permiso: 'granted' }), {
+      registrarDispositivo,
+      estado: { perfil: { notificaciones_push: false } },
+    }).refrescarDispositivo();
+    expect(registrarDispositivo).not.toHaveBeenCalled();
+  });
+  it('en app.js, Notification.requestPermission solo aparece dentro de activarAvisos', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
+    const usos = [...src.matchAll(/Notification\.requestPermission/g)].map(m => m.index);
+    const inicio = src.indexOf('async function activarAvisos(');
+    const fin = src.indexOf('async function desactivarAvisos(');
+    expect(usos.length).toBe(1);
+    expect(usos[0]).toBeGreaterThan(inicio);
+    expect(usos[0]).toBeLessThan(fin);
+  });
+  it('textoAviso: mensaje del panel admin según haya o no celulares', () => {
+    const { textoAviso } = cargarAvisos(entorno());
+    expect(textoAviso({ destinatario: 'Ana', enviados: 1 }, 'aprobado')).toBe(
+      'Aprobado. Le avisamos a Ana en su celular',
+    );
+    expect(textoAviso({ destinatario: 'Ana', enviados: 0 }, 'aprobado')).toBe(
+      'Aprobado. Verá el aviso en la campana de Novedades',
+    );
+    expect(textoAviso({ destinatario: 'Ana', enviados: 0 }, 'rechazado')).toBe(
+      'Rechazado. Verá el aviso en la campana de Novedades',
+    );
+    expect(textoAviso({ destinatario: null }, 'aprobado')).toBe('');
+  });
+});

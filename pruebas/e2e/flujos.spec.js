@@ -1,6 +1,6 @@
 // Flujos de extremo a extremo de la PWA en un celular (390×844), contra el emulador de Firebase.
 import { expect, test } from '@playwright/test';
-import { CLAVE, CUENTAS, CUPON, NEGOCIO } from './semilla.mjs';
+import { CLAVE, CUENTAS, CUPON, NEGOCIO, poner } from './semilla.mjs';
 
 const APP = '/?emulador';
 
@@ -325,4 +325,102 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await page.screenshot({ path: info.outputPath('3-mis-favoritos.png') });
   await page.locator('#bVolver').click();
   await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe('perfil');
+});
+
+// Avisos al celular (v1.2.0). FCM no se puede probar sin un celular real: aquí se prueba lo que sí depende de la app
+// (no pedir permiso al abrir, la pregunta después de registrar el negocio, las reglas de dispositivos y la campana).
+test('avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» en la campana', async ({ page }, info) => {
+  // Cuenta las veces que la app pide el permiso de notificaciones
+  await page.addInitScript(() => {
+    window.pidioPermiso = 0;
+    if (window.Notification) {
+      window.Notification.requestPermission = async () => {
+        window.pidioPermiso += 1;
+        return 'default';
+      };
+    }
+  });
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await entrarComo(page, CUENTAS.rosa);
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => window.pidioPermiso)).toBe(0);
+  await sinAvisoEmulador(page);
+
+  // Reglas: Rosa crea y borra sus dispositivos; no puede leerlos ni tocar los de otra persona
+  const reglas = await page.evaluate(async () => {
+    const db = window.firebase.firestore();
+    const FV = window.firebase.firestore.FieldValue;
+    const uid = window.firebase.auth().currentUser.uid;
+    const mio = db.collection('usuarios').doc(uid).collection('dispositivos').doc('token-e2e');
+    const intento = async p => p.then(() => 'ok').catch(e => e.code);
+    return {
+      uid,
+      crear: await intento(
+        mio.set({ plataforma: 'android', creado: FV.serverTimestamp(), ultimo_uso: FV.serverTimestamp() }),
+      ),
+      leer: await intento(mio.get()),
+      campoDeMas: await intento(
+        db
+          .collection('usuarios')
+          .doc(uid)
+          .collection('dispositivos')
+          .doc('token-2')
+          .set({ plataforma: 'android', creado: FV.serverTimestamp(), ultimo_uso: FV.serverTimestamp(), rol: 'admin' }),
+      ),
+      ajeno: await intento(
+        db
+          .collection('usuarios')
+          .doc('otra-persona')
+          .collection('dispositivos')
+          .doc('t')
+          .set({ plataforma: 'android', creado: FV.serverTimestamp(), ultimo_uso: FV.serverTimestamp() }),
+      ),
+      escribirNovedad: await intento(
+        db.collection('usuarios').doc(uid).collection('notificaciones').doc('falsa').set({ titulo: 'x' }),
+      ),
+      borrar: await intento(mio.delete()),
+    };
+  });
+  expect(reglas).toMatchObject({
+    crear: 'ok',
+    leer: 'permission-denied',
+    campoDeMas: 'permission-denied',
+    ajeno: 'permission-denied',
+    escribirNovedad: 'permission-denied',
+    borrar: 'ok',
+  });
+
+  // La API de avisos deja la novedad en usuarios/{uid}/notificaciones (aquí, la semilla hace de API)
+  await poner(`usuarios/${reglas.uid}/notificaciones/comercio-${NEGOCIO.id}-aprobado`, {
+    tipo: 'comercio',
+    ref_id: NEGOCIO.id,
+    resultado: 'aprobado',
+    titulo: 'Negocio aprobado',
+    mensaje: `¡Tu negocio ${NEGOCIO.nombre} ya está publicado en Fusa Conecta!`,
+    enlace: '#/mi-negocio',
+    fecha_envio: new Date(),
+    leida: false,
+  });
+  await expect(page.locator('#bNovedades')).toHaveAttribute('aria-label', /sin leer/);
+  await page.locator('#bNovedades').click();
+  const aviso = page.locator('#sheetGen [data-enlace="#/mi-negocio"]');
+  await expect(aviso).toContainText(`¡Tu negocio ${NEGOCIO.nombre} ya está publicado en Fusa Conecta!`);
+  await page.screenshot({ path: info.outputPath('1-campana-para-ti.png') });
+  // Al tocarlo abre Mi negocio (Rosa tiene un negocio aprobado) y la novedad queda leída
+  await aviso.click();
+  await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe('dashboard');
+  await expect.poll(() => page.evaluate(() => estado.misAvisos.every(n => n.leida))).toBe(true);
+  // Abrir el aviso no debe parecer «Atrás»: no aparece la pregunta de salir de la app
+  await expect(page.locator('#ovConfirm')).not.toHaveClass(/abierto/);
+
+  // Después de registrar un negocio se ofrece el aviso (una sola vez) con «Sí, avisarme» y «Ahora no»
+  await page.evaluate(() => window.ofrecerAvisoAprobacion('Vivero de Prueba E2E'));
+  const hoja = page.locator('#sheetGen');
+  await expect(hoja).toContainText('¿Quieres que te avisemos aquí cuando tu negocio sea aprobado?');
+  await expect(hoja.locator('#aaSi')).toHaveText('Sí, avisarme');
+  await page.screenshot({ path: info.outputPath('2-pregunta-al-registrar.png') });
+  await hoja.locator('#aaNo').click();
+  await expect(page.locator('#ovGen')).not.toHaveClass(/abierto/);
+  expect(await page.evaluate(() => window.pidioPermiso)).toBe(0);
 });

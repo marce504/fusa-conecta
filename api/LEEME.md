@@ -28,6 +28,7 @@ Servicios web REST de Fusa Conecta, en **Python 3.12** con **FastAPI**.
 | `GET /v1/emergencias?municipio=fusagasuga\|pasca` | Números de emergencia | — |
 | `GET /v1/comercios/{id}/reporte?formato=xlsx\|pdf&mes=AAAA-MM` | Reporte del mes: vistas, toques en WhatsApp y Llamar, cupones obtenidos y canjeados. **Solo el dueño o el admin** | Panel del negocio → **Descargar reporte** |
 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas. **Solo admin** | — |
+| `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó lo que envió: novedad en su campana y push (FCM) a sus celulares. **Solo admin** | Panel admin → al aprobar o rechazar |
 | `GET /v1/salud` | Estado del servicio y de Firestore | Panel → **Diagnóstico** |
 
 Ejemplos:
@@ -130,3 +131,45 @@ Las pruebas de integración usan el emulador. Corren solo si están las variable
 3. En unos 5 minutos responde https://fusa-conecta-api.onrender.com/v1/salud con `"estado": "ok"`. Desde entonces, cada `git push` que cambie `api/` lo vuelve a desplegar.
 
 Si Render asigna otra dirección (por ejemplo, porque `fusa-conecta-api` ya está tomado), cámbiala en `API_URL` de `app.js`, `sw.js` y `render.yaml`.
+
+### Avisos al celular (FCM): segunda cuenta de servicio `FIREBASE_SA_FCM`
+
+`POST /v1/notificaciones/aprobacion` escribe la novedad en `usuarios/{uid}/notificaciones`, borra los tokens que ya no
+sirven y envía el push con Firebase Cloud Messaging. Por eso necesita una cuenta **aparte** de la de solo lectura.
+Sin ella, el endpoint responde 503 y el panel admin sigue funcionando igual, solo que sin avisos.
+
+Pasos (los hace la dueña del proyecto; unos 10 minutos):
+
+1. **Activa la API de FCM.** Entra a https://console.cloud.google.com/apis/library/fcm.googleapis.com?project=fusa-conecta.
+   Si dice **Habilitar**, tócalo. Si dice **Administrar**, ya está activa.
+2. **Crea la cuenta.** Entra a https://console.cloud.google.com/iam-admin/serviceaccounts?project=fusa-conecta →
+   **Crear cuenta de servicio** → nombre `api-avisos`, descripción «Avisos al celular de la API» → **Crear y continuar**.
+3. **Dale dos roles** (en «Otorga a esta cuenta de servicio acceso al proyecto», con **Agregar otro rol**):
+   - **Firebase Cloud Messaging API Admin**: solo para enviar avisos.
+   - **Cloud Datastore User**: para escribir la novedad y borrar los tokens viejos.
+
+   Toca **Continuar** → **Listo**.
+4. **Crea la clave.** Abre `api-avisos` → pestaña **Claves** → **Agregar clave** → **Crear clave nueva** → **JSON** →
+   **Crear**. Se descarga un archivo.
+5. **Guárdala en Render.** Entra a https://dashboard.render.com → `fusa-conecta-api` → **Environment** →
+   **Add Environment Variable**. Escribe Key `FIREBASE_SA_FCM` y en Value pega **todo** el contenido del JSON →
+   **Save, rebuild, and deploy**.
+6. **Borra el archivo JSON** de tu computador. No lo subas a GitHub ni lo pegues en el código.
+7. **Comprueba.** Aprueba algo de prueba en el panel admin. Debe salir «Aprobado. Le avisamos a … en su celular» o
+   «Aprobado. Verá el aviso en la campana de Novedades».
+
+**Límite de los permisos.** IAM no permite limitar «Cloud Datastore User» a algunas colecciones: la cuenta podría
+escribir en todo Firestore. Para compensarlo:
+- la clave vive solo en Render;
+- `app/avisos.py` es el único código que la usa, y solo escribe en `usuarios/{uid}/notificaciones` y
+  `usuarios/{uid}/dispositivos`. La prueba `test_repositorio_firestore_solo_escribe_novedades_y_dispositivos` lo
+  comprueba;
+- las demás lecturas de la API siguen con la cuenta de solo lectura (`FIREBASE_SA`).
+
+**Clave VAPID (opcional).** La PWA usa la clave pública por defecto de Firebase. Para usar una propia:
+1. Ve a la consola de Firebase → ⚙ **Configuración del proyecto** → **Cloud Messaging** → **Certificados push web** →
+   **Generar par de claves**.
+2. Copia la clave **pública** en `AVISOS.vapid` de `app.js`.
+
+La privada se queda en Firebase y nunca va en el código. Al cambiar de clave, los celulares registran un token nuevo
+la próxima vez que abren la app.

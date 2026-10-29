@@ -8,7 +8,7 @@ Python 3.12 con FastAPI. Lee Firestore con Firebase Admin, con una cuenta de ser
 
 Características comunes:
 - Respuestas en JSON; los errores tienen la forma `{"error": "…", "estado": 4xx}`.
-- **CORS** solo para `https://fusa-conecta.web.app`.
+- **CORS** solo para `https://fusa-conecta.web.app` (GET y POST).
 - **Límite:** 60 peticiones por minuto por IP (20 en los endpoints protegidos). Al pasarlo responde 429 con `Retry-After`.
 - **Autenticación** en los protegidos: `Authorization: Bearer <idToken de Firebase Auth>`, verificado con `firebase_admin.auth.verify_id_token`.
 
@@ -27,6 +27,7 @@ Las respuestas de abajo son **reales**: se pidieron a la API en producción el 2
 | 7 | `GET /v1/comercios/{id}/reporte?formato=xlsx\|pdf&mes=` | Reporte mensual del negocio (Excel con openpyxl, PDF con ReportLab) | Token del dueño o admin | Panel del negocio → «Descargar reporte» |
 | 8 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas | Token de admin | — |
 | 9 | `GET /v1/salud` | Estado del servicio y de Firestore | Pública, sin límite | Panel → «Diagnóstico» |
+| 10 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó su negocio, evento, ruta, Premium o reclamo: novedad en su campana y push con Firebase Cloud Messaging | Token de admin | Panel admin → al aprobar o rechazar |
 
 ## Ejemplos
 
@@ -179,5 +180,48 @@ curl "https://fusa-conecta-api.onrender.com/v1/salud"
 ```json
 { "estado": "ok", "version": "1.0.0", "firestore": true, "firestore_ms": 105, "activo_desde_s": 13 }
 ```
+
+### 10. Aviso al celular cuando el admin aprueba o rechaza (protegido)
+
+Lo llama el panel admin **después** de guardar la decisión en Firestore. Si la API está dormida (plan gratuito de
+Render), el panel reintenta en segundo plano hasta 60 s sin bloquear al admin.
+
+```bash
+curl -X POST -H "Authorization: Bearer $ID_TOKEN_ADMIN" -H "Content-Type: application/json" \
+  -d '{"tipo":"comercio","id":"ID","resultado":"aprobado"}' \
+  "https://fusa-conecta-api.onrender.com/v1/notificaciones/aprobacion"
+```
+
+| Campo | Valores |
+|---|---|
+| `tipo` | `comercio`, `evento`, `ruta`, `premium`, `reclamo` |
+| `id` | Id del documento (letras, números, `-` y `_`) |
+| `resultado` | `aprobado` o `rechazado` |
+
+Qué hace:
+1. Verifica el token (`verify_id_token`) y que `usuarios/{uid}.rol == 'admin'`.
+2. Busca a la persona: `propietario_uid` (comercio), `creado_por` (evento), `autor_uid` (ruta) o `uid` (Premium y reclamo).
+3. Siempre escribe la novedad en su campana (`usuarios/{uid}/notificaciones`), aunque no haya dado permiso de avisos.
+4. Envía el push a `usuarios/{uid}/dispositivos` con `firebase_admin.messaging.send_each_for_multicast` y borra los
+   tokens que FCM ya no acepta (`registration-token-not-registered`).
+
+Respuesta (de la prueba `api/tests/test_avisos.py`; en producción se activa cuando se configura `FIREBASE_SA_FCM`):
+
+```json
+{ "novedad": true, "repetido": false, "dispositivos": 1, "enviados": 1, "destinatario": "Marcela" }
+```
+
+| Situación | Respuesta |
+|---|---|
+| Sin token / token de alguien que no es admin | `401` / `403` |
+| No existe el documento | `404` |
+| La decisión aún no está guardada (el estado no coincide) | `409` |
+| Repetir la misma decisión | `200` con `"repetido": true`, sin enviar otro push |
+| Falta la cuenta de servicio de avisos | `503` |
+
+Mensajes:
+- Aprobado: «¡Tu negocio {nombre} ya está publicado en Fusa Conecta!»
+- Rechazado: «Revisamos {nombre}: {motivo}. Puedes corregirlo desde Mi negocio.»
+- Hay mensajes equivalentes para eventos, rutas, Premium y reclamos.
 
 Captura de la documentación interactiva en producción: [capturas/02-api-docs-produccion.png](capturas/02-api-docs-produccion.png).

@@ -8,14 +8,15 @@ from typing import Annotated, Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 
-from . import formatos, servicios
+from . import avisos, formatos, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, paginar
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -38,7 +39,7 @@ app = FastAPI(
         "Servicios web REST de **Fusa Conecta**, la guía de Fusagasugá y Pasca (https://fusa-conecta.web.app).\n\n"
         "- Lectura pública: comercios, agenda (JSON e ICS), rutas (GPX) y números de emergencia.\n"
         "- Protegido con el token de Firebase Auth (`Authorization: Bearer <idToken>`): "
-        "reporte del negocio y estadísticas del admin.\n"
+        "reporte del negocio, estadísticas del admin y avisos al celular cuando el admin aprueba o rechaza.\n"
         f"- Límite: {LIMITE} por IP. Datos de Firestore en caché de 2 minutos."
     ),
     contact={"name": "Fusa Conecta", "url": "https://fusa-conecta.web.app"},
@@ -49,12 +50,17 @@ app = FastAPI(
         {"name": "Emergencias"},
         {"name": "Negocios", "description": "Requiere ser dueño del negocio o admin"},
         {"name": "Admin", "description": "Requiere rol admin"},
+        {"name": "Avisos", "description": "Notificaciones push (Firebase Cloud Messaging). Requiere rol admin"},
         {"name": "Servicio"},
     ],
 )
 app.state.limiter = limiter
 app.add_middleware(
-    CORSMiddleware, allow_origins=ORIGENES, allow_methods=["GET"], allow_headers=["Authorization"], max_age=86400
+    CORSMiddleware,
+    allow_origins=ORIGENES,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
+    max_age=86400,
 )
 
 
@@ -325,3 +331,98 @@ def estadisticas(request: Request, repo: Repo, usuario: Usuario) -> dict:
         "lugares_directorio": len(servicios.directorio(repo)),
         "generado": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+
+
+class Decision(BaseModel):
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo"] = Field(description="Qué revisó el admin")
+    id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")
+    resultado: Literal["aprobado", "rechazado"]
+
+    model_config = {"json_schema_extra": {"examples": [{"tipo": "comercio", "id": "AbC123", "resultado": "aprobado"}]}}
+
+
+def _repo_avisos() -> avisos.RepositorioAvisos:
+    try:
+        return avisos.repositorio_avisos()
+    except avisos.SinCredenciales as e:
+        raise HTTPException(503, "Los avisos al celular aún no están configurados (falta FIREBASE_SA_FCM)") from e
+
+
+def _avisador() -> avisos.Avisador:
+    try:
+        return avisos.avisador()
+    except avisos.SinCredenciales as e:
+        raise HTTPException(503, "Los avisos al celular aún no están configurados (falta FIREBASE_SA_FCM)") from e
+
+
+@app.post(
+    "/v1/notificaciones/aprobacion",
+    tags=["Avisos"],
+    summary="Avisar a la persona que el admin aprobó o rechazó lo que envió",
+    responses={
+        401: {"description": "Sin token o vencido"},
+        403: {"description": "No es admin"},
+        404: {"description": "No existe lo que se revisó"},
+        409: {"description": "La decisión aún no está guardada en Firestore"},
+        503: {"description": "Falta la cuenta de servicio de avisos"},
+    },
+)
+@limiter.limit("20/minute")
+def avisar_decision(
+    request: Request,
+    repo: Repo,
+    usuario: Usuario,
+    decision: Decision,
+    repo_avisos: Annotated[avisos.RepositorioAvisos, Depends(_repo_avisos)],
+    avisador: Annotated[avisos.Avisador, Depends(_avisador)],
+) -> dict:
+    """El panel admin lo llama **después** de guardar la decisión en Firestore.
+
+    1. Comprueba que quien llama es admin y que la decisión ya está guardada.
+    2. Escribe la novedad en la campana de la persona (`usuarios/{uid}/notificaciones`), aunque no haya dado permiso.
+    3. Si tiene dispositivos y no apagó los avisos, envía el push con FCM y borra los tokens que ya no sirven.
+
+    Es idempotente: si el admin reintenta, no se repite el aviso (`repetido: true`).
+    """
+    if repo.rol(usuario.get("uid", "")) != "admin":
+        raise HTTPException(403, "Solo para administradores")
+    fuente = avisos.FUENTES[decision.tipo]
+    doc = repo_avisos.documento(fuente.coleccion, decision.id)
+    if doc is None or (decision.tipo in ("premium", "reclamo") and doc.get("tipo") != decision.tipo):
+        raise HTTPException(404, "No existe eso que se revisó")
+    if avisos.estado_guardado(decision.tipo, doc) != fuente.estados[decision.resultado]:
+        raise HTTPException(409, "Primero guarda la decisión: el estado en Firestore todavía no coincide")
+    uid = doc.get(fuente.dueno) or ""
+    base = {"novedad": False, "repetido": False, "dispositivos": 0, "enviados": 0, "destinatario": None}
+    if not uid:  # p. ej. un evento de la agenda automática: no hay a quién avisar
+        return base
+    perfil = repo_avisos.documento("usuarios", uid) or {}
+    nombre_persona = (perfil.get("nombre") or "").split(" ")[0] or "la persona"
+    titulo, texto, enlace = avisos.mensaje(
+        decision.tipo, decision.resultado, doc.get(fuente.nombre, ""), doc.get(fuente.motivo, ""), decision.id
+    )
+    nueva = repo_avisos.guardar_novedad(
+        uid,
+        f"{decision.tipo}-{decision.id}-{decision.resultado}",
+        {
+            "tipo": decision.tipo,
+            "ref_id": decision.id,
+            "resultado": decision.resultado,
+            "titulo": titulo,
+            "mensaje": texto,
+            "enlace": enlace,
+        },
+    )
+    respuesta = {**base, "novedad": True, "repetido": not nueva, "destinatario": nombre_persona}
+    if not nueva:
+        return respuesta
+    tokens = repo_avisos.dispositivos(uid)
+    respuesta["dispositivos"] = len(tokens)
+    if not tokens or perfil.get("notificaciones_push") is False:
+        return respuesta
+    enviados, malos = avisador.enviar(tokens, titulo, texto, enlace, f"{decision.tipo}-{decision.id}")
+    if malos:
+        repo_avisos.borrar_dispositivos(uid, malos)
+        log.info("Tokens borrados por inválidos: %d", len(malos))
+    respuesta.update(enviados=enviados, dispositivos=len(tokens) - len(malos))
+    return respuesta

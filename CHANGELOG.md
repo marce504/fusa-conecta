@@ -19,18 +19,27 @@ Lo que va de la v1.2.0 (se publica por partes).
 - **Mis favoritos** sale de la barra y pasa a Perfil como primera opción, con su contador. Se abre como pantalla de segundo nivel (con «Volver») y marca la pestaña Perfil. Para un invitado abre la hoja de ingreso. El corazón de cada ficha sigue igual.
 - Revisada a 360 px de ancho, en modo noche y con el texto agrandado un 30 %: los cinco botones miden 70 × 60 px.
 - PWA v65 (`fusa-v58`).
+- **Avisos al celular (parte 3).** Notificaciones push reales con Firebase Cloud Messaging, sin Cloud Functions (plan Spark): al aprobar o rechazar un negocio, evento, ruta, Premium o reclamo, el panel admin guarda la decisión y llama a la API, que avisa a la persona. El admin ve «Aprobado. Le avisamos a {nombre} en su celular» o «… Verá el aviso en la campana de Novedades». Si la API está dormida, reintenta en segundo plano hasta 60 s sin bloquearlo.
+- El permiso **nunca** se pide al abrir la app: solo al terminar «Registrar mi negocio» («¿Quieres que te avisemos aquí cuando tu negocio sea aprobado?») o con el interruptor «Avisos en este celular» de Perfil. Si está bloqueado, se explica cómo activarlo. En iPhone se avisa que hace falta la app instalada (iOS 16.4 o superior).
+- La campana muestra «Para ti» con las aprobaciones y rechazos (`usuarios/{uid}/notificaciones`), aunque la persona no haya dado permiso. Al tocar un aviso se abre la pantalla correcta (`#/mi-negocio`, `#/evento/…`, `#/recorridos`).
+- `sw.js` recibe el push y muestra el aviso con el ícono de la marca. PWA v66 (`fusa-v59`).
 
 ### Corregido
 - Escáner de cupones: si el navegador tardaba en negar la cámara, el aviso «Necesitamos permiso para usar la cámara» aparecía tarde y tapaba el resultado del código escrito a mano.
+
+### Agregado
+- API: `POST /v1/notificaciones/aprobacion` (el endpoint 10). Usa una cuenta de servicio aparte, `FIREBASE_SA_FCM` («Firebase Cloud Messaging API Admin»), solo en Render. Pasos en `api/LEEME.md`. Es idempotente y borra los tokens inválidos. CORS admite POST.
+- Reglas: `usuarios/{uid}/dispositivos/{token}`: solo la persona los crea y borra, nadie los lee desde la app. `usuarios/{uid}/notificaciones`: solo la API escribe; la persona lee y marca como leídas.
+- `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
+- `docs/entrega-sena/`: material para el documento técnico (capítulos 3 a 11). Incluye arquitectura en Mermaid (7 diagramas, también en PNG), los 9 endpoints con respuestas reales de producción, la estructura del repositorio, comandos y resultados de pruebas con capturas, y una guía de qué cambiar en cada capítulo.
 
 ### Pruebas
 - Vitest: `appLista` y la regla del máximo (`salidaSplash`), 5 casos.
 - Playwright: entrada con sesión (≤ 3,5 s; medido 1,6 s), con la nube lenta (se va a los 3 s sin esperarla) e invitado (botones visibles ≤ 2,6 s desde la primera pintura; medido 2,0 s).
 - Playwright: la barra inferior (los cinco botones, cada uno con su pantalla y `aria-current`, área táctil ≥ 44 px) y Perfil → «Mis favoritos». La prueba del cupón ahora entra a la billetera por el botón Cupones de la barra y revisa su globo.
-
-### Agregado
-- `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
-- `docs/entrega-sena/`: material para el documento técnico (capítulos 3 a 11). Incluye arquitectura en Mermaid (7 diagramas, también en PNG), los 9 endpoints con respuestas reales de producción, la estructura del repositorio, comandos y resultados de pruebas con capturas, y una guía de qué cambiar en cada capítulo.
+- pytest: el endpoint de avisos (401, 403, 404, 409, 422 y 503; aprobado y rechazado; tokens inválidos borrados; sin repetir; sin push para quien no dio permiso), `AvisadorFCM` con `messaging` simulado y el repositorio, que solo escribe en novedades y dispositivos. Integración contra el emulador. Cobertura de la API: 84 %.
+- Vitest: `estadoAvisos`, `refrescarDispositivo` (nunca pide el permiso al abrir) y `textoAviso`.
+- Playwright: reglas de dispositivos, «Para ti» en la campana y la pregunta después de registrar el negocio.
 
 ## [1.1.0] - 2026-10-28 · Plan de pruebas con evidencias
 

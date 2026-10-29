@@ -101,7 +101,7 @@ Componentes reales:
 | PWA | `index.html`, `app.js`, `app.css` | Interfaz de usuario |
 | Service worker | `sw.js` | Funcionamiento sin conexión |
 | Reglas de seguridad | `firestore.rules` | Autorización de cada lectura y escritura |
-| API REST | `api/` | 9 endpoints `/v1` (`02-endpoints.md`) |
+| API REST | `api/` | 10 endpoints `/v1` (`02-endpoints.md`) |
 | Agenda automática | `automatizacion/agenda.py` | Escribe en `eventos` y `config/agenda_auto` |
 | Limpieza diaria | `automatizacion/limpieza.py` | Escribe en `cupones`, `eventos` y `config/limpieza` |
 | App Android | `android/` | Abre la PWA (TWA) |

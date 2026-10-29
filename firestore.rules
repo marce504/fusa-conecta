@@ -59,6 +59,26 @@ service cloud.firestore {
               && request.resource.data.get('confiable', false) == get(/databases/$(database)/documents/invitaciones/$(request.auth.token.email.lower())).data.get('confiable', false))))
         || esAdmin();
       allow delete: if (cuentaReal() && request.auth.uid == uid) || esAdmin();
+
+      // Celulares donde la persona aceptó los avisos (token de FCM como id). Solo ella los crea, actualiza
+      // (último uso) y borra; nadie los lee desde la app. La API de avisos los lee con su cuenta de servicio.
+      match /dispositivos/{token} {
+        allow read: if false;
+        allow create, update: if cuentaReal() && request.auth.uid == uid
+          && token.size() <= 300
+          && request.resource.data.keys().hasOnly(['plataforma', 'creado', 'ultimo_uso'])
+          && request.resource.data.plataforma in ['android', 'iphone', 'computador']
+          && request.resource.data.ultimo_uso == request.time;
+        allow delete: if cuentaReal() && request.auth.uid == uid;
+      }
+
+      // Novedades personales (aprobaciones y rechazos): las escribe solo la API de avisos.
+      // La persona las lee y solo puede marcarlas como leídas.
+      match /notificaciones/{id} {
+        allow read: if cuentaReal() && request.auth.uid == uid;
+        allow update: if cuentaReal() && request.auth.uid == uid && soloCambia(['leida'])
+          && request.resource.data.leida == true;
+      }
     }
 
     /* ---------- Comercios ---------- */

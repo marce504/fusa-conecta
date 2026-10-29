@@ -27,3 +27,6 @@ services:
         value: 60/minute
       - key: FIREBASE_SA
         sync: false
+      # Avisos al celular (FCM): cuenta aparte con «Firebase Cloud Messaging API Admin» (ver api/LEEME.md)
+      - key: FIREBASE_SA_FCM
+        sync: false

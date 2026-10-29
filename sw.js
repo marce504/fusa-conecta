@@ -1,7 +1,7 @@
 // Service Worker de Fusa Conecta: app instalable y disponible sin conexión (RNF-02).
 // - La interfaz, los datos base y las emergencias se guardan al instalar.
 // - Las fotos, mapas y librerías se guardan la primera vez que se ven.
-const VERSION = 'fusa-v58';
+const VERSION = 'fusa-v59';
 const CACHE_APP = VERSION + '-app';
 const CACHE_RUNTIME = VERSION + '-runtime';
 const CACHE_MAPAS = VERSION + '-mapas';
@@ -30,7 +30,7 @@ const APP_SHELL = [
 
 // Servicios en vivo que nunca se guardan en caché
 const SIN_CACHE =
-  /firestore\.googleapis\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com|apis\.google\.com|accounts\.google\.com|firebaseapp\.com\/__\/|\/__\/(auth|firebase)\/|127\.0\.0\.1:(8099|9099)|estructuraweb\.com\.co|fusa-conecta-api\.onrender\.com|127\.0\.0\.1:8000/;
+  /firestore\.googleapis\.com|fcm\.googleapis\.com|fcmregistrations\.googleapis\.com|firebaseinstallations\.googleapis\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com|apis\.google\.com|accounts\.google\.com|firebaseapp\.com\/__\/|\/__\/(auth|firebase)\/|127\.0\.0\.1:(8099|9099)|estructuraweb\.com\.co|fusa-conecta-api\.onrender\.com|127\.0\.0\.1:8000/;
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -111,10 +111,39 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Al tocar una notificación de promoción se abre la app
+// Avisos al celular (FCM, v1.2.0). La API manda solo datos {titulo, texto, enlace, etiqueta, icono}; aquí se arma el aviso
+// con el ícono de la marca. Funciona con la app cerrada (Android, computador y iPhone con la app instalada, iOS 16.4+).
+self.addEventListener('push', e => {
+  let d = {};
+  try {
+    const j = e.data ? e.data.json() : {};
+    d = j.data || j.notification || j;
+  } catch {
+    d = { texto: e.data ? e.data.text() : '' };
+  }
+  e.waitUntil(
+    self.registration.showNotification(d.titulo || d.title || 'Fusa Conecta', {
+      body: d.texto || d.body || '',
+      icon: './img/icons/icon-192.png',
+      badge: './img/icons/icon-192.png',
+      tag: d.etiqueta || 'fusa-aviso',
+      lang: 'es-CO',
+      data: { enlace: d.enlace || '' },
+    }),
+  );
+});
+
+// Al tocar un aviso se abre la app en la pantalla indicada (p. ej. #/mi-negocio). Si ya estaba abierta, se enfoca y se le
+// pasa la pantalla por mensaje (cambiarle la dirección dispararía «Atrás» dentro de la app).
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const enlace = (e.notification.data && e.notification.data.enlace) || '';
   e.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then(cs => (cs[0] ? cs[0].focus() : self.clients.openWindow('./'))),
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+      const c = cs.find(x => x.url.startsWith(self.registration.scope));
+      if (!c) return self.clients.openWindow(new URL('./' + enlace, self.registration.scope).href);
+      if (enlace) c.postMessage({ tipo: 'aviso', enlace });
+      return c.focus();
+    }),
   );
 });

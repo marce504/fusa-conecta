@@ -1610,6 +1610,10 @@ button:disabled{opacity:.6;pointer-events:none}
 .chip-avisos .contador{margin-left:2px}
 .ev-chip.ev-chip-aviso{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
 .novedad .nv-ic.nv-aviso{background:var(--cat-turismo-bg);color:var(--cat-turismo)}
+/* Avisos al celular (v1.2.0) */
+.novedad .nv-ic.nv-mio{background:var(--primary-50);color:var(--primary-700)}
+.switch-row .sw-det{display:block;margin-top:2px;font-size:var(--text-xs);color:var(--ink-2)}
+.pasos-permiso{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:var(--text-sm);color:var(--ink-2)}
 /* Asistente: enlace a la fuente oficial bajo la tarjeta del evento */
 .asis-ev{display:flex;flex-direction:column;gap:2px}
 .asis-fuente{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;font-size:var(--text-sm);font-weight:600;color:var(--primary-700)}

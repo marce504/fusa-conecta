@@ -22,7 +22,7 @@ function valor(v) {
   return { stringValue: String(v) };
 }
 
-async function poner(ruta, datos) {
+export async function poner(ruta, datos) {
   const r = await fetch(`${FS}/${ruta}`, {
     method: 'PATCH',
     headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },

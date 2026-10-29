@@ -22,7 +22,7 @@ La API está en el plan gratuito de Render y se duerme tras 15 minutos sin uso: 
 | Archivo | Para qué capítulos |
 |---|---|
 | [01-arquitectura.md](01-arquitectura.md) | Diagramas Mermaid de contexto y despliegue, capas y componentes, modelo de datos (Firestore), secuencias críticas y CI/CD | 3, 4, 5, 6, 7, 8 |
-| [02-endpoints.md](02-endpoints.md) | Los 9 servicios web REST con ejemplos **reales** de respuesta | 7, 8 |
+| [02-endpoints.md](02-endpoints.md) | Los 10 servicios web REST con ejemplos de respuesta (reales de producción del 1 al 9) | 7, 8 |
 | [03-estructura-repositorio.md](03-estructura-repositorio.md) | Estructura del repositorio, ramas, versiones y estándares | 6, 9 |
 | [04-pruebas.md](04-pruebas.md) | Comandos para correr las pruebas, resultados y capturas | 9 |
 | [05-guia-por-capitulo.md](05-guia-por-capitulo.md) | Qué cambiar en cada capítulo, del diseño v2 (React Native + SQLite) a lo construido, con tablas listas para copiar | 3 a 11 |
@@ -38,7 +38,7 @@ Evidencias que ya existen en el repositorio y se citan aquí:
 | Requisito de la guía | Cómo se cumple | Evidencia |
 |---|---|---|
 | Aplicación web o móvil funcional | PWA en producción y app Android (TWA) del mismo código | Enlaces de arriba · `android/LEEME.md` |
-| Servicios web REST | API FastAPI `/v1` con 9 endpoints, JSON, ICS, GPX, Excel y PDF, OpenAPI | `02-endpoints.md` · `api/` |
+| Servicios web REST | API FastAPI `/v1` con 10 endpoints, JSON, ICS, GPX, Excel, PDF y avisos push (FCM), OpenAPI | `02-endpoints.md` · `api/` |
 | Integración de módulos | La PWA consume la API (calendario, GPX, reportes, Diagnóstico); la agenda en Python escribe en Firestore lo que la PWA y la API leen | `01-arquitectura.md` |
 | Control de versiones | Git y GitHub, ramas `main` y `develop`, Conventional Commits, etiquetas v0.1.0 a v1.1.0, CHANGELOG | `03-estructura-repositorio.md` |
 | Estándares de codificación | ESLint (Airbnb adaptada) y Prettier; black, flake8 (PEP 8) y type hints; 0 errores en CI | `docs/estandares.md` |

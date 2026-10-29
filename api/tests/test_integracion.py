@@ -181,3 +181,72 @@ def test_estadisticas_admin(entorno):
         and r["usuarios"] >= 2
         and r["cupones_canjeados"] >= 1
     )
+
+
+def test_aviso_de_aprobacion_contra_el_emulador(entorno):
+    """La novedad queda en usuarios/{uid}/notificaciones y el token inválido se borra (FCM simulado)."""
+    from app import avisos, main
+
+    c, duena_token, admin, *_ = entorno
+    uid = _uid(duena_token)
+    poner(f"usuarios/{uid}/dispositivos/tok-bueno", {"plataforma": "android"})
+    poner(f"usuarios/{uid}/dispositivos/tok-viejo", {"plataforma": "android"})
+
+    class Simulado:
+        enviados: list = []
+
+        def enviar(self, tokens, titulo, texto, enlace, etiqueta):
+            self.enviados.append((sorted(tokens), texto))
+            return 1, ["tok-viejo"]
+
+    fcm = Simulado()
+    avisos._estado.clear()
+    main.app.dependency_overrides[main._avisador] = lambda: fcm
+    try:
+        cuerpo = {"tipo": "comercio", "id": "api-panaderia", "resultado": "aprobado"}
+        assert (
+            c.post(
+                "/v1/notificaciones/aprobacion", json=cuerpo, headers={"Authorization": f"Bearer {duena_token}"}
+            ).status_code
+            == 403
+        )
+        r = c.post("/v1/notificaciones/aprobacion", json=cuerpo, headers={"Authorization": f"Bearer {admin}"})
+        assert r.status_code == 200 and r.json()["enviados"] == 1
+        assert fcm.enviados == [
+            (["tok-bueno", "tok-viejo"], "¡Tu negocio Panadería de Prueba API ya está publicado en Fusa Conecta!")
+        ]
+        nov = httpx.get(
+            _fs(f"usuarios/{uid}/notificaciones/comercio-api-panaderia-aprobado"),
+            headers={"Authorization": "Bearer owner"},
+        )
+        assert nov.status_code == 200 and nov.json()["fields"]["enlace"]["stringValue"] == "#/mi-negocio"
+        assert (
+            httpx.get(
+                _fs(f"usuarios/{uid}/dispositivos/tok-viejo"), headers={"Authorization": "Bearer owner"}
+            ).status_code
+            == 404
+        )
+        assert (
+            httpx.get(
+                _fs(f"usuarios/{uid}/dispositivos/tok-bueno"), headers={"Authorization": "Bearer owner"}
+            ).status_code
+            == 200
+        )
+        # El reintento no repite el aviso
+        assert (
+            c.post("/v1/notificaciones/aprobacion", json=cuerpo, headers={"Authorization": f"Bearer {admin}"}).json()[
+                "repetido"
+            ]
+            is True
+        )
+        assert len(fcm.enviados) == 1
+    finally:
+        main.app.dependency_overrides.pop(main._avisador, None)
+
+
+def _uid(token: str) -> str:
+    import base64
+    import json
+
+    carga = token.split(".")[1]
+    return json.loads(base64.urlsafe_b64decode(carga + "=" * (-len(carga) % 4)))["user_id"]

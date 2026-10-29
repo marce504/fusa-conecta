@@ -1231,9 +1231,9 @@ function enlazarRutasAdmin(){
   const col=db.collection('rutas_comunidad');
   $$('[data-abrir-sendero]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.abrirSendero)));
   $$('[data-ruta3d]').forEach(b=>(b.onclick=()=>{const x=ruta(b.dataset.ruta3d);abrir3D({titulo:x.nombre,linea:lineaDeTexto(x.linea).map(p=>[p[0],p[1]])});}));
-  $$('[data-ruta-ok]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.rutaOk).update({estado:'aprobada',fecha_revision:FV.serverTimestamp()}),'Ruta aprobada y publicada')));
-  $$('[data-ruta-no]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+ruta(b.dataset.rutaNo).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaNo).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta rechazada. La persona verá el motivo.'),MOTIVOS_RUTA)));
-  $$('[data-ruta-retirar]').forEach(b=>(b.onclick=()=>pedirMotivo('Retirar «'+ruta(b.dataset.rutaRetirar).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaRetirar).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta retirada de la app'),MOTIVOS_RUTA)));
+  $$('[data-ruta-ok]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.rutaOk).update({estado:'aprobada',fecha_revision:FV.serverTimestamp()}),'Ruta aprobada y publicada',['ruta',b.dataset.rutaOk,'aprobado'])));
+  $$('[data-ruta-no]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+ruta(b.dataset.rutaNo).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaNo).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta rechazada. La persona verá el motivo.',['ruta',b.dataset.rutaNo,'rechazado']),MOTIVOS_RUTA)));
+  $$('[data-ruta-retirar]').forEach(b=>(b.onclick=()=>pedirMotivo('Retirar «'+ruta(b.dataset.rutaRetirar).nombre+'»',m=>adminAccion(()=>col.doc(b.dataset.rutaRetirar).update({estado:'rechazada',motivo:m,fecha_revision:FV.serverTimestamp()}),'Ruta retirada de la app',['ruta',b.dataset.rutaRetirar,'rechazado']),MOTIVOS_RUTA)));
   // Todas las fotos de cada ruta (la portada ya está en la tarjeta)
   $$('[data-fotos-ruta]').forEach(c=>{if(+c.dataset.n<2)return;
     col.doc(c.dataset.fotosRuta).collection('fotos').get().then(s=>{c.innerHTML=s.docs.sort((a,b)=>a.id-b.id).map((f,i)=>'<img src="'+f.data().data+'" alt="Foto '+(i+1)+'">').join('');}).catch(()=>{});});
@@ -1396,10 +1396,10 @@ function enlazarEventosAdmin(){
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const bBorrarDemos=$('#admEvDemoBorrar');if(bBorrarDemos)bBorrarDemos.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
     adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>b.delete(d.ref));await b.commit();},'Eventos de ejemplo borrados');};
-  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda')));
+  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
   $$('[data-eveditp]').forEach(b=>(b.onclick=()=>formEvento(pend(b.dataset.eveditp))));
   $$('[data-evedit]').forEach(b=>(b.onclick=()=>formEvento(pub(b.dataset.evedit))));
-  $$('[data-evdesc]').forEach(b=>(b.onclick=()=>pedirMotivo('Descartar el evento',m=>adminAccion(()=>col.doc(b.dataset.evdesc).update({estado:'rechazado',motivo:m}),'Evento descartado'),
+  $$('[data-evdesc]').forEach(b=>(b.onclick=()=>pedirMotivo('Descartar el evento',m=>adminAccion(()=>col.doc(b.dataset.evdesc).update({estado:'rechazado',motivo:m}),'Evento descartado',['evento',b.dataset.evdesc,'rechazado']),
     ['Ya pasó','Información incompleta','No es en Fusagasugá o Pasca','Duplicado','No es un evento público'])));
   $$('[data-evborrar]').forEach(b=>(b.onclick=async()=>{const e=pub(b.dataset.evborrar);
     if(!await confirmar('Eliminar evento','«'+e.titulo+'» sale de la agenda. Esta acción no se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
@@ -3739,6 +3739,8 @@ function renderPerfil(){
   const u=estado.usuario,p=estado.perfil||{};
   const cupones=cuponesLocales().filter(c=>estadoCupon(c)==='activo');
   const notifOn=p.notificaciones_push!==false;
+  // Encendido = la persona los quiere y este celular tiene el permiso (los avisos son por celular)
+  const avisosOn=notifOn&&estadoAvisos()==='granted';
   const rol=esAdmin()?['shield-check','Administrador']:esComerciante()?['store','Vecino con negocio']:esOrganizador()?['calendar-days','Organizador de eventos'+(organizadorConfiable()?' · confiable':'')]:['user','Vecino / turista'];
   const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
   const nFav=estado.favoritos.length;
@@ -3765,7 +3767,8 @@ function renderPerfil(){
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
       +[['automatico','clock','Automático'],['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
       +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
-    +'<div class="seccion"><h3>'+icon('bell',18)+'Novedades</h3><label class="switch-row"><span>Mostrarme las novedades de los comercios destacados</span><input type="checkbox" id="pfNotif" '+(notifOn?'checked':'')+'></label></div>'
+    +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
+    +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
     +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Ver aviso legal y privacidad</button>'
@@ -3786,11 +3789,16 @@ function renderPerfil(){
   $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfFavoritos').onclick=irAFavoritos;
   $('#pfNotif').onchange=async e=>{
-    const on=e.target.checked;
-    if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
-    db.collection('usuarios').doc(u.uid).update({notificaciones_push:on}).catch(()=>{});
-    estado.perfil.notificaciones_push=on;ls.set('fc_perfil_'+u.uid,estado.perfil);
-    toast(on?'Te mostraremos las novedades':'Novedades desactivadas');
+    const sw=e.target,on=sw.checked;
+    sw.disabled=true;
+    if(on){
+      const ok=await activarAvisos();
+      if(!ok){sw.checked=false;sw.disabled=false;return;}
+      marcarPreferenciaAvisos(true);toast('Listo: te avisaremos en este celular');
+    }else{
+      await desactivarAvisos();marcarPreferenciaAvisos(false);toast('Avisos desactivados en este celular');
+    }
+    sw.disabled=false;
   };
   $('#pfLegal').onclick=()=>abrir('ovLegal');
   const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
@@ -4409,7 +4417,7 @@ async function publicarComercio(){
       toast('Tu negocio quedó en revisión. Lo verás en tu Perfil, en «Mis negocios».');
     }
     cerrar('ovForm');
-    if(!w.editandoId){if(vistaActual().tipo!=='perfil')navegar({tipo:'perfil'});else render(true);}else render(true);
+    if(!w.editandoId){if(vistaActual().tipo!=='perfil')navegar({tipo:'perfil'});else render(true);setTimeout(()=>ofrecerAvisoAprobacion(datos.nombre),600);}else render(true);
   }catch(e){console.error(e);toast(e.message==='fotos-cargando'?'Espera a que terminen de cargar las fotos':e.code==='permission-denied'?'No tienes permiso para guardar este negocio (revisa el límite de fotos de tu plan)':'No se pudo guardar. Revisa tu conexión o usa fotos más livianas.');}
   finally{if(btn.isConnected){btn.innerHTML=txt;btn.disabled=false;}}
 }
@@ -4562,7 +4570,7 @@ async function _procesarUsuario(user){
   ls.set(claveFav(),estado.favoritos);
   registroPendiente=null;
   refrescarTodo();
-  escucharPromociones();sincronizarCupones();escucharMisComercios();escucharAdmin();
+  escucharPromociones();sincronizarCupones();escucharMisComercios();escucharAdmin();escucharMisAvisos();refrescarDispositivo();
   // Después del primer registro: "¿Qué te gusta de Fusa?"; luego se retoma lo que iba a hacer (p. ej. registrar su negocio)
   if(cuentaNueva)setTimeout(mostrarBienvenida,400);else retomarAccionPendiente();
   aplicarInvitacion(user);
@@ -4617,7 +4625,7 @@ auth.onAuthStateChanged(user=>{
   if(!user||user.isAnonymous)marcarListo('perfil');
   // Se esperaba una sesión que ya no existe: se muestra la entrada completa con sus botones
   if((!user||user.isAnonymous)&&$('#splash').classList.contains('corto'))mostrarSplash();
-  if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.perfilReal=false;estado.favoritos=[];refrescarTodo();return;}
+  if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();dejarDeEscucharMisAvisos();estado.usuario=null;estado.perfil=null;estado.perfilReal=false;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user).catch(()=>{}).finally(()=>marcarListo('perfil'));
 });
@@ -4648,7 +4656,7 @@ function mostrarPromo(n){
   }
 }
 
-/* ===== NOVEDADES: bandeja con punto de no leído (no es push real; FCM queda para otra versión) ===== */
+/* ===== NOVEDADES: bandeja con punto de no leído. Las aprobaciones y rechazos llegan además como push (ver AVISOS AL CELULAR) ===== */
 estado.novedades=[];
 db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapshot(s=>{
   const l=s.docs.map(d=>({id:d.id,...d.data()}));
@@ -4657,6 +4665,7 @@ db.collection('notificaciones').orderBy('fecha_envio','desc').limit(20).onSnapsh
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
 function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedades.filter(n=>(aMs(n.fecha_envio)||0)>v).length
+  +(estado.misAvisos||[]).filter(n=>!n.leida).length
   +avisosVigentes().filter(e=>(aMs(e.fecha_creacion)||0)>v).length+(typeof avisosAdminNuevos==='function'?avisosAdminNuevos():0);}
 function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
 function campanaHTML(){
@@ -4671,7 +4680,11 @@ function abrirNovedades(){
     +'<small>'+(pp?pp+' solicitud'+(pp>1?'es':'')+' de Premium · ':'')+'Toca para abrir el panel</small></span>'+icon('chevron-right')+'</button>':'';
   // v8: avisos del municipio vigentes (jornadas, vacunación, cortes de servicio) arriba de las promociones
   const avisos=avisosVigentes().slice(0,5);
+  const mios=(estado.misAvisos||[]).slice(0,5);
   abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Novedades</h2>'+bloqueAdmin
+    +(mios.length?'<p class="dash-section">Para ti</p><div class="novedades">'+mios.map(n=>'<button class="novedad'+(n.leida?'':' nueva')+'" data-enlace="'+esc(n.enlace||'')+'">'
+        +'<span class="nv-ic nv-mio">'+icon(n.resultado==='aprobado'?'circle-check':'circle-alert',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
+        +'<small>'+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>':'')
     +(avisos.length?'<p class="dash-section">Avisos del municipio</p><div class="novedades">'+avisos.map(e=>'<button class="novedad'+((aMs(e.fecha_creacion)||0)>visto?' nueva':'')+'" data-aviso="'+esc(e.id)+'">'
         +'<span class="nv-ic nv-aviso">'+icon('landmark',18)+'</span><span class="nv-tx"><b>'+esc(e.titulo)+'</b><span>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</span>'
         +'<small>'+esc(e.organizador||'Alcaldía')+'</small></span></button>').join('')+'</div>'
@@ -4684,9 +4697,172 @@ function abrirNovedades(){
     +'</div>');
   $$('#sheetGen [data-com]').forEach(b=>(b.onclick=()=>{cerrar('ovGen');abrirDetalle(b.dataset.com);}));
   $$('#sheetGen [data-aviso]').forEach(b=>(b.onclick=()=>{cerrar('ovGen');abrirEvento(b.dataset.aviso);}));
+  $$('#sheetGen [data-enlace]').forEach(b=>(b.onclick=()=>{cerrar('ovGen');irAEnlaceAviso(b.dataset.enlace);}));
+  marcarMisAvisosLeidos();
   const nv=$('#nvAvisos');if(nv)nv.onclick=()=>{cerrar('ovGen');estado.agenda.cat='avisos';irAgenda('30');};
   const na=$('#nvAdmin');if(na)na.onclick=irAlPanelAdmin;
   ls.set('fc_novedades_leido',Date.now());actualizarCampana();
+}
+
+/* ===== AVISOS AL CELULAR (v1.2.0): notificaciones push reales con Firebase Cloud Messaging =====
+   Plan Spark, sin Cloud Functions: el panel admin guarda su decisión y llama a POST /v1/notificaciones/aprobacion
+   (API en Python), que escribe la novedad en usuarios/{uid}/notificaciones y envía el push a usuarios/{uid}/dispositivos.
+   - El permiso NUNCA se pide al abrir la app: solo al terminar «Registrar mi negocio» o desde el interruptor de Perfil.
+   - El service worker (sw.js) muestra el aviso con el ícono de la marca y, al tocarlo, abre la pantalla indicada.
+   - Clave VAPID: la pública puede estar aquí (vacía = la clave por defecto de Firebase); la privada nunca va en el cliente.
+   - iPhone: solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior). */
+const AVISOS={vapid:'',sdk:'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js'};
+// ¿Qué se puede hacer en este celular? sin-soporte | iphone-sin-instalar | default | granted | denied
+function estadoAvisos(){
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const instalada=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  if(ios&&!instalada)return 'iphone-sin-instalar';
+  if(typeof Notification==='undefined'||!('serviceWorker' in navigator)||!('PushManager' in window))return 'sin-soporte';
+  return Notification.permission;
+}
+function plataformaAvisos(){return /iphone|ipad|ipod/i.test(navigator.userAgent)?'iphone':/android/i.test(navigator.userAgent)?'android':'computador';}
+async function tokenAvisos(){
+  await cargarScript(AVISOS.sdk);
+  const reg=await navigator.serviceWorker.ready;
+  return firebase.messaging().getToken({serviceWorkerRegistration:reg,...(AVISOS.vapid?{vapidKey:AVISOS.vapid}:{})});
+}
+// Guarda (o renueva) el token de este celular. Solo se llama con el permiso ya concedido.
+async function registrarDispositivo(){
+  if(!logueado()||estadoAvisos()!=='granted')return false;
+  const token=await tokenAvisos();if(!token)return false;
+  const clave='fc_fcm_'+estado.usuario.uid,ref=db.collection('usuarios').doc(estado.usuario.uid).collection('dispositivos').doc(token);
+  if(ls.get(clave,'')===token)await ref.update({ultimo_uso:FV.serverTimestamp()}).catch(()=>ref.set({plataforma:plataformaAvisos(),creado:FV.serverTimestamp(),ultimo_uso:FV.serverTimestamp()}));
+  else await ref.set({plataforma:plataformaAvisos(),creado:FV.serverTimestamp(),ultimo_uso:FV.serverTimestamp()});
+  ls.set(clave,token);ls.set('fc_fcm_renovado',Date.now());
+  return true;
+}
+// Al entrar: si el permiso YA estaba concedido, renueva el token una vez al día. Nunca pregunta.
+function refrescarDispositivo(){
+  if(estadoAvisos()!=='granted'||(estado.perfil&&estado.perfil.notificaciones_push===false))return;
+  if(Date.now()-ls.get('fc_fcm_renovado',0)<864e5)return;
+  registrarDispositivo().catch(e=>console.warn('Avisos: no se pudo renovar el token',e&&e.code));
+}
+// Pide el permiso (solo por una acción de la persona). Devuelve true si quedó activado en este celular.
+async function activarAvisos(){
+  const st=estadoAvisos();
+  if(st==='iphone-sin-instalar'){avisosEnIphone();return false;}
+  if(st==='sin-soporte'){toast('Este navegador no puede recibir avisos. Prueba con Chrome.',4000);return false;}
+  if(st==='denied'){avisosBloqueados();return false;}
+  if(st==='default'){let r='default';try{r=await Notification.requestPermission();}catch(e){}if(r!=='granted'){if(r==='denied')avisosBloqueados();return false;}}
+  try{await registrarDispositivo();return true;}
+  catch(e){console.warn('Avisos:',e);toast('No pudimos activar los avisos. Revisa tu conexión e intenta de nuevo.',4000);return false;}
+}
+async function desactivarAvisos(){
+  if(!logueado())return;
+  const clave='fc_fcm_'+estado.usuario.uid,token=ls.get(clave,'');
+  if(token){
+    await db.collection('usuarios').doc(estado.usuario.uid).collection('dispositivos').doc(token).delete().catch(()=>{});
+    try{if(window.firebase&&firebase.messaging)await firebase.messaging().deleteToken();}catch(e){}
+    ls.del(clave);ls.del('fc_fcm_renovado');
+  }
+}
+// Permiso bloqueado: se explica cómo activarlo, una sola vez por toque (sin insistir)
+function avisosBloqueados(){
+  const android=/android/i.test(navigator.userAgent);
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Los avisos están bloqueados</h2>'
+    +'<p class="nota">Bloqueaste los avisos de Fusa Conecta en este celular. Si quieres recibirlos, actívalos así:</p><ol class="pasos-permiso">'
+    +(appInstalada()&&android?'<li>Abre <b>Ajustes</b> del celular → <b>Aplicaciones</b> → <b>Fusa Conecta</b>.</li><li>Toca <b>Notificaciones</b> y actívalas.</li>'
+      :'<li>Toca el <b>candado</b> o el ícono de ajustes junto a la dirección de la página.</li><li>Entra a <b>Permisos</b> → <b>Notificaciones</b> y elige <b>Permitir</b>.</li>')
+    +'<li>Vuelve aquí y activa «Avisos en este celular» en tu Perfil.</li></ol>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="abEntendido">Entendido</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Cómo activar los avisos');
+  $('#abEntendido').onclick=()=>cerrar('ovGen');
+}
+function avisosEnIphone(){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Avisos en iPhone</h2>'
+    +'<p class="nota">En iPhone, los avisos solo funcionan con Fusa Conecta instalada en la pantalla de inicio (iOS 16.4 o superior).</p>'
+    +'<ol class="pasos-permiso"><li>En Safari, toca <b>Compartir</b>.</li><li>Elige <b>Agregar a pantalla de inicio</b>.</li>'
+    +'<li>Abre Fusa Conecta desde el ícono nuevo y activa los avisos en tu Perfil.</li></ol>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="abEntendido">Entendido</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Avisos en iPhone');
+  $('#abEntendido').onclick=()=>cerrar('ovGen');
+}
+// Al terminar «Registrar mi negocio»: se ofrece, una vez, avisar cuando lo aprueben
+function ofrecerAvisoAprobacion(nombre){
+  const st=estadoAvisos();
+  if(st==='granted'){registrarDispositivo().catch(()=>{});return;}
+  if(st==='denied'||st==='sin-soporte'||ls.get('fc_avisos_ofrecido',0))return;
+  ls.set('fc_avisos_ofrecido',Date.now());
+  abrirHoja('<div class="hoja-pad"><span class="asis-logo" aria-hidden="true">'+icon('bell',24)+'</span>'
+    +'<h2 class="hoja-tit">¿Quieres que te avisemos aquí cuando tu negocio sea aprobado?</h2>'
+    +'<p class="nota">Revisamos «'+esc(nombre||'tu negocio')+'» en pocos días. Te llegará un aviso a este celular con el resultado.</p>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="aaSi">'+icon('bell',18)+'Sí, avisarme</button>'
+    +'<button class="btn btn-secundario btn-bloque" id="aaNo">Ahora no</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Avisos de aprobación');
+  $('#aaNo').onclick=()=>cerrar('ovGen');
+  $('#aaSi').onclick=async()=>{
+    cerrar('ovGen');
+    if(await activarAvisos()){toast('Listo: te avisaremos en este celular');marcarPreferenciaAvisos(true);}
+  };
+}
+function marcarPreferenciaAvisos(on){
+  if(!logueado()||!estado.perfil)return;
+  db.collection('usuarios').doc(estado.usuario.uid).update({notificaciones_push:on}).catch(()=>{});
+  estado.perfil.notificaciones_push=on;ls.set('fc_perfil_'+estado.usuario.uid,estado.perfil);
+}
+
+/* Novedades personales (aprobaciones y rechazos) en la campana: usuarios/{uid}/notificaciones */
+let misAvisosUnsub=null;
+estado.misAvisos=[];
+function escucharMisAvisos(){
+  if(misAvisosUnsub||!logueado())return;
+  misAvisosUnsub=db.collection('usuarios').doc(estado.usuario.uid).collection('notificaciones').orderBy('fecha_envio','desc').limit(20)
+    .onSnapshot(s=>{estado.misAvisos=s.docs.map(d=>({id:d.id,...d.data()}));actualizarCampana();},()=>{misAvisosUnsub=null;});
+}
+function dejarDeEscucharMisAvisos(){if(misAvisosUnsub){misAvisosUnsub();misAvisosUnsub=null;}estado.misAvisos=[];}
+function marcarMisAvisosLeidos(){
+  if(!logueado())return;
+  const col=db.collection('usuarios').doc(estado.usuario.uid).collection('notificaciones');
+  estado.misAvisos.filter(n=>!n.leida).forEach(n=>col.doc(n.id).update({leida:true}).catch(()=>{}));
+}
+// Abre la pantalla de un aviso (#/mi-negocio, #/evento/…, #/recorridos, #/perfil, #/agenda) sin tocar la dirección:
+// cambiar location.hash dispara «Atrás» (popstate) y la app lo tomaría como salir
+function irAEnlaceAviso(enlace){
+  if(!enlace)return;
+  const ir=()=>{
+    if(!arranque.listo){setTimeout(ir,300);return;}
+    ocultarSplash();
+    const ev=enlace.match(/^#\/evento\/(.+)$/);
+    if(ev)abrirEvento(decodeURIComponent(ev[1]));
+    else if(enlace==='#/agenda')irAgenda();
+    else if(enlace==='#/recorridos')navegar({tipo:'recorridos'});
+    else if(enlace==='#/mi-negocio'&&comerciosPropios.some(c=>c.estado_publicacion==='aprobado'))navegar({tipo:'dashboard'});
+    else navegar({tipo:'perfil'});
+  };
+  ir();
+}
+// Con la app abierta, el service worker manda aquí el aviso que se tocó
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.tipo==='aviso')irAEnlaceAviso(e.data.enlace);});
+
+/* Panel admin: después de guardar la decisión, la API avisa a la persona. Si la API está dormida (Render gratis),
+   se reintenta en segundo plano hasta 60 s sin bloquear al admin. */
+function textoAviso(r,resultado){
+  if(!r||!r.destinatario)return '';
+  const v=resultado==='aprobado'?'Aprobado':'Rechazado';
+  return r.enviados>0?v+'. Le avisamos a '+r.destinatario+' en su celular':v+'. Verá el aviso en la campana de Novedades';
+}
+const dormir=ms=>new Promise(ok=>{setTimeout(ok,ms);});
+async function avisarDecision(tipo,id,resultado){
+  const t0=Date.now();let espera=2000;
+  while(Date.now()-t0<60000){
+    try{
+      const tk=await auth.currentUser.getIdToken();
+      const r=await conTiempoLimite(fetch(API_URL+'/v1/notificaciones/aprobacion',{method:'POST',
+        headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({tipo,id:String(id),resultado})}),Math.max(5000,60000-(Date.now()-t0)),'La API no respondió');
+      if(r.ok){const j=await r.json();const t=textoAviso(j,resultado);if(t)toast(t,4000);return j;}
+      // Avisos aún sin configurar en la API (falta FIREBASE_SA_FCM): no se reintenta ni se molesta al admin
+      if(r.status===503){const j=await r.json().catch(()=>({}));if(/FIREBASE_SA_FCM/.test(j.error||'')){console.warn('Avisos al celular sin configurar en la API');return null;}}
+      if(r.status<500&&r.status!==429){console.warn('Aviso no enviado: HTTP',r.status);return null;}
+    }catch(e){console.warn('Aviso: reintentando',e&&e.message);}
+    await dormir(espera);espera=Math.min(espera*2,15000);
+  }
+  toast('No pudimos avisarle ahora. Verá el resultado en su Perfil.',4000);
+  return null;
 }
 
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
@@ -5041,12 +5217,12 @@ function renderAdmin(){
   $$('[data-asub]').forEach(b=>(b.onclick=()=>{A.subtab=b.dataset.asub;render(true);}));
   const pend=id=>D.pendientes.find(c=>c.id===id),sol=id=>D.solicitudes.find(s=>s.id===id),rep=id=>D.reportes.find(r=>r.id===id);
   const negocio=id=>negociosAdmin(D).find(c=>c.id===id);
-  $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Negocio aprobado y publicado')));
-  $$('[data-rechazar]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.'))));
+  $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Negocio aprobado y publicado',['comercio',b.dataset.aprobar,'aprobado'])));
+  $$('[data-rechazar]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.',['comercio',b.dataset.rechazar,'rechazado']))));
   $$('[data-okreclamo]').forEach(b=>(b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo))));
-  $$('[data-noreclamo]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado'),['No se pudo verificar que sea el dueño','Duplicado','Otro'])));
+  $$('[data-noreclamo]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado',['reclamo',b.dataset.noreclamo,'rechazado']),['No se pudo verificar que sea el dueño','Duplicado','Otro'])));
   $$('[data-okprem]').forEach(b=>(b.onclick=()=>activarPremiumAdmin(sol(b.dataset.okprem))));
-  $$('[data-noprem]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada'),['Negocio aún en revisión','Datos incompletos','Otro'])));
+  $$('[data-noprem]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada',['premium',b.dataset.noprem,'rechazado']),['Negocio aún en revisión','Datos incompletos','Otro'])));
   // Negocios: buscar, editar, ocultar/mostrar y Premium
   const bu=$('#admBuscar');if(bu){bu.oninput=()=>{A.busca=bu.value;A.max=25;clearTimeout(A._t);A._t=setTimeout(()=>{render(true);const n=$('#admBuscar');n.focus();n.setSelectionRange(n.value.length,n.value.length);},250);};}
   const mas=$('#admMas');if(mas)mas.onclick=()=>{A.max=(A.max||25)+25;render(true);};
@@ -5231,9 +5407,12 @@ function mostrarNegocio(c){
     else await db.collection('comercios').doc(c.id).update({estado_publicacion:'aprobado'});
   },'El negocio vuelve a aparecer en el directorio');
 }
-async function adminAccion(fn,msg){
-  try{await fn();toast(msg);await cargarAdmin();}
-  catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');}
+// aviso = [tipo, id, resultado]: después de guardar, la API le avisa a la persona (en segundo plano)
+async function adminAccion(fn,msg,aviso){
+  try{await fn();toast(msg);}
+  catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');return;}
+  if(aviso)avisarDecision(...aviso);
+  await cargarAdmin().catch(()=>{});
 }
 // Aprobar un reclamo: el negocio queda con dueño (si era de muestra, se crea en la nube con el mismo id)
 async function aprobarReclamo(s){
@@ -5249,7 +5428,7 @@ async function aprobarReclamo(s){
     }
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
     await bt.commit();
-  },'Reclamo aprobado: la persona ya ve el negocio en su perfil');
+  },'Reclamo aprobado: la persona ya ve el negocio en su perfil',['reclamo',s.id,'aprobado']);
 }
 // Activar Premium desde una solicitud (sin fecha de fin por defecto durante la fase de pruebas)
 function activarPremiumAdmin(s){
@@ -5259,7 +5438,7 @@ function activarPremiumAdmin(s){
     bt.update(db.collection('comercios').doc(s.comercio_id),cambiosPremium(h));
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
     await bt.commit();
-  },h?'Premium activado hasta el '+fechaCorta(h):'Premium activado sin fecha de fin'));
+  },h?'Premium activado hasta el '+fechaCorta(h):'Premium activado sin fecha de fin',['premium',s.id,'aprobado']));
 }
 
 /* ===== "AYÚDANOS A MEJORAR": opiniones de la fase de pruebas =====
@@ -5657,6 +5836,11 @@ function rutaHash(){
   if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
   const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
+  // Pantallas que abren los avisos al celular cuando la app estaba cerrada; el hash se limpia de la dirección
+  if(['#/mi-negocio','#/perfil','#/agenda','#/recorridos'].includes(h)){
+    try{window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);}catch(e){}
+    irAEnlaceAviso(h);
+  }
 }
 window.addEventListener('hashchange',rutaHash);
 rutaHash();
