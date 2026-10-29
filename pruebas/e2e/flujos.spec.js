@@ -73,10 +73,14 @@ test('cupón: Ana lo obtiene → lo muestra con QR → la comerciante valida el 
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('1-ficha-con-cupon.png') });
   await obtener.click();
-  // Queda en la billetera: «Ver en mi billetera» → «Mostrar en caja» lo muestra en pantalla completa con el QR y el código
-  const verBilletera = page.locator('#sheetDetalle [data-cupon]').first();
-  await expect(verBilletera).toContainText('Ver en mi billetera');
-  await verBilletera.click();
+  // Queda en la billetera: la ficha ofrece «Ver en mi billetera» y el botón Cupones de la barra muestra el globo
+  await expect(page.locator('#sheetDetalle [data-cupon]').first()).toContainText('Ver en mi billetera');
+  await expect(page.locator('#bnBadge')).toHaveText('1');
+  // Se entra a la billetera por la barra inferior (Cupones ya no es el botón central)
+  await page.locator('#cerrarDet').click();
+  await page.locator('[data-bn="cupones"]').click();
+  await expect(page.locator('[data-bn="cupones"]')).toHaveAttribute('aria-current', 'page');
+  // «Mostrar en caja» lo muestra en pantalla completa con el QR y el código
   await page.locator('.cupon-bill [data-mostrar]').first().click();
   const qr = page.locator('#pcQR');
   await expect(qr).toBeVisible();
@@ -264,4 +268,61 @@ test('entrada como invitado: «Registrarse» y «Solo explorar» visibles en 2,6
   await expect(page.locator('#sInvitado')).toBeVisible();
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('1-entrada-invitado.png') });
+});
+
+test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil → «Mis favoritos»', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await entrarComo(page, CUENTAS.ana);
+  await sinAvisoEmulador(page);
+  const barra = page.locator('#bottomNav .bn-btn');
+  await expect(page.locator('#bottomNav .bn-btn > span:last-child')).toHaveText([
+    'Mapa',
+    'Cupones',
+    'Inicio',
+    'Agenda',
+    'Perfil',
+  ]);
+  // Inicio es el botón central grande
+  await expect(page.locator('.bn-centro')).toHaveAttribute('data-bn', 'inicio');
+  // Cada botón abre su pantalla y queda marcado (aria-current) como el único activo
+  const pantallas = [
+    ['mapa', 'mapa'],
+    ['cupones', 'billetera'],
+    ['inicio', 'lista'],
+    ['agenda', 'agenda'],
+    ['perfil', 'perfil'],
+  ];
+  for (const [boton, tipo] of pantallas) {
+    await page.locator(`[data-bn="${boton}"]`).click();
+    await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe(tipo);
+    await expect(page.locator('.bn-btn[aria-current="page"]')).toHaveAttribute('data-bn', boton);
+    // Todos los botones tienen al menos 44×44 px de área táctil (WCAG 2.5.5)
+    const cajas = await barra.evaluateAll(bs => bs.map(b => b.getBoundingClientRect()));
+    for (const c of cajas) expect(Math.min(c.width, c.height)).toBeGreaterThanOrEqual(44);
+  }
+  await expect(page.locator('#cuerpo h2').first()).toBeVisible();
+  // La Agenda es la misma vista de «Ver agenda»
+  await page.locator('[data-bn="agenda"]').click();
+  await expect(page.locator('#cuerpo h2').first()).toHaveText('Qué hacer en Fusa');
+  await page.screenshot({ path: info.outputPath('1-agenda-desde-la-barra.png') });
+  // Un favorito guardado desde la ficha (el corazón sigue igual) aparece en Perfil → «Mis favoritos» con su contador
+  await page.evaluate(() => window.abrirDetalle('c14'));
+  await page.locator('#detFav').click();
+  await expect(page.locator('#detFav')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#cerrarDet').click();
+  await page.locator('[data-bn="perfil"]').click();
+  const misFavoritos = page.locator('#pfFavoritos');
+  await expect(page.locator('#cuerpo .pf-item').first()).toHaveAttribute('id', 'pfFavoritos');
+  await expect(misFavoritos).toContainText('1 guardado');
+  await page.screenshot({ path: info.outputPath('2-perfil-mis-favoritos.png') });
+  await misFavoritos.click();
+  await expect(page.locator('#cuerpo')).toContainText('Mis favoritos');
+  await expect(page.locator('#cuerpo')).toContainText('Panadería y Café El Cedro');
+  // Desde Perfil se marca la pestaña Perfil y hay «Volver»
+  await expect(page.locator('.bn-btn[aria-current="page"]')).toHaveAttribute('data-bn', 'perfil');
+  await expect(page.locator('#bVolver')).not.toHaveClass(/invisible/);
+  await page.screenshot({ path: info.outputPath('3-mis-favoritos.png') });
+  await page.locator('#bVolver').click();
+  await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe('perfil');
 });

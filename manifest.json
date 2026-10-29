@@ -30,6 +30,12 @@
       "short_name": "Mapa",
       "url": "/?ir=mapa",
       "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Agenda: qué hacer en Fusa",
+      "short_name": "Agenda",
+      "url": "/?ir=agenda",
+      "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

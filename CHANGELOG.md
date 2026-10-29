@@ -15,6 +15,10 @@ Lo que va de la v1.2.0 (se publica por partes).
 - El rol admin solo se habilita con el perfil real de Firestore (`estado.perfilReal`), nunca con la copia del teléfono.
 - Invitado: la animación de entrada va un 25 % más rápida y los botones «Registrarse» y «Solo explorar» se ven completos a los 2,05 s de aparecer la pantalla (antes, 3,3 s). El aviso «Cargando… revisa tu conexión» de los 8 s queda solo para cuando el teléfono no tiene ninguna copia.
 - PWA v64 (`fusa-v57`).
+- **Barra inferior con Inicio al centro (parte 2).** Nuevo orden: Mapa · Cupones · **Inicio** (botón central grande, ícono `house`, con un anillo cuando está activo) · Agenda · Perfil. Cupones es un botón normal con su globo de cantidad. **Agenda** (`calendar-days`) abre «Qué hacer en Fusa», la misma vista de «Ver agenda», que sigue en el inicio. Atajo nuevo del ícono de la app: `?ir=agenda`.
+- **Mis favoritos** sale de la barra y pasa a Perfil como primera opción, con su contador. Se abre como pantalla de segundo nivel (con «Volver») y marca la pestaña Perfil. Para un invitado abre la hoja de ingreso. El corazón de cada ficha sigue igual.
+- Revisada a 360 px de ancho, en modo noche y con el texto agrandado un 30 %: los cinco botones miden 70 × 60 px.
+- PWA v65 (`fusa-v58`).
 
 ### Corregido
 - Escáner de cupones: si el navegador tardaba en negar la cámara, el aviso «Necesitamos permiso para usar la cámara» aparecía tarde y tapaba el resultado del código escrito a mano.
@@ -22,6 +26,7 @@ Lo que va de la v1.2.0 (se publica por partes).
 ### Pruebas
 - Vitest: `appLista` y la regla del máximo (`salidaSplash`), 5 casos.
 - Playwright: entrada con sesión (≤ 3,5 s; medido 1,6 s), con la nube lenta (se va a los 3 s sin esperarla) e invitado (botones visibles ≤ 2,6 s desde la primera pintura; medido 2,0 s).
+- Playwright: la barra inferior (los cinco botones, cada uno con su pantalla y `aria-current`, área táctil ≥ 44 px) y Perfil → «Mis favoritos». La prueba del cupón ahora entra a la billetera por el botón Cupones de la barra y revisa su globo.
 
 ### Agregado
 - `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.

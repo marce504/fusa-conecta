@@ -1652,10 +1652,11 @@ function pintarSaludo(){
 }
 function renderHeader(){
   const v=vistaActual();
-  const enLista=v.tipo==='lista';
+  // Mis favoritos se abre desde Perfil: es una pantalla de segundo nivel (con «Volver»), sin el saludo ni el buscador del inicio
+  const enLista=v.tipo==='lista'&&v.cat!=='favoritos';
   // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
-  // Las pestañas de la barra inferior (Inicio, Mapa, Cupones, Favoritos, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
-  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','perfil'].includes(v.tipo));
+  // Las pestañas de la barra inferior (Mapa, Cupones, Inicio, Agenda, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
+  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','agenda','perfil'].includes(v.tipo));
   $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
@@ -2545,7 +2546,7 @@ async function generarCupon(d,cupon,boton){
 // Animación: el ticket se desliza desde el botón hasta la billetera de la cabecera
 function volarABilletera(desde){
   if(sinMovimiento()||!desde.animate)return;
-  const destino=$('.bn-fab');
+  const destino=$('[data-bn="cupones"] .bn-ic');
   if(!destino)return;
   const a=desde.getBoundingClientRect(),b=destino.getBoundingClientRect();
   const v=document.createElement('div');v.className='ticket-vuelo';v.innerHTML=icon('ticket',22);
@@ -2599,7 +2600,7 @@ function irABilletera(){
 function pintarGloboCupones(){
   const n=cuponesActivos(),b=$('#bnBadge');
   b.hidden=!n;b.textContent=n>9?'9+':n;
-  $('.bn-centro').setAttribute('aria-label','Cupones'+(n?': '+n+(n===1?' activo':' activos'):''));
+  $('[data-bn="cupones"]').setAttribute('aria-label','Cupones'+(n?': '+n+(n===1?' activo':' activos'):''));
 }
 function actualizarBilletera(){
   pintarGloboCupones();
@@ -2648,7 +2649,7 @@ function renderBilletera(){
   sincronizarCupones();
 }
 
-/* ---------- Cupones disponibles (botón central sin sesión) ---------- */
+/* ---------- Cupones disponibles (botón Cupones de la barra, sin sesión) ---------- */
 function renderCuponesDisponibles(){
   const l=[];database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
   l.sort((a,b)=>(aMs(a.c.vigencia)||0)-(aMs(b.c.vigencia)||0));
@@ -3720,6 +3721,7 @@ function renderPerfil(){
       +'<p>Crea tu cuenta gratis para guardar favoritos, calificar comercios y generar cupones de descuento.</p>'
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
+      +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+icon('chevron-right')+'</button>'
       +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
@@ -3731,6 +3733,7 @@ function renderPerfil(){
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
   $('#pfAgenda').onclick=()=>irAgenda();
+  $('#pfFavoritos').onclick=irAFavoritos;
     enlazarFooter();return;
   }
   const u=estado.usuario,p=estado.perfil||{};
@@ -3738,6 +3741,7 @@ function renderPerfil(){
   const notifOn=p.notificaciones_push!==false;
   const rol=esAdmin()?['shield-check','Administrador']:esComerciante()?['store','Vecino con negocio']:esOrganizador()?['calendar-days','Organizador de eventos'+(organizadorConfiable()?' · confiable':'')]:['user','Vecino / turista'];
   const nAprobar=esAdmin()?porAprobar():0,nPrem=esAdmin()?premiumPorActivar():0;
+  const nFav=estado.favoritos.length;
   cuerpo.innerHTML='<div class="vista">'
     +(esAdmin()?'<button class="admin-card" id="pfAdmin"><span class="admin-ic">'+icon('shield-check',24)+'</span><span class="admin-tx"><b>Panel de administración</b>'
       +'<small>'+(nPrem?nPrem+' Premium por activar':'Aprueba comercios y activa Premium')+'</small></span>'
@@ -3747,6 +3751,7 @@ function renderPerfil(){
     +'<span class="pf-rol">'+icon(rol[0],14)+rol[1]+'</span>'
     +(u.verificado||u.proveedor==='google.com'?'':'<div class="pf-alerta">'+icon('mail',16)+'Verifica tu correo para proteger tu cuenta.<button class="enlace" id="pfReenviar">Reenviar correo</button></div>')
     +'</div>'
+    +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+(nFav?'<span class="globo">'+nFav+(nFav===1?' guardado':' guardados')+'</span>':'')+icon('chevron-right')+'</button>'
     +(comerciosPropios.some(c=>c.estado_publicacion==='aprobado')?'<button class="negocio-card" id="pfPanel"><span class="admin-ic">'+icon('store',24)+'</span><span class="admin-tx"><b>Panel de mi negocio</b>'
       +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
     +misNegociosHTML()
@@ -3779,6 +3784,7 @@ function renderPerfil(){
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
   $('#pfAgenda').onclick=()=>irAgenda();
+  $('#pfFavoritos').onclick=irAFavoritos;
   $('#pfNotif').onchange=async e=>{
     const on=e.target.checked;
     if(on&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(_){}}
@@ -5357,7 +5363,7 @@ setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrar
 let diaVisto=new Date().toDateString();
 setInterval(()=>{
   $$('[data-estado]').forEach(el=>{const d=buscar(el.dataset.estado),ap=d&&estadoApertura(d);if(ap)el.outerHTML=estadoHTML(ap,d.id);});
-  // A medianoche los cupones del día anterior vencen: se quitan del inicio, de «Con cupón» y del botón central
+  // A medianoche los cupones del día anterior vencen: se quitan del inicio, de «Con cupón» y del botón Cupones de la barra
   const hoy=new Date().toDateString();if(hoy!==diaVisto){diaVisto=hoy;pintarGloboCupones();refrescarVista();}
 },60000);
 
@@ -5441,14 +5447,19 @@ function enlazarFooter(){
   const fl=$('#fLegal');if(fl)fl.onclick=()=>abrir('ovLegal');
 }
 
-/* ===== BARRA INFERIOR (RF-04) ===== */
+/* ===== BARRA INFERIOR (RF-04; v1.2.0) =====
+   Mapa · Cupones · INICIO (botón central) · Agenda · Perfil. Mis favoritos está en Perfil. */
+// Sin buscador a la vista, la lista de favoritos se abre completa (sin la búsqueda ni los filtros que quedaran del inicio)
+function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,cupon:false,municipio:''};navegar({tipo:'lista',cat:'favoritos'});}
 function renderBottomNav(){
   const v=vistaActual();
   pintarGloboCupones();
   $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
-    const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='favoritos'&&v.cat==='favoritos')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))||(bn==='perfil'&&['perfil','dashboard','admin','planes'].includes(v.tipo));
+    // Mis favoritos vive en Perfil: su lista marca la pestaña Perfil
+    const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='agenda'&&v.tipo==='agenda')
+      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))
+      ||(bn==='perfil'&&(['perfil','dashboard','admin','planes'].includes(v.tipo)||(v.tipo==='lista'&&v.cat==='favoritos')));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
@@ -5457,7 +5468,7 @@ $$('.bn-btn').forEach(b=>{
   b.onclick=()=>{
     const bn=b.dataset.bn;
     if(bn==='inicio'){inicio();return;}
-    if(bn==='favoritos'){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}navegar({tipo:'lista',cat:'favoritos'});return;}
+    if(bn==='agenda'){if(vistaActual().tipo!=='agenda')irAgenda();return;}
     if(bn==='cupones'){const t=logueado()?'billetera':'cupones';if(vistaActual().tipo!==t)navegar({tipo:t});return;}
     if(bn==='mapa'){navegar({tipo:'mapa'});return;}
     if(bn==='perfil'){navegar({tipo:'perfil'});}
@@ -5637,8 +5648,8 @@ inicio();
 if(navigator.geolocation&&navigator.permissions){
   navigator.permissions.query({name:'geolocation'}).then(p=>{if(p.state==='granted')pedirUbicacion().then(()=>render(true));}).catch(()=>{});
 }
-// Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa
-(function(){const ir=new URLSearchParams(window.location.search).get('ir');if(ir==='sos'||ir==='mapa'){ocultarSplash();navegar({tipo:ir});}})();
+// Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa | ?ir=agenda
+(function(){const ir=new URLSearchParams(window.location.search).get('ir');if(['sos','mapa','agenda'].includes(ir)){ocultarSplash();navegar({tipo:ir});}})();
 // Rutas profundas: #/lugar/<id> (QR del comercio), #/evento/<id>, #c/<id> (enlaces antiguos) y #/admin
 let adminPendiente=false;
 function rutaHash(){

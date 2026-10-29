@@ -14,7 +14,7 @@
 var h=new Date(Date.now()-18e6).getUTCHours();
 var o=t==='oscuro'||(t==='automatico'&&(h>=18||h<6))||(t==='sistema'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
 document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</script>
-<link rel="stylesheet" href="app.css?v=64">
+<link rel="stylesheet" href="app.css?v=65">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -57,10 +57,10 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
   <div class="radio-barra" id="radioBarra" role="region" aria-label="Radio en vivo" hidden></div>
 
   <nav class="bottom-nav" id="bottomNav" aria-label="Navegación principal">
-    <button class="bn-btn bn-active" data-bn="inicio"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="house"></svg><span>Inicio</span></button>
     <button class="bn-btn" data-bn="mapa"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="map"></svg><span>Mapa</span></button>
-    <button class="bn-btn bn-centro" data-bn="cupones"><span class="bn-fab"><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="ticket"></svg><span class="bn-badge" id="bnBadge" hidden></span></span><span>Cupones</span></button>
-    <button class="bn-btn" data-bn="favoritos"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="heart"></svg><span>Favoritos</span></button>
+    <button class="bn-btn" data-bn="cupones" aria-label="Cupones"><span class="bn-ic"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="ticket"></svg><span class="bn-badge" id="bnBadge" hidden></span></span><span>Cupones</span></button>
+    <button class="bn-btn bn-centro bn-active" data-bn="inicio" aria-current="page"><span class="bn-fab"><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="house"></svg></span><span>Inicio</span></button>
+    <button class="bn-btn" data-bn="agenda"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="calendar-days"></svg><span>Agenda</span></button>
     <button class="bn-btn" data-bn="perfil"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="user"></svg><span>Perfil</span></button>
   </nav>
 
@@ -179,12 +179,12 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=64"></script>
+<script src="icons.js?v=65"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=64"></script>
-<script src="app.js?v=64"></script>
+<script src="datos.js?v=65"></script>
+<script src="app.js?v=65"></script>
 </body>
 </html>
