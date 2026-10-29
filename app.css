@@ -1584,7 +1584,13 @@ button:disabled{opacity:.6;pointer-events:none}
 .ia-afiche{margin:8px 0 12px;cursor:pointer}
 .ia-afiche:focus-within{outline:3px solid var(--primary-700);outline-offset:2px}
 
-/* ===== v8 · Agenda, asistente, inicio y senderos ===== */
+/* Registro de los procesos automáticos (Fase 3) */
+.registro{margin-top:8px;font-size:var(--text-sm)}
+.registro summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--primary-700);font-weight:600}
+.registro pre{margin:0;padding:10px;max-height:240px;overflow:auto;border-radius:var(--radius-md);background:var(--soft);color:var(--ink);font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.aa-fuentes li.prep>.ic{color:var(--sun-800)}
+.aa-fuentes li>div{flex:1;min-width:0}
+/* ===== v8 · Agenda, asistente, inicio y senderos =====
 /* Eventos sin foto: ilustración de línea sobre el color de su categoría */
 .ev-c-cultura{--evc-bg:var(--ev-cultura-bg);--evc:var(--ev-cultura)}
 .ev-c-musica{--evc-bg:var(--ev-musica-bg);--evc:var(--ev-musica)}

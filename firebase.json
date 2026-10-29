@@ -16,6 +16,7 @@
       ".gitignore",
       "android/**",
       "api/**",
+      "automatizacion/**",
       "render.yaml",
       "**/node_modules/**",
       "CLAUDE.md",

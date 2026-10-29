@@ -1,0 +1,28 @@
+{
+ "titulos": [
+  "Jornada de lavado de tanques y sensibilización - Semana de Acción contra el Mosquito",
+  "Actividad educativa y de sensibilización en talleres de caricatura y manga",
+  "Día Dulce",
+  "Gran Festival Nacional de Música Andina Colombiana Mono Núñez edición especial en Fusagasugá 2026",
+  "<b>Concierto</b> &nbsp;de la Banda Sinfónica: temporada de fin de año",
+  "Feria Agroindustrial | Expo Sumapaz 2026",
+  "Torneo — Copa Ciudad Jardín",
+  "Jornada de vacunación canina y felina",
+  "Corte de agua programado en el barrio Gaitán",
+  "Taller de"
+ ],
+ "fechas": ["2026-10-31T14:00:00", "2026-10-31T14:00", "2026-11-01", "2026-10-23T16:35:50.53", "2026-10-31T19:00:00Z", "2026-10-31T14:00:00-05:00", "", "no es fecha"],
+ "descripciones": [["Semana de Acción contra el Mosquito", "Lavado de tanques en el barrio."], ["Semana de Acción contra el Mosquito", "Parte de la semana de acción contra el mosquito."], ["", "Sin campaña"]],
+ "ia": [
+  {"titulo": "Jornada de lavado de tanques y sensibilización - Semana de Acción contra el Mosquito", "titulo_corto": "Jornada de lavado de tanques", "campana": "Semana de Acción contra el Mosquito",
+   "tipo": "aviso", "descripcion": "Jornada en el barrio.", "categoria": "institucional", "inicio": "2026-11-10T14:00", "fin": "2026-11-10T16:00", "lugar_nombre": "Barrio Pablo Bello",
+   "municipio": "Fusagasugá", "organizador": "Secretaría de Salud", "gratis": true, "fecha_clara": true, "lugar_claro": true},
+  {"titulo": "Día Dulce", "titulo_corto": "Día Dulce", "tipo": "plan", "descripcion": "Celebración", "categoria": "cultura", "inicio": "2026-11-12T09:00",
+   "lugar_nombre": "Por confirmar", "municipio": "Pasca", "gratis": false, "precio": "$5.000", "fecha_clara": false, "lugar_claro": false},
+  {"titulo": "Mismo lugar y hora", "titulo_corto": "Otra actividad", "tipo": "plan", "categoria": "otro", "inicio": "2026-11-10T14:00", "lugar_nombre": "Barrio Pablo Bello",
+   "municipio": "Fusagasugá", "fecha_clara": true, "lugar_claro": true},
+  {"titulo": "Sin fecha", "titulo_corto": "Sin fecha", "tipo": "plan", "inicio": "", "lugar_nombre": "x", "municipio": "Fusagasugá", "fecha_clara": false, "lugar_claro": false},
+  {"titulo": "Pasado", "titulo_corto": "Evento que ya pasó", "tipo": "plan", "categoria": "feria", "inicio": "2020-01-01T10:00", "lugar_nombre": "Plaza", "municipio": "Fusagasugá", "fecha_clara": true, "lugar_claro": true}
+ ],
+ "ahora": 1793300000000
+}

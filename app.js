@@ -1331,13 +1331,33 @@ function agendaAutoAdminHTML(){
       +'<div class="metricas aa-metricas">'+n(a.encontrados,'Encontrados')+n(a.publicados,'Publicados solos')+n(a.pendientes,'Por aprobar')+n(a.duplicados,'Ya existían')+'</div>'
       +'<ul class="aa-fuentes">'+(a.fuentes||[]).map(f=>'<li class="'+(f.ok?'ok':'mal')+'">'+icon(f.ok?'circle-check':'circle-x',18)+'<div><b>'+esc(f.nombre)+'</b><small>'
         +(f.contenidos||0)+' contenidos · '+(f.eventos||0)+' eventos con fecha · '+(f.noticias||0)+' noticias recientes'+(f.error?' · '+esc(f.error):'')+'</small></div></li>').join('')+'</ul>'
-      +'<p class="nota-c izq">'+(a.con_ia?(a.noticias_leidas||0)+' noticias leídas con IA'+(a.noticias_sin_ia?' · '+a.noticias_sin_ia+' no se pudieron leer':''):'Sin clave de IA: '+(a.noticias_sin_ia||0)+' noticias quedaron sin leer (falta GEMINI_API_KEY en GitHub).')+'</p>'
+      +'<p class="nota-c izq">'+(a.con_ia?(a.noticias_leidas||0)+' noticias leídas con IA'+(a.noticias_sin_ia?' · '+a.noticias_sin_ia+' no se pudieron leer':''):'Sin clave de IA: '+(a.noticias_sin_ia||0)+' noticias quedaron sin leer (falta GEMINI_API_KEY en GitHub).')
+        +(a.reparados?' · '+a.reparados+' eventos anteriores arreglados':'')+(a.ejemplos_borrados?' · '+a.ejemplos_borrados+' de ejemplo borrados':'')+'</p>'
+      +registroHTML(a.registro,a.motor)
       :'<p class="nota-c izq">Todavía no ha corrido con las claves. Cuando agregues los secretos en GitHub (docs/agenda-ia.md), busca eventos todos los días a las 6:00 a. m. en las alcaldías de Fusagasugá y Pasca y en IDECUT.</p>')
     +(pendiente?'<p class="nota-c izq aa-pedido" role="status">'+icon('clock',16)+'Pedido enviado ('+esc(horaCol(ped))+'). El proceso lo toma en los próximos 15 minutos.</p>':'')
     +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" id="admAgendaYa"'+(pendiente?' disabled':'')+'>'+icon('refresh-cw',16)+'Buscar eventos ahora</button>'
     +'<a class="btn btn-ghost" href="'+ACCIONES_AGENDA+'" target="_blank" rel="noopener">'+icon('external-link',16)+'Ver en GitHub</a></div></div>';
 }
+// Últimas líneas del registro (logging) que dejan los procesos de Python en su resumen
+function registroHTML(lineas,motor){
+  if(!lineas||!lineas.length)return '';
+  return '<details class="registro"><summary>Ver registro'+(motor==='python'?' (Python)':'')+'</summary><pre>'+lineas.map(esc).join('\n')+'</pre></details>';
+}
+/* ---------- Limpieza diaria (automatizacion/limpieza.py, config/limpieza) ---------- */
+function limpiezaAdminHTML(){
+  const l=estado.limpieza,ult=l&&aMs(l.ultima_corrida);
+  if(!ult)return '<p class="dash-section">Limpieza diaria</p><div class="adm-card"><p class="nota-c izq">Todavía no ha corrido. Corre todos los días a las 6:00 a. m. junto con la agenda: oculta los cupones vencidos, borra los eventos de ejemplo con más de 24 horas y lista los negocios publicados sin foto.</p></div>';
+  const n=(v,t)=>'<div class="metrica"><b>'+(v||0)+'</b><span>'+t+'</span></div>';
+  return '<p class="dash-section">Limpieza diaria</p><div class="adm-card">'
+    +'<p class="nota-c izq"><b>Última limpieza:</b> '+esc(horaCol(ult))+(l.duracion_s!=null?' · '+l.duracion_s+' s':'')+'</p>'
+    +'<div class="metricas aa-metricas">'+n(l.cupones_vencidos,'Cupones vencidos ocultados')+n(l.ejemplos_borrados,'Eventos de ejemplo borrados')+n(l.sin_foto_total,'Negocios sin foto')+'</div>'
+    +((l.sin_foto||[]).length?'<p class="nota-c izq">Sin foto (cada dueño ve en «Mis negocios» el aviso para agregarla):</p><ul class="aa-fuentes">'
+      +l.sin_foto.map(c=>'<li class="prep">'+icon('camera',18)+'<div><b>'+esc(c.nombre)+'</b></div><button class="btn btn-ghost" data-ver-negocio="'+esc(c.id)+'">Ver ficha</button></li>').join('')+'</ul>':'')
+    +registroHTML(l.registro,'python')+'</div>';
+}
 function enlazarAgendaAutoAdmin(){
+  $$('[data-ver-negocio]').forEach(b=>b.onclick=()=>abrirDetalle(b.dataset.verNegocio));
   const b=$('#admAgendaYa');if(!b)return;
   b.onclick=async()=>{b.disabled=true;
     try{await conTiempoLimite(db.collection('config').doc('agenda_auto').set({solicitado_en:FV.serverTimestamp(),solicitado_por:estado.usuario.uid},{merge:true}),15000,'Sin confirmación del servidor');
@@ -1356,7 +1376,7 @@ function eventosAdminHTML(){
     +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="admEvDemo">'+icon('sparkles',16)+'Cargar eventos de ejemplo</button>'
     +(nDemo?'<button class="btn btn-ghost" id="admEvDemoBorrar">'+icon('trash-2',16)+'Borrar eventos de ejemplo ('+nDemo+')</button>':'')+'</div>'
     +'<p class="nota-c izq">Los de ejemplo sirven para presentar la app: se publican con la etiqueta «Ejemplo» y se borran con un toque.</p>'
-    +agendaAutoAdminHTML()+organizadoresAdminHTML()
+    +agendaAutoAdminHTML()+limpiezaAdminHTML()+organizadoresAdminHTML()
     +'<p class="dash-section">Por aprobar ('+pend.length+')</p>'
     +(pend.length?pend.map(e=>fila(e,'<button class="btn btn-primario btn-sm" data-evpub="'+esc(e.id)+'">'+icon('check',16)+'Publicar</button>'
         +'<button class="btn btn-secundario btn-sm" data-eveditp="'+esc(e.id)+'">'+icon('pencil',16)+'Editar</button>'
@@ -4678,6 +4698,9 @@ function escucharAdmin(){
   },()=>{}));
   // Estado de la agenda automática (lo escribe el proceso de GitHub Actions)
   adminUnsubs.push(db.collection('config').doc('agenda_auto').onSnapshot(s=>{estado.agendaAuto=s.exists?s.data():null;
+    if(vistaActual().tipo==='admin'&&estado.admin.tab==='eventos')render(true);},()=>{}));
+  // Resumen de la limpieza diaria (automatizacion/limpieza.py)
+  adminUnsubs.push(db.collection('config').doc('limpieza').onSnapshot(s=>{estado.limpieza=s.exists?s.data():null;
     if(vistaActual().tipo==='admin'&&estado.admin.tab==='eventos')render(true);},()=>{}));
   // Rutas propuestas por la comunidad (v7 · Fase 4)
   adminUnsubs.push(db.collection('rutas_comunidad').where('estado','==','pendiente').onSnapshot(s=>{

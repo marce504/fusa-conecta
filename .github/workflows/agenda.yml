@@ -1,6 +1,7 @@
-# Agenda automática (v7 · Fase 2). Ver docs/agenda-ia.md.
-# - Todos los días a las 6:00 a. m. (hora de Colombia) y a mano: Actions → Agenda automática → Run workflow.
-# - Cada 15 minutos revisa si el admin tocó «Buscar eventos ahora» en la app; si no, termina en segundos.
+# Procesos automáticos en Python (automatizacion/). Ver automatizacion/LEEME.md y docs/agenda-ia.md.
+# - Agenda automática: todos los días a las 6:00 a. m. (hora de Colombia) y a mano (Actions → Agenda automática → Run workflow).
+#   Cada 15 minutos revisa si el admin tocó «Buscar eventos ahora» en la app; si no, termina en segundos.
+# - Limpieza diaria (6:00 a. m. y a mano): cupones vencidos, eventos de ejemplo y negocios sin foto.
 # Necesita los secretos GEMINI_API_KEY y FIREBASE_SA (Settings → Secrets and variables → Actions); sin ellos no hace nada.
 name: Agenda automática
 
@@ -21,29 +22,31 @@ jobs:
   agenda:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: herramientas/agenda-ia
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+      DIARIA: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '0 11 * * *' }}
     steps:
       - name: Sin secretos no hay nada que hacer
         if: env.FIREBASE_SA == ''
-        working-directory: .
         run: echo "Falta el secreto FIREBASE_SA. Ver docs/agenda-ia.md."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: env.FIREBASE_SA != ''
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v6
         if: env.FIREBASE_SA != ''
         with:
-          node-version: 20
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: automatizacion/requirements.txt
       - name: Instalar
         if: env.FIREBASE_SA != ''
-        run: npm install --no-audit --no-fund
-      - name: Corrida diaria o manual
-        if: env.FIREBASE_SA != '' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 11 * * *')
-        run: node extraer.mjs --modo=${{ github.event_name == 'workflow_dispatch' && 'manual' || 'diaria' }}
+        run: pip install -r automatizacion/requirements.txt
+      - name: Agenda (diaria o manual)
+        if: env.FIREBASE_SA != '' && env.DIARIA == 'true'
+        run: python automatizacion/agenda.py --modo=${{ github.event_name == 'workflow_dispatch' && 'manual' || 'diaria' }}
+      - name: Limpieza diaria
+        if: env.FIREBASE_SA != '' && env.DIARIA == 'true'
+        run: python automatizacion/limpieza.py
       - name: Pedido desde la app
         if: env.FIREBASE_SA != '' && github.event.schedule == '*/15 * * * *'
-        run: node extraer.mjs --revisar
+        run: python automatizacion/agenda.py --revisar
