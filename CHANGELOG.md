@@ -10,6 +10,7 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ### Agregado
 - `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
+- `docs/entrega-sena/`: material para el documento técnico (capítulos 3 a 11). Incluye arquitectura en Mermaid (7 diagramas, también en PNG), los 9 endpoints con respuestas reales de producción, la estructura del repositorio, comandos y resultados de pruebas con capturas, y una guía de qué cambiar en cada capítulo.
 
 ## [1.1.0] - 2026-10-28 · Plan de pruebas con evidencias
 
