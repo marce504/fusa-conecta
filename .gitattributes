@@ -1,0 +1,7 @@
+# Finales de línea LF en todas las plataformas (Prettier y black esperan LF)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.jar binary
+*.ai binary

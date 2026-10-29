@@ -8,10 +8,10 @@ name: App Android
 on:
   workflow_dispatch:
   push:
-    tags: ["apk-v*"]
+    tags: ['apk-v*']
 
 permissions:
-  contents: write   # solo para adjuntar el APK a la Release cuando se usa una etiqueta apk-v*
+  contents: write # solo para adjuntar el APK a la Release cuando se usa una etiqueta apk-v*
 
 jobs:
   android:
@@ -23,7 +23,7 @@ jobs:
     env:
       KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      BUILD_TOOLS: "36.1.0"
+      BUILD_TOOLS: '36.1.0'
     steps:
       - name: Revisar los secretos de firma
         working-directory: .
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
       - name: Android SDK 36 y build-tools
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;$BUILD_TOOLS" > /dev/null
       - name: Compilar (sin firmar)
@@ -86,4 +86,4 @@ jobs:
           files: |
             android/salida/fusa-conecta.apk
             android/salida/fusa-conecta.aab
-          body: "App Android de Fusa Conecta (Trusted Web Activity de https://fusa-conecta.web.app). Instala fusa-conecta.apk en el celular; el .aab es para Google Play."
+          body: 'App Android de Fusa Conecta (Trusted Web Activity de https://fusa-conecta.web.app). Instala fusa-conecta.apk en el celular; el .aab es para Google Play.'

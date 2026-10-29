@@ -3,6 +3,8 @@
  * (equivalente a la base local SQLite del Documento Técnico, cap. 4.8.1).
  * Firestore es la fuente de verdad y agrega los comercios registrados por productores.
  */
+// Variables globales que usa app.js (la PWA carga datos.js, icons.js y app.js en ese orden)
+/* exported CAT, SUBCATS, PLAZA_FUSA, COMERCIOS_BASE, RUTAS, EMERGENCIAS */
 const CAT={
   campo:    {label:'Vitrina del Campo',    bg:'#DAB23F',fg:'#3a3110',hero:'linear-gradient(135deg,#e8cc78,#DAB23F)',emoji:'🌿'},
   comercio: {label:'Comida y tiendas',    bg:'#EA8143',fg:'#fff',   hero:'linear-gradient(135deg,#F4A079,#EA8143)',emoji:'🏪'},

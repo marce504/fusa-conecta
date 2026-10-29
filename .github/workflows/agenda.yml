@@ -8,8 +8,8 @@ name: Agenda automática
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 11 * * *"      # 6:00 a. m. en Colombia (UTC-5)
-    - cron: "*/15 * * * *"    # pedidos desde la app
+    - cron: '0 11 * * *' # 6:00 a. m. en Colombia (UTC-5)
+    - cron: '*/15 * * * *' # pedidos desde la app
 
 permissions:
   contents: read
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v6
         if: env.FIREBASE_SA != ''
         with:
-          python-version: "3.12"
+          python-version: '3.12'
           cache: pip
           cache-dependency-path: automatizacion/requirements.txt
       - name: Instalar

@@ -62,7 +62,7 @@ def de_ms(ms: int) -> datetime:
 
 
 def firestore_cliente() -> Any | None:
-    """Cliente de Firestore con la cuenta de servicio de FIREBASE_SA; con el emulador, sin credenciales; si no hay nada, None."""
+    """Cliente de Firestore: cuenta de servicio de FIREBASE_SA; con el emulador, sin credenciales; si no hay, None."""
     proyecto = os.environ.get("FIREBASE_PROJECT", "fusa-conecta")
     sa = os.environ.get("FIREBASE_SA", "").strip()
     if os.environ.get("FIRESTORE_EMULATOR_HOST") and not sa:

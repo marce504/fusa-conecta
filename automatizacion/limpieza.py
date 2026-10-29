@@ -1,7 +1,8 @@
 """Limpieza diaria de Fusa Conecta (GitHub Actions, 6:00 a. m. de Colombia).
 
 1. Cupones vencidos: los que siguen «activo» con la vigencia ya pasada pasan a «finalizado». La app ya no los mostraba
-   (filtra por fecha), pero así el panel del comerciante y las estadísticas dicen la verdad. Los cupones que ya están en la
+   (filtra por fecha), pero así el panel del comerciante y las estadísticas dicen la verdad. Los cupones que ya están
+   en la
    billetera de cada persona no cambian: allí pasan solos a «Vencidos».
 2. Eventos de ejemplo (demo:true) con más de 24 horas: se borran.
 3. Negocios publicados sin foto: se listan en el resumen para el admin. Cada dueño ya ve en «Mis negocios» el aviso
@@ -30,7 +31,9 @@ log, memoria = registro("limpieza")
 
 def cupones_vencidos(cupones: list[dict], hoy: str) -> list[dict]:
     """La vigencia es «AAAA-MM-DD» y vale hasta el final de ese día en Colombia."""
-    return [c for c in cupones if (c.get("estado") or "activo") == "activo" and c.get("vigencia") and c["vigencia"] < hoy]
+    return [
+        c for c in cupones if (c.get("estado") or "activo") == "activo" and c.get("vigencia") and c["vigencia"] < hoy
+    ]
 
 
 def ejemplos_vencidos(eventos: list[dict], ahora: int) -> list[dict]:
@@ -38,8 +41,14 @@ def ejemplos_vencidos(eventos: list[dict], ahora: int) -> list[dict]:
 
 
 def sin_foto(comercios: list[dict]) -> list[dict]:
-    return sorted(({"id": c["id"], "nombre": c.get("nombre", "")} for c in comercios
-                   if not c.get("imagen") and not c.get("fotos")), key=lambda c: c["nombre"].lower())
+    return sorted(
+        (
+            {"id": c["id"], "nombre": c.get("nombre", "")}
+            for c in comercios
+            if not c.get("imagen") and not c.get("fotos")
+        ),
+        key=lambda c: c["nombre"].lower(),
+    )
 
 
 def _docs(consulta: Any) -> list[tuple[Any, dict]]:
@@ -57,16 +66,29 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     cupones = _docs(db.collection("cupones").where(filter=igual("estado", "activo")))
     vencidos = [(ref, c) for ref, c in cupones if c in cupones_vencidos([c], hoy)]
-    demos = [(ref, e) for ref, e in _docs(db.collection("eventos").where(filter=igual("demo", True))) if ejemplos_vencidos([e], ahora)]
-    faltan_foto = sin_foto([c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))])
+    demos = [
+        (ref, e)
+        for ref, e in _docs(db.collection("eventos").where(filter=igual("demo", True)))
+        if ejemplos_vencidos([e], ahora)
+    ]
+    faltan_foto = sin_foto(
+        [c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))]
+    )
     for _, c in vencidos:
-        log.info("Cupón vencido el %s: %s · %s", c.get("vigencia"), c.get("comercio_nombre", ""), c.get("descripcion", ""))
+        log.info(
+            "Cupón vencido el %s: %s · %s", c.get("vigencia"), c.get("comercio_nombre", ""), c.get("descripcion", "")
+        )
     for _, e in demos:
         log.info("Evento de ejemplo con más de 24 horas: %s", e.get("titulo", ""))
     for c in faltan_foto:
         log.info("Negocio publicado sin foto: %s", c["nombre"])
     if args.simular:
-        log.info("Simulación: %d cupones vencidos, %d eventos de ejemplo, %d negocios sin foto. No se cambió nada.", len(vencidos), len(demos), len(faltan_foto))
+        log.info(
+            "Simulación: %d cupones vencidos, %d eventos de ejemplo, %d negocios sin foto. No se cambió nada.",
+            len(vencidos),
+            len(demos),
+            len(faltan_foto),
+        )
         return 0
     lote = db.batch()
     for ref, _ in vencidos:
@@ -74,12 +96,24 @@ def main(argv: list[str] | None = None) -> int:
     for ref, _ in demos:
         lote.delete(ref)
     lote.commit()
-    log.info("Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d negocios sin foto.", len(vencidos), len(demos), len(faltan_foto))
-    db.collection("config").document("limpieza").set({
-        "ultima_corrida": de_ms(int(t0 * 1000)), "duracion_s": round(time.time() - t0),
-        "cupones_vencidos": len(vencidos), "cupones_lista": [f"{c.get('comercio_nombre', '')} · {c.get('descripcion', '')}" for _, c in vencidos][:20],
-        "ejemplos_borrados": len(demos), "sin_foto": faltan_foto[:50], "sin_foto_total": len(faltan_foto), "registro": memoria.lineas[-20:],
-    })
+    log.info(
+        "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d negocios sin foto.",
+        len(vencidos),
+        len(demos),
+        len(faltan_foto),
+    )
+    db.collection("config").document("limpieza").set(
+        {
+            "ultima_corrida": de_ms(int(t0 * 1000)),
+            "duracion_s": round(time.time() - t0),
+            "cupones_vencidos": len(vencidos),
+            "cupones_lista": [f"{c.get('comercio_nombre', '')} · {c.get('descripcion', '')}" for _, c in vencidos][:20],
+            "ejemplos_borrados": len(demos),
+            "sin_foto": faltan_foto[:50],
+            "sin_foto_total": len(faltan_foto),
+            "registro": memoria.lineas[-20:],
+        }
+    )
     return 0
 
 

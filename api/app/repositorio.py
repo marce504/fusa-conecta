@@ -82,7 +82,9 @@ class RepositorioFirestore:
         return self.cache.obtener(clave, lambda: [_plano(d) for d in consulta().stream()])
 
     def comercios_aprobados(self) -> list[dict]:
-        return self._lista("comercios", lambda: self.db.collection("comercios").where(filter=_igual("estado_publicacion", "aprobado")))
+        return self._lista(
+            "comercios", lambda: self.db.collection("comercios").where(filter=_igual("estado_publicacion", "aprobado"))
+        )
 
     def comercio(self, id_: str) -> dict | None:
         return next((c for c in self.comercios_aprobados() if c["id"] == id_), None)
@@ -101,13 +103,18 @@ class RepositorioFirestore:
         return self._lista("cupones", lambda: self.db.collection("cupones"))
 
     def emergencias(self) -> dict[str, list[dict]]:
-        return self.cache.obtener("emergencias", lambda: {d.id: (d.to_dict() or {}).get("lista") or [] for d in self.db.collection("emergencias").stream()})
+        return self.cache.obtener(
+            "emergencias",
+            lambda: {d.id: (d.to_dict() or {}).get("lista") or [] for d in self.db.collection("emergencias").stream()},
+        )
 
     def rutas_oficiales(self) -> dict[str, dict]:
         return {d["id"]: d for d in self._lista("rutas_oficiales", lambda: self.db.collection("rutas_oficiales"))}
 
     def rutas_comunidad(self) -> list[dict]:
-        return self._lista("rutas_comunidad", lambda: self.db.collection("rutas_comunidad").where(filter=_igual("estado", "aprobada")))
+        return self._lista(
+            "rutas_comunidad", lambda: self.db.collection("rutas_comunidad").where(filter=_igual("estado", "aprobada"))
+        )
 
     # Datos privados: sin caché (cada reporte lee lo último)
     def estadisticas(self, comercio_id: str, mes: str) -> dict:
@@ -115,7 +122,9 @@ class RepositorioFirestore:
         return (s.to_dict() or {}) if s.exists else {}
 
     def canjes(self, comercio_id: str) -> list[dict]:
-        return [_plano(d) for d in self.db.collection("canjes").where(filter=_igual("comercio_id", comercio_id)).stream()]
+        return [
+            _plano(d) for d in self.db.collection("canjes").where(filter=_igual("comercio_id", comercio_id)).stream()
+        ]
 
     def rol(self, uid: str) -> str | None:
         s = self.db.collection("usuarios").document(uid).get()
@@ -175,7 +184,9 @@ def repositorio() -> Repositorio:
             from google.auth.credentials import AnonymousCredentials
             from google.cloud import firestore
 
-            cliente = firestore.Client(project=os.environ.get("FIREBASE_PROJECT", "fusa-conecta"), credentials=AnonymousCredentials())
+            cliente = firestore.Client(
+                project=os.environ.get("FIREBASE_PROJECT", "fusa-conecta"), credentials=AnonymousCredentials()
+            )
         else:
             from firebase_admin import firestore as fs
 

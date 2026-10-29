@@ -1,0 +1,8 @@
+# flake8: PEP 8 con el mismo largo de línea que black. E203 y W503 chocan con el formato de black.
+[flake8]
+max-line-length = 120
+extend-ignore = E203, W503, E704
+exclude = .venv, __pycache__, node_modules, .git
+per-file-ignores =
+    # Datos de prueba en tablas: más legibles en una sola línea
+    */tests/*: E501

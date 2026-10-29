@@ -1,0 +1,5 @@
+# Estándares de Python de Fusa Conecta (api/ y automatizacion/): black + flake8 (PEP 8) + type hints
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+extend-exclude = '(\.venv|node_modules)'

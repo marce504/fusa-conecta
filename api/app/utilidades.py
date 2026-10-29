@@ -65,7 +65,7 @@ def parsear_dias(texto: str) -> list[int]:
         return list(range(7))
     r = re.search(r"(lun|mar|mie|jue|vie|sab|dom)\s*-\s*(lun|mar|mie|jue|vie|sab|dom)", n)
     if r:
-        a, b, salida, i = DIA_IDX[r.group(1)], DIA_IDX[r.group(2)], [], DIA_IDX[r.group(1)]
+        b, salida, i = DIA_IDX[r.group(2)], [], DIA_IDX[r.group(1)]
         while True:
             salida.append(i)
             if i == b:
@@ -75,9 +75,7 @@ def parsear_dias(texto: str) -> list[int]:
     return sueltos or list(range(7))
 
 
-_RE_RANGO = re.compile(
-    r"(\d{1,2})(?::(\d{2}))?\s*[–-]\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|m\.)?", re.I
-)
+_RE_RANGO = re.compile(r"(\d{1,2})(?::(\d{2}))?\s*[–-]\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|m\.)?", re.I)
 
 
 def parsear_rangos(texto: str) -> list[tuple[int, int]]:
@@ -115,7 +113,9 @@ def hora_texto(minutos: int) -> str:
 
 
 def es_natural(d: dict) -> bool:
-    return d.get("cat") == "turismo" and (d.get("tipo") in TIPOS_NATURALES or bool(RE_NATURAL.search(d.get("nombre") or "")))
+    return d.get("cat") == "turismo" and (
+        d.get("tipo") in TIPOS_NATURALES or bool(RE_NATURAL.search(d.get("nombre") or ""))
+    )
 
 
 def estado_apertura(d: dict, ahora: datetime | None = None) -> dict | None:
@@ -150,7 +150,11 @@ def estado_apertura(d: dict, ahora: datetime | None = None) -> dict | None:
         elif ayer in dias and minuto < e:
             resta = e - minuto
         if resta is not None:
-            return {"tipo": "pronto", "abierto": True, "texto": "Cierra pronto"} if resta <= 60 else {"tipo": "ab", "abierto": True, "texto": "Abierto"}
+            return (
+                {"tipo": "pronto", "abierto": True, "texto": "Cierra pronto"}
+                if resta <= 60
+                else {"tipo": "ab", "abierto": True, "texto": "Abierto"}
+            )
     prox = None
     for o in range(8):
         di = (dia + o) % 7
@@ -213,7 +217,13 @@ def mes_valido(mes: str | None) -> str:
 def paginar(lista: list, pagina: int, por_pagina: int) -> dict:
     total = len(lista)
     inicio = (pagina - 1) * por_pagina
-    return {"total": total, "pagina": pagina, "por_pagina": por_pagina, "paginas": max(1, -(-total // por_pagina)), "resultados": lista[inicio : inicio + por_pagina]}
+    return {
+        "total": total,
+        "pagina": pagina,
+        "por_pagina": por_pagina,
+        "paginas": max(1, -(-total // por_pagina)),
+        "resultados": lista[inicio : inicio + por_pagina],
+    }
 
 
 def unicos(valores: Iterable[str]) -> list[str]:

@@ -19,7 +19,17 @@
     { "src": "img/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Emergencias", "short_name": "SOS", "url": "/?ir=sos", "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Mapa de Fusa", "short_name": "Mapa", "url": "/?ir=mapa", "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "Emergencias",
+      "short_name": "SOS",
+      "url": "/?ir=sos",
+      "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mapa de Fusa",
+      "short_name": "Mapa",
+      "url": "/?ir=mapa",
+      "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

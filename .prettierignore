@@ -1,0 +1,23 @@
+# Archivos de la PWA escritos en formato compacto: ESLint los revisa, pero no se reformatean de golpe
+# (serían miles de líneas cambiadas sin cambiar nada de lo que hacen). El código nuevo sí sigue Prettier.
+app.js
+datos.js
+icons.js
+app.css
+index.html
+herramientas/**/*.html
+# Generados o de terceros
+lib/
+node_modules/
+android/app/
+android/gradle/
+api/app/datos_base.json
+automatizacion/tests/*.json
+**/.venv/
+.firebase/
+package-lock.json
+# Documentación y datos geográficos (no son código)
+*.md
+*.geojson
+rutas/
+video-publicitario/

@@ -1,0 +1,157 @@
+# Integración continua de Fusa Conecta. Ver CONTRIBUTING.md y docs/estandares.md.
+# - En cada Pull Request (a main o develop) y en cada push a develop o main: estándares, pruebas e integración.
+# - Al fusionar en main (push a main) y si todo pasa: despliega la PWA y las reglas en Firebase.
+#   La API la despliega Render cuando las pruebas de este commit pasan (render.yaml: autoDeployTrigger checksPass).
+name: Integración continua
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  javascript:
+    name: JavaScript (ESLint + Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: ESLint (guía Airbnb adaptada)
+        run: npx eslint . --max-warnings 0
+      - name: Prettier
+        run: npx prettier --check .
+      - name: Sintaxis de la PWA
+        run: node --check app.js && node --check datos.js && node --check icons.js && node --check sw.js
+      - name: Copia de datos.js para la API al día
+        run: node api/exportar_datos.mjs --comprobar
+
+  python:
+    name: Python (black + flake8 + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            api/requirements-dev.txt
+            automatizacion/requirements-dev.txt
+      - run: pip install -r api/requirements-dev.txt -r automatizacion/requirements-dev.txt black==24.10.0 flake8==7.1.1
+      - name: black
+        run: black --check api automatizacion
+      - name: flake8 (PEP 8)
+        run: flake8 api automatizacion
+      - name: Pruebas de la API
+        working-directory: api
+        run: pytest -v --junitxml=../informe-pruebas/api.xml
+      - name: Pruebas de los procesos automáticos
+        working-directory: automatizacion
+        run: pytest -v --junitxml=../informe-pruebas/automatizacion.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pruebas-python
+          path: informe-pruebas/
+
+  integracion:
+    name: Integración (emulador de Firestore y Auth)
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_PROJECT: demo-fusa-conecta # proyecto de demostración: el emulador nunca toca producción
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            api/requirements-dev.txt
+            automatizacion/requirements-dev.txt
+      - run: pip install -r api/requirements-dev.txt -r automatizacion/requirements-dev.txt
+      - run: npm install -g firebase-tools@13.29.1 --no-audit --no-fund
+      - name: API y procesos contra el emulador
+        run: |
+          firebase emulators:exec --only firestore,auth --project "$FIREBASE_PROJECT" \
+            "cd api && pytest -v -m integracion --junitxml=../informe-pruebas/api-integracion.xml && cd ../automatizacion && pytest -v -m integracion --junitxml=../informe-pruebas/automatizacion-integracion.xml"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pruebas-integracion
+          path: informe-pruebas/
+
+  commits:
+    name: Conventional Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Formato de los commits y del título del Pull Request
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          CABEZA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          patron='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9áéíóúñ/._-]+\))?!?: .+'
+          malos=0
+          while IFS= read -r msg; do
+            case "$msg" in Merge*) continue ;; esac
+            if ! printf '%s' "$msg" | grep -Eq "$patron"; then echo "::error::Commit sin formato Conventional Commits: $msg"; malos=1; fi
+          done < <(git log --format=%s "$BASE..$CABEZA")
+          printf '%s' "$TITULO" | grep -Eq "$patron" || { echo "::error::El título del Pull Request no sigue Conventional Commits: $TITULO"; malos=1; }
+          exit $malos
+
+  desplegar:
+    name: Desplegar en Firebase (main)
+    needs: [javascript, python, integracion]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      CUENTA: ${{ secrets.FIREBASE_DEPLOY_SA }}
+    steps:
+      - name: Sin la cuenta de despliegue no se publica
+        if: env.CUENTA == ''
+        run: echo "::notice::Falta el secreto FIREBASE_DEPLOY_SA (ver docs/integracion-continua.md); la publicación sigue siendo manual."
+      - uses: actions/checkout@v5
+        if: env.CUENTA != ''
+      - uses: actions/setup-node@v5
+        if: env.CUENTA != ''
+        with:
+          node-version: 22
+      - name: Firebase Hosting y reglas de Firestore
+        if: env.CUENTA != ''
+        run: |
+          printf '%s' "$CUENTA" > "$RUNNER_TEMP/cuenta.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/cuenta.json"
+          npx --yes firebase-tools@13.29.1 deploy --only hosting,firestore:rules --project fusa-conecta --non-interactive
+          rm -f "$RUNNER_TEMP/cuenta.json"
+      - name: Comprobar la versión publicada
+        if: env.CUENTA != ''
+        run: |
+          publicada=$(curl -s https://fusa-conecta.web.app/ | grep -o 'app.js?v=[0-9]*')
+          local=$(grep -o 'app.js?v=[0-9]*' index.html)
+          echo "Publicada: $publicada · Repositorio: $local"
+          [ "$publicada" = "$local" ]

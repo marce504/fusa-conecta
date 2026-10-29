@@ -15,8 +15,11 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-pytestmark = [pytest.mark.integracion, pytest.mark.skipif(not os.environ.get("FIRESTORE_EMULATOR_HOST"), reason="sin emulador de Firestore")]
-PROYECTO = "fusa-conecta"
+pytestmark = [
+    pytest.mark.integracion,
+    pytest.mark.skipif(not os.environ.get("FIRESTORE_EMULATOR_HOST"), reason="sin emulador de Firestore"),
+]
+PROYECTO = os.environ.get("FIREBASE_PROJECT", "fusa-conecta")  # en CI: demo-fusa-conecta (solo emulador)
 
 
 def _fs(ruta: str) -> str:
@@ -40,7 +43,9 @@ def _valor(v):
 
 
 def poner(ruta: str, datos: dict) -> None:
-    r = httpx.patch(_fs(ruta), json={"fields": {k: _valor(v) for k, v in datos.items()}}, headers={"Authorization": "Bearer owner"})
+    r = httpx.patch(
+        _fs(ruta), json={"fields": {k: _valor(v) for k, v in datos.items()}}, headers={"Authorization": "Bearer owner"}
+    )
     r.raise_for_status()
 
 
@@ -69,15 +74,62 @@ def entorno():
     ahora, mes = datetime.now(timezone.utc), datetime.now(timezone(timedelta(hours=-5))).strftime("%Y-%m")
     poner(f"usuarios/{admin}", {"rol": "admin", "nombre": "Admin API"})
     poner(f"usuarios/{duena}", {"rol": "usuario", "nombre": "Dueña API"})
-    poner("comercios/api-panaderia", {"nombre": "Panadería de Prueba API", "cat": "comercio", "sub": "panaderias", "estado_publicacion": "aprobado",
-                                      "propietario_uid": duena, "horario": "Lun-Dom 6:00-20:00", "municipio": "Fusagasugá", "esPremium": True})
-    poner("comercios/api-pendiente", {"nombre": "Negocio en revisión API", "cat": "comercio", "estado_publicacion": "pendiente", "propietario_uid": duena})
+    poner(
+        "comercios/api-panaderia",
+        {
+            "nombre": "Panadería de Prueba API",
+            "cat": "comercio",
+            "sub": "panaderias",
+            "estado_publicacion": "aprobado",
+            "propietario_uid": duena,
+            "horario": "Lun-Dom 6:00-20:00",
+            "municipio": "Fusagasugá",
+            "esPremium": True,
+        },
+    )
+    poner(
+        "comercios/api-pendiente",
+        {
+            "nombre": "Negocio en revisión API",
+            "cat": "comercio",
+            "estado_publicacion": "pendiente",
+            "propietario_uid": duena,
+        },
+    )
     poner(f"comercios/api-panaderia/estadisticas/{mes}", {"vistas": 42, "toques_wa": 7, "toques_llamar": 2})
-    poner("canjes/api-k1", {"cupon_id": "api-c1", "comercio_id": "api-panaderia", "estado": "usado", "fecha_emision": ahora, "fecha_canje": ahora})
-    poner("eventos/api-e1", {"titulo": "Evento de integración API", "categoria": "musica", "estado": "publicado", "lugar_nombre": "Concha acústica",
-                             "fecha_inicio": ahora + timedelta(days=1), "fecha_fin": ahora + timedelta(days=1, hours=2), "tipo": "plan"})
-    poner("eventos/api-e2", {"titulo": "Evento pendiente API", "categoria": "musica", "estado": "pendiente", "lugar_nombre": "x",
-                             "fecha_inicio": ahora + timedelta(days=1), "fecha_fin": ahora + timedelta(days=1, hours=2)})
+    poner(
+        "canjes/api-k1",
+        {
+            "cupon_id": "api-c1",
+            "comercio_id": "api-panaderia",
+            "estado": "usado",
+            "fecha_emision": ahora,
+            "fecha_canje": ahora,
+        },
+    )
+    poner(
+        "eventos/api-e1",
+        {
+            "titulo": "Evento de integración API",
+            "categoria": "musica",
+            "estado": "publicado",
+            "lugar_nombre": "Concha acústica",
+            "fecha_inicio": ahora + timedelta(days=1),
+            "fecha_fin": ahora + timedelta(days=1, hours=2),
+            "tipo": "plan",
+        },
+    )
+    poner(
+        "eventos/api-e2",
+        {
+            "titulo": "Evento pendiente API",
+            "categoria": "musica",
+            "estado": "pendiente",
+            "lugar_nombre": "x",
+            "fecha_inicio": ahora + timedelta(days=1),
+            "fecha_fin": ahora + timedelta(days=1, hours=2),
+        },
+    )
     main.limiter.reset()
     yield TestClient(main.app), token_duena, token_admin, token_otro, mes
     usar_repositorio(None)
@@ -98,9 +150,15 @@ def test_solo_lo_publico(entorno):
 
 def test_reporte_con_token_real_del_emulador(entorno):
     c, duena, admin, otro, mes = entorno
-    assert c.get("/v1/comercios/api-panaderia/reporte", headers={"Authorization": "Bearer token-falso"}).status_code == 401
+    assert (
+        c.get("/v1/comercios/api-panaderia/reporte", headers={"Authorization": "Bearer token-falso"}).status_code == 401
+    )
     assert c.get("/v1/comercios/api-panaderia/reporte", headers={"Authorization": f"Bearer {otro}"}).status_code == 403
-    r = c.get("/v1/comercios/api-panaderia/reporte", params={"formato": "xlsx", "mes": mes}, headers={"Authorization": f"Bearer {duena}"})
+    r = c.get(
+        "/v1/comercios/api-panaderia/reporte",
+        params={"formato": "xlsx", "mes": mes},
+        headers={"Authorization": f"Bearer {duena}"},
+    )
     assert r.status_code == 200 and r.content[:2] == b"PK"
     from io import BytesIO
 
@@ -108,11 +166,18 @@ def test_reporte_con_token_real_del_emulador(entorno):
 
     filas = {f[0]: f[1] for f in load_workbook(BytesIO(r.content))["Resumen"].iter_rows(min_row=5, values_only=True)}
     assert filas["Vistas de la ficha"] == 42 and filas["Toques en WhatsApp"] == 7 and filas["Cupones canjeados"] == 1
-    assert c.get("/v1/comercios/api-panaderia/reporte", params={"formato": "pdf"}, headers={"Authorization": f"Bearer {admin}"}).content.startswith(b"%PDF")
+    assert c.get(
+        "/v1/comercios/api-panaderia/reporte", params={"formato": "pdf"}, headers={"Authorization": f"Bearer {admin}"}
+    ).content.startswith(b"%PDF")
 
 
 def test_estadisticas_admin(entorno):
     c, duena, admin, *_ = entorno
     assert c.get("/v1/admin/estadisticas", headers={"Authorization": f"Bearer {duena}"}).status_code == 403
     r = c.get("/v1/admin/estadisticas", headers={"Authorization": f"Bearer {admin}"}).json()
-    assert r["negocios_aprobados"] >= 1 and r["negocios_pendientes"] >= 1 and r["usuarios"] >= 2 and r["cupones_canjeados"] >= 1
+    assert (
+        r["negocios_aprobados"] >= 1
+        and r["negocios_pendientes"] >= 1
+        and r["usuarios"] >= 2
+        and r["cupones_canjeados"] >= 1
+    )

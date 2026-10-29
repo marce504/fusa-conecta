@@ -12,7 +12,9 @@ VIOLETA = "6B4EFF"
 
 
 # ---------- GPX 1.1 ----------
-def gpx(nombre: str, puntos: Iterable[tuple[float, float, float | None]], descripcion: str = "", fuente: str = "") -> str:
+def gpx(
+    nombre: str, puntos: Iterable[tuple[float, float, float | None]], descripcion: str = "", fuente: str = ""
+) -> str:
     """Trazado [(lat, lng, alt)] → GPX 1.1 que abren Wikiloc, Strava, Komoot, OsmAnd y Google Earth."""
     filas = []
     for lat, lng, alt in puntos:
@@ -22,15 +24,25 @@ def gpx(nombre: str, puntos: Iterable[tuple[float, float, float | None]], descri
     autor = f"<author><name>{escape(fuente)}</name></author>" if fuente else ""
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<gpx version="1.1" creator="Fusa Conecta (https://fusa-conecta.web.app)" xmlns="http://www.topografix.com/GPX/1/1">\n'
-        f"  <metadata>{meta}{autor}<link href=\"{SITIO}\"><text>Fusa Conecta</text></link></metadata>\n"
-        f"  <trk>\n    <name>{escape(nombre)}</name>\n    <trkseg>\n" + "\n".join(filas) + "\n    </trkseg>\n  </trk>\n</gpx>\n"
+        '<gpx version="1.1" creator="Fusa Conecta (https://fusa-conecta.web.app)" '
+        'xmlns="http://www.topografix.com/GPX/1/1">\n'
+        f'  <metadata>{meta}{autor}<link href="{SITIO}"><text>Fusa Conecta</text></link></metadata>\n'
+        f"  <trk>\n    <name>{escape(nombre)}</name>\n    <trkseg>\n"
+        + "\n".join(filas)
+        + "\n    </trkseg>\n  </trk>\n</gpx>\n"
     )
 
 
 # ---------- iCalendar (RFC 5545) ----------
 def _ics_texto(s: str) -> str:
-    return str(s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n")
+    return (
+        str(s or "")
+        .replace("\\", "\\\\")
+        .replace(";", "\\;")
+        .replace(",", "\\,")
+        .replace("\r\n", "\\n")
+        .replace("\n", "\\n")
+    )
 
 
 def _ics_fecha(ms: int) -> str:
@@ -54,19 +66,30 @@ def ics(eventos: list[dict], nombre: str = "Fusa Conecta · Qué hacer en Fusa")
     """Calendario suscribible: Google Calendar, Apple Calendario y Outlook lo actualizan solos."""
     ahora = _ics_fecha(int(datetime.now(timezone.utc).timestamp() * 1000))
     lineas = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Fusa Conecta//Agenda//ES", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-        "X-WR-CALNAME:" + _ics_texto(nombre), "X-WR-TIMEZONE:America/Bogota",
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Fusa Conecta//Agenda//ES",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:" + _ics_texto(nombre),
+        "X-WR-TIMEZONE:America/Bogota",
         "X-WR-CALDESC:Eventos y avisos de Fusagasugá y Pasca publicados en Fusa Conecta",
-        "REFRESH-INTERVAL;VALUE=DURATION:PT6H", "X-PUBLISHED-TTL:PT6H",
+        "REFRESH-INTERVAL;VALUE=DURATION:PT6H",
+        "X-PUBLISHED-TTL:PT6H",
     ]
     for e in eventos:
         titulo = ("Aviso: " if e.get("aviso") else "") + e["titulo"]
         desc = (e.get("descripcion") or "") + ("\n" if e.get("descripcion") else "") + f"{SITIO}/#/evento/{e['id']}"
         lineas += [
-            "BEGIN:VEVENT", f"UID:{e['id']}@fusa-conecta.web.app", "DTSTAMP:" + ahora,
-            "DTSTART:" + _ics_fecha(e["ini"]), "DTEND:" + _ics_fecha(e["fin"]), "SUMMARY:" + _ics_texto(titulo),
+            "BEGIN:VEVENT",
+            f"UID:{e['id']}@fusa-conecta.web.app",
+            "DTSTAMP:" + ahora,
+            "DTSTART:" + _ics_fecha(e["ini"]),
+            "DTEND:" + _ics_fecha(e["fin"]),
+            "SUMMARY:" + _ics_texto(titulo),
             "LOCATION:" + _ics_texto(f"{e.get('lugar_nombre', '')}, {e.get('municipio') or 'Fusagasugá'}"),
-            "DESCRIPTION:" + _ics_texto(desc), "CATEGORIES:" + _ics_texto(e.get("categoria") or "otro"),
+            "DESCRIPTION:" + _ics_texto(desc),
+            "CATEGORIES:" + _ics_texto(e.get("categoria") or "otro"),
         ]
         if e.get("enlace_fuente", "").startswith("https://"):
             lineas.append("URL:" + e["enlace_fuente"])
@@ -109,7 +132,17 @@ def reporte_xlsx(r: dict) -> bytes:
         celda.font, celda.fill = negrita, cabecera
         celda.alignment = Alignment(wrap_text=True)
     for x in r["cupones"]:
-        c.append([x["descripcion"], x["estado"], x["cupo_total"], x["cupo_restante"], x["obtenidos"], x["canjeados"], x["vence"]])
+        c.append(
+            [
+                x["descripcion"],
+                x["estado"],
+                x["cupo_total"],
+                x["cupo_restante"],
+                x["obtenidos"],
+                x["canjeados"],
+                x["vence"],
+            ]
+        )
     for col, ancho in zip("ABCDEFG", (34, 12, 11, 10, 14, 14, 12)):
         c.column_dimensions[col].width = ancho
     salida = io.BytesIO()
@@ -125,24 +158,51 @@ def reporte_pdf(r: dict) -> bytes:
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     salida = io.BytesIO()
-    doc = SimpleDocTemplate(salida, pagesize=letter, title=f"Reporte {r['negocio']} {r['mes']}", author="Fusa Conecta",
-                            leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm)
+    doc = SimpleDocTemplate(
+        salida,
+        pagesize=letter,
+        title=f"Reporte {r['negocio']} {r['mes']}",
+        author="Fusa Conecta",
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
     est = getSampleStyleSheet()
     est["Title"].textColor = colors.HexColor("#" + VIOLETA)
-    estilo_tabla = TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EEEAFF")), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D9D9E3")), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 1), (-1, -1), "RIGHT"), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ])
+    estilo_tabla = TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EEEAFF")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D9D9E3")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]
+    )
     partes = [
         Paragraph(f"Reporte de {escape(r['negocio'])}", est["Title"]),
-        Paragraph(f"Mes {r['mes']} · generado el {r['generado']} · Fusa Conecta", est["Normal"]), Spacer(1, 0.6 * cm),
-        Table([["Cifra", "Total del mes"]] + [[t, r["cifras"].get(k, 0)] for k, t in CIFRAS], colWidths=[10 * cm, 5 * cm], style=estilo_tabla),
-        Spacer(1, 0.8 * cm), Paragraph("Cupones", est["Heading2"]),
+        Paragraph(f"Mes {r['mes']} · generado el {r['generado']} · Fusa Conecta", est["Normal"]),
+        Spacer(1, 0.6 * cm),
+        Table(
+            [["Cifra", "Total del mes"]] + [[t, r["cifras"].get(k, 0)] for k, t in CIFRAS],
+            colWidths=[10 * cm, 5 * cm],
+            style=estilo_tabla,
+        ),
+        Spacer(1, 0.8 * cm),
+        Paragraph("Cupones", est["Heading2"]),
     ]
     if r["cupones"]:
         filas = [["Cupón", "Estado", "Quedan", "Obtenidos", "Canjeados"]] + [
-            [Paragraph(escape(x["descripcion"]), est["Normal"]), x["estado"], x["cupo_restante"], x["obtenidos"], x["canjeados"]] for x in r["cupones"]
+            [
+                Paragraph(escape(x["descripcion"]), est["Normal"]),
+                x["estado"],
+                x["cupo_restante"],
+                x["obtenidos"],
+                x["canjeados"],
+            ]
+            for x in r["cupones"]
         ]
         partes.append(Table(filas, colWidths=[6.5 * cm, 2.5 * cm, 2 * cm, 2.5 * cm, 2.5 * cm], style=estilo_tabla))
     else:

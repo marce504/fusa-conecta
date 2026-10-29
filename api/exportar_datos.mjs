@@ -20,27 +20,51 @@ for (const [id, info] of Object.entries(indice)) {
   if (!existsSync(archivo)) continue;
   const g = JSON.parse(readFileSync(archivo, 'utf8'));
   const f = (g.features || [g]).find(x => x.geometry && x.geometry.type === 'LineString');
-  trazados[id] = { ...info, coordenadas: f.geometry.coordinates.map(c => [c[1], c[0], c[2] ?? null]) };   // [lat, lng, alt]
+  trazados[id] = { ...info, coordenadas: f.geometry.coordinates.map(c => [c[1], c[0], c[2] ?? null]) }; // [lat, lng, alt]
 }
 
 const salida = {
   generado_desde: 'datos.js y rutas/ (node api/exportar_datos.mjs)',
   categorias: Object.fromEntries(Object.entries(d.CAT).map(([k, v]) => [k, v.label])),
-  subcategorias: Object.fromEntries(Object.entries(d.SUBCATS).map(([k, l]) => [k, l.map(s => ({ k: s.k, t: s.t.replace(/^[^\p{L}]+/u, '').trim() }))])),
+  subcategorias: Object.fromEntries(
+    Object.entries(d.SUBCATS).map(([k, l]) => [k, l.map(s => ({ k: s.k, t: s.t.replace(/^[^\p{L}]+/u, '').trim() }))]),
+  ),
   plaza: d.PLAZA_FUSA,
   comercios: d.COMERCIOS_BASE.map(({ emoji, ...c }) => c),
-  rutas: Object.fromEntries(Object.entries(d.RUTAS).map(([id, r]) => [id, {
-    nombre: r.nombre, dificultad: r.dificultad, duracion: r.duracionEstimada, distancia_km: r.distanciaTotal,
-    desnivel_m: r.desnivelPositivo ?? Math.round((r.elevacionMaxima || 0) - (r.elevacionMinima || 0)),
-    elevacion_min: r.elevacionMinima ?? null, elevacion_max: r.elevacionMaxima ?? null }])),
+  rutas: Object.fromEntries(
+    Object.entries(d.RUTAS).map(([id, r]) => [
+      id,
+      {
+        nombre: r.nombre,
+        dificultad: r.dificultad,
+        duracion: r.duracionEstimada,
+        distancia_km: r.distanciaTotal,
+        desnivel_m: r.desnivelPositivo ?? Math.round((r.elevacionMaxima || 0) - (r.elevacionMinima || 0)),
+        elevacion_min: r.elevacionMinima ?? null,
+        elevacion_max: r.elevacionMaxima ?? null,
+      },
+    ]),
+  ),
   trazados,
-  emergencias: Object.fromEntries(Object.entries(d.EMERGENCIAS).map(([m, l]) => [m, l.map(({ emoji, ...e }) => e)]))
+  emergencias: Object.fromEntries(Object.entries(d.EMERGENCIAS).map(([m, l]) => [m, l.map(({ emoji, ...e }) => e)])),
 };
 const destino = join(raiz, 'api', 'app', 'datos_base.json');
 const texto = JSON.stringify(salida, null, 1) + '\n';
 if (process.argv.includes('--comprobar')) {
-  if (!existsSync(destino) || readFileSync(destino, 'utf8') !== texto) { console.error('api/app/datos_base.json no está al día: ejecuta node api/exportar_datos.mjs'); process.exit(1); }
-  console.log('datos_base.json al día'); process.exit(0);
+  if (!existsSync(destino) || readFileSync(destino, 'utf8') !== texto) {
+    console.error('api/app/datos_base.json no está al día: ejecuta node api/exportar_datos.mjs');
+    process.exit(1);
+  }
+  console.log('datos_base.json al día');
+  process.exit(0);
 }
 writeFileSync(destino, texto);
-console.log('Listo: ' + salida.comercios.length + ' lugares, ' + Object.keys(salida.rutas).length + ' rutas, ' + Object.keys(trazados).length + ' trazados reales → api/app/datos_base.json');
+console.log(
+  'Listo: ' +
+    salida.comercios.length +
+    ' lugares, ' +
+    Object.keys(salida.rutas).length +
+    ' rutas, ' +
+    Object.keys(trazados).length +
+    ' trazados reales → api/app/datos_base.json',
+);

@@ -4,7 +4,17 @@ from datetime import datetime
 
 import pytest
 
-from app.utilidades import ZONA_COL, coincide, es_aviso, estado_apertura, hora_texto, mes_valido, parsear_dias, parsear_rangos, tokens
+from app.utilidades import (
+    ZONA_COL,
+    coincide,
+    es_aviso,
+    estado_apertura,
+    hora_texto,
+    mes_valido,
+    parsear_dias,
+    parsear_rangos,
+    tokens,
+)
 
 
 def col(dia: str, hora: str) -> datetime:
@@ -12,17 +22,20 @@ def col(dia: str, hora: str) -> datetime:
 
 
 # 2026-10-28 es miércoles; 2026-11-01 es domingo
-@pytest.mark.parametrize("horario,momento,esperado", [
-    ("Lun-Sáb 8:00-18:00", col("2026-10-28", "10:00"), "Abierto"),
-    ("Lun-Sáb 8:00-18:00", col("2026-10-28", "17:30"), "Cierra pronto"),
-    ("Lun-Sáb 8:00-18:00", col("2026-10-28", "19:00"), "Abre mañana 8:00 a. m."),
-    ("Lun-Sáb 8:00-18:00", col("2026-10-28", "07:15"), "Abre pronto · 8:00 a. m."),
-    ("Lun-Sáb 8:00-18:00", col("2026-11-01", "10:00"), "Abre mañana 8:00 a. m."),
-    ("Lun-Vie 8:00-12:00", col("2026-10-31", "10:00"), "Abre el lunes 8:00 a. m."),
-    ("Todos los días 7–9 p. m.", col("2026-10-28", "20:00"), "Cierra pronto"),
-    ("Lun-Sáb 9:00-13:00 y 14:00-18:00", col("2026-10-28", "13:30"), "Abre pronto · 2:00 p. m."),   # dos franjas
-    ("Abierto 24 horas", col("2026-10-28", "03:00"), "Abierto 24 horas"),
-])
+@pytest.mark.parametrize(
+    "horario,momento,esperado",
+    [
+        ("Lun-Sáb 8:00-18:00", col("2026-10-28", "10:00"), "Abierto"),
+        ("Lun-Sáb 8:00-18:00", col("2026-10-28", "17:30"), "Cierra pronto"),
+        ("Lun-Sáb 8:00-18:00", col("2026-10-28", "19:00"), "Abre mañana 8:00 a. m."),
+        ("Lun-Sáb 8:00-18:00", col("2026-10-28", "07:15"), "Abre pronto · 8:00 a. m."),
+        ("Lun-Sáb 8:00-18:00", col("2026-11-01", "10:00"), "Abre mañana 8:00 a. m."),
+        ("Lun-Vie 8:00-12:00", col("2026-10-31", "10:00"), "Abre el lunes 8:00 a. m."),
+        ("Todos los días 7–9 p. m.", col("2026-10-28", "20:00"), "Cierra pronto"),
+        ("Lun-Sáb 9:00-13:00 y 14:00-18:00", col("2026-10-28", "13:30"), "Abre pronto · 2:00 p. m."),  # dos franjas
+        ("Abierto 24 horas", col("2026-10-28", "03:00"), "Abierto 24 horas"),
+    ],
+)
 def test_estado_apertura(horario, momento, esperado):
     assert estado_apertura({"cat": "comercio", "horario": horario}, momento)["texto"] == esperado
 
@@ -40,7 +53,7 @@ def test_senderos_y_sin_horario_no_tienen_estado():
 
 def test_rangos_y_dias():
     assert parsear_rangos("8:00-18:00") == [(480, 1080)]
-    assert parsear_rangos("7–9 p. m.") == [(420, 1260)]   # igual que la app: de 7 a. m. a 9 p. m.
+    assert parsear_rangos("7–9 p. m.") == [(420, 1260)]  # igual que la app: de 7 a. m. a 9 p. m.
     assert parsear_dias("Lun-Vie") == [1, 2, 3, 4, 5]
     assert parsear_dias("Sáb-Lun") == [6, 0, 1]
     assert parsear_dias("Todos los días") == list(range(7))
@@ -61,7 +74,7 @@ def test_avisos_del_municipio():
     assert es_aviso({"titulo": "Jornada de vacunación canina", "categoria": "otro"})
     assert es_aviso({"titulo": "Cualquiera", "categoria": "institucional"})
     assert not es_aviso({"titulo": "Día Dulce", "categoria": "cultura"})
-    assert not es_aviso({"titulo": "Jornada de lavado de tanques", "tipo": "plan"})   # el tipo guardado manda
+    assert not es_aviso({"titulo": "Jornada de lavado de tanques", "tipo": "plan"})  # el tipo guardado manda
 
 
 def test_mes():

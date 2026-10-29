@@ -10,13 +10,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
     healthCheckPath: /v1/salud
-    autoDeploy: true
+    autoDeployTrigger: checksPass # despliega solo cuando la integración continua (ci.yml) pasa en ese commit
     buildFilter:
       paths:
         - api/**
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.10"
+        value: '3.12.10'
       - key: FIREBASE_PROJECT
         value: fusa-conecta
       - key: ORIGENES

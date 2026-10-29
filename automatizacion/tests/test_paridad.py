@@ -17,10 +17,16 @@ JS = json.loads((AQUI / "resultados_js.json").read_text(encoding="utf-8"))
 FUENTE = agenda.Fuente("Alcaldía de Fusagasugá", "https://www.fusagasuga.gov.co", "Fusagasugá", True)
 
 
-@pytest.mark.parametrize("nombre,fn", [
-    ("titulo_corto", agenda.titulo_corto), ("campana", agenda.campana_de), ("norm", agenda.norm), ("sin_html", agenda.sin_html),
-    ("tipo", lambda t: agenda.tipo_de(t, "cultura")),
-])
+@pytest.mark.parametrize(
+    "nombre,fn",
+    [
+        ("titulo_corto", agenda.titulo_corto),
+        ("campana", agenda.campana_de),
+        ("norm", agenda.norm),
+        ("sin_html", agenda.sin_html),
+        ("tipo", lambda t: agenda.tipo_de(t, "cultura")),
+    ],
+)
 def test_textos_iguales(nombre, fn):
     assert [fn(t) for t in CASOS["titulos"]] == JS[nombre]
 
@@ -34,7 +40,10 @@ def test_campana_en_descripcion_igual():
 
 
 def test_respuesta_de_la_ia_igual():
-    py = [{k: v for k, v in e.items() if k not in ("x", "F")} for e in agenda.de_respuesta_ia(CASOS["ia"], {"friendlyName": "noticia-prueba"}, FUENTE)]
+    py = [
+        {k: v for k, v in e.items() if k not in ("x", "F")}
+        for e in agenda.de_respuesta_ia(CASOS["ia"], {"friendlyName": "noticia-prueba"}, FUENTE)
+    ]
     assert py == JS["ia"]
     assert [agenda.clave(e) for e in py] == JS["claves"]
     assert [agenda.clave_lugar_hora(e) for e in py] == JS["lugar_hora"]
