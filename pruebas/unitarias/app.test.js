@@ -1,0 +1,187 @@
+// Pruebas unitarias del código real de la PWA (app.js y datos.js), cargado con cargar-app.js.
+// La zona horaria es America/Bogota (vitest.config.js): la app calcula los horarios con la hora local del teléfono.
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cargar } from './cargar-app.js';
+
+const enColombia = texto => vi.setSystemTime(new Date(`${texto}:00-05:00`));
+afterEach(() => vi.useRealTimers());
+
+// ---------------------------------------------------------------- estado abierto / cerrado (estadoLugar)
+const horarios = cargar([
+  'norm',
+  'DIA_IDX',
+  'DIAS_TXT',
+  'DIAS_LARGO',
+  'parsearDias',
+  'parsearRangos',
+  'horaTexto',
+  'TIPOS_NATURALES',
+  'esNatural',
+  'estadoApertura',
+]);
+const estado = (lugar, cuando) => {
+  vi.useFakeTimers();
+  enColombia(cuando);
+  return horarios.estadoApertura({ cat: 'comercio', ...lugar });
+};
+
+describe('estadoApertura: abierto, cierra pronto, cerrado y próxima apertura', () => {
+  // 2026-10-28 es miércoles; 2026-11-01 es domingo
+  it.each([
+    ['Lun-Sáb 8:00-18:00', '2026-10-28T10:00', 'ab', 'Abierto'],
+    ['Lun-Sáb 8:00-18:00', '2026-10-28T17:30', 'pronto', 'Cierra pronto'],
+    ['Lun-Sáb 8:00-18:00', '2026-10-28T07:15', 'pronto', 'Abre pronto · 8:00 a. m.'],
+    ['Lun-Sáb 8:00-18:00', '2026-10-28T19:00', 'cerr', 'Abre mañana 8:00 a. m.'],
+    ['Lun-Sáb 8:00-18:00', '2026-11-01T10:00', 'cerr', 'Abre mañana 8:00 a. m.'],
+    ['Lun-Vie 8:00-12:00', '2026-10-31T10:00', 'cerr', 'Abre el lunes 8:00 a. m.'],
+    ['Lun-Sáb 9:00-13:00 y 14:00-18:00', '2026-10-28T13:30', 'pronto', 'Abre pronto · 2:00 p. m.'],
+    ['Todos los días 7–9 p. m.', '2026-10-28T20:30', 'pronto', 'Cierra pronto'],
+    ['Abierto 24 horas', '2026-10-28T03:00', 'ab', 'Abierto 24 horas'],
+  ])('«%s» el %s → %s', (horario, cuando, tipo, texto) => {
+    expect(estado({ horario }, cuando)).toMatchObject({ tipo, texto });
+  });
+
+  it('usa días y horas guardados en la nube (dias/abre/cierra)', () => {
+    const lugar = { dias: [1, 2, 3, 4, 5], abre: '09:00', cierra: '17:00' };
+    expect(estado(lugar, '2026-10-28T12:00').abierto).toBe(true);
+    expect(estado(lugar, '2026-11-01T12:00').abierto).toBe(false);
+  });
+
+  it('horario que pasa la medianoche (bares hasta las 2 a. m.)', () => {
+    const lugar = { dias: [5, 6], abre: '20:00', cierra: '02:00' };
+    expect(estado(lugar, '2026-10-31T01:00').abierto).toBe(true); // madrugada del sábado: sigue el viernes
+    expect(estado(lugar, '2026-10-31T03:00').abierto).toBe(false);
+  });
+
+  it('senderos, miradores y lugares sin horario no muestran estado', () => {
+    expect(estado({ cat: 'turismo', tipo: 'sendero', horario: 'Recom. 5–4 p.m.' }, '2026-10-28T10:00')).toBeNull();
+    expect(estado({ cat: 'turismo', nombre: 'Cerro Fusacatán', horario: '6-17' }, '2026-10-28T10:00')).toBeNull();
+    expect(estado({ horario: 'Consultar directamente' }, '2026-10-28T10:00')).toBeNull();
+  });
+});
+
+describe('parsearRangos y parsearDias', () => {
+  it('lee rangos con y sin a. m./p. m.', () => {
+    expect(horarios.parsearRangos('8:00-18:00')).toEqual([[480, 1080]]);
+    expect(horarios.parsearRangos('7–9 p. m.')).toEqual([[420, 1260]]);
+    expect(horarios.parsearRangos('Lun-Sáb 9:00-13:00 y 14:00-18:00')).toEqual([
+      [540, 780],
+      [840, 1080],
+    ]);
+    expect(horarios.parsearRangos('Consultar')).toEqual([]);
+  });
+  it('lee días sueltos, rangos y «todos los días»', () => {
+    expect(horarios.parsearDias('Lun-Vie')).toEqual([1, 2, 3, 4, 5]);
+    expect(horarios.parsearDias('Sáb-Lun')).toEqual([6, 0, 1]);
+    expect(horarios.parsearDias('Sáb y Dom')).toEqual([6, 0]);
+    expect(horarios.parsearDias('Todos los días')).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+});
+
+// ---------------------------------------------------------------- formato de la hora
+const horas = cargar(['horaTexto', 'formatearHora']);
+describe('formatearHora y horaTexto', () => {
+  it.each([
+    ['00:00', '12:00 a. m.'],
+    ['08:05', '8:05 a. m.'],
+    ['12:00', '12:00 p. m.'],
+    ['13:30', '1:30 p. m.'],
+    ['23:59', '11:59 p. m.'],
+  ])('%s → %s', (hhmm, texto) => expect(horas.formatearHora(hhmm)).toBe(texto));
+  it('vacío y valores fuera del día', () => {
+    expect(horas.formatearHora('')).toBe('');
+    expect(horas.horaTexto(1440 + 60)).toBe('1:00 a. m.');
+    expect(horas.horaTexto(-60)).toBe('11:00 p. m.');
+  });
+});
+
+// ---------------------------------------------------------------- búsqueda sin tildes ni plurales
+const busqueda = cargar(['norm', 'raiz', 'tokens', 'GRUPOS_SUB', 'subDe', 'nombreSub', 'coincide'], {}, [
+  'CAT',
+  'SUBCATS',
+]);
+const panaderia = {
+  nombre: 'Panadería La Espiga',
+  desc: 'Pan de yuca y almojábanas',
+  direccion: 'Cra 6',
+  cat: 'comercio',
+  sub: 'panaderias',
+};
+describe('búsqueda: sin tildes, sin mayúsculas y sin plurales', () => {
+  it.each(['panaderia', 'PANADERÍA', 'panaderias', 'almojabanas', 'pan de yuca', 'comida y tiendas', 'Panaderías'])(
+    '«%s» encuentra «Panadería La Espiga»',
+    q => expect(busqueda.coincide(panaderia, q)).toBe(true),
+  );
+  it('exige todas las palabras', () => {
+    expect(busqueda.coincide(panaderia, 'pan pizza')).toBe(false);
+  });
+  it('tokens: quita tildes y plurales («-es» y «-s»)', () => {
+    expect(busqueda.tokens('Droguerías CAFÉS árboles')).toEqual(['drogueria', 'caf', 'arbol']);
+    expect(busqueda.norm('Fusagasugá ÑANDÚ')).toBe('fusagasuga nandu');
+  });
+  it('busca también por subcategoría y categoría de servicios', () => {
+    const lugar = { nombre: 'Taller Don Luis', desc: '', direccion: '', cat: 'servicios', sub: 'mecanica' };
+    expect(busqueda.coincide(lugar, 'mecanica')).toBe(true);
+    expect(busqueda.coincide(lugar, 'talleres')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------- validación de cupones
+const AHORA = Date.parse('2026-10-28T12:00:00-05:00');
+const cuponesFS = [
+  { id: 'activo', comercio_id: 'vivero', estado: 'activo', cupo_restante: 5, vigencia: '2026-10-28' },
+  { id: 'vencido', comercio_id: 'vivero', estado: 'activo', cupo_restante: 5, vigencia: '2026-10-27' },
+  { id: 'agotado', comercio_id: 'vivero', estado: 'activo', cupo_restante: 0, vigencia: '2026-11-30' },
+  { id: 'pausado', comercio_id: 'vivero', estado: 'pausado', cupo_restante: 5, vigencia: '2026-11-30' },
+  { id: 'otro', comercio_id: 'otro-negocio', estado: 'activo', cupo_restante: 5 },
+];
+const lectura = { resultado: null, revisado: null };
+const cupones = cargar(['aMs', 'premiumVigente', 'cuponesDe', 'estadoCupon', 'codigoCupon', 'leerTextoQR'], {
+  estado: { cuponesFS },
+  resultadoEscaner: (color, titulo) => (lectura.resultado = { color, titulo }),
+  revisarCupon: cod => (lectura.revisado = cod),
+});
+const vivero = { id: 'vivero', propietario_uid: 'duena', esPremium: true };
+
+describe('cupones: vigencia, cupo, estado y Premium', () => {
+  it('cuponesDe solo deja los activos, con cupo y vigentes (la vigencia vale hasta el final del día)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AHORA);
+    expect(cupones.cuponesDe(vivero).map(c => c.id)).toEqual(['activo']);
+    vi.setSystemTime(Date.parse('2026-10-29T00:00:01-05:00')); // al día siguiente ya no sale
+    expect(cupones.cuponesDe(vivero)).toEqual([]);
+  });
+  it('sin dueño o sin Premium vigente no hay cupones (no podrían canjearse)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AHORA);
+    expect(cupones.cuponesDe({ ...vivero, propietario_uid: null })).toEqual([]);
+    expect(cupones.cuponesDe({ ...vivero, esPremium: false })).toEqual([]);
+    expect(cupones.cuponesDe({ ...vivero, suscripcion_vigente_hasta: AHORA - 1 })).toEqual([]);
+    expect(cupones.premiumVigente({ ...vivero, suscripcion_vigente_hasta: AHORA + 864e5 })).toBe(true);
+  });
+  it('estadoCupon en la billetera: usado, vencido o activo', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AHORA);
+    expect(cupones.estadoCupon({ estado: 'usado', fecha_vencimiento: AHORA - 1 })).toBe('usado');
+    expect(cupones.estadoCupon({ estado: 'reservado', fecha_vencimiento: AHORA - 1 })).toBe('vencido');
+    expect(cupones.estadoCupon({ estado: 'reservado', fecha_vencimiento: AHORA + 1 })).toBe('activo');
+  });
+  it('codigoCupon genera códigos FC-XXXX-XXXX sin letras confusas (I, O, 0, 1)', () => {
+    const codigos = Array.from({ length: 200 }, () => cupones.codigoCupon());
+    for (const c of codigos) expect(c).toMatch(/^FC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
+    expect(new Set(codigos).size).toBe(200);
+  });
+  it('leerTextoQR: acepta solo QR de cupones de Fusa Conecta', () => {
+    cupones.leerTextoQR('FUSACONECTA:fc-ab12-cd34');
+    expect(lectura.revisado).toBe('FC-AB12-CD34');
+    cupones.leerTextoQR('https://fusa-conecta.web.app/#/lugar/c01');
+    expect(lectura.resultado).toEqual({ color: 'rojo', titulo: 'Este no es un cupón' });
+    cupones.leerTextoQR('https://otro-sitio.com');
+    expect(lectura.resultado.titulo).toBe('Este código no es de Fusa Conecta');
+  });
+  it('aMs: fechas AAAA-MM-DD valen hasta el final de ese día', () => {
+    expect(cupones.aMs('2026-10-28')).toBe(new Date('2026-10-28T23:59:59').getTime());
+    expect(cupones.aMs(null)).toBeNull();
+    expect(cupones.aMs({ toMillis: () => 5 })).toBe(5);
+  });
+});

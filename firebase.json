@@ -35,7 +35,13 @@
       ".npmrc",
       ".prettierrc.json",
       ".prettierignore",
-      "informe-pruebas/**"
+      "informe-pruebas/**",
+      "pruebas/**",
+      "playwright.config.js",
+      "vitest.config.js",
+      "lighthouserc.json",
+      "test-results/**",
+      ".lighthouseci/**"
     ],
     "headers": [
       {
@@ -91,7 +97,7 @@
   },
   "emulators": {
     "firestore": {
-      "port": 8080
+      "port": 8099
     },
     "auth": {
       "port": 9099

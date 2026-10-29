@@ -37,6 +37,10 @@ export default [
       '.firebase/**',
       'video-publicitario/**',
       '**/*.min.js',
+      'informe-pruebas/**',
+      'test-results/**',
+      'test-results-ia/**',
+      '.lighthouseci/**',
     ],
   },
   ...compat.extends('airbnb-base'),
@@ -66,6 +70,7 @@ export default [
       'import/extensions': ['error', 'ignorePackages'],
       'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
       'import/prefer-default-export': 'off',
+      'import/no-unresolved': ['error', { ignore: ['^vitest/', '^@playwright/'] }], // paquetes con «exports» que el plugin no resuelve
       'func-names': 'off',
       'no-bitwise': 'off', // códigos QR y cálculo de huellas
       'no-shadow': ['error', { builtinGlobals: false, hoist: 'never' }],
@@ -108,8 +113,15 @@ export default [
   },
   {
     // Herramientas y pruebas en Node (módulos ES)
-    files: ['**/*.mjs', 'eslint.config.js'],
+    files: ['**/*.mjs', 'eslint.config.js', 'pruebas/**/*.js', 'playwright.config.js', 'vitest.config.js'],
     languageOptions: { sourceType: 'module', ecmaVersion: 2023, globals: { ...globals.node } },
     rules: { 'no-new-func': 'off' }, // paridad_js.mjs evalúa funciones de la versión anterior a propósito
+  },
+  {
+    // Playwright: el código dentro de page.evaluate() corre en la PWA (navegador y sus variables globales)
+    files: ['pruebas/e2e/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globalesPWA, estado: 'readonly', arranque: 'readonly', auth: 'readonly' },
+    },
   },
 ];

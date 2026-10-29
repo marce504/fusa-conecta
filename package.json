@@ -1,6 +1,6 @@
 {
   "name": "fusa-conecta",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Fusa Conecta: guía de Fusagasugá y Pasca (PWA + TWA Android + API REST en Python)",
   "license": "UNLICENSED",
@@ -10,16 +10,25 @@
     "formato": "prettier --write .",
     "formato:revisar": "prettier --check .",
     "datos:api": "node api/exportar_datos.mjs",
-    "datos:api:revisar": "node api/exportar_datos.mjs --comprobar"
+    "datos:api:revisar": "node api/exportar_datos.mjs --comprobar",
+    "test": "vitest run",
+    "test:e2e": "firebase emulators:exec --only firestore,auth --project fusa-conecta \"playwright test\"",
+    "test:lighthouse": "lhci autorun",
+    "test:informe": "node pruebas/resumen.mjs"
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.2.0",
     "@eslint/js": "9.17.0",
+    "@lhci/cli": "^0.13.0",
+    "@playwright/test": "^1.55.1",
+    "@vitest/ui": "^2.1.8",
     "eslint": "9.17.0",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-import": "2.31.0",
+    "espree": "^10.3.0",
     "globals": "15.14.0",
-    "prettier": "3.4.2"
+    "prettier": "3.4.2",
+    "vitest": "^2.1.8"
   }
 }

@@ -8,6 +8,21 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+## [1.1.0] - 2026-10-28 · Plan de pruebas con evidencias
+
+### Agregado
+- **Unitarias de JavaScript** (Vitest): 36 casos sobre el código real de `app.js`, cargado sin modificar con espree:
+  - horarios (abierto, cierra pronto, próxima apertura y medianoche);
+  - formato de la hora;
+  - búsqueda sin tildes ni plurales;
+  - validación de cupones.
+- **De extremo a extremo** (Playwright, celular de 390×844, emulador): explorar, buscar «café», abrir la ficha y WhatsApp; el ciclo completo del cupón (obtener, QR, validar, canjear y rechazar un segundo canje); SOS sin conexión; asistente con llamada a funciones.
+- **Lighthouse CI** (móvil, 3 corridas): accesibilidad 100 y PWA 100 (meta ≥ 90), buenas prácticas 100, SEO 100 y rendimiento 56 (advertencia).
+- Informes HTML con pytest-html y cobertura de la API (83 %, mínimo exigido 80 %).
+- Artefacto **informe-pruebas** en GitHub Actions con el resumen de todas las suites (`pruebas/resumen.mjs`).
+- Plan de pruebas y tabla de resultados en `docs/pruebas.md`, con capturas en `docs/evidencias/pruebas/`.
+- `emulators` en `firebase.json`, con el puerto de Firestore 8099, el mismo que usa la PWA en modo emulador.
+
 ## [1.0.0] - 2026-10-28 · Estándares e integración continua
 
 ### Agregado
@@ -81,7 +96,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [0.1.0] - 2026-06-13 · Prototipo
 - Primer prototipo del directorio de Fusagasugá.
 
-[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.0.0...develop
+[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.1.0...develop
+[1.1.0]: https://github.com/marce504/fusa-conecta/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/marce504/fusa-conecta/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/marce504/fusa-conecta/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/marce504/fusa-conecta/compare/v0.7.0...v0.8.0
