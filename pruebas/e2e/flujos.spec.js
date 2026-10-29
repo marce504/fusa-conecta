@@ -179,3 +179,89 @@ test('asistente: una pregunta con llamada a funciones y tarjetas del directorio'
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('asistente.png') });
 });
+
+// Entrada rápida (v1.2.0). Los tiempos se cuentan desde que se abrió la página (performance.now()).
+test('entrada con sesión: se va en 3,5 s como máximo', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await entrarComo(page, CUENTAS.ana);
+  // Se anota el instante exacto en que la entrada recibe la clase «oculto»
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      const sp = document.getElementById('splash');
+      if (sp && sp.classList.contains('oculto')) {
+        window.entradaOculta = performance.now();
+        obs.disconnect();
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.entradaOculta > 0, null, { timeout: 10_000 });
+  const ms = await page.evaluate(() => window.entradaOculta);
+  info.annotations.push({ type: 'entrada con sesión (ms)', description: String(Math.round(ms)) });
+  expect(ms).toBeLessThanOrEqual(3500);
+  await sinAvisoEmulador(page);
+  await page.screenshot({ path: info.outputPath('1-inicio-con-sesion.png') });
+});
+
+test('entrada con sesión y la nube lenta: no la espera y se va a los 3 s', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await entrarComo(page, CUENTAS.ana);
+  // Sin copia del perfil ni del directorio, y Firestore tarda 6 s en responder
+  await page.evaluate(() =>
+    Object.keys(localStorage)
+      .filter(k => /^fc_(perfil_|nube_ok)/.test(k))
+      .forEach(k => localStorage.removeItem(k)),
+  );
+  await page.route(/:8099\//, async ruta => {
+    await new Promise(r => {
+      setTimeout(r, 6000);
+    });
+    await ruta.continue().catch(() => {});
+  });
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      const sp = document.getElementById('splash');
+      if (sp && sp.classList.contains('oculto')) {
+        window.entradaOculta = performance.now();
+        window.listaAlSalir = arranque.listo;
+        obs.disconnect();
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.entradaOculta > 0, null, { timeout: 10_000 });
+  const { ms, lista } = await page.evaluate(() => ({ ms: window.entradaOculta, lista: window.listaAlSalir }));
+  info.annotations.push({ type: 'entrada con la nube lenta (ms)', description: String(Math.round(ms)) });
+  expect(lista).toBe(false);
+  expect(ms).toBeGreaterThanOrEqual(2900);
+  expect(ms).toBeLessThanOrEqual(3500);
+});
+
+test('entrada como invitado: «Registrarse» y «Solo explorar» visibles en 2,6 s como máximo', async ({ page }, info) => {
+  await page.goto(APP);
+  // Visible de verdad: la entrada está lista y la animación de los botones terminó (opacidad 1)
+  await page.waitForFunction(
+    () => {
+      const cta = document.querySelector('.splash-cta');
+      if (!cta) return false;
+      const c = getComputedStyle(cta);
+      return c.visibility === 'visible' && c.opacity === '1';
+    },
+    null,
+    { timeout: 10_000, polling: 'raf' },
+  );
+  // Se cuenta desde la primera pintura (cuando la persona empieza a ver la entrada): antes, el teléfono descarga la página
+  const { ms, pintura } = await page.evaluate(() => {
+    const p = performance.getEntriesByName('first-paint')[0];
+    const inicio = p ? p.startTime : 0;
+    return { ms: performance.now() - inicio, pintura: inicio };
+  });
+  info.annotations.push({ type: 'primera pintura (ms)', description: String(Math.round(pintura)) });
+  info.annotations.push({ type: 'botones de la entrada (ms)', description: String(Math.round(ms)) });
+  expect(ms).toBeLessThanOrEqual(2600);
+  await expect(page.locator('#sInvitado')).toBeVisible();
+  await sinAvisoEmulador(page);
+  await page.screenshot({ path: info.outputPath('1-entrada-invitado.png') });
+});

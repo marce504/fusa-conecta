@@ -185,3 +185,34 @@ describe('cupones: vigencia, cupo, estado y Premium', () => {
     expect(cupones.aMs({ toMillis: () => 5 })).toBe(5);
   });
 });
+
+// ---------------------------------------------------------------- pantalla de entrada (appLista y el máximo de 3 s)
+describe('Entrada: appLista y salidaSplash', () => {
+  const nuevo = (arranque, online = true) =>
+    cargar(['SPLASH', 'appLista', 'salidaSplash'], { arranque, navigator: { onLine: online } });
+  const base = { auth: true, perfil: true, datos: false, copia: false };
+
+  it('sin sesión ni perfil resueltos no está lista', () => {
+    expect(nuevo({ ...base, auth: false, datos: true }).appLista()).toBe(false);
+    expect(nuevo({ ...base, perfil: false, datos: true }).appLista()).toBe(false);
+  });
+  it('con conexión y sin copia local espera la primera descarga del directorio', () => {
+    expect(nuevo(base).appLista()).toBe(false);
+    expect(nuevo({ ...base, datos: true }).appLista()).toBe(true);
+  });
+  it('con copia local o sin conexión no espera a la nube', () => {
+    expect(nuevo({ ...base, copia: true }).appLista()).toBe(true);
+    expect(nuevo(base, false).appLista()).toBe(true);
+  });
+  it('lista: sale al cumplir el mínimo de 1,6 s, no antes', () => {
+    const e = nuevo({ ...base, datos: true });
+    expect(e.salidaSplash(1000)).toBe(false);
+    expect(e.salidaSplash(1600)).toBe(true);
+  });
+  it('sin estar lista: sale a los 3 s de todas formas', () => {
+    const e = nuevo(base);
+    expect(e.SPLASH.max).toBe(3000);
+    expect(e.salidaSplash(2999)).toBe(false);
+    expect(e.salidaSplash(3000)).toBe(true);
+  });
+});

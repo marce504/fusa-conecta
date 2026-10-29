@@ -118,7 +118,8 @@ function confirmar(titulo,texto,si='Sí',no='No',icono='circle-help',peligro=fal
 /* ===== ESTADO (ViewModel) ===== */
 const estado={
   usuario:null,       // {uid, nombre, email, anonimo, verificado}
-  perfil:null,        // documento usuarios/{uid}
+  perfil:null,        // documento usuarios/{uid} (al arrancar puede ser la copia guardada en el teléfono)
+  perfilReal:false,   // true cuando llegó el perfil de Firestore: solo entonces se habilita el rol admin
   favoritos:[], q:'', mayorEdad:false,
   califs:{},          // comercio_id -> [calificaciones]
   cuponesFS:[],       // cupones publicados por comerciantes
@@ -159,11 +160,12 @@ function reconstruirDirectorio(){
   comerciosNube.forEach(c=>porId.set(c.id,c));
   database=[...porId.values(),...lugaresComunidad];
 }
-/* ===== ARRANQUE (v7 · Fase 5) =====
-   La app está lista cuando se sabe quién es la persona (sesión y perfil) y llegó el directorio (de la nube o de la
-   copia guardada en el teléfono). Sin conexión no se espera a la nube: la app trabaja con los datos guardados. */
-const arranque={auth:false,perfil:false,datos:false,listo:false};
-function appLista(){return arranque.auth&&arranque.perfil&&(arranque.datos||!navigator.onLine);}
+/* ===== ARRANQUE (v7 · Fase 5; v9) =====
+   La app está lista cuando se sabe quién es la persona (sesión y perfil) y hay directorio. Si el teléfono ya tiene
+   una copia (datos.js más la persistencia de Firestore de una visita anterior) o no hay conexión, no se espera a la nube:
+   se entra con lo guardado y onSnapshot actualiza la vista cuando llegan los datos nuevos. */
+const arranque={auth:false,perfil:false,datos:false,listo:false,copia:!!ls.get('fc_nube_ok',0)};
+function appLista(){return arranque.auth&&arranque.perfil&&(arranque.datos||arranque.copia||!navigator.onLine);}
 function marcarListo(k){
   arranque[k]=true;
   if(arranque.listo||!appLista())return;
@@ -181,6 +183,7 @@ db.collection('comercios').where('estado_publicacion','==','aprobado').onSnapsho
     lista.push(normalizarNube(doc.id,x));
   });
   comerciosNube=lista;estado.nubeLista=true;reconstruirDirectorio();refrescarVista();marcarListo('datos');
+  if(!snap.metadata.fromCache&&!arranque.copia){arranque.copia=true;ls.set('fc_nube_ok',Date.now());}
 },err=>{console.warn('Comercios sin conexión:',err.code);marcarListo('datos');});
 // Negocios de muestra que el admin ocultó (los de la nube se ocultan con estado "oculto" y ya no llegan al directorio)
 db.collection('config').doc('directorio').onSnapshot(s=>{
@@ -2818,8 +2821,9 @@ async function iniciarCamara(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){sinCamara('no-api');return;}
   try{
     lector.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
-  }catch(e){sinCamara(e.name);return;}
-  if(!$('#ovEscaner').classList.contains('abierto')){detenerCamara();return;}
+  // Si mientras tanto la persona pasó a escribir el código (o ya ve un resultado), el aviso de la cámara no lo tapa
+  }catch(e){if($('#escVideo'))sinCamara(e.name);return;}
+  if(!$('#ovEscaner').classList.contains('abierto')||!$('#escVideo')){detenerCamara();return;}
   const v=$('#escVideo');v.srcObject=lector.stream;
   try{await v.play();}catch(e){}
   lector.detector=null;
@@ -4526,11 +4530,14 @@ async function _procesarUsuario(user){
   if(user.isAnonymous){estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
   cerrar('ovLogin');ocultarSplashSesion();
   estado.favoritos=ls.get(claveFav(),[]);
+  estado.perfilReal=false;
+  // Con perfil guardado se entra de una vez; el de Firestore llega después y reemplaza a este
   estado.perfil=ls.get('fc_perfil_'+user.uid,null);
+  if(estado.perfil){refrescarTodo();marcarListo('perfil');}
   let snap=null,cuentaNueva=false;
   try{snap=await db.collection('usuarios').doc(user.uid).get();}catch(e){console.warn('Perfil sin conexión');}
   if(snap&&snap.exists){
-    estado.perfil=snap.data();
+    estado.perfil=snap.data();estado.perfilReal=true;
     const nube=estado.perfil.favoritos||[];
     estado.favoritos=[...new Set([...nube,...estado.favoritos])];
     if(estado.favoritos.length!==nube.length)db.collection('usuarios').doc(user.uid).update({favoritos:estado.favoritos}).catch(()=>{});
@@ -4541,8 +4548,8 @@ async function _procesarUsuario(user){
       const r=await pedirConsentimiento();
       if(!r){await auth.signOut();toast('Sin tu autorización no podemos crear la cuenta.');return;}
     }
-    try{estado.perfil=await crearPerfil(user,{...datos,nombre:estado.usuario.nombre});cuentaNueva=true;}
-    catch(e){console.error(e);const s2=await db.collection('usuarios').doc(user.uid).get().catch(()=>null);estado.perfil=s2&&s2.exists?s2.data():null;}
+    try{estado.perfil=await crearPerfil(user,{...datos,nombre:estado.usuario.nombre});estado.perfilReal=true;cuentaNueva=true;}
+    catch(e){console.error(e);const s2=await db.collection('usuarios').doc(user.uid).get().catch(()=>null);estado.perfil=s2&&s2.exists?s2.data():null;estado.perfilReal=!!estado.perfil;}
   }
   ls.del('fc_registro_pendiente');
   if(estado.perfil){const p={...estado.perfil};p.fecha_consentimiento=aMs(p.fecha_consentimiento);ls.set('fc_perfil_'+user.uid,p);}
@@ -4604,7 +4611,7 @@ auth.onAuthStateChanged(user=>{
   if(!user||user.isAnonymous)marcarListo('perfil');
   // Se esperaba una sesión que ya no existe: se muestra la entrada completa con sus botones
   if((!user||user.isAnonymous)&&$('#splash').classList.contains('corto'))mostrarSplash();
-  if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.favoritos=[];refrescarTodo();return;}
+  if(!user){dejarDeEscucharMisComercios();dejarDeEscucharAdmin();estado.usuario=null;estado.perfil=null;estado.perfilReal=false;estado.favoritos=[];refrescarTodo();return;}
   if(!registroPendiente)registroPendiente=ls.get('fc_registro_pendiente',null);
   procesarUsuario(user).catch(()=>{}).finally(()=>marcarListo('perfil'));
 });
@@ -4772,7 +4779,8 @@ function reportar(d,resena){
 }
 
 /* ===== PANEL DE ADMINISTRACIÓN (Fase 2.1) — ruta #/admin, solo rol admin ===== */
-function esAdmin(){return logueado()&&estado.perfil&&estado.perfil.rol==='admin';}
+// La copia del perfil guardada en el teléfono nunca habilita el rol admin: hace falta el perfil real de Firestore
+function esAdmin(){return logueado()&&estado.perfilReal&&!!estado.perfil&&estado.perfil.rol==='admin';}
 estado.admin={tab:'aprobar',datos:null,cargando:false};
 async function cargarAdmin(){
   if(!esAdmin())return;
@@ -5496,24 +5504,27 @@ $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
 function ocultarSplash(){const sp=$('#splash');sp.classList.add('oculto');sp.setAttribute('aria-hidden','true');colorBarra('--bg');}
 // Al volver a la pantalla de entrada (p. ej. al cerrar sesión) se ve completa y quieta, con sus botones
-function mostrarSplash(){const sp=$('#splash');sp.classList.remove('oculto','corto','demo');sp.classList.add('saltar');sp.removeAttribute('aria-hidden');colorBarra('--primary-500');}
+function mostrarSplash(){salirAlEstarLista=false;const sp=$('#splash');sp.classList.remove('oculto','corto','demo');sp.classList.add('saltar');sp.removeAttribute('aria-hidden');colorBarra('--primary-500');}
 /* Pantalla de entrada (v4 · Fase 4; v7 · Fase 5). Su HTML se pinta una sola vez y nunca se vuelve a generar.
-   - Con sesión: animación corta del logo; se va cuando la app está lista y pasaron al menos 1,6 s (se desvanece en 300 ms).
-   - Invitados: animación completa; los botones aparecen cuando la app está lista y la pantalla no avanza sola.
-   - Si a los 8 s la app aún no está lista: «Cargando… revisa tu conexión» con Reintentar.
+   - Con sesión: animación corta del logo; se va con lo primero que pase: la app está lista (y pasaron al menos 1,6 s)
+     o se cumplen 3 s desde la apertura (se desvanece en 300 ms). La vista se completa sola cuando llegan los datos.
+   - Invitados: animación completa (botones del todo visibles a los 2,05 s); aparecen cuando la app está lista y la pantalla no avanza sola.
+   - Si a los 8 s la app aún no está lista y el teléfono no tiene ninguna copia: «Cargando… revisa tu conexión» con Reintentar.
    ?demo=1 siempre muestra la completa. */
 // Se cuenta desde que se abrió la página (performance.now() empieza en 0 al navegar), no desde que cargó este archivo
-const SPLASH={min:1600,lento:8000};
+const SPLASH={min:1600,max:3000,lento:8000};
 let salirAlEstarLista=false;
 function marcarSesion(on){try{on?localStorage.setItem('fc_con_sesion','1'):localStorage.removeItem('fc_con_sesion');}catch(e){}}
-// Con sesión, la entrada se va cuando la app esté lista y hayan pasado 1,6 s desde el arranque (salvo en modo demostración)
+// Con sesión, ¿ya debe irse la entrada a los t ms de la apertura? Lista y con 1,6 s cumplidos, o 3 s en cualquier caso
+function salidaSplash(t){return t>=SPLASH.max||(appLista()&&t>=SPLASH.min);}
 function ocultarSplashSesion(){salirAlEstarLista=true;intentarSalirSplash();}
 function intentarSalirSplash(){
   const sp=$('#splash');
-  if(!salirAlEstarLista||sp.classList.contains('oculto')||sp.classList.contains('demo')||!appLista())return;
-  const falta=SPLASH.min-performance.now();
-  if(falta>0){setTimeout(intentarSalirSplash,falta);return;}
-  ocultarSplash();
+  if(!salirAlEstarLista||sp.classList.contains('oculto')||sp.classList.contains('demo'))return;
+  const t=performance.now();
+  if(salidaSplash(t)){ocultarSplash();return;}
+  // Se vuelve a mirar al cumplirse el mínimo (si ya está lista) o el máximo; marcarListo también lo llama
+  setTimeout(intentarSalirSplash,(appLista()?SPLASH.min:SPLASH.max)-t);
 }
 // Vuelve a reproducir la animación completa sin regenerar el HTML (botón del admin en Perfil)
 function verAnimacionEntrada(){
@@ -5529,8 +5540,8 @@ function verAnimacionEntrada(){
   const arco=ICONOS_ARCO.map(([n,x,y],i)=>'<span class="splash-ico" style="--x:'+x+'px;--y:'+y+'px;--i:'+i+'" aria-hidden="true"><span class="splash-ico-in">'+icon(n,20)+'</span></span>').join('');
   $('#splashMarca').innerHTML=logo('vertical','lila',{alto:120,lema:true,extraIso:arco});
   if(sp.classList.contains('corto'))ocultarSplashSesion();
-  // Conexión lenta: a los 8 s se ofrece reintentar o entrar con los datos guardados en el teléfono
-  setTimeout(()=>{if(!arranque.listo&&!sp.classList.contains('oculto')){$('#splashLento').hidden=false;medir('arranque_lento',{online:navigator.onLine});}},Math.max(0,SPLASH.lento-performance.now()));
+  // Primera visita con conexión lenta: a los 8 s se ofrece reintentar o entrar con los datos guardados en el teléfono
+  setTimeout(()=>{if(!arranque.listo&&!arranque.copia&&!sp.classList.contains('oculto')){$('#splashLento').hidden=false;medir('arranque_lento',{online:navigator.onLine});}},Math.max(0,SPLASH.lento-performance.now()));
   $('#sReintentar').onclick=()=>window.location.reload();
   $('#sEntrarIgual').onclick=()=>{arranque.listo=true;sp.classList.add('lista');sp.removeAttribute('aria-busy');$('#splashLento').hidden=true;
     if(sp.classList.contains('corto')||conCuenta())ocultarSplash();};

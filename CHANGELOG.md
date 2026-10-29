@@ -8,6 +8,21 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+Lo que va de la v1.2.0 (se publica por partes).
+
+### Cambiado
+- **Entrada más corta (parte 1).** Con sesión, la pantalla de entrada se va con lo primero que pase: la app está lista (mínimo 1,6 s) o se cumplen 3 s (`SPLASH.max`). Ya no espera a la nube: si el teléfono tiene una copia del directorio (`datos.js` y la persistencia de Firestore de una visita anterior, marcada con `fc_nube_ok`) o el perfil guardado (`fc_perfil_<uid>`), entra con eso y `onSnapshot` actualiza la vista cuando llegan los datos.
+- El rol admin solo se habilita con el perfil real de Firestore (`estado.perfilReal`), nunca con la copia del teléfono.
+- Invitado: la animación de entrada va un 25 % más rápida y los botones «Registrarse» y «Solo explorar» se ven completos a los 2,05 s de aparecer la pantalla (antes, 3,3 s). El aviso «Cargando… revisa tu conexión» de los 8 s queda solo para cuando el teléfono no tiene ninguna copia.
+- PWA v64 (`fusa-v57`).
+
+### Corregido
+- Escáner de cupones: si el navegador tardaba en negar la cámara, el aviso «Necesitamos permiso para usar la cámara» aparecía tarde y tapaba el resultado del código escrito a mano.
+
+### Pruebas
+- Vitest: `appLista` y la regla del máximo (`salidaSplash`), 5 casos.
+- Playwright: entrada con sesión (≤ 3,5 s; medido 1,6 s), con la nube lenta (se va a los 3 s sin esperarla) e invitado (botones visibles ≤ 2,6 s desde la primera pintura; medido 2,0 s).
+
 ### Agregado
 - `docs/tecnologias-emergentes.md`: lo que ya funciona (IA generativa con llamadas a funciones, IA desde afiches, agenda automática, mapas 3D con relieve real, grabación GPS, PWA offline-first, TWA y analítica Umami) con su evidencia en `docs/evidencias/tecnologias/`.
 - `docs/entrega-sena/`: material para el documento técnico (capítulos 3 a 11). Incluye arquitectura en Mermaid (7 diagramas, también en PNG), los 9 endpoints con respuestas reales de producción, la estructura del repositorio, comandos y resultados de pruebas con capturas, y una guía de qué cambiar en cada capítulo.

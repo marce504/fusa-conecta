@@ -263,7 +263,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .splash.oculto{opacity:0;transform:scale(1.03);pointer-events:none}
 .splash-inner{height:100%;display:flex;flex-direction:column;padding:24px 24px calc(24px + var(--safe-b))}
 .splash-centro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px}
-.splash-cta{position:relative;display:flex;flex-direction:column;gap:12px;animation:subir .5s var(--ease-out) 2.8s both}
+.splash-cta{position:relative;display:flex;flex-direction:column;gap:12px;animation:subir .35s var(--ease-out) 1.7s both}
 .splash-cta .btn{min-height:52px;width:100%}
 /* v7 · Fase 5: los botones aparecen cuando la app está lista; si tarda más de 8 s, el aviso ocupa su lugar */
 .splash:not(.lista) .splash-cta{visibility:hidden}
@@ -1009,30 +1009,30 @@ button:disabled{opacity:.6;pointer-events:none}
 .splash .btn-splash-2:hover{background:var(--blanco-14)}
 /* 0,2–1,3 s: las 4 hojas entran volando desde 4 direcciones, girando, escalonadas 150 ms */
 .splash .logo-iso path{transform-box:fill-box;transform-origin:center}
-.splash .logo-iso .h1{animation:hoja1 .65s var(--ease-spring) .2s both}
-.splash .logo-iso .h2{animation:hoja2 .65s var(--ease-spring) .35s both}
-.splash .logo-iso .h3{animation:hoja3 .65s var(--ease-spring) .5s both}
-.splash .logo-iso .h4{animation:hoja4 .65s var(--ease-spring) .65s both}
+.splash .logo-iso .h1{animation:hoja1 .49s var(--ease-spring) .15s both}
+.splash .logo-iso .h2{animation:hoja2 .49s var(--ease-spring) .26s both}
+.splash .logo-iso .h3{animation:hoja3 .49s var(--ease-spring) .38s both}
+.splash .logo-iso .h4{animation:hoja4 .49s var(--ease-spring) .49s both}
 @keyframes hoja1{from{opacity:0;transform:translate(70px,-110px) rotate(170deg) scale(.2)}to{opacity:1;transform:none}}
 @keyframes hoja2{from{opacity:0;transform:translate(-120px,-20px) rotate(-200deg) scale(.2)}to{opacity:1;transform:none}}
 @keyframes hoja3{from{opacity:0;transform:translate(120px,50px) rotate(140deg) scale(.2)}to{opacity:1;transform:none}}
 @keyframes hoja4{from{opacity:0;transform:translate(-50px,130px) rotate(-160deg) scale(.2)}to{opacity:1;transform:none}}
-/* 1,35 s: squash & stretch del isotipo */
-.splash .logo-v .logo-iso{transform-origin:50% 100%;animation:aplastar .5s var(--ease-out) 1.35s both}
+/* 1 s: squash & stretch del isotipo */
+.splash .logo-v .logo-iso{transform-origin:50% 100%;animation:aplastar .38s var(--ease-out) 1.01s both}
 @keyframes aplastar{0%{transform:none}30%{transform:scale(1.15,.88)}65%{transform:scale(.95,1.06)}100%{transform:none}}
-/* 1,4 s: 5 íconos salen del centro y quedan flotando (±4 px en 4 s) en arco por encima y a los lados (nunca a la altura del nombre).
+/* 1,05 s: 5 íconos salen del centro y quedan flotando (±4 px en 4 s) en arco por encima y a los lados (nunca a la altura del nombre).
    Un solo elemento animado por ícono: salir usa translate/scale y flotar usa transform, así no se pisan. */
 .splash-ico{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;transform:translate(var(--x),var(--y))}
 .splash-ico-in{display:grid;place-items:center;width:100%;height:100%;border-radius:var(--radius-full);background:var(--blanco-14);color:var(--blanco);opacity:.85;
   will-change:transform,translate,scale,opacity;backface-visibility:hidden;-webkit-backface-visibility:hidden;
-  animation:salirIco .6s var(--ease-spring) calc(1.4s + var(--i) * 60ms) both,flotarIco 4s ease-in-out calc(2.1s + var(--i) * 60ms) infinite both}
+  animation:salirIco .45s var(--ease-spring) calc(1.05s + var(--i) * 45ms) both,flotarIco 4s ease-in-out calc(1.58s + var(--i) * 45ms) infinite both}
 @keyframes salirIco{from{opacity:0;translate:calc(var(--x) * -1) calc(var(--y) * -1);scale:.2}to{opacity:.85;translate:0 0;scale:1}}
 @keyframes flotarIco{0%,100%{transform:translateY(0)}25%{transform:translateY(-4px)}75%{transform:translateY(4px)}}
-/* 1,9 s "Fusa" y 2,05 s "Conecta" suben con rebote; 2,5 s el lema; 2,8 s los botones */
+/* 1,43 s "Fusa" y 1,54 s "Conecta" suben con rebote; 1,6 s el lema; 1,7 s los botones (del todo visibles a los 2,05 s) */
 .splash .logo-nom b,.splash .logo-nom>span{display:inline-block}
-.splash .logo-nom b{animation:subirRebote .55s var(--ease-spring) 1.9s both}
-.splash .logo-nom>span{animation:subirRebote .55s var(--ease-spring) 2.05s both}
-.splash .logo-lema{animation:subir .5s var(--ease-out) 2.5s both}
+.splash .logo-nom b{animation:subirRebote .41s var(--ease-spring) 1.43s both}
+.splash .logo-nom>span{animation:subirRebote .41s var(--ease-spring) 1.54s both}
+.splash .logo-lema{animation:subir .38s var(--ease-out) 1.6s both}
 @keyframes subirRebote{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 /* ---------- Banner: el texto ocupa máximo el 62 % de la diapositiva; la ilustración se reserva el resto.
    En celulares angostos la diapositiva crece en vez de cortar texto (todas quedan del mismo alto). ---------- */
