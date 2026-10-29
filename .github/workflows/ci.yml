@@ -112,7 +112,8 @@ jobs:
 
   e2e:
     name: Extremo a extremo (Playwright, 390×844)
-    runs-on: ubuntu-latest
+    # Playwright 1.55 instala sus dependencias de sistema para Ubuntu 24.04; ubuntu-latest está pasando a Ubuntu 26
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
