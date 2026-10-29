@@ -12,7 +12,7 @@ Material para actualizar los capítulos 3 a 11 del documento técnico (GFPI-F-13
 | API REST: documentación interactiva (OpenAPI) | https://fusa-conecta-api.onrender.com/docs |
 | API REST: estado | https://fusa-conecta-api.onrender.com/v1/salud |
 | Repositorio | https://github.com/marce504/fusa-conecta |
-| Integración continua (última corrida en verde) | https://github.com/marce504/fusa-conecta/actions/runs/40803962146 |
+| Integración continua (última corrida en verde) | https://github.com/marce504/fusa-conecta/actions/runs/40966175554 |
 | Versiones y cambios | https://github.com/marce504/fusa-conecta/tags · `CHANGELOG.md` |
 
 La API está en el plan gratuito de Render y se duerme tras 15 minutos sin uso: la primera petición tarda de 30 a 60 s.
