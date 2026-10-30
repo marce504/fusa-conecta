@@ -507,3 +507,18 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   expect(await municipios()).toEqual(['Fusagasugá', 'Pasca']);
   await page.screenshot({ path: info.outputPath('3-inicio-fusa-y-pasca.png') });
 });
+
+// Invitación de organizador (v1.3.0): el enlace abre «Crea tu cuenta» con el correo invitado
+test('invitación de organizador: el enlace abre el registro con el correo escrito', async ({ page }, info) => {
+  const correo = 'cultura.pasca.e2e@fusa.test';
+  await page.goto(`${APP}&organizador=${encodeURIComponent(correo)}`);
+  await expect(page.locator('#ovLogin')).toHaveClass(/abierto/);
+  await expect(page.locator('#loginTitulo')).toHaveText('Crea tu cuenta');
+  await expect(page.locator('#mail')).toHaveValue(correo);
+  await expect(page.locator('#loginAviso')).toContainText('Invitación para publicar los eventos');
+  await sinAvisoEmulador(page);
+  await page.screenshot({ path: info.outputPath('1-registro-invitacion.png') });
+  // El mensaje que copia el admin trae ese mismo enlace
+  const mensaje = await page.evaluate(c => window.mensajeInvitacion(c), correo);
+  expect(mensaje).toContain(`https://fusa-conecta.web.app/?organizador=${encodeURIComponent(correo)}`);
+});

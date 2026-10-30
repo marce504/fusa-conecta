@@ -154,3 +154,20 @@ def test_unir_parecidos_en_una_corrida():
     otro = ev("Feria Ruta Mujer Emprende", DIA_DULCE_TARDE["inicio"], "La Querencia Centro Comercial")
     res = agenda.unir_parecidos([DIA_DULCE_MANANA, otro, DIA_DULCE_TARDE])
     assert [e["titulo"] for e in res] == ["Día Dulce", "Feria Ruta Mujer Emprende"]
+
+
+def test_ultima_publicacion_por_tipo():
+    """Caso real de Pasca (2026-10-29): la última noticia es de febrero, pero el último evento se publicó en octubre."""
+    items = [
+        {"contentType": "Article", "modifiedDate": "2026-02-23T01:01:44.483"},
+        {"contentType": "Article", "modifiedDate": "2022-11-29T09:16:55.05"},
+        {"contentType": "Event", "modifiedDate": "2026-10-19T10:00:00", "startingDate": "2026-10-25T11:00:00"},
+        {"contentType": "Document", "modifiedDate": "2026-10-24T08:00:00"},
+    ]
+    assert agenda.de_ms(agenda.ultima_publicacion(items, "Article")).astimezone(agenda.ZONA_COL).date().isoformat() == (
+        "2026-02-23"
+    )
+    assert agenda.de_ms(agenda.ultima_publicacion(items, "Event")).astimezone(agenda.ZONA_COL).date().isoformat() == (
+        "2026-10-19"
+    )
+    assert agenda.ultima_publicacion([], "Event") is None

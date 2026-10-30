@@ -287,6 +287,8 @@ function fechaEvento(e){
 }
 const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};
 const precioEv=e=>e.gratis?'Gratis':(e.precio||'Con costo');
+// v1.3.0: los eventos de Pasca dicen «Pasca» en la tarjeta, para no confundirlos con los de Fusagasugá
+const lugarEv=e=>esc(e.lugar_nombre)+(municipioDe(e)==='Pasca'&&!/pasca/i.test(e.lugar_nombre||'')?' · Pasca':'');
 // Eventos sin foto: ilustración de línea sobre el color de su categoría (no un gris)
 const DECO_EV='<svg class="ev-ilu-deco" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">'
   +'<circle cx="22" cy="20" r="6"/><path d="M132 14l6 6m0-6l-6 6M40 44h8M44 40v8M118 46h6M121 43v6"/><circle cx="142" cy="72" r="3"/>'
@@ -299,7 +301,7 @@ function tarjetaEventoHTML(e){
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +(e.fuente_oficial?'<p class="tc-linea ev-oficial">'+icon('badge-check',12)+'Fuente oficial</p>':'')
-    +'<p class="tc-linea">'+icon('map-pin',12)+esc(e.lugar_nombre)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
+    +'<p class="tc-linea">'+icon('map-pin',12)+lugarEv(e)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
 }
 // Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
 const puedePublicarEventos=()=>esAdmin()||esComerciante()||esOrganizador();
@@ -335,7 +337,7 @@ function filaEventoHTML(e){
   const c=catEvento(e.categoria);
   return '<article class="ev-fila">'+calBloque(e.ini)
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
-    +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+esc(e.lugar_nombre)+'</p>'
+    +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+lugarEv(e)+'</p>'
     +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
     +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':iluEvento(e,28,'ev-img'))+'</article>';
 }
@@ -1284,9 +1286,12 @@ async function aplicarInvitacion(user){
     toast('Tu cuenta quedó como organizador de eventos',4000);render(true);
   }catch(e){console.warn('Invitación:',e.code||e);}
 }
+// v1.3.0: el mensaje lleva un enlace que abre «Crea tu cuenta» con el correo invitado ya escrito
+const enlaceInvitacion=correo=>SITIO_URL+'/?organizador='+encodeURIComponent(correo);
 function mensajeInvitacion(correo){
-  return 'Hola. Te invitamos a publicar los eventos de tu organización en la agenda de Fusa Conecta. '
-    +'Entra a '+SITIO_URL+' y crea tu cuenta (o ingresa) con este correo: '+correo+'. Luego ve a Perfil → Agenda de eventos → «+».';
+  return 'Hola. Te invitamos a publicar los eventos de tu organización en la agenda de Fusa Conecta (Fusagasugá y Pasca). '
+    +'Abre este enlace y crea tu cuenta con el correo '+correo+': '+enlaceInvitacion(correo)+' . '
+    +'Verifica el correo y luego ve a Agenda → «+». Puedes subir la foto del afiche y la IA llena los datos del evento.';
 }
 async function cargarOrganizadores(){
   const [inv,us]=await Promise.all([db.collection('invitaciones').get(),db.collection('usuarios').where('rol','==','organizador').get()]);
@@ -1362,7 +1367,7 @@ function agendaAutoAdminHTML(){
     +(ult?'<p class="nota-c izq"><b>Última búsqueda:</b> '+esc(horaCol(ult))+' · '+esc(a.modo||'')+(a.duracion_s?' · '+a.duracion_s+' s':'')+'</p>'
       +'<div class="metricas aa-metricas">'+n(a.encontrados,'Encontrados')+n(a.publicados,'Publicados solos')+n(a.pendientes,'Por aprobar')+n(a.duplicados,'Ya existían')+'</div>'
       +'<ul class="aa-fuentes">'+(a.fuentes||[]).map(f=>'<li class="'+(f.ok?'ok':'mal')+'">'+icon(f.ok?'circle-check':'circle-x',18)+'<div><b>'+esc(f.nombre)+'</b><small>'
-        +(f.contenidos||0)+' contenidos · '+(f.eventos||0)+' eventos con fecha · '+(f.noticias||0)+' noticias recientes'+(f.error?' · '+esc(f.error):'')+'</small></div></li>').join('')+'</ul>'
+        +(f.contenidos||0)+' contenidos · '+(f.eventos||0)+' eventos con fecha · '+(f.noticias||0)+' noticias recientes'+(f.error?' · '+esc(f.error):'')+'</small>'+ultimaPublicacionHTML(f)+'</div></li>').join('')+'</ul>'
       +'<p class="nota-c izq">'+(a.con_ia?(a.noticias_leidas||0)+' noticias leídas con IA'+(a.noticias_sin_ia?' · '+a.noticias_sin_ia+' no se pudieron leer':''):'Sin clave de IA: '+(a.noticias_sin_ia||0)+' noticias quedaron sin leer (falta GEMINI_API_KEY en GitHub).')
         +(a.reparados?' · '+a.reparados+' eventos anteriores arreglados':'')+(a.unidos?' · '+a.unidos+(a.unidos===1?' duplicado unido':' duplicados unidos'):'')+(a.ejemplos_borrados?' · '+a.ejemplos_borrados+' de ejemplo borrados':'')+'</p>'
       +registroHTML(a.registro,a.motor)
@@ -1370,6 +1375,20 @@ function agendaAutoAdminHTML(){
     +(pendiente?'<p class="nota-c izq aa-pedido" role="status">'+icon('clock',16)+'Pedido enviado ('+esc(horaCol(ped))+'). El proceso lo toma en los próximos 15 minutos.</p>':'')
     +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" id="admAgendaYa"'+(pendiente?' disabled':'')+'>'+icon('refresh-cw',16)+'Buscar eventos ahora</button>'
     +'<a class="btn btn-ghost" href="'+ACCIONES_AGENDA+'" target="_blank" rel="noopener">'+icon('external-link',16)+'Ver en GitHub</a></div></div>';
+}
+// v1.3.0: cuándo publicó cada fuente su última noticia y su último evento. Más de 60 días = sitio desactualizado:
+// el proceso funciona, pero esa fuente no trae nada nuevo (la Alcaldía de Pasca no publica noticias desde febrero)
+function diasDesde(ms,ahora=Date.now()){return Math.floor((ahora-ms)/864e5);}
+function textoUltima(ms,que,ahora=Date.now()){
+  if(!ms)return {texto:'Sin '+que+' publicados',vieja:true};
+  const dias=diasDesde(ms,ahora);
+  return {texto:'Último'+(que==='noticias'?'a noticia':' evento publicado')+': '+fechaCorta(ms)+(dias>0?' (hace '+dias+(dias===1?' día':' días')+')':' (hoy)'),vieja:dias>60};
+}
+function ultimaPublicacionHTML(f){
+  if(!f.contenidos||!('ultima_noticia' in f))return '';
+  const n=textoUltima(aMs(f.ultima_noticia),'noticias'),e=textoUltima(aMs(f.ultimo_evento),'eventos');
+  return [n,e].map(x=>'<small class="'+(x.vieja?'aa-vieja':'')+'">'+esc(x.texto)+'</small>').join('')
+    +(n.vieja&&e.vieja?'<small class="aa-vieja">El sitio está desactualizado: el proceso funciona, pero esta fuente no publica nada nuevo.</small>':'');
 }
 // Últimas líneas del registro (logging) que dejan los procesos de Python en su resumen
 function registroHTML(lineas,motor){
@@ -4783,7 +4802,7 @@ function abrirNovedades(){
         +'<span class="nv-ic nv-mio">'+icon(n.resultado==='aprobado'?'circle-check':'circle-alert',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
         +'<small>'+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>':'')
     +(avisos.length?'<p class="dash-section">Avisos del municipio</p><div class="novedades">'+avisos.map(e=>'<button class="novedad'+((aMs(e.fecha_creacion)||0)>visto?' nueva':'')+'" data-aviso="'+esc(e.id)+'">'
-        +'<span class="nv-ic nv-aviso">'+icon('landmark',18)+'</span><span class="nv-tx"><b>'+esc(e.titulo)+'</b><span>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</span>'
+        +'<span class="nv-ic nv-aviso">'+icon('landmark',18)+'</span><span class="nv-tx"><b>'+esc(e.titulo)+'</b><span>'+esc(fechaEvento(e))+' · '+lugarEv(e)+'</span>'
         +'<small>'+esc(e.organizador||'Alcaldía')+'</small></span></button>').join('')+'</div>'
         +'<button class="btn btn-ghost" id="nvAvisos">'+icon('megaphone',16)+'Ver todos los avisos</button><p class="dash-section">Promociones</p>':'')
     +'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa y Pasca.</p>'
@@ -5925,6 +5944,20 @@ if(navigator.geolocation&&navigator.permissions){
   navigator.permissions.query({name:'geolocation'}).then(p=>{if(p.state==='granted')pedirUbicacion().then(()=>render(true));}).catch(()=>{});
 }
 // Accesos directos del ícono de la app (mantener presionado): ?ir=sos | ?ir=mapa | ?ir=agenda
+// Enlace de invitación de organizador (/?organizador=correo): abre «Crea tu cuenta» con ese correo. La invitación en sí
+// vive en invitaciones/{correo} (la crea el admin) y se aplica al entrar con ese correo verificado (aplicarInvitacion)
+(function(){
+  const correo=(new URLSearchParams(window.location.search).get('organizador')||'').trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))return;
+  const mostrar=()=>{
+    if(!arranque.listo){setTimeout(mostrar,300);return;}
+    ocultarSplash();
+    if(logueado()){if((estado.usuario.email||'').toLowerCase()!==correo)toast('Esta invitación es para '+correo+': cierra sesión y entra con ese correo.',5000);return;}
+    abrirLogin('registro',false,'Invitación para publicar los eventos de tu organización. Crea tu cuenta con este correo y verifícalo.');
+    correoAbierto=true;pintarModoLogin();$('#mail').value=correo;
+  };
+  mostrar();
+})();
 (function(){const ir=new URLSearchParams(window.location.search).get('ir');if(['sos','mapa','agenda'].includes(ir)){ocultarSplash();navegar({tipo:ir});}})();
 // Rutas profundas: #/lugar/<id> (QR del comercio), #/evento/<id>, #c/<id> (enlaces antiguos) y #/admin
 let adminPendiente=false;

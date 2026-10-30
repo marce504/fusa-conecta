@@ -41,6 +41,17 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   con «Grabar mi recorrido» y propónlo», con el botón.
 - La API devuelve en la ficha (`/v1/comercios/{id}`) los campos `correo`, `fuentes` y `aviso`.
 - La invitación «¿Tienes un negocio en Pasca?» cuenta solo los negocios con dueño, no los lugares oficiales.
+- **Agenda de Pasca (parte 3).** El panel admin muestra, en cada fuente de la agenda automática, la fecha de su
+  última noticia y de su último evento publicado (`ultima_noticia` y `ultimo_evento` en `agenda.py`). Si los dos
+  tienen más de 60 días, marca el sitio como desactualizado: el proceso funciona, pero la fuente no publica nada
+  nuevo. Diagnóstico de Pasca, fuentes revisadas e invitación en `docs/pasca-agenda.md`:
+  - el sitio de la Alcaldía no publica noticias desde febrero, pero sí publicó 5 festivales del 23 al 25 de octubre;
+  - la Gobernación no tiene API ni calendario;
+  - Facebook no se lee de forma automatizada.
+- **Enlace de invitación de organizador:** `/?organizador=correo` abre «Crea tu cuenta» con ese correo ya escrito. El
+  mensaje que copia el admin trae el enlace y explica cómo publicar con IA desde un afiche. Enlace preparado para la
+  Casa de la Cultura de Pasca.
+- Los eventos de Pasca dicen «· Pasca» junto al lugar en el carrusel, la Agenda y Novedades.
 - **Registrar mi negocio:** el municipio (Fusagasugá o Pasca) es obligatorio. El mapa del formulario se centra en el
   municipio elegido. Antes, todo negocio se guardaba como de Fusagasugá, incluso al editarlo.
 
@@ -57,7 +68,7 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   nombraban a Pasca.
 - La línea de filtros activos ya no muestra el municipio, porque se ve siempre en el selector. «Mis favoritos» muestra
   todos los guardados, sin importar el municipio.
-- PWA v68 (`fusa-v61`). Parte 2: PWA v69 (`fusa-v62`).
+- PWA v68 (`fusa-v61`). Parte 2: PWA v69 (`fusa-v62`). Parte 3: PWA v70 (`fusa-v63`).
 
 ### Pruebas
 - Vitest: `municipioDe`, `enMunicipio`, las opciones del selector y `municipioGuardado`.
@@ -70,6 +81,10 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   `/v1/rutas?municipio=`. Los 6 lugares de Pasca con su fuente y sin teléfono, y el aviso del páramo.
 - Playwright: con «Pasca» se ven la Alcaldía, el mensaje de senderos y las fichas del páramo (aviso oficial, sin
   «Llamar» ni «Cómo llegar») y de la Alcaldía (correo y fuente).
+- pytest: `ultima_publicacion` por tipo, con el caso real de Pasca: última noticia en febrero, último evento en
+  octubre.
+- Vitest: `lugarEv` («· Pasca») y `textoUltima` (más de 60 días = desactualizado).
+- Playwright: el enlace de invitación abre el registro con el correo escrito, y el mensaje del admin lo incluye.
 
 ## [1.2.0] - 2026-10-29 · Entrada más corta, barra con Inicio al centro y avisos al celular
 

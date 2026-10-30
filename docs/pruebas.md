@@ -21,7 +21,7 @@ Todas las pruebas usan el **emulador de Firebase** o datos de prueba: **nunca** 
 | Unitarias Python | **pytest 8** (`api/tests`, `automatizacion/tests`) | Utilidades de la API, estado abierto o cerrado (traducido de la app), exportación **GPX** e **ICS**, reportes **Excel y PDF**, deduplicación y títulos de la agenda (incluidos los eventos parecidos, como el caso real del Día Dulce), negocios sin foto o sin WhatsApp, limpieza diaria, **paridad** con la versión anterior en JavaScript | 100 % pasan; cobertura de la API ≥ 80 % |
 | API (servicio) | pytest + `TestClient` de FastAPI con repositorio falso | Los 10 endpoints: filtros, paginación, errores 401/403/404/409/422/503, CORS solo para la web, límite de peticiones (429); avisos con FCM simulado (tokens inválidos que se borran, mensajes de aprobado y rechazado, sin repetir) | 100 % pasan |
 | Integración | pytest contra los **emuladores de Firestore y Auth** (`firebase emulators:exec`) | La API real con tokens reales del emulador (solo lo publicado sale; reporte del dueño; estadísticas del admin) y los procesos guardando, deduplicando, reparando y limpiando | 100 % pasan |
-| Extremo a extremo | **Playwright 1.55** (`pruebas/e2e/`) en un celular de **390×844** contra el emulador | Ver los diez flujos, abajo | 100 % pasan |
+| Extremo a extremo | **Playwright 1.55** (`pruebas/e2e/`) en un celular de **390×844** contra el emulador | Ver los once flujos, abajo | 100 % pasan |
 | Rendimiento y accesibilidad | **Lighthouse CI 0.13** (Lighthouse 11, móvil, mediana de 3 corridas; `lighthouserc.json`) | Rendimiento, accesibilidad, buenas prácticas, SEO y PWA | **Accesibilidad ≥ 90** y **PWA ≥ 90** (bloquean); manifiesto instalable; rendimiento ≥ 60 solo como advertencia |
 | Estándares | ESLint, Prettier, black, flake8 | Estilo y errores comunes (`docs/estandares.md`) | 0 errores |
 
@@ -37,6 +37,7 @@ Flujos de extremo a extremo:
 8. **Barra inferior:** Mapa · Cupones · Inicio · Agenda · Perfil, cada uno abre su pantalla y queda marcado (`aria-current`), todos con área táctil ≥ 44 px. Un favorito guardado con el corazón aparece en Perfil → «Mis favoritos» (primera opción, con contador), que abre la lista con «Volver».
 9. **Avisos:** al abrir la app no se pide el permiso de notificaciones. Las reglas dejan a Rosa crear y borrar sus dispositivos, pero no leerlos, ni agregar campos, ni tocar los de otra persona, ni escribir novedades. La novedad «Para ti» aparece en la campana y abre Mi negocio (sin la pregunta de salir). Después de registrar un negocio se pregunta «¿Quieres que te avisemos aquí…?» con «Sí, avisarme» y «Ahora no». El push real (FCM) se prueba a mano en un Android (ver abajo).
 10. **Municipio:** el selector del Inicio muestra «Fusa y Pasca», «Fusagasugá» y «Pasca». Con «Pasca» elegido se ven solo lugares de Pasca, «Todo Pasca» y la tarjeta «¿Tienes un negocio en Pasca?». La elección sobrevive a la recarga y el mapa se centra en Pasca. Con «Fusa y Pasca» vuelven los dos municipios. Con «Pasca» también se ven la Alcaldía (lugar verificado) y el mensaje de senderos de Pasca. La ficha del páramo muestra el aviso oficial de Parques Nacionales sin «Llamar» ni «Cómo llegar», y la de la Alcaldía, el correo y la fuente sin teléfono.
+11. **Invitación de organizador:** `/?organizador=correo` abre «Crea tu cuenta» con el correo escrito, y el mensaje que copia el admin incluye ese enlace.
 
 ## Cómo correrlas
 
@@ -98,7 +99,7 @@ Abre la corrida → **Artifacts** → **informe-pruebas**.
 ## Resultados
 
 <!-- resultados:inicio -->
-Última corrida: 2026-10-30. Total: **163 pasan, 0 fallan, 8 omitidas**.
+Última corrida: 2026-10-30. Total: **167 pasan, 0 fallan, 8 omitidas**.
 
 **Lighthouse** (mediana de 3 corridas, móvil): Rendimiento 56 · Accesibilidad 100 · Buenas prácticas 100 · SEO 100 · PWA 100
 
@@ -107,12 +108,12 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 
 | Suite | Casos | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| Unitarias JavaScript (Vitest) | 57 | 57 | 0 | 0 |
+| Unitarias JavaScript (Vitest) | 59 | 59 | 0 | 0 |
 | Unitarias y de API Python (pytest) | 69 | 64 | 0 | 5 |
-| Procesos automáticos Python (pytest) | 27 | 24 | 0 | 3 |
+| Procesos automáticos Python (pytest) | 28 | 25 | 0 | 3 |
 | Integración: API contra el emulador | 5 | 5 | 0 | 0 |
 | Integración: procesos contra el emulador | 3 | 3 | 0 | 0 |
-| Extremo a extremo (Playwright, 390×844) | 10 | 10 | 0 | 0 |
+| Extremo a extremo (Playwright, 390×844) | 11 | 11 | 0 | 0 |
 
 | Suite | Caso | Resultado | Fecha |
 |---|---|---|---|
@@ -173,6 +174,8 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
 | Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
 | Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
@@ -242,6 +245,7 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
 | Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
 | Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
@@ -287,4 +291,5 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 | Extremo a extremo (Playwright, 390×844) | barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil → «Mis favoritos» | Pasa | 2026-10-30 |
 | Extremo a extremo (Playwright, 390×844) | avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» en la campana | Pasa | 2026-10-30 |
 | Extremo a extremo (Playwright, 390×844) | municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fusa y Pasca» muestra los dos | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | invitación de organizador: el enlace abre el registro con el correo escrito | Pasa | 2026-10-30 |
 <!-- resultados:fin -->

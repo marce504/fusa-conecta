@@ -1434,6 +1434,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .aviso-oficial .ic{flex-shrink:0;color:var(--sun-800);margin-top:2px}
 .aviso-oficial p{font-size:var(--text-sm);line-height:1.5}
 .aviso-oficial a{font-weight:600}
+.aa-fuentes small{display:block}
+.aa-fuentes .aa-vieja{color:var(--sun-800);font-weight:500}
 /* Cuadrícula de 2 columnas */
 .grid-tc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
 /* Categorías en tiles de 72 px (4 columnas) */

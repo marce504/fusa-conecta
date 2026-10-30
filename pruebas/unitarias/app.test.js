@@ -342,3 +342,26 @@ describe('Municipio: el filtro del selector', () => {
     expect(conLs('')).toBe('');
   });
 });
+
+// ---------------------------------------------------------------- agenda de Pasca (v1.3.0)
+describe('Agenda: Pasca en las tarjetas y fuentes desactualizadas', () => {
+  const esc = t => String(t);
+  const a = cargar(['municipioDe', 'lugarEv', 'diasDesde', 'textoUltima'], { esc, fechaCorta: () => '19 de oct' });
+  it('los eventos de Pasca dicen «Pasca»; los de Fusagasugá no cambian', () => {
+    expect(a.lugarEv({ lugar_nombre: 'Coliseo', municipio: 'Pasca' })).toBe('Coliseo · Pasca');
+    expect(a.lugarEv({ lugar_nombre: 'Parque principal de Pasca', municipio: 'Pasca' })).toBe(
+      'Parque principal de Pasca',
+    );
+    expect(a.lugarEv({ lugar_nombre: 'Estadio' })).toBe('Estadio');
+  });
+  it('textoUltima: más de 60 días es un sitio desactualizado', () => {
+    const ahora = Date.parse('2026-10-30T12:00:00-05:00');
+    const hace = d => ahora - d * 864e5;
+    expect(a.textoUltima(hace(11), 'eventos', ahora)).toEqual({
+      texto: 'Último evento publicado: 19 de oct (hace 11 días)',
+      vieja: false,
+    });
+    expect(a.textoUltima(hace(249), 'noticias', ahora).vieja).toBe(true);
+    expect(a.textoUltima(null, 'noticias', ahora)).toEqual({ texto: 'Sin noticias publicados', vieja: true });
+  });
+});

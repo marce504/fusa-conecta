@@ -727,6 +727,19 @@ def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:
 
 
 # ---------- Corrida ----------
+def ultima_publicacion(items: list[dict], tipo: str) -> int | None:
+    """Fecha más reciente (ms) en que la fuente publicó o editó un contenido de ese tipo («Article» = noticia,
+    «Event» = evento). En el panel admin muestra si un sitio está desactualizado y no que el proceso falle: el de Pasca
+    no publica noticias desde febrero, pero sí publicó eventos (festivales de octubre)."""
+    fechas = [
+        fecha_col(x.get(k))
+        for x in items
+        if x.get("contentType") == tipo
+        for k in ("publishedDateFrom", "modifiedDate")
+    ]
+    return max((f for f in fechas if f), default=None)
+
+
 def leer_fuentes(cliente: Any, ahora: int) -> tuple[list[dict], list[tuple[dict, Fuente]], list[dict]]:
     candidatos, noticias, resumen = [], [], []
     for f in FUENTES:
@@ -757,6 +770,8 @@ def leer_fuentes(cliente: Any, ahora: int) -> tuple[list[dict], list[tuple[dict,
                 "contenidos": len(items),
                 "eventos": len(ev),
                 "noticias": len(nt),
+                "ultima_noticia": de_ms(n) if (n := ultima_publicacion(items, "Article")) else None,
+                "ultimo_evento": de_ms(e) if (e := ultima_publicacion(items, "Event")) else None,
                 "error": f"{len(errores)} búsquedas fallaron ({errores[0]})" if errores else "",
             }
         )
