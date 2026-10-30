@@ -8,7 +8,7 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
-Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por partes).
+## [1.3.0] - 2026-10-30 · Pasca vuelve a estar en Fusa Conecta
 
 ### Agregado
 - **Selector de municipio en el Inicio (parte 1).** Debajo del buscador hay tres pastillas: «Fusa y Pasca» (por defecto),
@@ -41,6 +41,16 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   con «Grabar mi recorrido» y propónlo», con el botón.
 - La API devuelve en la ficha (`/v1/comercios/{id}`) los campos `correo`, `fuentes` y `aviso`.
 - La invitación «¿Tienes un negocio en Pasca?» cuenta solo los negocios con dueño, no los lugares oficiales.
+- **Verificación del directorio base (parte 4).** `docs/datos-base-verificacion.md` lista los 71 lugares de
+  Fusagasugá con «verificado: sí / no / no sé», la fuente y una nota. No se borró ni cambió nada:
+  - 13 «sí», confirmados con OpenStreetMap, un sitio oficial o el registro de su dueño;
+  - 40 «no», que parecen datos de ejemplo del prototipo: teléfonos con el patrón 310-111-00NN, 310-222-00NN,
+    310-444-00NN o 310-555-00NN, sin rastro en OpenStreetMap;
+  - 18 «no sé», que pueden existir pero no tienen una fuente que se pueda enlazar: las notarías, la Cruz Roja, la Casa
+    de la Mujer, algunos miradores y senderos, y las licoreras agregadas desde Google Maps sin enlace.
+
+  También quedan señalados los teléfonos de ejemplo de lugares que sí existen, como el Cerro Fusacatán o la Iglesia de
+  Belén.
 - **Agenda de Pasca (parte 3).** El panel admin muestra, en cada fuente de la agenda automática, la fecha de su
   última noticia y de su último evento publicado (`ultima_noticia` y `ultimo_evento` en `agenda.py`). Si los dos
   tienen más de 60 días, marca el sitio como desactualizado: el proceso funciona, pero la fuente no publica nada
@@ -220,7 +230,8 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
 ## [0.1.0] - 2026-06-13 · Prototipo
 - Primer prototipo del directorio de Fusagasugá.
 
-[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.2.0...develop
+[Sin publicar]: https://github.com/marce504/fusa-conecta/compare/v1.3.0...develop
+[1.3.0]: https://github.com/marce504/fusa-conecta/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/marce504/fusa-conecta/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/marce504/fusa-conecta/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/marce504/fusa-conecta/compare/v0.9.0...v1.0.0
