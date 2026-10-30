@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Fusa Conecta — Ciudad Jardín</title>
+<title>Fusa Conecta — Fusagasugá y Pasca</title>
 <meta name="description" content="Directorio inteligente de comercios, turismo y emergencias de Fusagasugá y Pasca.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 var h=new Date(Date.now()-18e6).getUTCHours();
 var o=t==='oscuro'||(t==='automatico'&&(h>=18||h<6))||(t==='sistema'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
 document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</script>
-<link rel="stylesheet" href="app.css?v=67">
+<link rel="stylesheet" href="app.css?v=68">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -45,6 +45,7 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
         <button class="btn-filtros" id="bFiltros" aria-label="Filtros"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="sliders-horizontal"></svg><span class="filtros-globo" id="filtrosGlobo" hidden></span></button>
         <div class="sugerencias" id="sugerencias"></div>
       </div>
+      <div class="sel-mun-fila" id="selMunicipio"></div>
       <div class="plegable" id="plegBanner" hidden><div class="banner" id="banner" role="region" aria-roledescription="carrusel" aria-label="Novedades de Fusa Conecta"></div></div>
       <div class="fila-chips"><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
       <div class="fila-chips fila-sub vacia" id="filaSub"><div class="subcats" id="subcats" aria-label="Subcategorías"></div></div>
@@ -179,12 +180,12 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=67"></script>
+<script src="icons.js?v=68"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=67"></script>
-<script src="app.js?v=67"></script>
+<script src="datos.js?v=68"></script>
+<script src="app.js?v=68"></script>
 </body>
 </html>

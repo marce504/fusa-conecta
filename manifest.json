@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "Fusa Conecta — Ciudad Jardín",
+  "name": "Fusa Conecta — Fusagasugá y Pasca",
   "short_name": "Fusa Conecta",
   "description": "Directorio de comercios, turismo, rutas y emergencias de Fusagasugá y Pasca.",
   "lang": "es-CO",
@@ -26,13 +26,13 @@
       "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Mapa de Fusa",
+      "name": "Mapa de Fusa y Pasca",
       "short_name": "Mapa",
       "url": "/?ir=mapa",
       "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Agenda: qué hacer en Fusa",
+      "name": "Agenda: qué hacer en Fusa y Pasca",
       "short_name": "Agenda",
       "url": "/?ir=agenda",
       "icons": [{ "src": "img/icons/icon-192.png", "sizes": "192x192" }]

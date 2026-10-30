@@ -8,6 +8,45 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por partes).
+
+### Agregado
+- **Selector de municipio en el Inicio (parte 1).** Debajo del buscador hay tres pastillas: «Fusa y Pasca» (por defecto),
+  «Fusagasugá» y «Pasca». La elección queda guardada en el teléfono (`fc_municipio`). Es el mismo filtro de municipio
+  de la hoja de Filtros (`estado.filtros.municipio`), no uno nuevo. Filtra:
+  - los carruseles del Inicio, los mosaicos, «Cupones de la semana» y la lista;
+  - el mapa: se centra en el municipio elegido y tiene el botón «Ir a Pasca» (4.30783, -74.30018, según OpenStreetMap);
+  - la agenda y el banner del fin de semana;
+  - el asistente, que usa el municipio elegido si la persona no pide otro.
+  La Agenda y el Mapa también muestran el selector.
+- **Sección «Pasca, puerta del Sumapaz»** en el Inicio, con los lugares de Pasca. Mientras haya menos de 6, termina
+  con la tarjeta «¿Tienes un negocio en Pasca? Publícalo gratis», que abre «Registrar mi negocio» con Pasca ya elegido.
+- **Registrar mi negocio:** el municipio (Fusagasugá o Pasca) es obligatorio. El mapa del formulario se centra en el
+  municipio elegido. Antes, todo negocio se guardaba como de Fusagasugá, incluso al editarlo.
+
+### Cambiado
+- Textos que nombraban solo a Fusa:
+  - «Qué hacer en Fusa» ahora dice «Qué hacer en Fusa y Pasca», o el municipio elegido;
+  - el pie de página dice «El directorio digital de Fusagasugá y Pasca, en la región del Sumapaz»;
+  - el `<title>` y el manifiesto dicen «Fusa Conecta — Fusagasugá y Pasca», y los atajos, «Mapa de Fusa y Pasca» y
+    «Agenda: qué hacer en Fusa y Pasca»;
+  - también cambiaron el saludo, los cupones vacíos, las Novedades, el texto para compartir un lugar y una regla nueva
+    del asistente.
+
+  La marca «Fusa Conecta» y el lema del logo no cambiaron. La meta descripción, el manifiesto y el aviso legal ya
+  nombraban a Pasca.
+- La línea de filtros activos ya no muestra el municipio, porque se ve siempre en el selector. «Mis favoritos» muestra
+  todos los guardados, sin importar el municipio.
+- PWA v68 (`fusa-v61`).
+
+### Pruebas
+- Vitest: `municipioDe`, `enMunicipio`, las opciones del selector y `municipioGuardado`.
+- Playwright: con «Pasca» elegido se ven solo lugares de Pasca, «Todo Pasca» y la invitación a publicar. La elección
+  sobrevive a la recarga. El mapa se centra en Pasca. Con «Fusa y Pasca» se ven los dos municipios. La semilla del
+  emulador trae un negocio de prueba en Pasca.
+- pytest: un negocio de Pasca aprobado sale en `/v1/comercios?municipio=Pasca` con su municipio, y no sale en
+  Fusagasugá.
+
 ## [1.2.0] - 2026-10-29 · Entrada más corta, barra con Inicio al centro y avisos al celular
 
 ### Cambiado

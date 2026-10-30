@@ -141,3 +141,23 @@ def test_limite_de_peticiones(cliente):
     codigos = [cliente.get("/v1/emergencias").status_code for _ in range(65)]
     assert codigos.count(200) == 60 and codigos[-1] == 429
     assert cliente.get("/v1/salud").status_code == 200  # la salud no cuenta para el límite
+
+
+def test_negocio_de_pasca_sale_con_su_municipio(cliente, repo):
+    """v1.3.0: un negocio de Pasca aprobado responde en ?municipio=Pasca y no en Fusagasugá."""
+    repo.datos["comercios"].append(
+        {
+            "id": "pasca1",
+            "nombre": "Tienda de Prueba Pasca",
+            "cat": "comercio",
+            "sub": "tiendas",
+            "municipio": "Pasca",
+            "propietario_uid": "otra",
+            "estado_publicacion": "aprobado",
+        }
+    )
+    r = cliente.get("/v1/comercios", params={"municipio": "Pasca"}).json()
+    assert r["total"] == 1 and r["resultados"][0]["id"] == "pasca1" and r["resultados"][0]["municipio"] == "Pasca"
+    fusa = cliente.get("/v1/comercios", params={"municipio": "Fusagasugá", "por_pagina": 50}).json()
+    assert all(x["municipio"] == "Fusagasugá" for x in fusa["resultados"]) and fusa["total"] > 0
+    assert "pasca1" not in [x["id"] for x in fusa["resultados"]]

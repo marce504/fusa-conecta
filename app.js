@@ -116,6 +116,8 @@ function confirmar(titulo,texto,si='Sí',no='No',icono='circle-help',peligro=fal
 }
 
 /* ===== ESTADO (ViewModel) ===== */
+// Municipio elegido en el selector del Inicio ('' = Fusa y Pasca), recordado en el teléfono
+function municipioGuardado(){const m=ls.get('fc_municipio','');return ['Fusagasugá','Pasca'].includes(m)?m:'';}
 const estado={
   usuario:null,       // {uid, nombre, email, anonimo, verificado}
   perfil:null,        // documento usuarios/{uid} (al arrancar puede ser la copia guardada en el teléfono)
@@ -126,9 +128,30 @@ const estado={
   pos:null,           // [lat,lng] del usuario si dio permiso
   online:navigator.onLine,
   sosMunicipio:'fusagasuga',
-  filtros:{abierto:false,cupon:false,municipio:'',orden:'recomendados'}  // hoja de Filtros del listado
+  filtros:{abierto:false,cupon:false,municipio:municipioGuardado(),orden:'recomendados'}  // hoja de Filtros del listado
 };
 function logueado(){return !!(estado.usuario&&!estado.usuario.anonimo);}
+/* ===== MUNICIPIO (v1.3.0): Fusa Conecta es de Fusagasugá y Pasca =====
+   El selector del Inicio («Fusa y Pasca», «Fusagasugá», «Pasca») es el mismo filtro de municipio de la hoja de Filtros
+   (estado.filtros.municipio; '' = los dos). Filtra los carruseles, la lista, el mapa, la agenda y el asistente. */
+const MUNICIPIOS=[['','Fusa y Pasca'],['Fusagasugá','Fusagasugá'],['Pasca','Pasca']];
+const PLAZA_PASCA=[4.30783,-74.30018];   // casco urbano de Pasca (OpenStreetMap, Nominatim)
+// Los lugares y eventos sin municipio son de Fusagasugá (así se cargó el directorio base)
+function municipioDe(x){return x&&x.municipio==='Pasca'?'Pasca':'Fusagasugá';}
+function enMunicipio(x,m){return !m||municipioDe(x)===m;}
+const municipioElegido=()=>estado.filtros.municipio||'';
+function nombreZona(m=municipioElegido()){return m||'Fusa y Pasca';}
+function selectorMunicipioHTML(){
+  const m=municipioElegido();
+  return '<div class="sel-mun" role="radiogroup" aria-label="Municipio">'+MUNICIPIOS.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(m===k)+'" class="chip-filtro'+(m===k?' on':'')+'" data-selmun="'+k+'">'+t+'</button>').join('')+'</div>';
+}
+function enlazarSelectorMunicipio(){$$('[data-selmun]').forEach(b=>(b.onclick=()=>elegirMunicipio(b.dataset.selmun)));}
+function elegirMunicipio(m){
+  if(!MUNICIPIOS.some(x=>x[0]===m))m='';
+  estado.filtros.municipio=m;ls.set('fc_municipio',m);medir('municipio',{municipio:m||'Fusa y Pasca'});
+  render(true);
+  const b=$('[data-selmun="'+m+'"]');if(b)b.focus();
+}
 // Ser comerciante ya no se elige al registrarse: se deriva de tener al menos un negocio aprobado (o ser admin)
 function esComerciante(){return logueado()&&(esAdmin()||comerciosPropios.some(c=>c.estado_publicacion==='aprobado'));}
 
@@ -254,7 +277,7 @@ function eventosEn(rango,cat){
   const ahora=Date.now(),hoyFin=new Date().setHours(23,59,59,999);
   const [desde,hasta]=rango==='hoy'?[ahora,hoyFin]:rango==='finde'?[inicioDelViernes(),finDelDomingo()]:[ahora,ahora+30*864e5];
   // «Avisos del municipio» es un filtro aparte; las demás vistas de la Agenda muestran solo planes
-  return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&(cat==='avisos'?esAviso(e):!esAviso(e)&&(!cat||e.categoria===cat)));
+  return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&enMunicipio(e,municipioElegido())&&(cat==='avisos'?esAviso(e):!esAviso(e)&&(!cat||e.categoria===cat)));
 }
 function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
 function fechaEvento(e){
@@ -287,8 +310,8 @@ const ILU_EVENTOS='<svg class="ev-vacio-ilu" viewBox="0 0 96 96" fill="none" str
   +'<rect x="16" y="22" width="56" height="54" rx="10"/><path d="M16 38h56M30 14v14M58 14v14"/><path d="M30 52h6M44 52h6M30 64h6M44 64h6"/>'
   +'<path d="M80 50v12M74 56h12M76 24l4 4M84 20v6"/></svg>';
 function seccionEventosHTML(){
-  const l=planesVigentes().slice(0,10);
-  return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en Fusa</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
+  const l=planesVigentes().filter(e=>enMunicipio(e,municipioElegido())).slice(0,10);
+  return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en '+nombreZona()+'</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
     +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
       :'<div class="ev-vacio">'+ILU_EVENTOS+'<div class="ev-vacio-tx"><p>Aún no hay eventos esta semana. ¿Sabes de uno?</p>'
         +'<button class="btn btn-primario btn-sm" data-sugerir>'+icon('calendar-plus',16)+textoSugerir()+'</button></div></div>')
@@ -296,8 +319,8 @@ function seccionEventosHTML(){
 }
 // Primera diapositiva del banner si hay eventos entre hoy y el domingo
 function slideFinDeSemana(){
-  const e=planesVigentes().find(x=>x.ini<=finDelDomingo());if(!e)return null;
-  return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en Fusa',tit:e.titulo,
+  const e=planesVigentes().find(x=>x.ini<=finDelDomingo()&&enMunicipio(x,municipioElegido()));if(!e)return null;
+  return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en '+(municipioDe(e)==='Pasca'?'Pasca':'Fusa'),tit:e.titulo,
     sub:fechaEvento(e)+' · '+e.lugar_nombre,accion:'agenda',textoBoton:'Ver agenda',ilu:'<span class="ilu-circulo">'+icon('calendar-days',30)+'</span>'};
 }
 function enlazarEventos(){
@@ -319,7 +342,8 @@ function filaEventoHTML(e){
 function renderAgenda(){
   const A=estado.agenda,l=eventosEn(A.rango,A.cat),avisos=A.cat==='avisos',nAvisos=eventosEn(A.rango,'avisos').length;
   const quien=textoSugerir();
-  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>'+(avisos?'Avisos del municipio':'Qué hacer en Fusa')+'</h2><span class="conteo">'+l.length+(avisos?(l.length===1?' aviso':' avisos'):(l.length===1?' evento':' eventos'))+'</span></div>'
+  $('#cuerpo').innerHTML='<div class="vista"><div class="head-v"><h2>'+(avisos?'Avisos del municipio':'Qué hacer en '+nombreZona())+'</h2><span class="conteo">'+l.length+(avisos?(l.length===1?' aviso':' avisos'):(l.length===1?' evento':' eventos'))+'</span></div>'
+    +selectorMunicipioHTML()
     +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
       .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
     +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'
@@ -672,6 +696,8 @@ function instruccionAsis(){
     +'- Los eventos con es_aviso_municipal=true son anuncios de la alcaldía (jornadas, vacunación, cortes de servicio), no planes: menciónalos solo si la persona pregunta por eso.\n'
     +'- Si no hay resultados, dilo con honestidad y propone otra búsqueda o categoría.\n'
     +'- Si alguien describe una emergencia (accidente, incendio, violencia, persona herida), indica primero llamar al 123 y llama a la función emergencias.\n'
+    +'- Fusa Conecta cubre Fusagasugá y Pasca, en la región del Sumapaz. Si la persona nombra un municipio, pásalo en el parámetro municipio.\n'
+    +(municipioElegido()?'- En la app la persona eligió ver '+municipioElegido()+': busca allí salvo que pida otro municipio.\n':'')
     +'- No pidas ni guardes datos personales. Si preguntan algo que no es de Fusagasugá o Pasca, explica con amabilidad que solo ayudas con la región.';
 }
 function herramientasAsis(S){
@@ -720,7 +746,8 @@ const FUNCIONES_ASIS={
     if(a.categoria)l=l.filter(d=>d.cat===a.categoria);
     if(!estado.mayorEdad){const hay=l.some(d=>d.cat==='bares');l=l.filter(d=>d.cat!=='bares');
       if(hay&&a.categoria==='bares')nota='Los bares solo se muestran a mayores de edad: la persona debe abrir la categoría Bares y confirmar su edad.';}
-    if(a.municipio)l=l.filter(d=>(d.municipio||'Fusagasugá')===a.municipio);
+    const mun=a.municipio||municipioElegido();
+    if(mun)l=l.filter(d=>enMunicipio(d,mun));
     l=filtrarTexto(l,a.texto);
     if(a.abiertoAhora)l=l.filter(d=>{const x=estadoApertura(d);return x&&x.abierto;});
     if(a.cercaDeMi){
@@ -737,6 +764,7 @@ const FUNCIONES_ASIS={
     let l=eventosVigentes().filter(e=>!e.demo&&e.ini<=hasta&&e.fin>=desde);   // los de ejemplo nunca llegan al asistente
     if(a.categoria)l=l.filter(e=>e.categoria===a.categoria);
     if(a.soloGratis)l=l.filter(e=>e.gratis);
+    const mun=a.municipio||municipioElegido();if(mun)l=l.filter(e=>enMunicipio(e,mun));
     return {total:l.length,eventos:l.slice(0,8).map(e=>({id:e.id,titulo:e.titulo,cuando:fechaEvento(e),lugar:e.lugar_nombre,municipio:e.municipio||'Fusagasugá',
       precio:precioEv(e),tipo:catEvento(e.categoria)[1],fuente_oficial:!!e.fuente_oficial,es_aviso_municipal:esAviso(e),descripcion:String(e.descripcion||'').slice(0,140)}))};
   },
@@ -1651,7 +1679,7 @@ const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de e
 function saludoDeHora(h=new Date(Date.now()-5*36e5).getUTCHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
   const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
-  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en Fusa?</span></div>'+pildoraRadioHTML();
+  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en '+(municipioElegido()==='Pasca'?'Pasca':municipioElegido()?'Fusa':'Fusa y Pasca')+'?</span></div>'+pildoraRadioHTML();
   $('#pRadio').onclick=radioAlternar;
 }
 function renderHeader(){
@@ -1665,6 +1693,7 @@ function renderHeader(){
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
   pintarSaludo();
+  $('#selMunicipio').innerHTML=selectorMunicipioHTML();enlazarSelectorMunicipio();
   const conBanner=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
   $('#cats').closest('.fila-chips').hidden=conBanner;
   $('#plegBanner').hidden=!conBanner;
@@ -1714,7 +1743,6 @@ function filtrosActivos(f=estado.filtros){
   const l=[];
   if(f.abierto)l.push(['abierto','Abierto ahora']);
   if(f.cupon)l.push(['cupon','Con cupón']);
-  if(f.municipio)l.push(['municipio',f.municipio]);
   if(f.orden&&f.orden!=='recomendados')l.push(['orden',ORDENES.find(o=>o[0]===f.orden)[1]]);
   return l;
 }
@@ -1732,7 +1760,7 @@ function abrirFiltros(){
   const pintar=()=>{
     abrirHoja('<div class="hoja-filtros"><h2 class="hoja-tit">Filtros</h2>'
       +[['abierto','clock','Abierto ahora'],['cupon','ticket','Con cupón']].map(([k,i,t])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
-      +'<span class="fil-lbl" id="lMun">Municipio</span><div class="seg" role="radiogroup" aria-labelledby="lMun">'+[['','Ambos'],['Fusagasugá','Fusagasugá'],['Pasca','Pasca']].map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.municipio===k)+'" class="'+(borrador.municipio===k?'on':'')+'" data-mun="'+k+'">'+t+'</button>').join('')+'</div>'
+      +'<span class="fil-lbl" id="lMun">Municipio</span><div class="seg" role="radiogroup" aria-labelledby="lMun">'+MUNICIPIOS.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.municipio===k)+'" class="'+(borrador.municipio===k?'on':'')+'" data-mun="'+k+'">'+t+'</button>').join('')+'</div>'
       +'<span class="fil-lbl" id="lOrden">Ordenar por</span><div class="seg" role="radiogroup" aria-labelledby="lOrden">'+ORDENES.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.orden===k)+'" class="'+(borrador.orden===k?'on':'')+'" data-orden="'+k+'">'+t+'</button>').join('')+'</div>'
       +'</div><div class="fil-pie"><button class="btn btn-ghost" id="filLimpiar">Limpiar</button><button class="btn btn-primario" id="filVer"></button></div>');
     $('#sheetGen').setAttribute('aria-label','Filtros');
@@ -1740,13 +1768,13 @@ function abrirFiltros(){
     $$('[data-fil]').forEach(x=>(x.onchange=()=>{borrador[x.dataset.fil]=x.checked;const cuantos=contar();$('#filVer').textContent='Ver '+cuantos+(cuantos===1?' lugar':' lugares');}));
     $$('[data-mun]').forEach(b=>(b.onclick=()=>{borrador.municipio=b.dataset.mun;pintar();}));
     $$('[data-orden]').forEach(b=>(b.onclick=()=>{borrador.orden=b.dataset.orden;pintar();}));
-    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,cupon:false,municipio:'',orden:'recomendados'});pintar();};
+    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,cupon:false,orden:'recomendados'});pintar();};
     $('#filVer').onclick=async()=>{
       if(borrador.orden==='cercanos'&&!estado.pos){
         const p=await pedirUbicacion();
         if(!p){toast('Activa tu ubicación para ordenar por cercanía');borrador.orden='recomendados';}
       }
-      estado.filtros={...borrador};cerrar('ovGen');render();
+      estado.filtros={...borrador};ls.set('fc_municipio',estado.filtros.municipio||'');cerrar('ovGen');render();
       medir('filtros',{activos:filtrosActivos().map(x=>x[1]).join(', ')||'ninguno'});
     };
   };
@@ -1788,10 +1816,10 @@ function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
   if(sub){const g=GRUPOS_SUB[sub];items=items.filter(d=>g?g.subs.includes(subDe(d)):subDe(d)===sub);}
   if(cat==='favoritos')items=items.filter(d=>estado.favoritos.includes(String(d.id)));
   if(cat==='todas'&&!estado.mayorEdad)items=items.filter(d=>d.cat!=='bares');
+  if(f.municipio&&cat!=='favoritos')items=items.filter(d=>enMunicipio(d,f.municipio));
   if(conFiltros){
     if(f.abierto)items=items.filter(d=>{const a=estadoApertura(d);return a&&a.abierto;});
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
-    if(f.municipio)items=items.filter(d=>(d.municipio||'Fusagasugá')===f.municipio);
   }
   return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
 }
@@ -1837,7 +1865,8 @@ function abrirWhatsApp(d){
 async function compartir(nombre,ruta){
   medir('compartir',{lugar:nombre});
   const url=window.location.origin+window.location.pathname+(ruta?'#'+ruta:'');
-  const text='Mira este lugar en Fusagasugá: '+nombre+'. Descúbrelo en Fusa Conecta.';
+  const lugar=buscar(decodeURIComponent(String(ruta||'').split('/').pop()));
+  const text='Mira este lugar en '+municipioDe(lugar)+': '+nombre+'. Descúbrelo en Fusa Conecta.';
   if(navigator.share){try{await navigator.share({title:nombre,text,url});}catch(e){}return;}
   window.open('https://wa.me/?text='+encodeURIComponent(text+' '+url),'_blank','noopener');
 }
@@ -1904,10 +1933,10 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
-      +'<div class="head-v" id="todoFusa"><h2>Todo Fusa Conecta</h2><span class="conteo">'+items.length+' lugares</span></div>'
-      +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
-      +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>';
+    html=asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+      +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+        +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
+        +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
   }else if(items.length){
     html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
@@ -1925,11 +1954,11 @@ function renderLista(v){
   }
   $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>(b.onclick=()=>{
-    estado.q='';estado.filtros={abierto:false,cupon:false,municipio:'',orden:'recomendados'};$('#busqueda').value='';
+    estado.q='';estado.filtros={abierto:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
-  enlazarEventos();
+  enlazarEventos();enlazarSeccionPasca();
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
   if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
@@ -2060,7 +2089,9 @@ function accionSlide(k){
   else if(k==='opinion')abrirOpinion('banner');
 }
 // "Registrar mi negocio": cualquier persona con cuenta; sin cuenta, primero se registra y luego sigue al asistente
-function registrarMiNegocio(){
+let municipioRegistro='';   // «Publícalo gratis» desde la sección de Pasca lo deja elegido
+function registrarMiNegocio(mun){
+  municipioRegistro=typeof mun==='string'?mun:'';
   if(logueado()){abrirFormComercio(null);return;}
   guardarAccionPendiente('negocio');
   abrirLogin('registro',false,'Crea tu cuenta gratis para registrar tu negocio.');
@@ -2115,7 +2146,7 @@ const TILES=[
   {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true}
 ];
 // Solo los mosaicos con lugares; "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
-function tileConLugares(x){const g=GRUPOS_SUB[x.sub];return x.agenda||database.some(d=>d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
+function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return x.agenda||database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
 function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
 function tilesHTML(){
   const l=TILES.filter(x=>!x.mas&&tileConLugares(x)),mas=TILES.some(x=>x.mas&&tileConLugares(x));
@@ -2153,13 +2184,29 @@ function seccionCercaHTML(){
 function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
-  const l=database.filter(d=>RUTAS[d.id]||subDe(d)==='sendero').sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
+  const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&enMunicipio(d,municipioElegido())).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
   return carruselHTML('Rutas','Rutas y senderos',l,'senderos');
 }
 // Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
 function seccionRecientesHTML(){
-  const l=paraCarrusel(database.filter(d=>d.creado).sort((a,b)=>b.creado-a.creado));
+  const l=paraCarrusel(database.filter(d=>d.creado&&enMunicipio(d,municipioElegido())).sort((a,b)=>b.creado-a.creado));
   return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
+}
+// «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras sean pocos, la invitación a publicar el suyo
+function seccionPascaHTML(){
+  if(municipioElegido()==='Fusagasugá')return '';
+  const todos=database.filter(d=>municipioDe(d)==='Pasca'&&(d.cat!=='bares'||estado.mayorEdad)),l=paraCarrusel(todos);
+  return '<section class="seccion-inicio seccion-pasca" aria-labelledby="tPasca"><div class="head-v"><h2 id="tPasca">Pasca, puerta del Sumapaz</h2>'
+    +(todos.length?'<button class="btn-ghost" data-pasca-todos>Ver todos</button>':'')+'</div>'
+    +'<div class="carrusel carrusel-tc">'+l.map(tarjetaHTML).join('')
+    +(todos.length<6?'<article class="tarjeta tarjeta-publica"><span class="tp-ic" aria-hidden="true">'+icon('store',28)+'</span>'
+      +'<h3 class="tc-nombre">¿Tienes un negocio en Pasca?</h3><p class="tc-linea">Publícalo gratis en Fusa Conecta</p>'
+      +'<button class="btn btn-primario btn-sm" data-pasca-negocio>'+icon('plus',16)+'Publicar</button></article>':'')
+    +'</div></section>';
+}
+function enlazarSeccionPasca(){
+  const n=$('[data-pasca-negocio]');if(n)n.onclick=()=>registrarMiNegocio('Pasca');
+  const t=$('[data-pasca-todos]');if(t)t.onclick=()=>{estado.filtros.municipio='Pasca';ls.set('fc_municipio','Pasca');navegar({tipo:'lista',cat:'todas',todo:true});};
 }
 function enlazarSecciones(){
   $$('#cuerpo [data-ir]').forEach(b=>(b.onclick=()=>{const k=b.dataset.ir;
@@ -2662,7 +2709,7 @@ function renderCuponesDisponibles(){
     +(l.length?'<div class="lista-tickets">'+l.map(({d,c})=>ticketHTML({icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c)),
         accion:'<div class="ticket-acc"><button class="btn btn-tonal btn-sm" data-obtener="'+esc(c.id)+'" data-com="'+esc(d.id)+'">'+(yaTengoCupon(c.id)?icon('wallet',18)+'Ver en mi billetera':'Obtener cupón')+'</button>'
           +'<button class="btn btn-ghost" data-vercom="'+esc(d.id)+'">Ver lugar</button></div>'})).join('')+'</div>'
-      :'<div class="vacio">'+icon('ticket',48)+'<b>Aún no hay cupones activos</b><p>Pronto habrá cupones de los negocios de Fusa. ¿Tienes un negocio? Publica el tuyo.</p>'
+      :'<div class="vacio">'+icon('ticket',48)+'<b>Aún no hay cupones activos</b><p>Pronto habrá cupones de los negocios de Fusa y Pasca. ¿Tienes un negocio? Publica el tuyo.</p>'
         +'<button class="btn btn-primario" id="bcNegocio">'+icon('store',18)+'Registrar mi negocio</button></div>')
     +'</div>'+footerHTML();
   const bn=$('#bcNegocio');if(bn)bn.onclick=registrarMiNegocio;
@@ -2675,7 +2722,7 @@ function renderCuponesDisponibles(){
 /* ---------- "Cupones de la semana" en el inicio ---------- */
 function cuponesDeLaSemana(){
   const l=[];
-  database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
+  database.filter(d=>enMunicipio(d,municipioElegido())).forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
   return l.sort((a,b)=>(aMs(b.c.fecha_creacion)||0)-(aMs(a.c.fecha_creacion)||0)).slice(0,10);
 }
 function seccionCuponesHTML(){
@@ -3086,14 +3133,19 @@ function pinUsuario(){return L.divIcon({className:'pin-fc yo',html:'<span></span
 async function renderMapa(){
   const cuerpo=$('#cuerpo');
   if(!estado.online){cuerpo.innerHTML='<div class="vista"><div class="mapa-off">'+icon('wifi-off',32)+'<b>Mapa no disponible sin conexión</b>El directorio, tus favoritos y las emergencias siguen funcionando.</div></div>';return;}
-  cuerpo.innerHTML='<div class="vista-mapa"><div class="mapa-head"><h2>Mapa de Fusa</h2><span id="mapaInfo">Cargando mapa…</span></div><div id="mapaGeneral" role="region" aria-label="Mapa de lugares"></div></div>';
+  const mun=municipioElegido(),centro=mun==='Pasca'?PLAZA_PASCA:PLAZA_FUSA;
+  cuerpo.innerHTML='<div class="vista-mapa"><div class="mapa-head"><h2>Mapa de '+nombreZona(mun)+'</h2><span id="mapaInfo">Cargando mapa…</span></div>'
+    +'<div class="mapa-mun">'+selectorMunicipioHTML()+'<button type="button" class="btn btn-tonal btn-sm" id="mapaIrPasca">'+icon('mountain',16)+'Ir a Pasca</button></div>'
+    +'<div id="mapaGeneral" role="region" aria-label="Mapa de lugares"></div></div>';
+  enlazarSelectorMunicipio();
   try{await cargarLeaflet();}catch(e){$('#mapaInfo').textContent='No se pudo cargar el mapa.';return;}
   if(vistaActual().tipo!=='mapa'||!$('#mapaGeneral'))return;
-  const m=L.map('mapaGeneral',{zoomControl:true}).setView(PLAZA_FUSA,14);mapaActivo=m;
+  const m=L.map('mapaGeneral',{zoomControl:true}).setView(centro,mun==='Pasca'?15:14);mapaActivo=m;
   capaBase().addTo(m);
+  $('#mapaIrPasca').onclick=()=>{m.setView(PLAZA_PASCA,15);medir('mapa_ir_pasca');};
   const grupo=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,
     iconCreateFunction:c=>L.divIcon({className:'cluster-fc',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})});
-  const items=database.filter(d=>d.lat&&d.lng&&(d.cat!=='bares'||estado.mayorEdad));
+  const items=database.filter(d=>d.lat&&d.lng&&(d.cat!=='bares'||estado.mayorEdad)&&enMunicipio(d,mun));
   items.forEach(d=>{
     const mk=L.marker([d.lat,d.lng],{icon:pinIcono(iconoDe(d),'pin-fc c-'+d.cat),title:d.nombre,alt:d.nombre});
     mk.bindPopup('<b>'+esc(d.nombre)+'</b><br><small>'+esc(etiquetaDe(d))+(d.ubicacion_aprox?' · ubicación aproximada':'')+'</small><br><button class="pop-ver" data-ver="'+esc(d.id)+'">Ver ficha</button>');
@@ -3105,7 +3157,7 @@ async function renderMapa(){
   const pos=await pedirUbicacion();
   if(pos&&mapaActivo===m){
     L.marker(pos,{icon:pinUsuario(),title:'Estás aquí'}).addTo(m).bindPopup('Estás aquí');
-    if(distanciaKm(pos,PLAZA_FUSA)<25)m.setView(pos,15);
+    if(mun!=='Pasca'&&distanciaKm(pos,PLAZA_FUSA)<25)m.setView(pos,15);
   }else if(mapaActivo===m){
     $('#mapaInfo').textContent='Activa tu ubicación para ver lo más cercano';
     const b=document.createElement('button');b.className='btn btn-tonal btn-sm';b.id='mapaGPS';b.innerHTML=icon('locate-fixed',16)+'Activar';
@@ -4285,7 +4337,9 @@ function abrirFormComercio(d,opc={}){
     datos:{nombre:d?d.nombre:'',cat:d?d.cat:'',sub:d?subDe(d):'',direccion:d?d.direccion:'',tel:d?d.tel:'',
       lat:d&&d.lat?d.lat:null,lng:d&&d.lng?d.lng:null,ubicacionExacta:!!(d&&d.lat&&!d.ubicacion_aprox),
       dias:d&&d.dias&&d.dias.length?d.dias.slice():[1,2,3,4,5,6],abre:d&&d.abre?d.abre:'08:00',cierra:d&&d.cierra?d.cierra:'18:00',
-      desc:d?d.desc:'',imagen:d?d.imagen:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':''}};
+      desc:d?d.desc:'',imagen:d?d.imagen:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':'',
+      municipio:d?municipioDe(d):(municipioRegistro||'')}};
+  municipioRegistro='';
   wiz.datos.fotos=fotosIniciales(d);
   pintarWizard();abrir('ovForm');
 }
@@ -4297,6 +4351,8 @@ function pintarWizard(){
   if(p===1){
     const subs=SUBCATS[d.cat]||[];
     cuerpo='<div class="campo"><label for="wNombre">Nombre del negocio <span class="req">*</span></label><input id="wNombre" maxlength="80" placeholder="Ej: Café de la Abuela" value="'+esc(d.nombre)+'"></div>'
+      +'<p class="lbl" id="wMunLbl">Municipio <span class="req">*</span></p><div class="seg seg-mun" role="radiogroup" aria-labelledby="wMunLbl">'
+      +['Fusagasugá','Pasca'].map(m=>'<button type="button" role="radio" aria-checked="'+(d.municipio===m)+'" class="'+(d.municipio===m?'on':'')+'" data-wmun="'+m+'">'+m+'</button>').join('')+'</div>'
       +'<p class="lbl">Categoría <span class="req">*</span></p><div class="tiles" role="radiogroup" aria-label="Categoría">'
       +CATS_FORM.map(([k,t])=>'<button type="button" class="tile cat-'+k+(d.cat===k?' on':'')+'" data-wcat="'+k+'" role="radio" aria-checked="'+(d.cat===k)+'"><span class="tile-ic">'+icon(ICONO_CAT[k],22)+'</span>'+t+'</button>').join('')+'</div>'
       +(subs.length?'<p class="lbl mt-16">Tipo de negocio <span class="req">*</span></p><div class="tiles tiles-sub" role="radiogroup" aria-label="Tipo de negocio">'
@@ -4342,6 +4398,7 @@ function pintarWizard(){
   if(p===1){
     $$('#sheetForm [data-wcat]').forEach(b=>(b.onclick=()=>{guardarPasoWiz();if(d.cat!==b.dataset.wcat){d.cat=b.dataset.wcat;d.sub='';}pintarWizard();}));
     $$('#sheetForm [data-wsub]').forEach(b=>(b.onclick=()=>{guardarPasoWiz();d.sub=b.dataset.wsub;pintarWizard();}));
+    $$('#sheetForm [data-wmun]').forEach(b=>(b.onclick=()=>{guardarPasoWiz();d.municipio=b.dataset.wmun;pintarWizard();}));
   }
   if(p===2){
     $('#wUbicar').onclick=async()=>{
@@ -4362,7 +4419,7 @@ function pintarWizard(){
 async function montarMapaWiz(){
   try{await cargarLeaflet();}catch(e){return;}
   if(!wiz||wiz.paso!==2||!$('#wMapa'))return;
-  const d=wiz.datos,centro=d.lat&&d.lng?[d.lat,d.lng]:PLAZA_FUSA;
+  const d=wiz.datos,centro=d.lat&&d.lng?[d.lat,d.lng]:d.municipio==='Pasca'?PLAZA_PASCA:PLAZA_FUSA;
   wizMapa=L.map('wMapa').setView(centro,d.lat?17:15);
   capaBase().addTo(wizMapa);
   const pin=L.marker(centro,{draggable:true,icon:pinIcono(d.cat?(ICONO_SUB[d.sub]||ICONO_CAT[d.cat]):'map-pin','pin-fc'+(d.cat?' c-'+d.cat:'')),title:'Ubicación del negocio'}).addTo(wizMapa);
@@ -4386,6 +4443,7 @@ function validarPasoWiz(){
   const d=wiz.datos;
   if(wiz.paso===1){
     if(!d.nombre)return 'Escribe el nombre del negocio';
+    if(!['Fusagasugá','Pasca'].includes(d.municipio))return 'Elige el municipio del negocio';
     if(!d.cat)return 'Elige una categoría';
     if(SUBCATS[d.cat]&&!d.sub)return 'Elige el tipo de negocio';
   }
@@ -4406,9 +4464,10 @@ async function publicarComercio(){
   const w=wiz,d=w.datos,cat=d.cat,sub=d.sub,tel=telLimpio(d.tel);
   const btn=$('#wEnviar'),txt=btn.innerHTML;btn.innerHTML='Guardando...';btn.disabled=true;
   try{
-    const datos={cat,categoria:cat,emoji:CAT[cat].emoji,nombre:d.nombre,desc:d.desc||'Negocio local de Fusagasugá.',
-      direccion:d.direccion||'Fusagasugá',tel,whatsapp:esCelular(tel)?tel:'',dias:d.dias,abre:d.abre,cierra:d.cierra,
-      horario:textoHorarioWiz(),municipio:'Fusagasugá',fecha_modificacion:FV.serverTimestamp()};
+    const mun=d.municipio==='Pasca'?'Pasca':'Fusagasugá';
+    const datos={cat,categoria:cat,emoji:CAT[cat].emoji,nombre:d.nombre,desc:d.desc||'Negocio local de '+mun+'.',
+      direccion:d.direccion||mun,tel,whatsapp:esCelular(tel)?tel:'',dias:d.dias,abre:d.abre,cierra:d.cierra,
+      horario:textoHorarioWiz(),municipio:mun,fecha_modificacion:FV.serverTimestamp()};
     if(cat==='turismo'){datos.tipo=sub;datos.sub='';}else datos.sub=SUBCATS[cat]?sub:'';
     if(d.lat&&d.lng){datos.lat=d.lat;datos.lng=d.lng;datos.ubicacion_aprox=!d.ubicacionExacta;}
     if(wizPremium()){datos.redesSociales=Object.fromEntries(Object.entries(d.redes).filter(([k,u])=>u));datos.sitioWeb=d.web;}
@@ -4426,7 +4485,7 @@ async function publicarComercio(){
       lote.update(ref,datos);await lote.commit();
       toast(reenviar?'Cambios enviados a revisión':'Cambios guardados');
     }else{
-      if(!datos.lat){datos.lat=PLAZA_FUSA[0];datos.lng=PLAZA_FUSA[1];datos.ubicacion_aprox=true;}
+      if(!datos.lat){const c=mun==='Pasca'?PLAZA_PASCA:PLAZA_FUSA;datos.lat=c[0];datos.lng=c[1];datos.ubicacion_aprox=true;}
       Object.assign(datos,{propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,
         redesSociales:{},sitioWeb:'',fechaCreacion:FV.serverTimestamp()});
       lote.set(ref,datos);await lote.commit();estado.comercioSel=ref.id;
@@ -4705,7 +4764,7 @@ function abrirNovedades(){
         +'<span class="nv-ic nv-aviso">'+icon('landmark',18)+'</span><span class="nv-tx"><b>'+esc(e.titulo)+'</b><span>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</span>'
         +'<small>'+esc(e.organizador||'Alcaldía')+'</small></span></button>').join('')+'</div>'
         +'<button class="btn btn-ghost" id="nvAvisos">'+icon('megaphone',16)+'Ver todos los avisos</button><p class="dash-section">Promociones</p>':'')
-    +'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa.</p>'
+    +'<p class="nota">Promociones y anuncios de los comercios destacados de Fusa y Pasca.</p>'
     +(lista.length?'<div class="novedades">'+lista.map(n=>'<button class="novedad'+((aMs(n.fecha_envio)||0)>visto?' nueva':'')+'" data-com="'+esc(n.comercio_id)+'">'
         +'<span class="nv-ic">'+icon('megaphone',18)+'</span><span class="nv-tx"><b>'+esc(n.titulo)+'</b><span>'+esc(n.mensaje)+'</span>'
         +'<small>'+esc(n.comercio_nombre||'')+' · '+fechaCorta(aMs(n.fecha_envio))+'</small></span></button>').join('')+'</div>'
@@ -5633,9 +5692,9 @@ window.addEventListener('offline',()=>{if(['sonando','conectando'].includes(radi
 /* ===== FOOTER ===== */
 function footerHTML(){
   return '<footer class="footer">'+logo('horizontal','claro',{alto:32})
-    +'<p>El directorio digital de Fusagasugá, la Ciudad Jardín del Sumapaz.</p>'
+    +'<p>El directorio digital de Fusagasugá y Pasca, en la región del Sumapaz.</p>'
     +'<div class="f-links"><button id="fApoyo">'+icon('message-circle-heart',16)+'Ayúdanos a mejorar</button><button id="fLegal">'+icon('file-text',16)+'Aviso legal</button></div>'
-    +'<p>© 2026 Fusa Conecta · Hecho en Fusagasugá</p></footer>';
+    +'<p>© 2026 Fusa Conecta · Hecho en el Sumapaz</p></footer>';
 }
 function enlazarFooter(){
   const fa=$('#fApoyo');if(fa)fa.onclick=()=>abrirOpinion('footer');
@@ -5645,7 +5704,7 @@ function enlazarFooter(){
 /* ===== BARRA INFERIOR (RF-04; v1.2.0) =====
    Mapa · Cupones · INICIO (botón central) · Agenda · Perfil. Mis favoritos está en Perfil. */
 // Sin buscador a la vista, la lista de favoritos se abre completa (sin la búsqueda ni los filtros que quedaran del inicio)
-function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,cupon:false,municipio:''};navegar({tipo:'lista',cat:'favoritos'});}
+function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,cupon:false};navegar({tipo:'lista',cat:'favoritos'});}
 function renderBottomNav(){
   const v=vistaActual();
   pintarGloboCupones();

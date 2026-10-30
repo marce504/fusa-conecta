@@ -312,3 +312,29 @@ describe('fichaIncompleta: aviso para el dueño', () => {
     expect(fichaIncompleta({ fotos: ['img/x.jpg'], whatsapp: '310 222 0014' })).toBe('');
   });
 });
+
+// ---------------------------------------------------------------- municipio (v1.3.0): Fusagasugá y Pasca
+describe('Municipio: el filtro del selector', () => {
+  const m = cargar(['municipioDe', 'enMunicipio', 'MUNICIPIOS']);
+  it('sin municipio, un lugar es de Fusagasugá (así se cargó el directorio base)', () => {
+    expect(m.municipioDe({})).toBe('Fusagasugá');
+    expect(m.municipioDe({ municipio: 'Pasca' })).toBe('Pasca');
+    expect(m.municipioDe(undefined)).toBe('Fusagasugá');
+  });
+  it('«Fusa y Pasca» deja pasar todo; cada municipio, solo lo suyo', () => {
+    const lugares = [{ id: 1 }, { id: 2, municipio: 'Fusagasugá' }, { id: 3, municipio: 'Pasca' }];
+    const ids = mun => lugares.filter(d => m.enMunicipio(d, mun)).map(d => d.id);
+    expect(ids('')).toEqual([1, 2, 3]);
+    expect(ids('Fusagasugá')).toEqual([1, 2]);
+    expect(ids('Pasca')).toEqual([3]);
+  });
+  it('las opciones del selector', () => {
+    expect(m.MUNICIPIOS.map(x => x[1])).toEqual(['Fusa y Pasca', 'Fusagasugá', 'Pasca']);
+  });
+  it('municipioGuardado: solo acepta Fusagasugá o Pasca', () => {
+    const conLs = v => cargar(['municipioGuardado'], { ls: { get: () => v } }).municipioGuardado();
+    expect(conLs('Pasca')).toBe('Pasca');
+    expect(conLs('Bogotá')).toBe('');
+    expect(conLs('')).toBe('');
+  });
+});

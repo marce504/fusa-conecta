@@ -121,7 +121,14 @@ export default [
     // Playwright: el código dentro de page.evaluate() corre en la PWA (navegador y sus variables globales)
     files: ['pruebas/e2e/**/*.js'],
     languageOptions: {
-      globals: { ...globals.browser, ...globalesPWA, estado: 'readonly', arranque: 'readonly', auth: 'readonly' },
+      globals: {
+        ...globals.browser,
+        ...globalesPWA,
+        estado: 'readonly',
+        arranque: 'readonly',
+        auth: 'readonly',
+        database: 'readonly',
+      },
     },
   },
 ];

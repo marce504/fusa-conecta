@@ -1414,6 +1414,21 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta.esqueleto{animation:latido 1.4s ease-in-out infinite}
 /* Carrusel: se ve una tarjeta y media */
 .carrusel-tc{gap:12px}
+/* Municipio (v1.3.0): selector del Inicio, la Agenda y el Mapa; tarjeta «¿Tienes un negocio en Pasca?» */
+.sel-mun-fila:empty{display:none}
+.sel-mun{display:flex;gap:6px;margin-top:10px}
+.sel-mun .chip-filtro{flex:1 1 0;min-width:0;min-height:44px;justify-content:center;padding:0 8px}
+.mapa-mun{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0 16px 10px}
+.mapa-mun .sel-mun{margin-top:0}
+.mapa-mun .btn-sm{min-height:44px;align-self:flex-start}
+.vista>.sel-mun{margin:0 0 12px}
+.seg-mun{margin-bottom:16px}
+.seg-mun button{min-height:44px}
+.tarjeta-publica{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border-radius:16px;background:var(--primary-50);border:1px dashed var(--primary-300)}
+.tarjeta-publica .tp-ic{width:48px;height:48px;border-radius:var(--radius-full);background:var(--bg);color:var(--primary-700);display:grid;place-items:center}
+.tarjeta-publica .tc-nombre{font-size:var(--text-base)}
+.tarjeta-publica .tc-linea{color:var(--ink-2)}
+.tarjeta-publica .btn{margin-top:auto;min-height:44px}
 /* Cuadrícula de 2 columnas */
 .grid-tc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
 /* Categorías en tiles de 72 px (4 columnas) */

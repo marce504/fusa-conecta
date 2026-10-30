@@ -1,6 +1,6 @@
 // Flujos de extremo a extremo de la PWA en un celular (390×844), contra el emulador de Firebase.
 import { expect, test } from '@playwright/test';
-import { CLAVE, CUENTAS, CUPON, NEGOCIO, poner } from './semilla.mjs';
+import { CLAVE, CUENTAS, CUPON, NEGOCIO, NEGOCIO_PASCA, poner } from './semilla.mjs';
 
 const APP = '/?emulador';
 
@@ -304,7 +304,7 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await expect(page.locator('#cuerpo h2').first()).toBeVisible();
   // La Agenda es la misma vista de «Ver agenda»
   await page.locator('[data-bn="agenda"]').click();
-  await expect(page.locator('#cuerpo h2').first()).toHaveText('Qué hacer en Fusa');
+  await expect(page.locator('#cuerpo h2').first()).toHaveText('Qué hacer en Fusa y Pasca');
   await page.screenshot({ path: info.outputPath('1-agenda-desde-la-barra.png') });
   // Un favorito guardado desde la ficha (el corazón sigue igual) aparece en Perfil → «Mis favoritos» con su contador
   await page.evaluate(() => window.abrirDetalle('c14'));
@@ -435,4 +435,55 @@ test('avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» e
   await hoja.locator('#aaNo').click();
   await expect(page.locator('#ovGen')).not.toHaveClass(/abierto/);
   expect(await page.evaluate(() => window.pidioPermiso)).toBe(0);
+});
+
+// Pasca en Fusa Conecta (v1.3.0): el selector de municipio del Inicio
+test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fusa y Pasca» muestra los dos', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.waitForFunction(() => database.some(d => d.municipio === 'Pasca'));
+  await sinAvisoEmulador(page);
+  const selector = page.locator('#selMunicipio [data-selmun]');
+  await expect(selector).toHaveText(['Fusa y Pasca', 'Fusagasugá', 'Pasca']);
+  await expect(page.locator('#selMunicipio [data-selmun=""]')).toHaveAttribute('aria-checked', 'true');
+  // Fusa y Pasca: la sección de Pasca y lugares de los dos municipios
+  const seccion = page.locator('.seccion-pasca');
+  await expect(seccion.locator('h2')).toHaveText('Pasca, puerta del Sumapaz');
+  await expect(seccion).toContainText(NEGOCIO_PASCA.nombre);
+  const municipios = () =>
+    page.evaluate(() => [...new Set(window.itemsVisibles('todas', '', true).map(d => window.municipioDe(d)))].sort());
+  expect(await municipios()).toEqual(['Fusagasugá', 'Pasca']);
+  await expect(page.locator('#tEventos')).toHaveText('Qué hacer en Fusa y Pasca');
+  // Pasca: solo lugares de Pasca y, como son pocos, «¿Tienes un negocio en Pasca?»
+  await page.locator('#selMunicipio [data-selmun="Pasca"]').click();
+  await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
+  expect(await municipios()).toEqual(['Pasca']);
+  await expect(page.locator('#todoFusa h2')).toHaveText('Todo Pasca');
+  await expect(page.locator('.grid-tc')).toContainText(NEGOCIO_PASCA.nombre);
+  await expect(page.locator('.grid-tc')).not.toContainText('Café Sutagao');
+  await expect(seccion.locator('.tarjeta-publica')).toContainText('¿Tienes un negocio en Pasca?');
+  await page.screenshot({ path: info.outputPath('1-inicio-pasca.png') });
+  // La elección queda guardada en el teléfono
+  await page.reload();
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await page.evaluate(() => window.ocultarSplash());
+  await sinAvisoEmulador(page);
+  await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
+  // «Publicar» abre el registro (pide cuenta a un invitado)
+  await page.locator('[data-pasca-negocio]').click();
+  await expect(page.locator('#ovLogin')).toHaveClass(/abierto/);
+  await page.locator('#ovLogin [data-cerrar], #ovLogin .cerrar').first().click();
+  // El mapa se centra en Pasca
+  await page.locator('[data-bn="mapa"]').click();
+  await expect(page.locator('.mapa-head h2')).toHaveText('Mapa de Pasca');
+  await expect(page.locator('#mapaIrPasca')).toBeVisible();
+  await page.screenshot({ path: info.outputPath('2-mapa-pasca.png') });
+  // Fusa y Pasca de nuevo
+  await page.locator('[data-bn="inicio"]').click();
+  await page.locator('#selMunicipio [data-selmun=""]').click();
+  expect(await municipios()).toEqual(['Fusagasugá', 'Pasca']);
+  await page.screenshot({ path: info.outputPath('3-inicio-fusa-y-pasca.png') });
 });

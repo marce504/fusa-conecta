@@ -9,6 +9,8 @@ export const CLAVE = 'PruebaE2E2026';
 export const CUENTAS = { rosa: 'rosa.e2e@fusa.test', ana: 'ana.e2e@fusa.test' };
 export const NEGOCIO = { id: 'e2e-vivero', nombre: 'Vivero de Prueba E2E' };
 export const CUPON = { id: 'e2e-cupon', descripcion: '2x1 en orquídeas (prueba E2E)' };
+// Negocio de PRUEBA en Pasca (solo existe en el emulador): para el selector de municipio
+export const NEGOCIO_PASCA = { id: 'e2e-pasca', nombre: 'Tienda de Prueba Pasca E2E' };
 
 function valor(v) {
   if (v === null) return { nullValue: null };
@@ -83,6 +85,31 @@ export default async function sembrar() {
     prioridadBusqueda: 1,
     prueba_usada: true,
     suscripcion_vigente_hasta: enDias(30),
+    dias: [0, 1, 2, 3, 4, 5, 6],
+    abre: '00:00',
+    cierra: '23:59',
+    imagen: '',
+    fotos: [],
+    fechaCreacion: ahora,
+    fecha_aprobacion: ahora,
+  });
+  await poner(`comercios/${NEGOCIO_PASCA.id}`, {
+    nombre: NEGOCIO_PASCA.nombre,
+    cat: 'comercio',
+    categoria: 'comercio',
+    sub: 'tiendas',
+    desc: 'Negocio de prueba en Pasca.',
+    direccion: 'Pasca',
+    tel: '',
+    whatsapp: '',
+    lat: 4.30783,
+    lng: -74.30018,
+    ubicacion_aprox: true,
+    municipio: 'Pasca',
+    propietario_uid: 'duena-prueba-pasca', // otra dueña: Rosa sigue con un solo negocio
+    estado_publicacion: 'aprobado',
+    esPremium: false,
+    prioridadBusqueda: 0,
     dias: [0, 1, 2, 3, 4, 5, 6],
     abre: '00:00',
     cierra: '23:59',
