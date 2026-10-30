@@ -156,8 +156,31 @@ def test_negocio_de_pasca_sale_con_su_municipio(cliente, repo):
             "estado_publicacion": "aprobado",
         }
     )
-    r = cliente.get("/v1/comercios", params={"municipio": "Pasca"}).json()
-    assert r["total"] == 1 and r["resultados"][0]["id"] == "pasca1" and r["resultados"][0]["municipio"] == "Pasca"
+    r = cliente.get("/v1/comercios", params={"municipio": "Pasca", "por_pagina": 50}).json()
+    assert "pasca1" in [x["id"] for x in r["resultados"]]
+    assert all(x["municipio"] == "Pasca" for x in r["resultados"])
     fusa = cliente.get("/v1/comercios", params={"municipio": "Fusagasugá", "por_pagina": 50}).json()
     assert all(x["municipio"] == "Fusagasugá" for x in fusa["resultados"]) and fusa["total"] > 0
     assert "pasca1" not in [x["id"] for x in fusa["resultados"]]
+
+
+def test_rutas_con_municipio(cliente):
+    """v1.3.0: las rutas dicen su municipio y se filtran con ?municipio= (las tres oficiales son de Fusagasugá)."""
+    todas = cliente.get("/v1/rutas").json()["resultados"]
+    assert todas and all(r["municipio"] == "Fusagasugá" for r in todas)
+    assert cliente.get("/v1/rutas", params={"municipio": "fusagasuga"}).json()["total"] == len(todas)
+    assert cliente.get("/v1/rutas", params={"municipio": "Pasca"}).json() == {"total": 0, "resultados": []}
+
+
+def test_lugares_verificados_de_pasca(cliente):
+    """Los 6 lugares de Pasca vienen de datos.js con su fuente; ninguno inventa teléfono."""
+    r = cliente.get("/v1/comercios", params={"municipio": "Pasca", "por_pagina": 50}).json()
+    ids = {x["id"] for x in r["resultados"]}
+    assert {"c72", "c73", "c74", "c75", "c76", "c77"} <= ids
+    assert all(x["telefono"] == "" for x in r["resultados"] if x["id"] in {"c72", "c73", "c74", "c75", "c76", "c77"})
+    alcaldia = cliente.get("/v1/comercios/c72").json()
+    assert alcaldia["direccion"] == "Cra. 1 No. 2-06, Centro"
+    assert alcaldia["correo"] == "contactenos@pasca-cundinamarca.gov.co"
+    assert alcaldia["fuentes"][0]["url"] == "https://www.pasca-cundinamarca.gov.co/tema/turismo"
+    paramo = cliente.get("/v1/comercios/c77").json()
+    assert "no está habilitado para el ecoturismo" in paramo["aviso"]

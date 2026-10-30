@@ -14,7 +14,7 @@ from slowapi.errors import RateLimitExceeded
 
 from . import avisos, formatos, servicios
 from .repositorio import Repositorio, repositorio
-from .utilidades import dia_col, mes_valido, nombre_archivo, paginar
+from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
 VERSION = "1.2.0"
 INICIO = time.time()
@@ -236,8 +236,15 @@ def calendario(
 
 @app.get("/v1/rutas", tags=["Rutas"], summary="Rutas y senderos")
 @limiter.limit(LIMITE)
-def listar_rutas(request: Request, repo: Repo) -> dict:
-    lista = [servicios.ruta_publica(r, API_URL) for r in servicios.rutas(repo)]
+def listar_rutas(
+    request: Request,
+    repo: Repo,
+    municipio: Annotated[str | None, Query(description="Fusagasugá o Pasca (sin tildes también sirve)")] = None,
+) -> dict:
+    rutas = servicios.rutas(repo)
+    if municipio:
+        rutas = [r for r in rutas if norm(r["municipio"]) == norm(municipio)]
+    lista = [servicios.ruta_publica(r, API_URL) for r in rutas]
     return {"total": len(lista), "resultados": lista}
 
 

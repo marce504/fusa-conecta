@@ -1429,6 +1429,11 @@ button:disabled{opacity:.6;pointer-events:none}
 .tarjeta-publica .tc-nombre{font-size:var(--text-base)}
 .tarjeta-publica .tc-linea{color:var(--ink-2)}
 .tarjeta-publica .btn{margin-top:auto;min-height:44px}
+/* Aviso oficial en la ficha (p. ej. el PNN Sumapaz no está habilitado para el ecoturismo) */
+.aviso-oficial{display:flex;gap:10px;align-items:flex-start;margin:12px 0;padding:12px 14px;border-radius:var(--radius-md);background:var(--sun-50);color:var(--ink);border:1px solid var(--sun-borde)}
+.aviso-oficial .ic{flex-shrink:0;color:var(--sun-800);margin-top:2px}
+.aviso-oficial p{font-size:var(--text-sm);line-height:1.5}
+.aviso-oficial a{font-weight:600}
 /* Cuadrícula de 2 columnas */
 .grid-tc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
 /* Categorías en tiles de 72 px (4 columnas) */

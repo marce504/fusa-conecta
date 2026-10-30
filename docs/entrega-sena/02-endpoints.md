@@ -22,7 +22,7 @@ Las respuestas de abajo son **reales**: se pidieron a la API en producción el 2
 | 2 | `GET /v1/comercios/{id}` | Ficha pública con estado (abierto o cerrado) y cupones activos | Pública | — |
 | 3 | `GET /v1/eventos` | Agenda con `desde`, `hasta`, `categoria`, `tipo=plan\|aviso` | Pública | — |
 | 4 | `GET /v1/eventos.ics` | Calendario suscribible (RFC 5545) | Pública | Agenda → «Suscribirme a la agenda» |
-| 5 | `GET /v1/rutas` · `GET /v1/rutas/{id}.gpx` | Rutas y trazado en GPX 1.1 | Pública | Ficha del sendero → «Descargar GPX» |
+| 5 | `GET /v1/rutas?municipio=` · `GET /v1/rutas/{id}.gpx` | Rutas (con su municipio) y trazado en GPX 1.1 | Pública | Ficha del sendero → «Descargar GPX» |
 | 6 | `GET /v1/emergencias?municipio=` | Números de emergencia de Fusagasugá o Pasca | Pública | — |
 | 7 | `GET /v1/comercios/{id}/reporte?formato=xlsx\|pdf&mes=` | Reporte mensual del negocio (Excel con openpyxl, PDF con ReportLab) | Token del dueño o admin | Panel del negocio → «Descargar reporte» |
 | 8 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas | Token de admin | — |
@@ -58,7 +58,9 @@ curl "https://fusa-conecta-api.onrender.com/v1/comercios?q=panaderia&por_pagina=
 curl "https://fusa-conecta-api.onrender.com/v1/comercios/c14"
 ```
 
-Devuelve lo mismo que la búsqueda, más `descripcion`, `sitio_web`, `redes`, `imagen` y `cupones_activos`. Si el lugar no existe o no está publicado: `404 {"error":"No existe ese lugar o no está publicado","estado":404}`.
+Devuelve lo mismo que la búsqueda, más `descripcion`, `sitio_web`, `redes`, `imagen` y `cupones_activos`. Desde la
+v1.3.0 también trae `correo`, `fuentes` (de dónde sale cada dato, en los lugares verificados de Pasca) y `aviso`
+(por ejemplo, el aviso oficial del PNN Sumapaz). Si el lugar no existe o no está publicado: `404 {"error":"No existe ese lugar o no está publicado","estado":404}`.
 
 ### 3. Agenda (solo planes)
 
@@ -107,13 +109,17 @@ En la app, «Suscribirme a la agenda» abre `webcal://…/v1/eventos.ics` o Goog
 ### 5. Rutas y GPX
 
 ```bash
-curl "https://fusa-conecta-api.onrender.com/v1/rutas"
+curl "https://fusa-conecta-api.onrender.com/v1/rutas?municipio=Fusagasuga"
 ```
+
+Desde la v1.3.0 cada ruta trae `municipio` y la lista se filtra con `?municipio=` (con tilde o sin ella). Las tres
+rutas oficiales son de Fusagasugá; `?municipio=Pasca` responde `{"total": 0, "resultados": []}` mientras no haya un
+trazado verificado de Pasca.
 
 ```json
 { "total": 3, "resultados": [
   { "id": "c22", "nombre": "Sendero Cara del Indio por el Camino Real del Quininí", "dificultad": "Media",
-    "distancia_km": 3.98, "desnivel_m": 421, "trazado_real": true, "puntos": 200,
+    "distancia_km": 3.98, "desnivel_m": 421, "municipio": "Fusagasugá", "trazado_real": true, "puntos": 200,
     "fuente": "OpenStreetMap (© OpenStreetMap contributors, ODbL)…",
     "gpx": "https://fusa-conecta-api.onrender.com/v1/rutas/c22.gpx" },
   { "id": "c21", "nombre": "Sendero al Cerro Fusacatán", "trazado_real": false, "puntos": 0, "gpx": null }

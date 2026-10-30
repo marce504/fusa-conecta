@@ -21,6 +21,26 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   La Agenda y el Mapa también muestran el selector.
 - **Sección «Pasca, puerta del Sumapaz»** en el Inicio, con los lugares de Pasca. Mientras haya menos de 6, termina
   con la tarjeta «¿Tienes un negocio en Pasca? Publícalo gratis», que abre «Registrar mi negocio» con Pasca ya elegido.
+- **Contenido verificado de Pasca (parte 2).** Seis lugares nuevos en `datos.js` (`c72` a `c77`), cada uno con su
+  fuente en `fuentes` y la fecha de revisión en `verificado`:
+  - la Alcaldía, la Casa de la Cultura y el CDI, con dirección y horario de la página de turismo de la Alcaldía de Pasca;
+  - la Parroquia de Nuestra Señora de la Encarnación y el Museo Arqueológico, con OpenStreetMap y Wikipedia;
+  - el Páramo de Sumapaz, como ficha informativa con el aviso oficial de Parques Nacionales Naturales del 13 de marzo de
+    2026: el parque **no está habilitado para el ecoturismo**.
+
+  Las coordenadas son de OpenStreetMap; las que no están allí quedan en el centro del casco urbano, marcadas como
+  aproximadas. No hay teléfonos inventados: sin teléfono no se muestran «Llamar» ni «WhatsApp». Detalle y diferencias
+  con lo pedido en `docs/pasca-fuentes.md`.
+- La ficha muestra el correo, el sitio web, las fuentes con la fecha de verificación y el aviso oficial. También
+  muestra «Consulta horarios en la Casa de la Cultura» cuando no hay horario confirmado. A los lugares verificados no
+  se les ofrece «¿Es tu negocio? Reclámalo».
+- **Horarios con varios grupos de días** separados por «;», por ejemplo «Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb
+  8:00-12:00». Se usa en la app (`estadoApertura`) y en la API (`estado_apertura`). Antes se ignoraba el sábado.
+- **Rutas:** las tres oficiales tienen `municipio` («Fusagasugá»). `GET /v1/rutas` lo devuelve y lo filtra con
+  `?municipio=`. Con «Pasca» elegido, la app dice «Aún no hay senderos de Pasca con trazado real. ¿Conoces uno? Grábalo
+  con «Grabar mi recorrido» y propónlo», con el botón.
+- La API devuelve en la ficha (`/v1/comercios/{id}`) los campos `correo`, `fuentes` y `aviso`.
+- La invitación «¿Tienes un negocio en Pasca?» cuenta solo los negocios con dueño, no los lugares oficiales.
 - **Registrar mi negocio:** el municipio (Fusagasugá o Pasca) es obligatorio. El mapa del formulario se centra en el
   municipio elegido. Antes, todo negocio se guardaba como de Fusagasugá, incluso al editarlo.
 
@@ -37,7 +57,7 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   nombraban a Pasca.
 - La línea de filtros activos ya no muestra el municipio, porque se ve siempre en el selector. «Mis favoritos» muestra
   todos los guardados, sin importar el municipio.
-- PWA v68 (`fusa-v61`).
+- PWA v68 (`fusa-v61`). Parte 2: PWA v69 (`fusa-v62`).
 
 ### Pruebas
 - Vitest: `municipioDe`, `enMunicipio`, las opciones del selector y `municipioGuardado`.
@@ -46,6 +66,10 @@ Lo que va de la v1.3.0, «Pasca vuelve a estar en Fusa Conecta» (se publica por
   emulador trae un negocio de prueba en Pasca.
 - pytest: un negocio de Pasca aprobado sale en `/v1/comercios?municipio=Pasca` con su municipio, y no sale en
   Fusagasugá.
+- pytest y Vitest: el horario de la Alcaldía de Pasca (abierto el sábado a las 10:00, cerrado a las 13:00).
+  `/v1/rutas?municipio=`. Los 6 lugares de Pasca con su fuente y sin teléfono, y el aviso del páramo.
+- Playwright: con «Pasca» se ven la Alcaldía, el mensaje de senderos y las fichas del páramo (aviso oficial, sin
+  «Llamar» ni «Cómo llegar») y de la Alcaldía (correo y fuente).
 
 ## [1.2.0] - 2026-10-29 · Entrada más corta, barra con Inicio al centro y avisos al celular
 

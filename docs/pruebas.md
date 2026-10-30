@@ -36,7 +36,7 @@ Flujos de extremo a extremo:
 7. **Entrada del invitado:** «Registrarse» y «Solo explorar» del todo visibles en **≤ 2,6 s** desde la primera pintura.
 8. **Barra inferior:** Mapa · Cupones · Inicio · Agenda · Perfil, cada uno abre su pantalla y queda marcado (`aria-current`), todos con área táctil ≥ 44 px. Un favorito guardado con el corazón aparece en Perfil → «Mis favoritos» (primera opción, con contador), que abre la lista con «Volver».
 9. **Avisos:** al abrir la app no se pide el permiso de notificaciones. Las reglas dejan a Rosa crear y borrar sus dispositivos, pero no leerlos, ni agregar campos, ni tocar los de otra persona, ni escribir novedades. La novedad «Para ti» aparece en la campana y abre Mi negocio (sin la pregunta de salir). Después de registrar un negocio se pregunta «¿Quieres que te avisemos aquí…?» con «Sí, avisarme» y «Ahora no». El push real (FCM) se prueba a mano en un Android (ver abajo).
-10. **Municipio:** el selector del Inicio muestra «Fusa y Pasca», «Fusagasugá» y «Pasca». Con «Pasca» elegido se ven solo lugares de Pasca, «Todo Pasca» y la tarjeta «¿Tienes un negocio en Pasca?». La elección sobrevive a la recarga y el mapa se centra en Pasca. Con «Fusa y Pasca» vuelven los dos municipios.
+10. **Municipio:** el selector del Inicio muestra «Fusa y Pasca», «Fusagasugá» y «Pasca». Con «Pasca» elegido se ven solo lugares de Pasca, «Todo Pasca» y la tarjeta «¿Tienes un negocio en Pasca?». La elección sobrevive a la recarga y el mapa se centra en Pasca. Con «Fusa y Pasca» vuelven los dos municipios. Con «Pasca» también se ven la Alcaldía (lugar verificado) y el mensaje de senderos de Pasca. La ficha del páramo muestra el aviso oficial de Parques Nacionales sin «Llamar» ni «Cómo llegar», y la de la Alcaldía, el correo y la fuente sin teléfono.
 
 ## Cómo correrlas
 
@@ -98,7 +98,7 @@ Abre la corrida → **Artifacts** → **informe-pruebas**.
 ## Resultados
 
 <!-- resultados:inicio -->
-Última corrida: 2026-10-29. Total: **153 pasan, 0 fallan, 8 omitidas**.
+Última corrida: 2026-10-30. Total: **163 pasan, 0 fallan, 8 omitidas**.
 
 **Lighthouse** (mediana de 3 corridas, móvil): Rendimiento 56 · Accesibilidad 100 · Buenas prácticas 100 · SEO 100 · PWA 100
 
@@ -107,8 +107,8 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 
 | Suite | Casos | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| Unitarias JavaScript (Vitest) | 54 | 54 | 0 | 0 |
-| Unitarias y de API Python (pytest) | 62 | 57 | 0 | 5 |
+| Unitarias JavaScript (Vitest) | 57 | 57 | 0 | 0 |
+| Unitarias y de API Python (pytest) | 69 | 64 | 0 | 5 |
 | Procesos automáticos Python (pytest) | 27 | 24 | 0 | 3 |
 | Integración: API contra el emulador | 5 | 5 | 0 | 0 |
 | Integración: procesos contra el emulador | 3 | 3 | 0 | 0 |
@@ -116,165 +116,175 @@ Las omitidas son las pruebas de integración dentro de las suites unitarias de P
 
 | Suite | Caso | Resultado | Fecha |
 |---|---|---|---|
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_limpieza | Omitida | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-29 |
-| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
-| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
-| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
-| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
-| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-29 |
-| Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-29 |
-| Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-29 |
-| Integración: procesos contra el emulador | tests.test_limpieza | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | explorar: entrada → «Solo explorar» → buscar «café» → ficha → WhatsApp | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | cupón: Ana lo obtiene → lo muestra con QR → la comerciante valida el código y lo canjea | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | SOS sin conexión: los números de emergencia funcionan en modo avión | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | asistente: una pregunta con llamada a funciones y tarjetas del directorio | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | entrada con sesión: se va en 3,5 s como máximo | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | entrada con sesión y la nube lenta: no la espera y se va a los 3 s | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | entrada como invitado: «Registrarse» y «Solo explorar» visibles en 2,6 s como máximo | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil → «Mis favoritos» | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» en la campana | Pasa | 2026-10-29 |
-| Extremo a extremo (Playwright, 390×844) | municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fusa y Pasca» muestra los dos | Pasa | 2026-10-29 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias JavaScript (Vitest) | pruebas/unitarias/app.test.js | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_api | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_avisos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_formatos | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_integracion | Omitida | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Unitarias y de API Python (pytest) | tests.test_utilidades | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_agenda | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_integracion_agenda | Omitida | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_limpieza | Omitida | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Procesos automáticos Python (pytest) | tests.test_paridad | Pasa | 2026-10-30 |
+| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-30 |
+| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-30 |
+| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-30 |
+| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-30 |
+| Integración: API contra el emulador | tests.test_integracion | Pasa | 2026-10-30 |
+| Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-30 |
+| Integración: procesos contra el emulador | tests.test_integracion_agenda | Pasa | 2026-10-30 |
+| Integración: procesos contra el emulador | tests.test_limpieza | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | explorar: entrada → «Solo explorar» → buscar «café» → ficha → WhatsApp | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | cupón: Ana lo obtiene → lo muestra con QR → la comerciante valida el código y lo canjea | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | SOS sin conexión: los números de emergencia funcionan en modo avión | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | asistente: una pregunta con llamada a funciones y tarjetas del directorio | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | entrada con sesión: se va en 3,5 s como máximo | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | entrada con sesión y la nube lenta: no la espera y se va a los 3 s | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | entrada como invitado: «Registrarse» y «Solo explorar» visibles en 2,6 s como máximo | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil → «Mis favoritos» | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | avisos: sin permiso al abrir, reglas de dispositivos y aviso «Para ti» en la campana | Pasa | 2026-10-30 |
+| Extremo a extremo (Playwright, 390×844) | municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fusa y Pasca» muestra los dos | Pasa | 2026-10-30 |
 <!-- resultados:fin -->

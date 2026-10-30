@@ -465,7 +465,27 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   await expect(page.locator('.grid-tc')).toContainText(NEGOCIO_PASCA.nombre);
   await expect(page.locator('.grid-tc')).not.toContainText('Café Sutagao');
   await expect(seccion.locator('.tarjeta-publica')).toContainText('¿Tienes un negocio en Pasca?');
+  // Lugares verificados de Pasca (parte 2) y el aviso de senderos
+  await expect(seccion).toContainText('Alcaldía Municipal de Pasca');
+  await expect(page.locator('#tRutas')).toHaveText('Rutas y senderos');
+  await expect(page.locator('#cuerpo [data-grabar-ruta]')).toHaveText('Grabar mi recorrido');
   await page.screenshot({ path: info.outputPath('1-inicio-pasca.png') });
+  // Ficha del páramo: aviso oficial de Parques Nacionales, fuentes y sin «Llamar» ni «Cómo llegar»
+  await page.evaluate(() => window.abrirDetalle('c77'));
+  const ficha = page.locator('#sheetDetalle');
+  await expect(ficha.locator('.aviso-oficial')).toContainText('no está habilitado para el ecoturismo');
+  await expect(ficha.locator('.aviso-oficial a')).toHaveAttribute('href', /parquesnacionales\.gov\.co/);
+  await expect(ficha).toContainText('Parques Nacionales Naturales (13 de marzo de 2026)');
+  await expect(ficha.locator('[data-tel], #detWa, #detLlegar')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('1b-ficha-paramo.png') });
+  await page.locator('#cerrarDet').click();
+  // Ficha de la Alcaldía: correo y fuente oficial, sin teléfono inventado
+  await page.evaluate(() => window.abrirDetalle('c72'));
+  await expect(ficha).toContainText('contactenos@pasca-cundinamarca.gov.co');
+  await expect(ficha).toContainText('Alcaldía de Pasca · Turismo');
+  await expect(ficha.locator('[data-tel]')).toHaveCount(0);
+  await expect(ficha.locator('#detLlegar')).toBeVisible();
+  await page.locator('#cerrarDet').click();
   // La elección queda guardada en el teléfono
   await page.reload();
   await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);

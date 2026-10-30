@@ -36,6 +36,7 @@ const salida = {
       id,
       {
         nombre: r.nombre,
+        municipio: r.municipio || 'Fusagasugá',
         dificultad: r.dificultad,
         duracion: r.duracionEstimada,
         distancia_km: r.distanciaTotal,

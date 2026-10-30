@@ -128,6 +128,10 @@ def ficha(repo: Repositorio, d: dict, completa: bool = False) -> dict:
                 "sitio_web": d.get("sitioWeb") or "",
                 "redes": d.get("redesSociales") or {},
                 "imagen": d.get("imagen") or None,
+                # v1.3.0: lugares verificados (Pasca): correo, fuentes del dato y aviso oficial si lo hay
+                "correo": d.get("correo") or "",
+                "fuentes": d.get("fuentes") or [],
+                "aviso": d.get("aviso") or None,
                 "cupones_activos": [
                     {"id": c["id"], "descripcion": c.get("descripcion", ""), "vence": c.get("vigencia")}
                     for c in cupones_activos(repo, d)
@@ -250,6 +254,7 @@ def rutas(repo: Repositorio) -> list[dict]:
                 "distancia_km": (t or {}).get("distancia_km") or (of or {}).get("distancia_km") or r["distancia_km"],
                 "desnivel_m": (t or {}).get("desnivel_m") or (of or {}).get("desnivel_m") or r["desnivel_m"],
                 "fuente": (t or {}).get("fuente") or (of or {}).get("fuente") or None,
+                "municipio": r.get("municipio") or "Fusagasugá",
                 "comunidad": False,
                 "puntos": puntos,
             }
@@ -264,6 +269,7 @@ def rutas(repo: Repositorio) -> list[dict]:
                 "distancia_km": x.get("distancia_km"),
                 "desnivel_m": x.get("desnivel_m"),
                 "fuente": f"Propuesta por {x.get('autor_nombre', 'la comunidad')}",
+                "municipio": x.get("municipio") or "Fusagasugá",
                 "comunidad": True,
                 "puntos": _linea_de_texto(x.get("linea", "")),
             }

@@ -34,6 +34,12 @@ def col(dia: str, hora: str) -> datetime:
         ("Todos los días 7–9 p. m.", col("2026-10-28", "20:00"), "Cierra pronto"),
         ("Lun-Sáb 9:00-13:00 y 14:00-18:00", col("2026-10-28", "13:30"), "Abre pronto · 2:00 p. m."),  # dos franjas
         ("Abierto 24 horas", col("2026-10-28", "03:00"), "Abierto 24 horas"),
+        # v1.3.0: grupos de días separados por «;» (horario de la Alcaldía de Pasca)
+        ("Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00", col("2026-10-31", "10:00"), "Abierto"),
+        ("Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00", col("2026-10-31", "11:30"), "Cierra pronto"),
+        ("Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00", col("2026-10-31", "13:00"), "Abre el lunes 8:00 a. m."),
+        ("Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00", col("2026-10-30", "18:00"), "Abre mañana 8:00 a. m."),
+        ("Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00", col("2026-10-28", "13:30"), "Abre pronto · 2:00 p. m."),
     ],
 )
 def test_estado_apertura(horario, momento, esperado):

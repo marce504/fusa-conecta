@@ -37,6 +37,10 @@ describe('estadoApertura: abierto, cierra pronto, cerrado y próxima apertura', 
     ['Lun-Sáb 9:00-13:00 y 14:00-18:00', '2026-10-28T13:30', 'pronto', 'Abre pronto · 2:00 p. m.'],
     ['Todos los días 7–9 p. m.', '2026-10-28T20:30', 'pronto', 'Cierra pronto'],
     ['Abierto 24 horas', '2026-10-28T03:00', 'ab', 'Abierto 24 horas'],
+    // v1.3.0: grupos de días separados por «;» (horario de la Alcaldía de Pasca)
+    ['Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00', '2026-10-31T10:00', 'ab', 'Abierto'],
+    ['Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00', '2026-10-31T13:00', 'cerr', 'Abre el lunes 8:00 a. m.'],
+    ['Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00', '2026-10-30T18:00', 'cerr', 'Abre mañana 8:00 a. m.'],
   ])('«%s» el %s → %s', (horario, cuando, tipo, texto) => {
     expect(estado({ horario }, cuando)).toMatchObject({ tipo, texto });
   });

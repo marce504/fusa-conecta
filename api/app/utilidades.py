@@ -128,19 +128,19 @@ def estado_apertura(d: dict, ahora: datetime | None = None) -> dict | None:
             h, _, mi = x.partition(":")
             return int(h) * 60 + int(mi or 0)
 
-        dias, rangos = list(d["dias"]), [(hm(d["abre"]), hm(d["cierra"]))]
+        tramos = [(list(d["dias"]), hm(d["abre"]), hm(d["cierra"]))]
     else:
         h = d.get("horario") or ""
         if re.search(r"24\s*h|24 horas", h, re.I):
             return {"tipo": "ab", "abierto": True, "texto": "Abierto 24 horas"}
-        rangos = parsear_rangos(h)
-        if not rangos:
+        # v1.3.0: varios grupos de días separados por «;» («Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00»)
+        tramos = [(parsear_dias(seg), s, e) for seg in h.split(";") for s, e in parsear_rangos(seg)]
+        if not tramos:
             return None
-        dias = parsear_dias(h)
     t = ahora or ahora_col()
     dia = (t.weekday() + 1) % 7  # Python: lunes=0 → domingo=0 como en JavaScript
     minuto, ayer = t.hour * 60 + t.minute, (dia + 6) % 7
-    for s, e in rangos:
+    for dias, s, e in tramos:
         resta = None
         if e > s:
             if dia in dias and s <= minuto < e:
@@ -158,9 +158,7 @@ def estado_apertura(d: dict, ahora: datetime | None = None) -> dict | None:
     prox = None
     for o in range(8):
         di = (dia + o) % 7
-        if di not in dias:
-            continue
-        inicios = sorted(s for s, _ in rangos if o > 0 or s > minuto)
+        inicios = sorted(s for ds, s, _ in tramos if di in ds and (o > 0 or s > minuto))
         if inicios:
             prox = (o, di, inicios[0])
             break

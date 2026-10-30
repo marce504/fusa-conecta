@@ -1518,17 +1518,20 @@ function horaTexto(min){
 // Devuelve {tipo:'ab'|'pronto'|'cerr', abierto, texto} o null si el lugar no tiene horario calculable
 function estadoApertura(d){
   if(esNatural(d))return null;
-  let dias,rangos;
+  // Tramos [días, abre, cierra]. v1.3.0: varios grupos de días separados por «;»
+  // (p. ej. «Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00», el horario de la Alcaldía de Pasca)
+  let tramos;
   if(d.dias&&d.dias.length&&d.abre&&d.cierra){
     const hm=x=>{const[h,mi]=x.split(':');return +h*60+(+mi||0);};
-    dias=d.dias;rangos=[[hm(d.abre),hm(d.cierra)]];
+    tramos=[[d.dias,hm(d.abre),hm(d.cierra)]];
   }else{
     const h=d.horario||'';
     if(/24\s*h|24 horas/i.test(h))return {tipo:'ab',abierto:true,texto:'Abierto 24 horas'};
-    rangos=parsearRangos(h);if(!rangos.length)return null;dias=parsearDias(h);
+    tramos=h.split(';').flatMap(seg=>{const ds=parsearDias(seg);return parsearRangos(seg).map(([s,e])=>[ds,s,e]);});
+    if(!tramos.length)return null;
   }
   const ahora=new Date(),dia=ahora.getDay(),min=ahora.getHours()*60+ahora.getMinutes(),ayer=(dia+6)%7;
-  for(const [s,e] of rangos){
+  for(const [dias,s,e] of tramos){
     let resta=null;
     if(e>s){if(dias.includes(dia)&&min>=s&&min<e)resta=e-min;}
     else if(dias.includes(dia)&&min>=s)resta=1440-min+e;else if(dias.includes(ayer)&&min<e)resta=e-min;
@@ -1537,8 +1540,8 @@ function estadoApertura(d){
   // Cerrado: busca la próxima apertura dentro de la semana
   let prox=null;
   for(let o=0;o<=7&&prox==null;o++){
-    const di=(dia+o)%7;if(!dias.includes(di))continue;
-    const ini=rangos.map(r=>r[0]).filter(s=>o>0||s>min).sort((a,b)=>a-b)[0];
+    const di=(dia+o)%7;
+    const ini=tramos.filter(t=>t[0].includes(di)).map(t=>t[1]).filter(s=>o>0||s>min).sort((a,b)=>a-b)[0];
     if(ini!=null)prox={o,di,ini};
   }
   if(!prox)return {tipo:'cerr',abierto:false,texto:'Cerrado'};
@@ -1943,6 +1946,8 @@ function renderLista(v){
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html=eventosFavoritosHTML()+'<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
+  }else if(v.sub==='sendero'&&municipioElegido()==='Pasca'&&!estado.q){
+    html=senderosPascaVacioHTML();
   }else{
     const motivo=estado.q?'No encontramos resultados para «'+esc(estado.q)+'»'
       :estado.filtros.municipio==='Pasca'?'Aún no hay lugares registrados en Pasca con estos filtros'
@@ -1959,6 +1964,7 @@ function renderLista(v){
   }));
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
   enlazarEventos();enlazarSeccionPasca();
+  $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
   if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
@@ -2185,21 +2191,28 @@ function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',pa
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
   const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&enMunicipio(d,municipioElegido())).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
+  if(!l.length&&municipioElegido()==='Pasca')return '<section class="seccion-inicio" aria-labelledby="tRutas"><div class="head-v"><h2 id="tRutas">Rutas y senderos</h2></div>'+senderosPascaVacioHTML()+'</section>';
   return carruselHTML('Rutas','Rutas y senderos',l,'senderos');
+}
+// Pasca aún no tiene senderos con trazado verificado (v1.3.0): se invita a grabar uno y proponerlo
+function senderosPascaVacioHTML(){
+  return '<div class="ev-vacio">'+icon('footprints',40)+'<div class="ev-vacio-tx"><p>Aún no hay senderos de Pasca con trazado real. ¿Conoces uno? Grábalo con «Grabar mi recorrido» y propónlo.</p>'
+    +'<button class="btn btn-primario btn-sm" data-grabar-ruta>'+icon('footprints',16)+'Grabar mi recorrido</button></div></div>';
 }
 // Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
 function seccionRecientesHTML(){
   const l=paraCarrusel(database.filter(d=>d.creado&&enMunicipio(d,municipioElegido())).sort((a,b)=>b.creado-a.creado));
   return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
 }
-// «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras sean pocos, la invitación a publicar el suyo
+// «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras haya pocos negocios, la invitación a publicar el suyo
 function seccionPascaHTML(){
   if(municipioElegido()==='Fusagasugá')return '';
   const todos=database.filter(d=>municipioDe(d)==='Pasca'&&(d.cat!=='bares'||estado.mayorEdad)),l=paraCarrusel(todos);
   return '<section class="seccion-inicio seccion-pasca" aria-labelledby="tPasca"><div class="head-v"><h2 id="tPasca">Pasca, puerta del Sumapaz</h2>'
     +(todos.length?'<button class="btn-ghost" data-pasca-todos>Ver todos</button>':'')+'</div>'
     +'<div class="carrusel carrusel-tc">'+l.map(tarjetaHTML).join('')
-    +(todos.length<6?'<article class="tarjeta tarjeta-publica"><span class="tp-ic" aria-hidden="true">'+icon('store',28)+'</span>'
+    // La invitación sigue mientras haya pocos negocios con dueño (los lugares oficiales verificados no cuentan)
+    +(todos.filter(d=>d.propietario_uid).length<6?'<article class="tarjeta tarjeta-publica"><span class="tp-ic" aria-hidden="true">'+icon('store',28)+'</span>'
       +'<h3 class="tc-nombre">¿Tienes un negocio en Pasca?</h3><p class="tc-linea">Publícalo gratis en Fusa Conecta</p>'
       +'<button class="btn btn-primario btn-sm" data-pasca-negocio>'+icon('plus',16)+'Publicar</button></article>':'')
     +'</div></section>';
@@ -2388,7 +2401,9 @@ function abrirDetalle(id){
   if(es24h(d))chips.push(['clock','Abierto 24 horas']);
   chips.push(['map-pin',d.municipio||'Fusagasugá']);
   const chipsHTML='<div class="chips-car">'+chips.map(([i,t])=>'<span class="chip-car">'+icon(i,16)+esc(t)+'</span>').join('')+'</div>';
-  const destinoMapa=(d.lat&&d.lng&&!d.ubicacion_aprox)?d.lat+','+d.lng:d.direccion+', Fusagasugá, Cundinamarca';
+  const destinoMapa=(d.lat&&d.lng&&!d.ubicacion_aprox)?d.lat+','+d.lng:d.direccion+', '+municipioDe(d)+', Cundinamarca';
+  // Lugares verificados de Pasca (v1.3.0): sin teléfono no hay «Llamar» ni «WhatsApp»; con aviso no hay «Cómo llegar»
+  const sinContacto=!d.tel&&!d.whatsapp;
   const embed='https://maps.google.com/maps?q='+encodeURIComponent(destinoMapa)+'&z='+(d.ubicacion_aprox?14:16)+'&output=embed';
   const llegar='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destinoMapa);
   const mapaHTML=estado.online
@@ -2409,12 +2424,19 @@ function abrirDetalle(id){
     +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
+    +(d.aviso?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p>'+esc(d.aviso)
+      +(d.aviso_enlace?' <a href="'+esc(d.aviso_enlace)+'" target="_blank" rel="noopener">Ver el aviso oficial</a>':'')+'</p></div>':'')
     +(d.propuesta_por?'<p class="ruta-credito">'+icon('user',16)+'Ruta propuesta por '+esc(d.propuesta_por)+'</p>':'')
     +'<div class="datos">'
     +filaDato('map-pin','Dirección',esc(d.direccion)+(km!=null?' · a '+fmtDist(km)+' de ti':''))
     +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
-    +filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d)))
-    +(natural?'':filaDato('phone','Contacto',esc(d.tel)))
+    +(d.horario_nota?filaDato('clock','Horario',esc(d.horario_nota))
+      :d.fuentes&&!d.horario?'':filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d))))
+    +(natural||!d.tel?'':filaDato('phone','Contacto',esc(d.tel)))
+    +(d.correo?filaDato('mail','Correo','<a href="mailto:'+esc(d.correo)+'">'+esc(d.correo)+'</a>'):'')
+    +(d.sitioWeb&&/^https:\/\//.test(d.sitioWeb)?filaDato('globe','Sitio web','<a href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+esc(d.sitioWeb.replace(/^https:\/\/(www\.)?/,''))+'</a>'):'')
+    +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>').join('<br>')
+      +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
     +'</div>'
     +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
       +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'
@@ -2429,12 +2451,12 @@ function abrirDetalle(id){
       :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
-    +'<div class="det-pie">'+(!d.propietario_uid&&!natural?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
+    +'<div class="det-pie">'+(!d.propietario_uid&&!natural&&!d.fuentes?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
     +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
-    +(natural
-      ?'<a class="btn btn-primario" id="detLlegar" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar al inicio</a>'
+    +(natural||sinContacto
+      ?(d.aviso?'':'<a class="btn btn-primario" id="detLlegar" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+(natural?'Cómo llegar al inicio':'Cómo llegar')+'</a>')
         +'<button class="btn btn-secundario" id="detCompartir">'+icon('share-2')+'Compartir</button>'
       :'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
         +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
