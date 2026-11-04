@@ -2301,6 +2301,8 @@ const esNatural=d=>!!d&&d.cat==='turismo'&&(TIPOS_NATURALES.includes(d.tipo)||/\
 const MEJOR_HORA={c21:'5:00 – 9:00 a. m.'};
 // "Recom. 5–4 p.m." → "Recomendado: 5:00 a. m. – 4:00 p. m." (usa el mismo lector de horarios que calcula Abierto/Cerrado)
 function formatearHorario(h){
+  // v1.3.0: cada grupo de días separado por «;» se formatea aparte, con sus días («Lun-Vie …; Sáb …»)
+  if((h||'').includes(';'))return h.split(';').map(x=>formatearHorario(x.trim())).filter(Boolean).join(' · ');
   const rangos=parsearRangos(h||'');if(!rangos.length)return h||'';
   const i=(h.search(/\d/));let pre=i>0?h.slice(0,i).trim():'';
   pre=pre.replace(/^Recom\.?\s*/i,'');

@@ -8,6 +8,9 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Corregido
+- La ficha mostraba el horario de la Alcaldía de Pasca sin decir que la franja de 8:00 a 12:00 es del sábado. `formatearHorario` ahora formatea cada grupo de días separado por «;» con sus días («Lun-Vie … · Sáb …»). PWA v71 (`fusa-v64`).
+
 ## [1.3.0] - 2026-10-30 · Pasca vuelve a estar en Fusa Conecta
 
 ### Agregado

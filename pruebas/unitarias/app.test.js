@@ -365,3 +365,12 @@ describe('Agenda: Pasca en las tarjetas y fuentes desactualizadas', () => {
     expect(a.textoUltima(null, 'noticias', ahora)).toEqual({ texto: 'Sin noticias publicados', vieja: true });
   });
 });
+
+describe('formatearHorario con grupos de días', () => {
+  const { formatearHorario } = cargar(['parsearRangos', 'horaTexto', 'formatearHorario']);
+  it('el horario de la Alcaldía de Pasca conserva el sábado', () => {
+    expect(formatearHorario('Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00')).toBe(
+      'Lun-Vie 8:00 a. m. – 1:00 p. m., 2:00 p. m. – 5:00 p. m. · Sáb 8:00 a. m. – 12:00 p. m.',
+    );
+  });
+});
