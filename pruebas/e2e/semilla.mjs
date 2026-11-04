@@ -6,7 +6,7 @@ const PROYECTO = 'fusa-conecta'; // el que usa la PWA; el emulador nunca habla c
 const FS = `http://127.0.0.1:8099/v1/projects/${PROYECTO}/databases/(default)/documents`;
 const AUTH = 'http://127.0.0.1:9099';
 export const CLAVE = 'PruebaE2E2026';
-export const CUENTAS = { rosa: 'rosa.e2e@fusa.test', ana: 'ana.e2e@fusa.test' };
+export const CUENTAS = { rosa: 'rosa.e2e@fusa.test', ana: 'ana.e2e@fusa.test', admin: 'admin.e2e@fusa.test' };
 export const NEGOCIO = { id: 'e2e-vivero', nombre: 'Vivero de Prueba E2E' };
 export const CUPON = { id: 'e2e-cupon', descripcion: '2x1 en orquídeas (prueba E2E)' };
 // Negocio de PRUEBA en Pasca (solo existe en el emulador): para el selector de municipio
@@ -52,6 +52,7 @@ export default async function sembrar() {
   await fetch(`${AUTH}/emulator/v1/projects/${PROYECTO}/accounts`, { method: 'DELETE' });
   const rosa = await crearCuenta(CUENTAS.rosa, 'Rosa Pérez');
   const ana = await crearCuenta(CUENTAS.ana, 'Ana María Gómez');
+  const admin = await crearCuenta(CUENTAS.admin, 'Admin de Prueba');
   const ahora = new Date();
   const enDias = d => new Date(Date.now() + d * 864e5);
   const perfil = (nombre, correo, rol) => ({
@@ -66,6 +67,8 @@ export default async function sembrar() {
   });
   await poner(`usuarios/${rosa}`, perfil('Rosa Pérez', CUENTAS.rosa, 'usuario'));
   await poner(`usuarios/${ana}`, perfil('Ana María Gómez', CUENTAS.ana, 'usuario'));
+  // Solo en el emulador: en producción el rol admin se asigna desde la consola de Firebase
+  await poner(`usuarios/${admin}`, perfil('Admin de Prueba', CUENTAS.admin, 'admin'));
   await poner(`comercios/${NEGOCIO.id}`, {
     nombre: NEGOCIO.nombre,
     cat: 'campo',

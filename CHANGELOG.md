@@ -64,6 +64,12 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
     Notaría Segunda (existe, pero no se encontró su dirección), Cruz Roja y Casa de la Mujer (sin sede confirmada).
 
 ### Corregido
+- **Fotos desde el panel del admin en lugares del directorio.** Las reglas no dejaban al admin crear la copia en la nube
+  de un lugar de `datos.js` (ahora `allow create: if esAdmin() || …`). Al guardar ya no se pierden la fuente, la web,
+  el correo ni el crédito de la foto, y no se inventa el horario «Lun-Sáb 8-18» si el lugar no tenía uno por días.
+  Prueba de punta a punta nueva con una cuenta admin del emulador.
+- **«¿Es tu negocio? Reclámalo»** vuelve a salir en los negocios del directorio (no en trámites ni turismo): se había
+  ocultado en todo lugar con fuente. PWA v78 (`fusa-v71`).
 - **Mapa y «Cómo llegar» en Pasca.** Google Maps ubica las direcciones de Pasca en Fusagasugá (por ejemplo, la
   Casa de la Cultura salía en el barrio El Tejar), y «Cómo llegar» de los cupones siempre agregaba «Fusagasugá». Ahora
   `destinoDe` usa en Pasca el punto aproximado del lugar o el casco urbano, y en Fusagasugá la dirección. Con prueba

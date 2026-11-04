@@ -181,13 +181,16 @@ function normalizarNube(id,x){
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
     tipo:x.tipo||'',sub,nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
-    fotos:Array.isArray(x.fotos)?x.fotos:[],creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
+    fotos:Array.isArray(x.fotos)?x.fotos:[],foto_credito:x.foto_credito||null,creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
 }
 estado.ocultos=new Set(ls.get('fc_ocultos',[]));
 function reconstruirDirectorio(){
   // Un negocio reclamado o corregido por el admin se guarda en la nube con el mismo id y reemplaza su copia local
   const porId=new Map(COMERCIOS_BASE.filter(c=>!estado.ocultos.has(c.id)).map(c=>[c.id,{...c}]));
-  comerciosNube.forEach(c=>porId.set(c.id,c));
+  // v1.4.0: la copia en la nube conserva las fuentes, la web, el correo y el crédito de la foto del lugar original
+  comerciosNube.forEach(c=>{const b=porId.get(c.id);porId.set(c.id,b?{...c,fuentes:c.fuentes||b.fuentes,verificado:c.verificado||b.verificado,
+    correo:c.correo||b.correo,sitioWeb:c.sitioWeb||b.sitioWeb||'',redesSociales:Object.keys(c.redesSociales||{}).length?c.redesSociales:(b.redesSociales||{}),
+    foto_credito:c.foto_credito||(c.imagen===b.imagen?b.foto_credito:null)}:c);});
   database=[...porId.values(),...lugaresComunidad];
 }
 /* ===== ARRANQUE (v7 · Fase 5; v9) =====
@@ -2490,7 +2493,7 @@ function abrirDetalle(id){
       :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
-    +'<div class="det-pie">'+(!d.propietario_uid&&!natural&&!d.fuentes?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
+    +'<div class="det-pie">'+(!d.propietario_uid&&!natural&&!['tramite','turismo'].includes(d.cat)?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
     +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
@@ -4218,7 +4221,7 @@ function fotosIniciales(d){
   const img=imgSegura(d.imagen);
   if(!img)return [];
   // Foto antigua (base64 en el documento o archivo de la app): se convierte en la primera foto de la galería
-  const x={id:idFoto(),src:'',nueva:true};
+  const x={id:idFoto(),src:'',nueva:true,deBase:true};
   comprimirFoto(img).then(r=>{Object.assign(x,r);if(wiz)pintarGaleriaEdit();}).catch(()=>{});
   return [x];
 }
@@ -4538,6 +4541,11 @@ async function publicarComercio(){
     Object.assign(datos,await prepararFotos(ref,lote));
     if(w.editandoId&&w.esSemilla){
       // Un admin corrige la ficha de un negocio semilla: se crea su documento en la nube con el mismo id
+      const o=w.original||{};
+      // Si el lugar no tenía horario por días y no se tocó el que trae el formulario (Lun-Sáb 8-18), se deja el suyo
+      if(!(o.dias&&o.dias.length&&o.abre)&&JSON.stringify(d.dias)==='[1,2,3,4,5,6]'&&d.abre==='08:00'&&d.cierra==='18:00')
+        Object.assign(datos,{dias:[],abre:'',cierra:'',horario:o.horario||''});
+      if(o.foto_credito&&w.datos.fotos[0]&&w.datos.fotos[0].deBase)datos.foto_credito=o.foto_credito;
       Object.assign(datos,{imagen:datos.imagen||w.original.imagen||'',estado_publicacion:'aprobado',propietario_uid:null,esPremium:false,prioridadBusqueda:0,fechaCreacion:FV.serverTimestamp()});
       lote.set(ref,datos,{merge:true});await lote.commit();toast('Ficha actualizada');
     }else if(w.editandoId){

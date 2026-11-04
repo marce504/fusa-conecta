@@ -88,7 +88,9 @@ service cloud.firestore {
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid)
         || esAdmin();
       // Cualquier persona con cuenta registra un negocio: entra "pendiente" de revisión, sin Premium y con máx. 4 fotos.
-      allow create: if tienePerfil()
+      // El admin crea la copia en la nube de un lugar del directorio (datos.js) al corregirlo o subirle fotos.
+      allow create: if esAdmin()
+        || (tienePerfil()
         && request.resource.data.get('fotos', []).size() <= 4
         && request.resource.data.propietario_uid == request.auth.uid
         && request.resource.data.estado_publicacion == 'pendiente'
@@ -98,7 +100,7 @@ service cloud.firestore {
         && request.resource.data.nombre is string
         && request.resource.data.nombre.size() > 0
         // La portada en el documento es una miniatura: máx. ~56 000 caracteres (≈ 40 KB)
-        && request.resource.data.get('imagen', '').size() <= 56000;
+        && request.resource.data.get('imagen', '').size() <= 56000);
       // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
       // Excepción: el dueño puede reenviar a revisión un comercio rechazado.
       allow update: if esAdmin()

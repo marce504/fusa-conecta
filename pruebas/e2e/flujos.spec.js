@@ -526,3 +526,47 @@ test('invitación de organizador: el enlace abre el registro con el correo escri
   const mensaje = await page.evaluate(c => window.mensajeInvitacion(c), correo);
   expect(mensaje).toContain(`https://fusa-conecta.web.app/?organizador=${encodeURIComponent(correo)}`);
 });
+
+// v1.4.0: el admin sube una foto a un lugar del directorio sin perder su fuente, su crédito ni su horario
+test('admin: foto nueva en un lugar del directorio, con su fuente, crédito y horario', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.admin);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => window.abrirFormComercio(window.buscar('c29')));
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAQ0lEQVR4nO3PQQ0AIBDAsAP/nuEFCZZsrNvO7t3tGBEREREREREREREREREREREREREREREREREREREREREREfnfAR8BAWEB06p/AAAAAElFTkSuQmCC',
+    'base64',
+  );
+  for (let paso = 1; paso < 5; paso++) {
+    if (paso === 4) {
+      await page.locator('#wFotos').setInputFiles({ name: 'iglesia.png', mimeType: 'image/png', buffer: png });
+      await expect(page.locator('#wGaleria .foto-tile img')).toHaveCount(2);
+    }
+    await page.locator('#wSig').click();
+  }
+  await page.locator('#wEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Ficha actualizada');
+  await page.waitForFunction(() => window.buscar('c29').fotos.length === 2);
+  const d = await page.evaluate(() => {
+    const x = window.buscar('c29');
+    return { fuentes: x.fuentes, credito: x.foto_credito, horario: x.horario, dias: x.dias };
+  });
+  expect(d.fuentes[0].url).toContain('openstreetmap.org');
+  expect(d.credito.licencia).toBe('CC BY-SA 4.0');
+  expect(d.horario).toBe('Según horario misas');
+  expect(d.dias || []).toEqual([]);
+  await page.evaluate(() => window.abrirDetalle('c29'));
+  const ficha = page.locator('#sheetDetalle');
+  await expect(ficha).toContainText('OpenStreetMap');
+  await expect(ficha).toContainText('CC BY-SA 4.0');
+  await expect(ficha).not.toContainText('Lun-Sáb');
+  // Trámites y turismo no se reclaman; un negocio del directorio sí
+  await expect(ficha.locator('#bReclamar')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('admin-foto-c29.png') });
+  await page.locator('#cerrarDet').click();
+  await page.evaluate(() => window.abrirDetalle(database.find(x => x.nombre === 'Paneton').id));
+  await expect(page.locator('#sheetDetalle #bReclamar')).toBeVisible();
+});
