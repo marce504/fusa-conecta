@@ -4,6 +4,32 @@ Revisado el 2026-10-30. **No se borró ni se cambió nada**: esta lista es para 
 debe mostrar negocios que no existen. Los 6 lugares de Pasca (`c72` a `c77`) no están aquí porque ya entraron
 verificados (ver `docs/pasca-fuentes.md`).
 
+## Fotos (2026-11-04)
+
+Parte 4. Regla: solo fotos con licencia libre y crédito (Wikimedia Commons) o las que sube el dueño del negocio. Nada
+de Google Maps, Facebook ni Instagram.
+
+- Se buscó en Commons por cercanía (10 km alrededor de Fusagasugá y Pasca), por categorías y por nombre. Casi todo lo
+  que hay son aves y mariposas; solo 8 fotos muestran un lugar del directorio. Cada una se revisó a ojo.
+- Se redimensionaron a 800 px (JPEG). El crédito queda en `foto_credito` y se ve en la ficha.
+
+| Lugar | Archivo en Commons | Autor | Licencia |
+|---|---|---|---|
+| Iglesia de Belén | [CATEDRAL NUESTRA SEÑORA DE BELÉN.JPG](https://commons.wikimedia.org/wiki/File:CATEDRAL_NUESTRA_SE%C3%91ORA_DE_BEL%C3%89N.JPG) | María cristina garzón cifuentes | CC BY-SA 4.0 |
+| Biblioteca Pública Quinta de Coburgo | [Hacienda Quinta Coburgo.JPG](https://commons.wikimedia.org/wiki/File:Hacienda_Quinta_Coburgo.JPG) | Juanda097 | CC BY-SA 3.0 |
+| Monumento al Indio Sutagao | [Indio Sutagao.JPG](https://commons.wikimedia.org/wiki/File:Indio_Sutagao.JPG) | Nikacer | CC BY-SA 3.0 |
+| Monumento Lucho Herrera | [Estatua Lucho Herrera.jpg](https://commons.wikimedia.org/wiki/File:Estatua_Lucho_Herrera.jpg) | Petruss | CC BY-SA 4.0 |
+| Instituto Técnico Salesiano Valsalice | [Panoramica Capilla Valsalice.jpg](https://commons.wikimedia.org/wiki/File:Panoramica_Capilla_Valsalice.jpg) | Jeormagu | CC BY 3.0 |
+| Sendero Cara del Indio | [Montaña Sagrada de la Luna "Quininí".jpg](https://commons.wikimedia.org/wiki/File:Monta%C3%B1a_Sagrada_de_la_Luna_%22Quinin%C3%AD%22.jpg) | Juancam.27 | CC BY-SA 4.0 |
+| Páramo de Sumapaz (desde Pasca) | [Bosque de frailejones en el paramo de Sumapaz.jpg](https://commons.wikimedia.org/wiki/File:Bosque_de_frailejones_en_el_paramo_de_Sumapaz.jpg) | Camilo.Errante | CC BY-SA 4.0 |
+| Parroquia de Nuestra Señora de la Encarnación (Pasca) | [Mural iglesia pasca Cundinamarca.jpg](https://commons.wikimedia.org/wiki/File:Mural_iglesia_pasca_Cundinamarca.jpg) | Wilferpc | CC0 |
+
+- **Fotos quitadas:** las 12 de lugares oficiales sin origen conocido (Cerro Fusacatán, La Aguadita, Pueblito,
+  Hacienda Coloma, Alcaldía, Notaría Primera, Bomberos, SENA, Fiscalía, Comisaría, Bancolombia y la anterior de Cara
+  del Indio). La de la Fiscalía tenía la marca de una imagen generada con IA y la de Bancolombia era otra sucursal.
+- **Pendiente:** fotos propias (de la alcaldía, de los dueños o tomadas para la app y subidas a Commons) para Cerro
+  Fusacatán, Hacienda Coloma, La Aguadita y el Pueblito Fusagasugueño.
+
 ## Pasca y Registro Nacional de Turismo (2026-11-04)
 
 Parte 3 de la revisión.

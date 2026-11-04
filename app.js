@@ -2235,7 +2235,9 @@ function seccionPascaHTML(){
   if(municipioElegido()==='Fusagasugá')return '';
   const todos=database.filter(d=>municipioDe(d)==='Pasca'&&(d.cat!=='bares'||estado.mayorEdad));
   // v1.4.0: con más lugares oficiales en Pasca, los negocios que publicaron sus dueños van primero en el carrusel
-  const l=paraCarrusel([...todos.filter(d=>d.propietario_uid),...todos.filter(d=>!d.propietario_uid)]);
+  // (aunque otros lugares tengan foto: paraCarrusel pone primero los que tienen foto)
+  const duenos=todos.filter(d=>d.propietario_uid&&!vistosInicio.has(d.id)).slice(0,10);duenos.forEach(d=>vistosInicio.add(d.id));
+  const l=[...duenos,...paraCarrusel(todos.filter(d=>!d.propietario_uid))].slice(0,10);
   return '<section class="seccion-inicio seccion-pasca" aria-labelledby="tPasca"><div class="head-v"><h2 id="tPasca">Pasca, puerta del Sumapaz</h2>'
     +(todos.length?'<button class="btn-ghost" data-pasca-todos>Ver todos</button>':'')+'</div>'
     +'<div class="carrusel carrusel-tc">'+l.map(tarjetaHTML).join('')
@@ -2298,6 +2300,12 @@ function cuponesDe(d){
   const hoy=Date.now();
   return estado.cuponesFS.filter(c=>c.comercio_id===d.id&&(c.estado||'activo')==='activo'&&(c.cupo_restante==null||c.cupo_restante>0))
     .filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
+}
+// v1.4.0: autor y licencia de las fotos libres (Wikimedia Commons). CC BY y CC BY-SA exigen dar el crédito.
+function creditoFotoHTML(d){
+  const c=d.foto_credito;if(!c||!c.autor||!imgSegura(d.imagen))return '';
+  const enlace=(u,t)=>/^https:\/\//.test(u||'')?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':esc(t);
+  return filaDato('camera','Foto',enlace(c.url,c.autor)+' · '+enlace(c.licencia_url,c.licencia||'')+(c.fuente?', '+esc(c.fuente):''));
 }
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
 /* ===== SENDEROS Y LUGARES NATURALES (v5 · Fase 2) =====
@@ -2467,6 +2475,7 @@ function abrirDetalle(id){
     +(d.sitioWeb&&/^https:\/\//.test(d.sitioWeb)?filaDato('globe','Sitio web','<a href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+esc(d.sitioWeb.replace(/^https:\/\/(www\.)?/,''))+'</a>'):'')
     +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>').join('<br>')
       +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
+    +creditoFotoHTML(d)
     +'</div>'
     +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
       +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'

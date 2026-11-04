@@ -391,3 +391,24 @@ describe('destinoDe: mapa y «Cómo llegar»', () => {
     expect(destinoDe({ ...base, lat: null, lng: null })).toBe('4.30783,-74.30018');
   });
 });
+
+describe('creditoFotoHTML: autor y licencia de la foto', () => {
+  const { creditoFotoHTML } = cargar(['esc', 'imgSegura', 'filaDato', 'creditoFotoHTML'], { icon: () => '' });
+  const credito = {
+    autor: 'Petruss',
+    licencia: 'CC BY-SA 4.0',
+    licencia_url: 'https://creativecommons.org/licenses/by-sa/4.0',
+    url: 'https://commons.wikimedia.org/wiki/File:Estatua_Lucho_Herrera.jpg',
+    fuente: 'Wikimedia Commons',
+  };
+  it('muestra autor, licencia y fuente con sus enlaces', () => {
+    const html = creditoFotoHTML({ imagen: 'img/comercios/x.jpg', foto_credito: credito });
+    expect(html).toContain('>Petruss</a>');
+    expect(html).toContain('>CC BY-SA 4.0</a>');
+    expect(html).toContain('Wikimedia Commons');
+  });
+  it('no muestra nada sin foto o sin crédito', () => {
+    expect(creditoFotoHTML({ imagen: '', foto_credito: credito })).toBe('');
+    expect(creditoFotoHTML({ imagen: 'img/comercios/x.jpg' })).toBe('');
+  });
+});

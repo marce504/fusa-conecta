@@ -57,7 +57,7 @@ def test_ficha(cliente):
         and f["cupones"] == 1
         and f["cupones_activos"][0]["descripcion"] == "2x1 en almojábanas"
     )
-    assert cliente.get("/v1/comercios/c21").json()["imagen_url"].startswith("https://fusa-conecta.web.app/img/")
+    assert cliente.get("/v1/comercios/c29").json()["imagen_url"].startswith("https://fusa-conecta.web.app/img/")
     assert cliente.get("/v1/comercios/no-existe").status_code == 404
 
 

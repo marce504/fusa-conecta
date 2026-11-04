@@ -104,7 +104,7 @@
    "direccion": "Costado oriental",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/cerro-fusacatan.jpg",
+   "imagen": "",
    "lat": 4.33237,
    "lng": -74.33815,
    "ubicacion_aprox": false,
@@ -135,7 +135,7 @@
    "direccion": "Camino Real del Quininí, Tibacuy (entrada por la vía Viotá–Tibacuy)",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/sendero-cara-del-indio.jpg",
+   "imagen": "img/comercios/cerro-quinini.jpg",
    "lat": 4.322,
    "lng": -74.48805,
    "ubicacion_aprox": false,
@@ -154,7 +154,14 @@
      "url": "https://www.openstreetmap.org/node/4222010918"
     }
    ],
-   "verificado": "2026-11-04"
+   "verificado": "2026-11-04",
+   "foto_credito": {
+    "autor": "Juancam.27",
+    "licencia": "CC BY-SA 4.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Monta%C3%B1a_Sagrada_de_la_Luna_%22Quinin%C3%AD%22.jpg",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c23",
@@ -166,7 +173,7 @@
    "direccion": "Cto La Aguadita",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/corregimiento-la-aguadita.jpg",
+   "imagen": "",
    "lat": 4.38834,
    "lng": -74.32489,
    "ubicacion_aprox": false,
@@ -197,7 +204,7 @@
    "direccion": "Sector turístico",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/pueblito-fusagasugueno.jpg",
+   "imagen": "",
    "lat": 4.34582,
    "lng": -74.37689,
    "ubicacion_aprox": false,
@@ -247,7 +254,14 @@
      "url": "https://www.openstreetmap.org/way/669169737"
     }
    ],
-   "verificado": "2026-11-04"
+   "verificado": "2026-11-04",
+   "foto_credito": {
+    "autor": "María cristina garzón cifuentes",
+    "licencia": "CC BY-SA 4.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:CATEDRAL_NUESTRA_SE%C3%91ORA_DE_BEL%C3%89N.JPG",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c30",
@@ -259,7 +273,7 @@
    "direccion": "Vía Fusa-Bogotá km 4",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/hacienda-coloma-museo-del-cafe.jpg",
+   "imagen": "",
    "lat": 4.34286,
    "lng": -74.37764,
    "ubicacion_aprox": false,
@@ -290,7 +304,7 @@
    "direccion": "Carrera 7, Centro",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/alcaldia-municipal-de-fusagasuga.jpg",
+   "imagen": "",
    "lat": 4.3443,
    "lng": -74.36194,
    "ubicacion_aprox": false,
@@ -319,7 +333,7 @@
    "direccion": "Diagonal 23 No. 16-90, Local 3, C. C. Jardín",
    "tel": "3334005931",
    "whatsapp": "",
-   "imagen": "img/comercios/notaria-primera-de-fusagasuga.jpg",
+   "imagen": "",
    "lat": 4.34307,
    "lng": -74.36328,
    "ubicacion_aprox": true,
@@ -349,7 +363,7 @@
    "direccion": "Centro",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/bomberos-voluntarios-de-fusagasuga.jpg",
+   "imagen": "",
    "lat": 4.3417,
    "lng": -74.36071,
    "ubicacion_aprox": false,
@@ -378,7 +392,7 @@
    "direccion": "Fusagasugá",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/sena-centro-agroecologico.jpg",
+   "imagen": "",
    "lat": 4.33838,
    "lng": -74.36404,
    "ubicacion_aprox": false,
@@ -407,7 +421,7 @@
    "direccion": "Centro, Fusagasugá",
    "tel": "122",
    "whatsapp": "",
-   "imagen": "img/comercios/fiscalia-general-fusagasuga.jpg",
+   "imagen": "",
    "lat": 4.33862,
    "lng": -74.36391,
    "ubicacion_aprox": false,
@@ -436,7 +450,7 @@
    "direccion": "Centro",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/comisaria-de-familia.jpg",
+   "imagen": "",
    "lat": 4.34047,
    "lng": -74.3656,
    "ubicacion_aprox": false,
@@ -465,7 +479,7 @@
    "direccion": "Avenida Las Palmas",
    "tel": "",
    "whatsapp": "",
-   "imagen": "img/comercios/bancolombia-sucursal-fusagasuga.jpg",
+   "imagen": "",
    "lat": 4.3443,
    "lng": -74.37415,
    "ubicacion_aprox": false,
@@ -835,7 +849,7 @@
    "direccion": "Calle 3, plaza principal",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/parroquia-pasca-mural.jpg",
    "lat": 4.30837,
    "lng": -74.29951,
    "ubicacion_aprox": false,
@@ -857,7 +871,14 @@
     }
    ],
    "verificado": "2026-10-30",
-   "tipo": "cultural"
+   "tipo": "cultural",
+   "foto_credito": {
+    "autor": "Wilferpc",
+    "licencia": "CC0",
+    "licencia_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Mural_iglesia_pasca_Cundinamarca.jpg",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c76",
@@ -902,7 +923,7 @@
    "direccion": "Zona rural de Pasca",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/paramo-sumapaz-frailejones.jpg",
    "lat": 4.30783,
    "lng": -74.30018,
    "ubicacion_aprox": true,
@@ -930,7 +951,14 @@
    "verificado": "2026-10-30",
    "tipo": "",
    "aviso": "El Parque Nacional Natural Sumapaz no está habilitado para el ecoturismo: no tiene rutas autorizadas ni atención a visitantes, según Parques Nacionales Naturales. Consulta las condiciones antes de ir.",
-   "aviso_enlace": "https://www.parquesnacionales.gov.co/sala-prensa/noticias/el-parque-nacional-natural-sumapaz-no-esta-habilitado-al-ecoturismo/"
+   "aviso_enlace": "https://www.parquesnacionales.gov.co/sala-prensa/noticias/el-parque-nacional-natural-sumapaz-no-esta-habilitado-al-ecoturismo/",
+   "foto_credito": {
+    "autor": "Camilo.Errante",
+    "licencia": "CC BY-SA 4.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Bosque_de_frailejones_en_el_paramo_de_Sumapaz.jpg",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c78",
@@ -11854,7 +11882,7 @@
    "direccion": "Fusagasugá",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/monumento-lucho-herrera.jpg",
    "lat": 4.348815,
    "lng": -74.390901,
    "ubicacion_aprox": false,
@@ -11872,7 +11900,14 @@
     }
    ],
    "verificado": "2026-11-04",
-   "tipo": "cultural"
+   "tipo": "cultural",
+   "foto_credito": {
+    "autor": "Petruss",
+    "licencia": "CC BY-SA 4.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Estatua_Lucho_Herrera.jpg",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c456",
@@ -11883,7 +11918,7 @@
    "direccion": "Fusagasugá",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/monumento-indio-sutagao.jpg",
    "lat": 4.331713,
    "lng": -74.377522,
    "ubicacion_aprox": false,
@@ -11901,7 +11936,14 @@
     }
    ],
    "verificado": "2026-11-04",
-   "tipo": "cultural"
+   "tipo": "cultural",
+   "foto_credito": {
+    "autor": "Nikacer",
+    "licencia": "CC BY-SA 3.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Indio_Sutagao.JPG",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c457",
@@ -12116,7 +12158,7 @@
    "direccion": "Fusagasugá - Silvania - Soacha",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/salesiano-valsalice.jpg",
    "lat": 4.394539,
    "lng": -74.391853,
    "ubicacion_aprox": false,
@@ -12134,7 +12176,14 @@
     }
    ],
    "verificado": "2026-11-04",
-   "sub": "educacion"
+   "sub": "educacion",
+   "foto_credito": {
+    "autor": "Jeormagu",
+    "licencia": "CC BY 3.0",
+    "licencia_url": "https://creativecommons.org/licenses/by/3.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Panoramica_Capilla_Valsalice.jpg",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c465",
@@ -12582,7 +12631,7 @@
    "direccion": "Fusagasugá",
    "tel": "",
    "whatsapp": "",
-   "imagen": "",
+   "imagen": "img/comercios/quinta-de-coburgo.jpg",
    "lat": 4.338675,
    "lng": -74.359146,
    "ubicacion_aprox": false,
@@ -12600,7 +12649,14 @@
     }
    ],
    "verificado": "2026-11-04",
-   "sub": "educacion"
+   "sub": "educacion",
+   "foto_credito": {
+    "autor": "Juanda097",
+    "licencia": "CC BY-SA 3.0",
+    "licencia_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "url": "https://commons.wikimedia.org/wiki/File:Hacienda_Quinta_Coburgo.JPG",
+    "fuente": "Wikimedia Commons"
+   }
   },
   {
    "id": "c481",

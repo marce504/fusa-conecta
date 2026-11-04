@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Fotos con licencia libre y su crédito (parte 4).** 8 fotos de Wikimedia Commons, revisadas una por una:
+  Iglesia de Belén, Biblioteca Quinta de Coburgo, Monumento al Indio Sutagao, Monumento Lucho Herrera, Instituto
+  Salesiano Valsalice, Sendero Cara del Indio (cerro Quininí), Páramo de Sumapaz (frailejones) y Parroquia de Pasca.
+  Van a 800 px en `img/comercios/` y cada lugar guarda `foto_credito` (autor, licencia, enlaces). La ficha muestra la
+  fila «Foto» con el autor y la licencia (`creditoFotoHTML`, con prueba unitaria), como piden CC BY y CC BY-SA.
 - **414 lugares reales de Fusagasugá desde OpenStreetMap** (`c78`–`c491` en `datos.js`, parte 2 de la revisión del
   directorio). Se descargaron los negocios y entidades con nombre que OSM ubica dentro del límite oficial del municipio
   (`limites.geojson`) y se convirtieron con un script que solo usa lo etiquetado en el mapa: nombre, ubicación exacta,
@@ -56,6 +61,9 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   Casa de la Cultura salía en el barrio El Tejar), y «Cómo llegar» de los cupones siempre agregaba «Fusagasugá». Ahora
   `destinoDe` usa en Pasca el punto aproximado del lugar o el casco urbano, y en Fusagasugá la dirección. Con prueba
   unitaria.
+- **Fotos sin origen.** Se quitaron las 12 fotos de lugares oficiales que no decían de dónde salieron (una de la
+  Fiscalía era una imagen generada con IA y la de Bancolombia era otra sucursal). Esos lugares muestran su ícono hasta
+  tener una foto libre o una del dueño. Se conserva la del vivero Ofalahiatu, que subió su dueño. PWA v76 (`fusa-v69`).
 - **Carrusel «Pasca, puerta del Sumapaz».** Con más lugares oficiales, los negocios que publicaron sus dueños quedaban
   fuera de los 10 del carrusel; ahora van primero. PWA v75 (`fusa-v68`).
 - **Teléfonos y horarios inventados en lugares reales.** Se borraron los teléfonos de ejemplo de los atractivos
