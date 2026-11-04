@@ -139,6 +139,13 @@ const PLAZA_PASCA=[4.30783,-74.30018];   // casco urbano de Pasca (OpenStreetMap
 // Los lugares y eventos sin municipio son de Fusagasugá (así se cargó el directorio base)
 function municipioDe(x){return x&&x.municipio==='Pasca'?'Pasca':'Fusagasugá';}
 function enMunicipio(x,m){return !m||municipioDe(x)===m;}
+// v1.4.0: destino del mapa y de «Cómo llegar». Google ubica las direcciones de Pasca en Fusagasugá,
+// así que allí se usa el punto aproximado del lugar o, si no tiene (lugares del RNT), el casco urbano.
+function destinoDe(d){
+  if(d.lat&&d.lng&&!d.ubicacion_aprox)return d.lat+','+d.lng;
+  if(municipioDe(d)==='Pasca'){const c=d.lat&&d.lng?[d.lat,d.lng]:PLAZA_PASCA;return c[0]+','+c[1];}
+  return d.direccion+', Fusagasugá, Cundinamarca';
+}
 const municipioElegido=()=>estado.filtros.municipio||'';
 function nombreZona(m=municipioElegido()){return m||'Fusa y Pasca';}
 function selectorMunicipioHTML(){
@@ -2226,7 +2233,9 @@ function seccionRecientesHTML(){
 // «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras haya pocos negocios, la invitación a publicar el suyo
 function seccionPascaHTML(){
   if(municipioElegido()==='Fusagasugá')return '';
-  const todos=database.filter(d=>municipioDe(d)==='Pasca'&&(d.cat!=='bares'||estado.mayorEdad)),l=paraCarrusel(todos);
+  const todos=database.filter(d=>municipioDe(d)==='Pasca'&&(d.cat!=='bares'||estado.mayorEdad));
+  // v1.4.0: con más lugares oficiales en Pasca, los negocios que publicaron sus dueños van primero en el carrusel
+  const l=paraCarrusel([...todos.filter(d=>d.propietario_uid),...todos.filter(d=>!d.propietario_uid)]);
   return '<section class="seccion-inicio seccion-pasca" aria-labelledby="tPasca"><div class="head-v"><h2 id="tPasca">Pasca, puerta del Sumapaz</h2>'
     +(todos.length?'<button class="btn-ghost" data-pasca-todos>Ver todos</button>':'')+'</div>'
     +'<div class="carrusel carrusel-tc">'+l.map(tarjetaHTML).join('')
@@ -2422,7 +2431,7 @@ function abrirDetalle(id){
   if(es24h(d))chips.push(['clock','Abierto 24 horas']);
   chips.push(['map-pin',d.municipio||'Fusagasugá']);
   const chipsHTML='<div class="chips-car">'+chips.map(([i,t])=>'<span class="chip-car">'+icon(i,16)+esc(t)+'</span>').join('')+'</div>';
-  const destinoMapa=(d.lat&&d.lng&&!d.ubicacion_aprox)?d.lat+','+d.lng:d.direccion+', '+municipioDe(d)+', Cundinamarca';
+  const destinoMapa=destinoDe(d);
   // Lugares verificados de Pasca (v1.3.0): sin teléfono no hay «Llamar» ni «WhatsApp»; con aviso no hay «Cómo llegar»
   const sinContacto=!d.tel&&!d.whatsapp;
   const embed='https://maps.google.com/maps?q='+encodeURIComponent(destinoMapa)+'&z='+(d.ubicacion_aprox?14:16)+'&output=embed';
@@ -2659,7 +2668,7 @@ function estadoCupon(c){if(c.estado==='usado')return 'usado';if(c.fecha_vencimie
 function fechaHora(ms){return ms?new Date(ms).toLocaleString('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'';}
 function comoLlegarURL(comercioId,nombre){
   const d=buscar(comercioId);
-  const destino=d?((d.lat&&d.lng&&!d.ubicacion_aprox)?d.lat+','+d.lng:d.direccion+', Fusagasugá, Cundinamarca'):(nombre||'')+', Fusagasugá';
+  const destino=d?destinoDe(d):(nombre||'')+', Fusagasugá';
   return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino);
 }
 

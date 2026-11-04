@@ -465,8 +465,9 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
   expect(await municipios()).toEqual(['Pasca']);
   await expect(page.locator('#todoFusa h2')).toHaveText('Todo Pasca');
-  await expect(page.locator('.grid-tc')).toContainText(NEGOCIO_PASCA.nombre);
-  await expect(page.locator('.grid-tc')).not.toContainText('Café Sutagao');
+  // v1.4.0: Pasca tiene más lugares oficiales; el negocio con dueña va primero en el carrusel de Pasca
+  await expect(seccion.locator('.tarjeta').first()).toContainText(NEGOCIO_PASCA.nombre);
+  await expect(page.locator('.grid-tc')).not.toContainText('Hacienda Coloma');
   await expect(seccion.locator('.tarjeta-publica')).toContainText('¿Tienes un negocio en Pasca?');
   // Lugares verificados de Pasca (parte 2) y el aviso de senderos
   await expect(seccion).toContainText('Alcaldía Municipal de Pasca');

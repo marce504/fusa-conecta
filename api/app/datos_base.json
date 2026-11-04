@@ -759,8 +759,8 @@
      "url": "https://www.pasca-cundinamarca.gov.co/tema/turismo"
     },
     {
-     "nombre": "OpenStreetMap (ubicación)",
-     "url": "https://www.openstreetmap.org/?mlat=4.30896&mlon=-74.30040#map=18/4.30896/-74.30040"
+     "nombre": "OpenStreetMap: Alcaldía Municipal de Pasca",
+     "url": "https://www.openstreetmap.org/node/12994395466"
     }
    ],
    "verificado": "2026-10-30",
@@ -885,8 +885,8 @@
      "url": "https://es.wikipedia.org/wiki/Pasca"
     },
     {
-     "nombre": "OpenStreetMap (ubicación)",
-     "url": "https://www.openstreetmap.org/?mlat=4.30846&mlon=-74.29920#map=18/4.30846/-74.29920"
+     "nombre": "OpenStreetMap: Museo Arqueológico de Pasca",
+     "url": "https://www.openstreetmap.org/way/1268533357"
     }
    ],
    "verificado": "2026-10-30",
@@ -7511,10 +7511,10 @@
    "id": "c305",
    "cat": "hospedaje",
    "nombre": "Parque Zabal",
-   "desc": "Hotel.",
+   "desc": "Hotel con 32 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
    "direccion": "Calle 6 # 7-71",
-   "tel": "",
+   "tel": "3105583678",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.344059,
@@ -7531,6 +7531,10 @@
     {
      "nombre": "OpenStreetMap: Parque Zabal",
      "url": "https://www.openstreetmap.org/node/5517557521"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 12061, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=12061"
     }
    ],
    "verificado": "2026-11-04"
@@ -7739,10 +7743,10 @@
    "id": "c313",
    "cat": "hospedaje",
    "nombre": "Hotel Los Sauces",
-   "desc": "Hotel.",
+   "desc": "Hotel con 18 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
-   "direccion": "Fusagasugá",
-   "tel": "",
+   "direccion": "Cr 6 No 4 19",
+   "tel": "3204804001",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.345419,
@@ -7759,6 +7763,10 @@
     {
      "nombre": "OpenStreetMap: Hotel Los Sauces",
      "url": "https://www.openstreetmap.org/node/6264810645"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 5957, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5957"
     }
    ],
    "verificado": "2026-11-04"
@@ -8689,10 +8697,10 @@
    "id": "c346",
    "cat": "hospedaje",
    "nombre": "Hotel Barcelona Chinauta",
-   "desc": "Hotel.",
+   "desc": "Hotel con 16 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
-   "direccion": "Fusagasugá",
-   "tel": "",
+   "direccion": "Km 65 Villa Myriam Chinauta",
+   "tel": "6018679576",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.309025,
@@ -8709,6 +8717,10 @@
     {
      "nombre": "OpenStreetMap: Hotel Barcelona Chinauta",
      "url": "https://www.openstreetmap.org/node/10735274362"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 34052, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=34052"
     }
    ],
    "verificado": "2026-11-04",
@@ -9843,10 +9855,10 @@
    "id": "c386",
    "cat": "hospedaje",
    "nombre": "Villa Sallent",
-   "desc": "Hotel.",
+   "desc": "Centro vacacional con 2 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
-   "direccion": "Fusagasugá",
-   "tel": "",
+   "direccion": "Kilometro 61 Via Bogota - Melgar",
+   "tel": "6013421649",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.313649,
@@ -9863,6 +9875,10 @@
     {
      "nombre": "OpenStreetMap: Villa Sallent",
      "url": "https://www.openstreetmap.org/way/733350905"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 167958, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=167958"
     }
    ],
    "verificado": "2026-11-04"
@@ -9901,8 +9917,8 @@
    "nombre": "Los Alpes",
    "desc": "Centro vacacional.",
    "horario": "",
-   "direccion": "Fusagasugá",
-   "tel": "",
+   "direccion": "Km 66 Via Fusagasuga-Chinauta",
+   "tel": "6018679525",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.300739,
@@ -9919,6 +9935,10 @@
     {
      "nombre": "OpenStreetMap: Los Alpes",
      "url": "https://www.openstreetmap.org/way/736535758"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 24651, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=24651"
     }
    ],
    "verificado": "2026-11-04"
@@ -11945,10 +11965,10 @@
    "id": "c459",
    "cat": "hospedaje",
    "nombre": "Hotel Catama",
-   "desc": "Hotel.",
+   "desc": "Hotel con 20 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
-   "direccion": "Fusagasugá",
-   "tel": "",
+   "direccion": "Cl 22 36 91",
+   "tel": "6018780858",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.329632,
@@ -11965,6 +11985,10 @@
     {
      "nombre": "OpenStreetMap: Hotel Catama",
      "url": "https://www.openstreetmap.org/way/1356012143"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 19251, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=19251"
     }
    ],
    "verificado": "2026-11-04"
@@ -12434,10 +12458,10 @@
    "id": "c476",
    "cat": "hospedaje",
    "nombre": "Hotel Costa del Sol",
-   "desc": "Hotel.",
+   "desc": "Hotel con 29 habitaciones, inscrito en el Registro Nacional de Turismo.",
    "horario": "",
    "direccion": "Calle 17 # 12-04",
-   "tel": "",
+   "tel": "3204177484",
    "whatsapp": "",
    "imagen": "",
    "lat": 4.336364,
@@ -12454,6 +12478,10 @@
     {
      "nombre": "OpenStreetMap: Hotel Costa del Sol",
      "url": "https://www.openstreetmap.org/way/1395864564"
+    },
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 240562, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=240562"
     }
    ],
    "verificado": "2026-11-04"
@@ -12887,6 +12915,2557 @@
     }
    ],
    "verificado": "2026-11-04"
+  },
+  {
+   "id": "c492",
+   "cat": "turismo",
+   "nombre": "Cuchilla El Amarillal",
+   "desc": "Elevación natural a 3970 m s. n. m.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.200283,
+   "lng": -74.265058,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Cuchilla El Amarillal",
+     "url": "https://www.openstreetmap.org/node/703338651"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "mirador"
+  },
+  {
+   "id": "c493",
+   "cat": "turismo",
+   "nombre": "Loma Cajica",
+   "desc": "Elevación natural a 3360 m s. n. m.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.298369,
+   "lng": -74.241055,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Loma Cajica",
+     "url": "https://www.openstreetmap.org/node/703339803"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "mirador"
+  },
+  {
+   "id": "c494",
+   "cat": "turismo",
+   "nombre": "Cuchilla La Rica",
+   "desc": "Elevación natural a 3880 m s. n. m.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.219463,
+   "lng": -74.245854,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Cuchilla La Rica",
+     "url": "https://www.openstreetmap.org/node/703339816"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "mirador"
+  },
+  {
+   "id": "c495",
+   "cat": "tramite",
+   "nombre": "Estación de Policía de Pasca",
+   "desc": "Policía Nacional.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.309881,
+   "lng": -74.301603,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Estación de Policía de Pasca",
+     "url": "https://www.openstreetmap.org/way/205862342"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c496",
+   "cat": "servicios",
+   "nombre": "IE Normal Superior de Pasca Sede Jaime Hincapié Santamaría",
+   "desc": "Institución educativa.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.310456,
+   "lng": -74.302859,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: IE Normal Superior de Pasca Sede Jaime Hincapié Santamaría",
+     "url": "https://www.openstreetmap.org/way/205862344"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "educacion"
+  },
+  {
+   "id": "c497",
+   "cat": "servicios",
+   "nombre": "IE Normal Superior de Pasca",
+   "desc": "Institución educativa.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.309935,
+   "lng": -74.304379,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: IE Normal Superior de Pasca",
+     "url": "https://www.openstreetmap.org/way/205862357"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "educacion"
+  },
+  {
+   "id": "c498",
+   "cat": "servicios",
+   "nombre": "Estación de Servicio de Pasca",
+   "desc": "Estación de servicio (combustible).",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.308281,
+   "lng": -74.301972,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Estación de Servicio de Pasca",
+     "url": "https://www.openstreetmap.org/way/1092469953"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "transporte"
+  },
+  {
+   "id": "c499",
+   "cat": "comercio",
+   "nombre": "Plaza de Mercado de Pasca",
+   "desc": "Plaza de mercado.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.307755,
+   "lng": -74.301149,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Plaza de Mercado de Pasca",
+     "url": "https://www.openstreetmap.org/way/1268533367"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "tiendas"
+  },
+  {
+   "id": "c500",
+   "cat": "tramite",
+   "nombre": "Banco Agrario",
+   "desc": "Entidad bancaria o corresponsal.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.309607,
+   "lng": -74.301617,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Banco Agrario",
+     "url": "https://www.openstreetmap.org/way/1268533375"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c501",
+   "cat": "comercio",
+   "nombre": "El Molino Gourmet",
+   "desc": "Restaurante.",
+   "horario": "",
+   "direccion": "Pasca",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": 4.321323,
+   "lng": -74.338716,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: El Molino Gourmet",
+     "url": "https://www.openstreetmap.org/way/1419308737"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c502",
+   "cat": "servicios",
+   "nombre": "Agencia de Viajes Programar Eventos Especiales",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cra 17 B 1 A Norte 26",
+   "tel": "3134227298",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 218972, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=218972"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c503",
+   "cat": "servicios",
+   "nombre": "Asociación Sabores Primarios y Turismo Comunitario",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cr 4 No 20 - 74",
+   "tel": "3185697400",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 263207, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=263207"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c504",
+   "cat": "servicios",
+   "nombre": "Crismar Travel",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 21 N 52A 02 Local 01",
+   "tel": "3144664229",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 21650, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=21650"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c505",
+   "cat": "servicios",
+   "nombre": "D&V Travel",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Carrera 71A # 24 - 34",
+   "tel": "3108397696",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 286899, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=286899"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c506",
+   "cat": "servicios",
+   "nombre": "Dantour Viajes y Turismo",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Diagonal 18 #21 - 31",
+   "tel": "3222770983",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 70556, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=70556"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c507",
+   "cat": "servicios",
+   "nombre": "KHC Turismo",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Diagonal 27 # 36-66 Manzana C1 Casa 2",
+   "tel": "6018718906",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 27228, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=27228"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c508",
+   "cat": "servicios",
+   "nombre": "Lion Global Tours",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Diagonal 8A Norte # 3 -41",
+   "tel": "3134423469",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 299346, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=299346"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c509",
+   "cat": "servicios",
+   "nombre": "MDJ Tours",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 9 N 6-44",
+   "tel": "3232420879",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 260062, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=260062"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c510",
+   "cat": "servicios",
+   "nombre": "Natural Tribe Colombia",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 20 A 46 A 22",
+   "tel": "3112392177",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 76957, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=76957"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c511",
+   "cat": "servicios",
+   "nombre": "Orquídea Trips",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cra 7 No 1-36",
+   "tel": "3213805617",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 164939, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=164939"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c512",
+   "cat": "servicios",
+   "nombre": "Tierra Verde Experience",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 23 No 54 A - 07",
+   "tel": "3173970263",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 276536, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=276536"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c513",
+   "cat": "servicios",
+   "nombre": "Tour Mountain Adventure Expedition",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 16 A # 12 - 37 Piso 3",
+   "tel": "3155141446",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 78291, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=78291"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c514",
+   "cat": "servicios",
+   "nombre": "Tripbus Colombia",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cra 6 No 7-36 Centro Comercial Escorial Center",
+   "tel": "3108003049",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 46999, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=46999"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c515",
+   "cat": "servicios",
+   "nombre": "Viagem 33",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 30 Este 2 90",
+   "tel": "3108676174",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 302381, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=302381"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c516",
+   "cat": "bares",
+   "nombre": "Pórtico Resto Bar",
+   "desc": "Gastrobar, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 25 # 42-48 Locales 1-2 Cc La Querencia",
+   "tel": "3106895834",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 258938, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=258938"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c517",
+   "cat": "bares",
+   "nombre": "Sanka Club Gastro Bar Turistico",
+   "desc": "Gastrobar, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 25 No 38 - 78",
+   "tel": "3103925047",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 287599, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=287599"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c518",
+   "cat": "hospedaje",
+   "nombre": "Campo Eden",
+   "desc": "Centro vacacional con 40 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Vereda La Puerta",
+   "tel": "3102145340",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 93985, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=93985"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c519",
+   "cat": "hospedaje",
+   "nombre": "Centro Recreacional Valle de Eli SAS",
+   "desc": "Centro vacacional con 5 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Jardines Tocarema Vrd Novillero",
+   "tel": "6018675872",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 31036, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=31036"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c520",
+   "cat": "hospedaje",
+   "nombre": "Centro Recreacional Villa Cristina Acsurponal",
+   "desc": "Centro vacacional con 17 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 66 Via Melgar",
+   "tel": "3147238843",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 33308, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=33308"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c521",
+   "cat": "hospedaje",
+   "nombre": "Centro Recreacional Villa Los Sanchez",
+   "desc": "Centro vacacional con 17 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Av Eucaliptos Cll Ficus Fca Los Sanchez",
+   "tel": "3208615789",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 116892, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=116892"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c522",
+   "cat": "hospedaje",
+   "nombre": "Chinauta Eco Glamping",
+   "desc": "Campamento con 6 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Lote # 3 Vereda El Triunfo",
+   "tel": "3122977514",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 112614, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=112614"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c523",
+   "cat": "hospedaje",
+   "nombre": "Club Vacacional La Fontaine",
+   "desc": "Centro vacacional con 17 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Vereda La Puerta - Predio Rural Villa Lucy Chinauta",
+   "tel": "3218297264",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 204327, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=204327"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c524",
+   "cat": "hospedaje",
+   "nombre": "Ecoparque Chinauta",
+   "desc": "Centro vacacional con 14 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 70 Via Panamericana",
+   "tel": "6018676880",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 11524, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=11524"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c525",
+   "cat": "hospedaje",
+   "nombre": "Eventos y Excursiones Brayans Tours",
+   "desc": "Centro vacacional con 7 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 64 - Via Panamericana - Finca San Jose",
+   "tel": "3138608753",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 44419, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=44419"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c526",
+   "cat": "hospedaje",
+   "nombre": "Finca Vacacional El Recreo",
+   "desc": "Centro vacacional con 5 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Chinauta Av Eucalipto 08",
+   "tel": "3182406111",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 44758, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=44758"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c527",
+   "cat": "hospedaje",
+   "nombre": "Glamping El Nido",
+   "desc": "Glamping con 4 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Finca Filadelfia Lote #5",
+   "tel": "3505142411",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 156100, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=156100"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c528",
+   "cat": "hospedaje",
+   "nombre": "Grupo Barro Blanco",
+   "desc": "Glamping con 1 habitación, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Colinas De Barro Blanco",
+   "tel": "3225884607",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 180317, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=180317"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c529",
+   "cat": "hospedaje",
+   "nombre": "Hostal EDS",
+   "desc": "Hotel con 66 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Lt 26 27 Parcelacion Las Brisas Santa Lina",
+   "tel": "3115511587",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 259371, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=259371"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c530",
+   "cat": "hospedaje",
+   "nombre": "Hostel Montana",
+   "desc": "Hotel con 15 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Av Palmas 8 - 66",
+   "tel": "3112244647",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 55689, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=55689"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c531",
+   "cat": "hospedaje",
+   "nombre": "Hotel Bella Pampa Fusagasuga",
+   "desc": "Hotel con 24 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 22 No 72 42",
+   "tel": "3107804997",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 244968, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=244968"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c532",
+   "cat": "hospedaje",
+   "nombre": "Hotel Bogota Ciudad Jardin",
+   "desc": "Hotel con 13 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 5 # 6 - 08",
+   "tel": "3114994692",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 98915, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=98915"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c533",
+   "cat": "hospedaje",
+   "nombre": "Hotel Boutique Sinai",
+   "desc": "Hotel con 13 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 6 # 7 56",
+   "tel": "6018717004",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 31461, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=31461"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c534",
+   "cat": "hospedaje",
+   "nombre": "Hotel Bromelia Plaza",
+   "desc": "Hotel con 26 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 9 No 8 - 13",
+   "tel": "3124999665",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 48826, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=48826"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c535",
+   "cat": "hospedaje",
+   "nombre": "Hotel Calipso",
+   "desc": "Hotel con 33 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cr 6 No 4 53",
+   "tel": "3026014508",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 5879, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5879"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c536",
+   "cat": "hospedaje",
+   "nombre": "Hotel Campestre El Estoril",
+   "desc": "Hotel con 44 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cr 9 No 22 B 16",
+   "tel": "3158978015",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 17933, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=17933"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c537",
+   "cat": "hospedaje",
+   "nombre": "Hotel Celeste Inn",
+   "desc": "Hotel con 20 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Avenida Anturios Con Eucaliptos Lote 4 Kilometro 67 Chinauta",
+   "tel": "3132104241",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 103649, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=103649"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c538",
+   "cat": "hospedaje",
+   "nombre": "Hotel Central Fusa",
+   "desc": "Hotel con 26 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 7 7 64",
+   "tel": "3212297660",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 91160, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=91160"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c539",
+   "cat": "hospedaje",
+   "nombre": "Hotel Centro de Convenciones Chinauta Real",
+   "desc": "Centro vacacional con 100 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 685 Via Chinauta-Fusagasuga",
+   "tel": "6018674371",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 18765, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=18765"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c540",
+   "cat": "hospedaje",
+   "nombre": "Hotel Costa Azul Fusagasuga",
+   "desc": "Hotel con 10 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Av Las Palmas # 9 54",
+   "tel": "3102581888",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 238969, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=238969"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c541",
+   "cat": "hospedaje",
+   "nombre": "Hotel de Aventura y Centro de Convenciones Madaura",
+   "desc": "Hotel con 41 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 59 Via Bogota Girardot",
+   "tel": "3045615456",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 14260, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=14260"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c542",
+   "cat": "hospedaje",
+   "nombre": "Hotel Dorado Real",
+   "desc": "Hotel con 19 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 7 No 7-30",
+   "tel": "6018676149",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 22002, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=22002"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c543",
+   "cat": "hospedaje",
+   "nombre": "Hotel El Horizonte Usatama",
+   "desc": "Hotel con 9 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Finca Las Palomas Quebrada Los Guayabos Vereda Los Guayabos",
+   "tel": "3057244099",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 202822, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=202822"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c544",
+   "cat": "hospedaje",
+   "nombre": "Hotel El Paraiso Fusagasuga",
+   "desc": "Hotel con 12 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cll 4 # 5 - 57",
+   "tel": "3186572242",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 95969, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=95969"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c545",
+   "cat": "hospedaje",
+   "nombre": "Hotel El Refugio Central",
+   "desc": "Hotel con 32 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 6 # 7-59",
+   "tel": "3203305872",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 153240, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=153240"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c546",
+   "cat": "hospedaje",
+   "nombre": "Hotel Garden City Boutique",
+   "desc": "Hotel con 11 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 7 No 8 - 57",
+   "tel": "3108744111",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 55406, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=55406"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c547",
+   "cat": "hospedaje",
+   "nombre": "Hotel Gran Emperador",
+   "desc": "Hotel con 23 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 9 No 7 77",
+   "tel": "3114597795",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 11753, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=11753"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c548",
+   "cat": "hospedaje",
+   "nombre": "Hotel Grand Boutique",
+   "desc": "Hotel con 16 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 9 # 7 - 71",
+   "tel": "3123547381",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 85695, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=85695"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c549",
+   "cat": "hospedaje",
+   "nombre": "Hotel Hacienda El Novillero",
+   "desc": "Hotel con 13 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Variante Fusagasuga Kilometro 64",
+   "tel": "3135825920",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 284677, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=284677"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c550",
+   "cat": "hospedaje",
+   "nombre": "Hotel La Fuente",
+   "desc": "Hotel con 40 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 22 No 37-06",
+   "tel": "6018719700",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 9571, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=9571"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c551",
+   "cat": "hospedaje",
+   "nombre": "Hotel La Manzana Fusa",
+   "desc": "Hotel con 30 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cr 68 21 A - 45",
+   "tel": "6018716139",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 35456, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=35456"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c552",
+   "cat": "hospedaje",
+   "nombre": "Hotel Los Andes Las 24",
+   "desc": "Apartahotel con 27 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 5 No 6 18",
+   "tel": "3143435647",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 275362, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275362"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c553",
+   "cat": "hospedaje",
+   "nombre": "Hotel Monaco Spa",
+   "desc": "Hotel con 35 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Tv 12 No 19A-30",
+   "tel": "6018676687",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 22416, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=22416"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c554",
+   "cat": "hospedaje",
+   "nombre": "Hotel Ocean",
+   "desc": "Hotel con 34 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 22 No 53-06",
+   "tel": "3232282418",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 248438, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=248438"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c555",
+   "cat": "hospedaje",
+   "nombre": "Hotel Restaurante Vasco",
+   "desc": "Hotel con 10 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 22 No 65-52",
+   "tel": "3107866138",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 5877, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5877"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c556",
+   "cat": "hospedaje",
+   "nombre": "Hotel Santa Monica Fusagasuga",
+   "desc": "Hotel con 12 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Avenida Las Palmas # 7-90",
+   "tel": "6018671401",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 53354, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=53354"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c557",
+   "cat": "hospedaje",
+   "nombre": "Hotel Santana Fusa",
+   "desc": "Hotel con 14 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Carrera 8 9 27",
+   "tel": "3222131310",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 79297, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=79297"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c558",
+   "cat": "hospedaje",
+   "nombre": "Hotel Santander Las Piramides",
+   "desc": "Hotel con 4 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cr 4 # 3 - 23",
+   "tel": "3204112109",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 265159, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=265159"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c559",
+   "cat": "hospedaje",
+   "nombre": "Hotel Viejo Molino A.C.S",
+   "desc": "Hotel con 10 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Kilometro 61 Via Girardot Bogota Chinauta",
+   "tel": "3104357311",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 278918, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=278918"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c560",
+   "cat": "hospedaje",
+   "nombre": "Hotel Villa Amparo",
+   "desc": "Hotel con 15 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 645 Chinauta",
+   "tel": "3212462592",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 24253, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=24253"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c561",
+   "cat": "hospedaje",
+   "nombre": "Hotel Zagus",
+   "desc": "Hotel con 14 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 6 # 7 - 41",
+   "tel": "6018718956",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 5650, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5650"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c562",
+   "cat": "hospedaje",
+   "nombre": "Lirios 297",
+   "desc": "Apartahotel con 1 habitación, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Transversal 28 22 10",
+   "tel": "3153080700",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 303675, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=303675"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c563",
+   "cat": "hospedaje",
+   "nombre": "Mirador Fogon de Chinauta",
+   "desc": "Hostal con 6 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 67 Chinauta",
+   "tel": "3125800664",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 46153, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=46153"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c564",
+   "cat": "hospedaje",
+   "nombre": "Mirador Verde",
+   "desc": "Glamping, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Lt 7 Vda Bosachoque",
+   "tel": "3124016867",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 283064, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=283064"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c565",
+   "cat": "hospedaje",
+   "nombre": "Natural Glamping Fusagasuga",
+   "desc": "Glamping con 5 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Vda Guayabal Fca Los Delirios",
+   "tel": "3133838387",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 177743, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=177743"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c566",
+   "cat": "hospedaje",
+   "nombre": "Nissi Tours",
+   "desc": "Centro vacacional con 8 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Urbanizacion Los Ponches Finca Villa Parra",
+   "tel": "3108746175",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 48948, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=48948"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c567",
+   "cat": "hospedaje",
+   "nombre": "Rancho Miller Aventura",
+   "desc": "Hotel con 25 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 49 Aut Panamericana",
+   "tel": "3046827609",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 88945, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=88945"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c568",
+   "cat": "hospedaje",
+   "nombre": "Sede Social Las Palmas",
+   "desc": "Centro vacacional con 15 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 26 No 42 A 97",
+   "tel": "3118097870",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 261046, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=261046"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c569",
+   "cat": "hospedaje",
+   "nombre": "Sede Vacacional Codema Chinauta",
+   "desc": "Centro vacacional con 44 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Benito Menni - Rural",
+   "tel": "6013237505",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 68834, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=68834"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c570",
+   "cat": "hospedaje",
+   "nombre": "Villa Monica Centro Vacacional",
+   "desc": "Centro vacacional con 9 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Via Bogota Girardot Km 65",
+   "tel": "3134222767",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 261669, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=261669"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c571",
+   "cat": "comercio",
+   "nombre": "Alma Jardin",
+   "desc": "Restaurante, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Diagonal 23 16 90",
+   "tel": "3219329782",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 275444, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275444"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c572",
+   "cat": "comercio",
+   "nombre": "Durango MX Taqueria Fusagasuga",
+   "desc": "Restaurante, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 22 43 35 Local 2 Barrio La Venta",
+   "tel": "3045881523",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 275819, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275819"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c573",
+   "cat": "comercio",
+   "nombre": "El Marino Colombia By Kathe Torres",
+   "desc": "Restaurante, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 25 # 50- 35",
+   "tel": "3003474714",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 93988, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=93988"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c574",
+   "cat": "comercio",
+   "nombre": "Gran Chalan Restaurante Bar",
+   "desc": "Restaurante, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 685 Via Fusagasuga Melgar En Los Ocobos",
+   "tel": "3102453882",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 274678, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=274678"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c575",
+   "cat": "comercio",
+   "nombre": "La Estacion 1955 VIP",
+   "desc": "Comidas rápidas, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 8 No 25 - 42 L Lc 116",
+   "tel": "3007868352",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 279768, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=279768"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c576",
+   "cat": "comercio",
+   "nombre": "The Brothers Rooftop",
+   "desc": "Restaurante, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Calle 8 21 13 Local 03",
+   "tel": "3103925047",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 275447, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275447"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "comidas"
+  },
+  {
+   "id": "c577",
+   "cat": "turismo",
+   "nombre": "Agroparque El Arca",
+   "desc": "Parque de agroturismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Kilometro 48 Finca Portobello",
+   "tel": "3244383572",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 274747, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=274747"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "finca"
+  },
+  {
+   "id": "c578",
+   "cat": "servicios",
+   "nombre": "Enpas Ruta 69",
+   "desc": "Agencia operadora de turismo, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 8 Via Fusagasuga Pasca Fca L Aportada",
+   "tel": "3142080906",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 157278, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=157278"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "sub": "profesionales"
+  },
+  {
+   "id": "c579",
+   "cat": "hospedaje",
+   "nombre": "Hospedaje El Terruño Pasca",
+   "desc": "Hostal con 6 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 5 # 1 24",
+   "tel": "3102443353",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 197465, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=197465"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c580",
+   "cat": "hospedaje",
+   "nombre": "Hospedaje Los Frailejones",
+   "desc": "Hotel con 5 habitaciones, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Cl 6 # 3 - 87",
+   "tel": "3125155341",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 168454, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=168454"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c581",
+   "cat": "turismo",
+   "nombre": "American Park",
+   "desc": "Parque temático, inscrito en el Registro Nacional de Turismo.",
+   "horario": "",
+   "direccion": "Km 54 Via Fusagasuga - Pasca Sector Buenas Tardes",
+   "tel": "3118935690",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Pasca",
+   "fuentes": [
+    {
+     "nombre": "Registro Nacional de Turismo (RNT 230191, activo en octubre de 2026)",
+     "url": "https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=230191"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "finca"
   }
  ],
  "rutas": {

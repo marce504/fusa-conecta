@@ -26,6 +26,19 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
     distintos y las sucursales con el mismo nombre llevan su vía («Ara · Calle 19»).
   - Los horarios de OSM se pasan al formato de la app («Lun-Sáb 8:00-18:00»), así funcionan «Abierto» y «Cierra
     pronto». Si un horario no se puede pasar sin perder información, la ficha no muestra horario.
+- **Pasca y prestadores turísticos oficiales (parte 3).**
+  - 10 lugares de Pasca desde OpenStreetMap (`c492`–`c501`): cumbres del páramo (Cuchilla El Amarillal, Loma Cajica,
+    Cuchilla La Rica), Estación de Policía, sedes de la IE Normal Superior, estación de servicio, Plaza de Mercado,
+    Banco Agrario y El Molino Gourmet. La Alcaldía y el Museo ya estaban: ahora enlazan su elemento exacto de OSM.
+  - 80 prestadores del **Registro Nacional de Turismo** (RNT, datos.gov.co, corte de octubre de 2026; `c502`–`c581`):
+    hoteles, hostales, centros vacacionales, glampings, restaurantes, gastrobares, parques temáticos y agencias
+    operadoras de Fusagasugá y Pasca (Hospedaje Los Frailejones, Hospedaje El Terruño, American Park, Enpas Ruta 69).
+    Cada ficha enlaza su registro (`codigo_rnt`) y dice cuántas habitaciones tiene inscritas.
+  - 7 hoteles que ya venían de OSM (Barcelona Chinauta, Catama, Costa del Sol, Parque Zabal, Los Sauces, Los Alpes y
+    Villa Sallent) suman el teléfono y el RNT como segunda fuente.
+  - No entran las «viviendas turísticas» ni los guías del RNT (casi todos inscritos a nombre de personas, en su casa)
+    ni una razón social que es el nombre de una persona. Los teléfonos fijos de 7 cifras llevan el indicativo 601.
+  - El RNT no trae coordenadas: estos lugares no salen en el mapa general y su ficha ubica la dirección.
 - PWA v73 (`fusa-v66`). `api/app/datos_base.json` regenerado (444 lugares).
 - La «Fuente» de Ofalahiatu Vivero apuntaba a `/lugar/c61`, que da 404: la app usa rutas con `#`. Ahora es
   `/#/lugar/c61`. PWA v74 (`fusa-v67`).
@@ -39,6 +52,12 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
     Notaría Segunda (existe, pero no se encontró su dirección), Cruz Roja y Casa de la Mujer (sin sede confirmada).
 
 ### Corregido
+- **Mapa y «Cómo llegar» en Pasca.** Google Maps ubica las direcciones de Pasca en Fusagasugá (por ejemplo, la
+  Casa de la Cultura salía en el barrio El Tejar), y «Cómo llegar» de los cupones siempre agregaba «Fusagasugá». Ahora
+  `destinoDe` usa en Pasca el punto aproximado del lugar o el casco urbano, y en Fusagasugá la dirección. Con prueba
+  unitaria.
+- **Carrusel «Pasca, puerta del Sumapaz».** Con más lugares oficiales, los negocios que publicaron sus dueños quedaban
+  fuera de los 10 del carrusel; ahora van primero. PWA v75 (`fusa-v68`).
 - **Teléfonos y horarios inventados en lugares reales.** Se borraron los teléfonos de ejemplo de los atractivos
   (`c21`–`c30`) y los números sin confirmar de la Alcaldía, los Bomberos, el SENA, la Comisaría de Familia y
   Bancolombia. Sin teléfono, la ficha muestra «Cómo llegar». Los horarios que no se pudieron confirmar dicen

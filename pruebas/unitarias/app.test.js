@@ -374,3 +374,20 @@ describe('formatearHorario con grupos de días', () => {
     );
   });
 });
+
+describe('destinoDe: mapa y «Cómo llegar»', () => {
+  const { destinoDe } = cargar(['municipioDe', 'PLAZA_PASCA', 'destinoDe']);
+  it('usa las coordenadas exactas cuando las hay', () => {
+    expect(destinoDe({ lat: 4.34, lng: -74.36, ubicacion_aprox: false, direccion: 'Cl 1' })).toBe('4.34,-74.36');
+  });
+  it('en Fusagasugá busca la dirección si la ubicación es aproximada o no existe', () => {
+    expect(destinoDe({ lat: null, lng: null, ubicacion_aprox: true, direccion: 'Cl 6 # 7 - 41' })).toBe(
+      'Cl 6 # 7 - 41, Fusagasugá, Cundinamarca',
+    );
+  });
+  it('en Pasca no manda la dirección a Google (la ubica en Fusagasugá): punto aproximado o casco urbano', () => {
+    const base = { municipio: 'Pasca', ubicacion_aprox: true, direccion: 'Cl 6 # 3 - 87' };
+    expect(destinoDe({ ...base, lat: 4.3085, lng: -74.3 })).toBe('4.3085,-74.3');
+    expect(destinoDe({ ...base, lat: null, lng: null })).toBe('4.30783,-74.30018');
+  });
+});

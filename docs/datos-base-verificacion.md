@@ -4,6 +4,26 @@ Revisado el 2026-10-30. **No se borró ni se cambió nada**: esta lista es para 
 debe mostrar negocios que no existen. Los 6 lugares de Pasca (`c72` a `c77`) no están aquí porque ya entraron
 verificados (ver `docs/pasca-fuentes.md`).
 
+## Pasca y Registro Nacional de Turismo (2026-11-04)
+
+Parte 3 de la revisión.
+
+- **Pasca en OSM:** solo hay 15 elementos con nombre dentro del polígono de Pasca (relación 1413207). Entran 10
+  (`c492`–`c501`); se descartan la Alcaldía y el Museo (ya estaban), «Cuchilla Amarillal» (repite «Cuchilla El
+  Amarillal», a 2,6 km), la parroquia, el polideportivo y la plaza de toros (tipos fuera del directorio).
+- **RNT:** conjunto `thwd-ivmp` de datos.gov.co, 421 inscripciones activas (411 de Fusagasugá y 10 de Pasca), corte de
+  octubre de 2026. Cada ficha enlaza `https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=…`.
+  - Entran los establecimientos de comerciantes de alojamiento, gastronomía, bares, parques y agencias operadoras:
+    80 nuevos (`c502`–`c581`) y 7 unidos a hoteles que ya venían de OSM (mismo nombre, sin palabras genéricas).
+  - No entran: 273 viviendas turísticas y 19 guías (personas en su casa), agencias que no operan en la zona
+    (mayoristas, organizadores de congresos), transporte especial y una cafetería inscrita a nombre de una persona.
+  - No se unió «Hostel Montana» (Av. Las Palmas # 8-66) con el «Hotel La Montaña» de OSM: no se pudo confirmar que
+    sean el mismo. Quedan los dos.
+  - Sin coordenadas (`lat: null`, `ubicacion_aprox: true`): no salen en el mapa general; la ficha muestra la dirección y
+    el mapa del sector (en Pasca, el casco urbano, porque Google ubica esas direcciones en Fusagasugá).
+  - Teléfono: el celular inscrito; si no hay, el fijo con el indicativo 601. El correo no se copia (en muchos casos
+    es personal).
+
 ## Lugares agregados desde OpenStreetMap (2026-11-04)
 
 Parte 2 de la revisión: 414 lugares de Fusagasugá (`c78`–`c491`).
