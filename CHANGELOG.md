@@ -27,6 +27,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   - Los horarios de OSM se pasan al formato de la app («Lun-Sáb 8:00-18:00»), así funcionan «Abierto» y «Cierra
     pronto». Si un horario no se puede pasar sin perder información, la ficha no muestra horario.
 - PWA v73 (`fusa-v66`). `api/app/datos_base.json` regenerado (444 lugares).
+- La «Fuente» de Ofalahiatu Vivero apuntaba a `/lugar/c61`, que da 404: la app usa rutas con `#`. Ahora es
+  `/#/lugar/c61`. PWA v74 (`fusa-v67`).
 
 ### Quitado
 - **Limpieza del directorio base (`datos.js`), parte 1.** Se quitaron 47 lugares que no existen o que ninguna fuente
