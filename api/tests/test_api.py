@@ -30,10 +30,10 @@ def test_docs_openapi(cliente):
 def test_comercios_combina_base_y_nube(cliente):
     datos = cliente.get("/v1/comercios", params={"por_pagina": 50}).json()
     ids = [x["id"] for x in datos["resultados"]]
-    assert "nube1" in ids and "viejo" not in ids and "c03" not in ids  # copia antigua y oculto fuera
+    assert "nube1" in ids and "viejo" not in ids and "c23" not in ids  # copia antigua y oculto fuera
     assert all(x["categoria"] != "bares" for x in datos["resultados"])  # bares solo si se piden
     assert datos["resultados"][0]["id"] == "nube1"  # Premium primero
-    assert datos["total"] > 40 and datos["paginas"] >= 1
+    assert datos["total"] > 15 and datos["paginas"] >= 1
 
 
 def test_comercios_filtros(cliente):
@@ -57,7 +57,7 @@ def test_ficha(cliente):
         and f["cupones"] == 1
         and f["cupones_activos"][0]["descripcion"] == "2x1 en almojábanas"
     )
-    assert cliente.get("/v1/comercios/c01").json()["imagen_url"].startswith("https://fusa-conecta.web.app/img/")
+    assert cliente.get("/v1/comercios/c21").json()["imagen_url"].startswith("https://fusa-conecta.web.app/img/")
     assert cliente.get("/v1/comercios/no-existe").status_code == 404
 
 
@@ -127,7 +127,7 @@ def test_estadisticas_solo_admin(cliente, como):
     assert cliente.get("/v1/admin/estadisticas").status_code == 403
     como("admin1")
     r = cliente.get("/v1/admin/estadisticas").json()
-    assert r["usuarios"] == 3 and r["lugares_directorio"] > 40
+    assert r["usuarios"] == 3 and r["lugares_directorio"] > 25
 
 
 def test_cors_solo_web_app(cliente):

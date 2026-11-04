@@ -8,7 +8,25 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Quitado
+- **Limpieza del directorio base (`datos.js`), parte 1.** Se quitaron 47 lugares que no existen o que ninguna fuente
+  confirma (detalle y fuentes en `docs/datos-base-verificacion.md`):
+  - 40 negocios, hoteles y bares de ejemplo del prototipo (`c01`–`c20` y `c31`–`c50`), con teléfonos secuenciales
+    inventados (310-111-00NN, 310-222-00NN…) y sus 41 fotos de `img/comercios/`;
+  - 7 lugares sin fuente: Ruta de los Sutagaos, Camino Real de Alaska, Mirador de Ricaurte, Alto de San Benito,
+    Notaría Segunda (existe, pero no se encontró su dirección), Cruz Roja y Casa de la Mujer (sin sede confirmada).
+
 ### Corregido
+- **Teléfonos y horarios inventados en lugares reales.** Se borraron los teléfonos de ejemplo de los atractivos
+  (`c21`–`c30`) y los números sin confirmar de la Alcaldía, los Bomberos, el SENA, la Comisaría de Familia y
+  Bancolombia. Sin teléfono, la ficha muestra «Cómo llegar». Los horarios que no se pudieron confirmar dicen
+  «Consultar directamente».
+- **Ubicación exacta desde OpenStreetMap** para la Alcaldía, los Bomberos, el SENA, la Fiscalía, la Comisaría de Familia
+  y Bancolombia (antes aproximada).
+- **Notaría Primera:** dirección, teléfono y correo del edicto publicado en 2026.
+- Cada lugar que queda guarda sus `fuentes` y la fecha de `verificado`, como los de Pasca.
+- Las pruebas que usaban negocios de ejemplo ahora usan lugares reales o el negocio de prueba del emulador.
+- PWA v72 (`fusa-v65`).
 - La ficha mostraba el horario de la Alcaldía de Pasca sin decir que la franja de 8:00 a 12:00 es del sábado. `formatearHorario` ahora formatea cada grupo de días separado por «;» con sus días («Lun-Vie … · Sáb …»). PWA v71 (`fusa-v64`).
 
 ## [1.3.0] - 2026-10-30 · Pasca vuelve a estar en Fusa Conecta

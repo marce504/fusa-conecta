@@ -22,7 +22,7 @@ async function entrarComo(page, correo) {
   await page.evaluate(() => window.ocultarSplash());
 }
 
-test('explorar: entrada → «Solo explorar» → buscar «café» → ficha → WhatsApp', async ({ page }, info) => {
+test('explorar: entrada → «Solo explorar» → buscar «café» y un negocio → ficha → WhatsApp', async ({ page }, info) => {
   await page.goto(APP);
   // La entrada muestra los botones cuando la app está lista
   const explorar = page.locator('#sInvitado');
@@ -36,14 +36,17 @@ test('explorar: entrada → «Solo explorar» → buscar «café» → ficha →
   await page.waitForTimeout(800);
   // Búsqueda sin tilde: «cafe» sugiere los lugares con «Café»
   await page.locator('#busqueda').fill('cafe');
-  const resultado = page.locator('#sugerencias button', { hasText: 'Café Sutagao' });
-  await expect(resultado).toBeVisible();
+  await expect(page.locator('#sugerencias button', { hasText: 'Museo del Café' })).toBeVisible();
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('2-busqueda-cafe.png') });
+  // Un negocio registrado por su dueña (solo existe en el emulador) con WhatsApp
+  await page.locator('#busqueda').fill('vivero de prueba');
+  const resultado = page.locator('#sugerencias button', { hasText: NEGOCIO.nombre });
+  await expect(resultado).toBeVisible();
   await resultado.click();
   const ficha = page.locator('#ovDetalle');
   await expect(ficha).toHaveClass(/abierto/);
-  await expect(ficha).toContainText('Café Sutagao');
+  await expect(ficha).toContainText(NEGOCIO.nombre);
   await page.screenshot({ path: info.outputPath('3-ficha.png') });
   // WhatsApp abre wa.me con el número de Colombia y un mensaje que menciona Fusa Conecta
   // (se intercepta la petición para no salir a internet ni depender de la redirección de WhatsApp)
@@ -56,7 +59,7 @@ test('explorar: entrada → «Solo explorar» → buscar «café» → ficha →
   await expect.poll(() => enlace).toContain('wa.me');
   const url = new URL(enlace);
   expect(url.hostname).toBe('wa.me');
-  expect(url.pathname).toBe('/573101110001');
+  expect(url.pathname).toBe('/573001234567');
   expect(decodeURIComponent(url.search)).toContain('te encontré en Fusa Conecta');
 });
 
@@ -157,14 +160,14 @@ test('asistente: una pregunta con llamada a funciones y tarjetas del directorio'
               return vuelta === 1
                 ? {
                     response: {
-                      functionCalls: () => [{ name: 'buscarLugares', args: { texto: 'panaderia' } }],
+                      functionCalls: () => [{ name: 'buscarLugares', args: { texto: 'vivero' } }],
                       text: () => '',
                     },
                   }
                 : {
                     response: {
                       functionCalls: () => [],
-                      text: () => 'Te recomiendo Panadería y Café El Cedro, en el centro.',
+                      text: () => 'Te recomiendo el Vivero de Prueba E2E, en el centro.',
                     },
                   };
             },
@@ -174,11 +177,11 @@ test('asistente: una pregunta con llamada a funciones y tarjetas del directorio'
     });
   }
   await page.evaluate(() => window.irAsistente());
-  await page.locator('#asisTx').fill('panadería cerca');
+  await page.locator('#asisTx').fill('vivero cerca');
   await page.locator('#asisEnviar').click();
   const respuesta = page.locator('.asis-msg.fusa').last();
   await expect(respuesta.locator('.asis-item').first()).toBeVisible({ timeout: 60_000 });
-  await expect(respuesta).toContainText(/Panader/);
+  await expect(respuesta).toContainText(/Vivero/);
   await expect(respuesta.locator('.asis-ia')).toBeVisible(); // recomienda lugares: lleva la nota de IA
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('asistente.png') });
@@ -307,7 +310,7 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await expect(page.locator('#cuerpo h2').first()).toHaveText('Qué hacer en Fusa y Pasca');
   await page.screenshot({ path: info.outputPath('1-agenda-desde-la-barra.png') });
   // Un favorito guardado desde la ficha (el corazón sigue igual) aparece en Perfil → «Mis favoritos» con su contador
-  await page.evaluate(() => window.abrirDetalle('c14'));
+  await page.evaluate(() => window.abrirDetalle('c30'));
   await page.locator('#detFav').click();
   await expect(page.locator('#detFav')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#cerrarDet').click();
@@ -318,7 +321,7 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await page.screenshot({ path: info.outputPath('2-perfil-mis-favoritos.png') });
   await misFavoritos.click();
   await expect(page.locator('#cuerpo')).toContainText('Mis favoritos');
-  await expect(page.locator('#cuerpo')).toContainText('Panadería y Café El Cedro');
+  await expect(page.locator('#cuerpo')).toContainText('Hacienda Coloma');
   // Desde Perfil se marca la pestaña Perfil y hay «Volver»
   await expect(page.locator('.bn-btn[aria-current="page"]')).toHaveAttribute('data-bn', 'perfil');
   await expect(page.locator('#bVolver')).not.toHaveClass(/invisible/);

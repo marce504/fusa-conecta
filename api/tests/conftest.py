@@ -35,13 +35,13 @@ class RepoFalso:
                 # Copia antigua de la carga inicial (sin dueño, mismo nombre que un lugar de la base): se ignora
                 {
                     "id": "viejo",
-                    "nombre": "Café Sutagao",
+                    "nombre": "Cerro Fusacatán",
                     "cat": "campo",
                     "estado_publicacion": "aprobado",
                     "propietario_uid": None,
                 },
             ],
-            "ocultos": ["c03"],
+            "ocultos": ["c23"],
             "eventos": [
                 {
                     "id": "e1",

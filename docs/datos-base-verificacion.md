@@ -4,6 +4,23 @@ Revisado el 2026-10-30. **No se borró ni se cambió nada**: esta lista es para 
 debe mostrar negocios que no existen. Los 6 lugares de Pasca (`c72` a `c77`) no están aquí porque ya entraron
 verificados (ver `docs/pasca-fuentes.md`).
 
+## Limpieza aplicada el 2026-11-04
+
+Se aplicó lo sugerido al final de este documento, después de una segunda búsqueda de los «no sé» en la web y en
+OpenStreetMap (673 lugares con nombre descargados de Overpass en el área de Fusagasugá y Pasca).
+
+| Decisión | Lugares |
+|---|---|
+| **Quitados de `datos.js`** (47) | Los 40 «no» y 7 «no sé» sin ninguna fuente: `c25` Ruta de los Sutagaos, `c26` Camino Real de Alaska, `c27` Mirador de Ricaurte, `c28` Alto de San Benito, `c53` Notaría Segunda, `c56` Cruz Roja, `c59` Casa de la Mujer |
+| **Corregidos** | `c21`–`c24`, `c29`, `c30`, `c51`, `c52`, `c54`, `c55`, `c57`, `c58`, `c60`, `c61`: sin teléfonos inventados, horario «Consultar directamente» cuando no está confirmado, ubicación de OpenStreetMap y campos `fuentes` y `verificado` |
+| **Se quedan, pendientes** | `c62`–`c71`, las 10 licoreras agregadas el 2026-10-19 «verificadas en Google Maps». La web no las confirma ni las desmiente (OpenStreetMap no las tiene). Hay que confirmarlas por teléfono o en persona |
+
+La Notaría Segunda sí existe (Decreto 756 de 1993), pero no se encontró una dirección publicada: vuelve cuando se
+confirme. La Notaría Primera quedó con los datos del
+[edicto publicado en 2026](https://www.asuntoslegales.com.co/edictos/detalle/003_VEF_17394-2-1).
+
+La tabla de abajo es la revisión del 2026-10-30 y se deja como registro.
+
 ## Resumen
 
 | Verificado | Lugares | Qué significa |

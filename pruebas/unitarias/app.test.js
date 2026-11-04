@@ -178,7 +178,7 @@ describe('cupones: vigencia, cupo, estado y Premium', () => {
   it('leerTextoQR: acepta solo QR de cupones de Fusa Conecta', () => {
     cupones.leerTextoQR('FUSACONECTA:fc-ab12-cd34');
     expect(lectura.revisado).toBe('FC-AB12-CD34');
-    cupones.leerTextoQR('https://fusa-conecta.web.app/#/lugar/c01');
+    cupones.leerTextoQR('https://fusa-conecta.web.app/#/lugar/c21');
     expect(lectura.resultado).toEqual({ color: 'rojo', titulo: 'Este no es un cupón' });
     cupones.leerTextoQR('https://otro-sitio.com');
     expect(lectura.resultado.titulo).toBe('Este código no es de Fusa Conecta');
