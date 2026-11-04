@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Logos de 23 marcas en 32 sucursales** (D1, Ara, Éxito, Olímpica, bancos, Terpel, Texaco, Claro, Movistar, Frisby,
+  El Corral, Domino's, Oxxo, Cruz Verde, Colsubsidio, Nueva EPS, UNAD y Cámara de Comercio). Salen de la propiedad
+  «logo» (P154) de Wikidata de la marca que OSM tiene enlazada, o del nombre de la sucursal; son archivos de Wikimedia
+  Commons de dominio público o CC BY-SA, centrados sobre fondo blanco de 800×450 en `img/comercios/logo-*.jpg`, con su
+  crédito en la ficha. Se descartó el logo del Ministerio de Educación en un colegio. PWA v79 (`fusa-v72`).
 - **Bares, licorera y espacio cultural con fuente** (`c582`–`c588`): Volcano Rock City (bar de rock con sótano
   cultural), Cervecería Artesanal de Fusagasugá – Bar Rock-Crossover (rotonda del Éxito), Tu Tranquilo, Tuki Bar,
   Club de Billares El Rey, Niko Likores (domicilios nocturnos) y Terraza Cultural Libro Abierto. Salen de lo que
