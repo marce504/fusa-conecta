@@ -9,6 +9,13 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Bares, licorera y espacio cultural con fuente** (`c582`–`c588`): Volcano Rock City (bar de rock con sótano
+  cultural), Cervecería Artesanal de Fusagasugá – Bar Rock-Crossover (rotonda del Éxito), Tu Tranquilo, Tuki Bar,
+  Club de Billares El Rey, Niko Likores (domicilios nocturnos) y Terraza Cultural Libro Abierto. Salen de lo que
+  publicaron los propios negocios en directorios locales (Ubiyaaa, Finko) o de una boletería (QueBoleta). La Tasca
+  VIP (`c62`) queda confirmada por su página pública (mismo WhatsApp), con domicilios hasta las 4:00 a. m.
+  No se encontró fuente para Baracunatana, Místico ni para los bares de la zona del Indio: quedan pendientes.
+  PWA v77 (`fusa-v70`).
 - **Fotos con licencia libre y su crédito (parte 4).** 8 fotos de Wikimedia Commons, revisadas una por una:
   Iglesia de Belén, Biblioteca Quinta de Coburgo, Monumento al Indio Sutagao, Monumento Lucho Herrera, Instituto
   Salesiano Valsalice, Sendero Cara del Indio (cerro Quininí), Páramo de Sumapaz (frailejones) y Parroquia de Pasca.

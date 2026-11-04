@@ -532,8 +532,8 @@
    "cat": "bares",
    "rating": 0,
    "nombre": "Licorera La Tasca VIP",
-   "desc": "Licorera abierta las 24 horas con domicilios en Fusagasugá y Chinauta. Licores nacionales e importados, cervezas y mezcladores.",
-   "horario": "Todos los días · 24 horas",
+   "desc": "Licorera con domicilios en Fusagasugá y Chinauta. Licores nacionales e importados, cervezas y mezcladores.",
+   "horario": "Todos los días, domicilios hasta las 4:00 a. m.",
    "direccion": "Cl. 22 # 5-14 (una cuadra arriba del semáforo de la 22 con 6ª)",
    "tel": "3203175876",
    "whatsapp": "3203175876",
@@ -547,7 +547,14 @@
    "sitioWeb": "",
    "propietario_uid": null,
    "propietario": "Fusa Conecta",
-   "municipio": "Fusagasugá"
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Página pública del negocio (mismo WhatsApp): domicilios todos los días hasta las 4:00 a. m.",
+     "url": "https://www.facebook.com/LicoreraLatascaVip/"
+    }
+   ],
+   "verificado": "2026-11-04"
   },
   {
    "id": "c63",
@@ -15522,6 +15529,203 @@
    ],
    "verificado": "2026-11-04",
    "tipo": "finca"
+  },
+  {
+   "id": "c582",
+   "cat": "bares",
+   "nombre": "Volcano Rock City",
+   "desc": "Bar de rock con «Sótano Cultural»: café, bar, cócteles, shots y eventos de música alternativa.",
+   "horario": "",
+   "direccion": "Carrera 9 # 36",
+   "tel": "3014809086",
+   "whatsapp": "3014809086",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Publicado por el negocio en Ubiyaaa (directorio comercial de Fusagasugá)",
+     "url": "https://ubiyaaacomercio.com/promociones/40"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c583",
+   "cat": "bares",
+   "nombre": "Cervecería Artesanal de Fusagasugá – Bar Rock-Crossover",
+   "desc": "Bar de rock clásico y crossover con cerveza artesanal de barril de la marca local Beerley.",
+   "horario": "Lun-Mar 15:30-23:00; Mié-Dom 15:00-23:00",
+   "direccion": "Rotonda del Éxito, Parque Max Aya",
+   "tel": "3227814465",
+   "whatsapp": "3227814465",
+   "imagen": "",
+   "lat": 4.3332,
+   "lng": -74.369991,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Finko Fusagasugá",
+     "url": "https://finkocolombia.com/fusagasuga/restaurantes-y-comida/cerveceria-artesanal-de-fusagasuga-bar-rock-crosover-fusagasuga"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c584",
+   "cat": "bares",
+   "nombre": "Tu Tranquilo",
+   "desc": "Bar café: licores nacionales e importados, cerveza, cócteles y bebidas de café.",
+   "horario": "",
+   "direccion": "Carrera 4 con Calle 22",
+   "tel": "3013992744",
+   "whatsapp": "3013992744",
+   "imagen": "",
+   "lat": 4.327572,
+   "lng": -74.365353,
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Finko Fusagasugá",
+     "url": "https://finkocolombia.com/fusagasuga/licores-bar/tu-tranquilo-fusagasuga"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c585",
+   "cat": "bares",
+   "nombre": "Tuki Bar",
+   "desc": "Bar con música, bebidas y bolirana (con torneos).",
+   "horario": "",
+   "direccion": "Carrera 3 # 1-94 Norte, barrio La Esmeralda",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Publicado por el negocio en Ubiyaaa (directorio comercial de Fusagasugá)",
+     "url": "https://ubiyaaacomercio.com/promociones/41"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c586",
+   "cat": "bares",
+   "nombre": "Club de Billares El Rey",
+   "desc": "Billar pool, tres bandas y libre, y juegos de mesa.",
+   "horario": "",
+   "direccion": "Carrera 6 # 12-15 y C. C. San Fernando, piso 2, Centro",
+   "tel": "3102785064",
+   "whatsapp": "3102785064",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Publicado por el negocio en Ubiyaaa (directorio comercial de Fusagasugá)",
+     "url": "https://ubiyaaacomercio.com/promociones/56"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c587",
+   "cat": "bares",
+   "nombre": "Niko Likores – Domicilios Nocturnos",
+   "desc": "Licorera nocturna con domicilios en Fusagasugá, Chinauta, Silvania, Arbeláez y Pasca.",
+   "horario": "",
+   "direccion": "Calle 22 # 5A-19 (casa de color verde)",
+   "tel": "3108568989",
+   "whatsapp": "3108568989",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "Publicado por el negocio en Ubiyaaa (directorio comercial de Fusagasugá)",
+     "url": "https://ubiyaaacomercio.com/promociones/47"
+    }
+   ],
+   "verificado": "2026-11-04"
+  },
+  {
+   "id": "c588",
+   "cat": "turismo",
+   "nombre": "Terraza Cultural Libro Abierto",
+   "desc": "Espacio cultural con noches de stand up comedy y cuentería.",
+   "horario": "",
+   "direccion": "Carrera 7 # 18-12, 3er piso, Balmoral",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "lat": null,
+   "lng": null,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "fuentes": [
+    {
+     "nombre": "QueBoleta: Cuarta noche de comedia y cuento (12 de septiembre de 2026)",
+     "url": "https://queboleta.com/pages/event/17-cuarta-noche-de-comedia-y-cuento"
+    }
+   ],
+   "verificado": "2026-11-04",
+   "tipo": "cultural"
   }
  ],
  "rutas": {
