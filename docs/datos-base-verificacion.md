@@ -4,6 +4,23 @@ Revisado el 2026-10-30. **No se borró ni se cambió nada**: esta lista es para 
 debe mostrar negocios que no existen. Los 6 lugares de Pasca (`c72` a `c77`) no están aquí porque ya entraron
 verificados (ver `docs/pasca-fuentes.md`).
 
+## Lugares agregados desde OpenStreetMap (2026-11-04)
+
+Parte 2 de la revisión: 414 lugares de Fusagasugá (`c78`–`c491`).
+
+- **Fuente:** OpenStreetMap, consulta Overpass del 2026-11-04 (`shop`, `amenity`, `tourism`, `leisure`, `office`,
+  `craft`, `healthcare`, `natural=peak`, `historic` con nombre). Solo entran los que caen dentro del polígono oficial
+  de Fusagasugá en `limites.geojson` (relación OSM 1414846).
+- **Qué se copia:** nombre, coordenadas (`ubicacion_aprox:false`), `addr:street` + `addr:housenumber`, `phone`,
+  `opening_hours`, `website`, `email` y `contact:facebook`. Nada más.
+- **Qué no se inventa:** la descripción es el tipo de lugar en español («Taller de mecánica automotriz»), con la
+  cocina o la altura si OSM las tiene. Sin calificaciones, sin fotos (esas van en la parte 4, solo con licencia libre).
+- **Límite conocido:** OSM lo editan voluntarios. Un negocio puede haber cerrado después de mapearse. Por eso cada ficha
+  enlaza su elemento en OSM y lleva `verificado`. Si alguien avisa que un lugar cerró, se oculta desde el panel
+  (`config/directorio.ocultos`) o se borra de `datos.js`.
+- **Atribución:** © colaboradores de OpenStreetMap, datos con licencia ODbL (https://www.openstreetmap.org/copyright).
+  La atribución va en el pie del mapa y en la «Fuente» de cada ficha.
+
 ## Limpieza aplicada el 2026-11-04
 
 Se aplicó lo sugerido al final de este documento, después de una segunda búsqueda de los «no sé» en la web y en

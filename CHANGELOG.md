@@ -8,6 +8,26 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Agregado
+- **414 lugares reales de Fusagasugá desde OpenStreetMap** (`c78`–`c491` en `datos.js`, parte 2 de la revisión del
+  directorio). Se descargaron los negocios y entidades con nombre que OSM ubica dentro del límite oficial del municipio
+  (`limites.geojson`) y se convirtieron con un script que solo usa lo etiquetado en el mapa: nombre, ubicación exacta,
+  dirección, teléfono, horario y sitio web. La descripción sale del tipo de lugar («Ferretería», «Droguería»), sin
+  inventar nada. Cada ficha enlaza su elemento de OSM en «Fuente» (© colaboradores de OpenStreetMap, licencia ODbL).
+  - Comida y tiendas 110, Hospedaje 16 (antes vacíos), Servicios 238 (177 talleres de carros y motos, droguerías,
+    hospitales, colegios, estaciones de servicio), Trámites 26 nuevos (bancos, Registraduría, Policía, Juzgados,
+    CAR, Emserfusa, Cámara de Comercio), Turismo 13 nuevos (cerros, monumentos, Casa de la Cultura, Quinta Mazuera) y
+    4 viveros y agropecuarias en Campo.
+  - Se descartaron 115 elementos: los que ya estaban en el directorio, duplicados, nombres genéricos («Laboratorio»,
+    «Kiosco»), rótulos de locales que ya cerraron («Antiguo…») y tipos que no son del directorio (parques, canchas,
+    iglesias, jardines infantiles).
+  - Limpieza de datos de OSM: se quitaron los códigos de levantamiento de los nombres («TM3- Mario Motos» → «Mario
+    Motos»), se corrigieron erratas evidentes («Coledio» → «Colegio»), se ignoró un teléfono repetido en tres talleres
+    distintos y las sucursales con el mismo nombre llevan su vía («Ara · Calle 19»).
+  - Los horarios de OSM se pasan al formato de la app («Lun-Sáb 8:00-18:00»), así funcionan «Abierto» y «Cierra
+    pronto». Si un horario no se puede pasar sin perder información, la ficha no muestra horario.
+- PWA v73 (`fusa-v66`). `api/app/datos_base.json` regenerado (444 lugares).
+
 ### Quitado
 - **Limpieza del directorio base (`datos.js`), parte 1.** Se quitaron 47 lugares que no existen o que ninguna fuente
   confirma (detalle y fuentes en `docs/datos-base-verificacion.md`):
