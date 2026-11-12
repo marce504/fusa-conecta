@@ -412,3 +412,18 @@ describe('creditoFotoHTML: autor y licencia de la foto', () => {
     expect(creditoFotoHTML({ imagen: 'img/comercios/x.jpg' })).toBe('');
   });
 });
+
+describe('pistaDiagnostico: errores de la IA con arreglo conocido', () => {
+  const { pistaDiagnostico } = cargar(['pistaDiagnostico']);
+  it('explica el 401 de App Check con el paso de la consola', () => {
+    const e = new Error(
+      'AI: Error fetching from https://firebasevertexai.googleapis.com/…: [401 ] Firebase App Check token is invalid.',
+    );
+    expect(pistaDiagnostico(e)).toContain('App Check → APIs → Firebase AI Logic');
+  });
+  it('distingue cupo agotado y modelo saturado, y calla ante lo desconocido', () => {
+    expect(pistaDiagnostico(new Error('[429 ] Quota exceeded'))).toContain('cupo');
+    expect(pistaDiagnostico(new Error('[503 ] The model is overloaded'))).toContain('saturado');
+    expect(pistaDiagnostico(new Error('Sin respuesta en 25 s'))).toBe('');
+  });
+});

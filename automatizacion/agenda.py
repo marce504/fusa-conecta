@@ -31,6 +31,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urljoin
 
@@ -88,6 +89,10 @@ PALABRAS = [
 ]
 CATEGORIAS = ["cultura", "musica", "deporte", "gastronomia", "feria", "religioso", "institucional", "otro"]
 MODELO = os.environ.get("MODELO_IA", "gemini-flash-lite-latest")  # el mismo que funciona en la app
+HORAS_SIN_BUSCAR = 20  # red de seguridad de --revisar
+REINTENTOS_IA = 3
+ESPERA_IA = 8  # segundos; se multiplica en cada reintento (8, 16, 24)
+PROGRAMAS = Path(__file__).parent / "programas"
 UA = {"User-Agent": "FusaConecta/1.0 (agenda; https://fusa-conecta.web.app)"}
 
 
@@ -477,14 +482,23 @@ def de_respuesta_ia(lista: Any, x: dict, f: Fuente) -> list[dict]:
 
 def con_ia(cliente: Any, x: dict, f: Fuente, ahora: int) -> list[dict]:
     """Noticias recientes: Gemini decide si anuncian eventos futuros y si la fecha y el lugar están claros."""
-    r = cliente.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:generateContent",
-        headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]},
-        json={
-            "contents": [{"parts": [{"text": pedido_ia(x, f, ahora)}]}],
-            "generationConfig": {"responseMimeType": "application/json", "responseSchema": ESQUEMA, "temperature": 0},
-        },
-    )
+    for intento in range(REINTENTOS_IA + 1):
+        r = cliente.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:generateContent",
+            headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]},
+            json={
+                "contents": [{"parts": [{"text": pedido_ia(x, f, ahora)}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": ESQUEMA,
+                    "temperature": 0,
+                },
+            },
+        )
+        # 429 (límite por minuto) y 5xx (modelo saturado) son pasajeros: se espera y se repite
+        if r.status_code not in (429, 500, 502, 503, 504) or intento == REINTENTOS_IA:
+            break
+        time.sleep(ESPERA_IA * (intento + 1))
     if r.status_code != 200:
         raise RuntimeError(f"IA HTTP {r.status_code}")
     try:
@@ -569,11 +583,15 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             continue
         est = decidir(e)
         publicados, pendientes = (publicados + 1, pendientes) if est == "publicado" else (publicados, pendientes + 1)
+        # Las actividades de un programa no llevan imagen: serían decenas de copias del mismo afiche en la agenda
+        if e.get("programa"):
+            imagenes.setdefault(e["enlace"], "")
         if e["enlace"] not in imagenes:
             imagenes[e["enlace"]] = imagen_de(cliente, e["x"], e["enlace"]) if cliente else ""
         lote.set(
             db.collection("eventos").document(),
             {
+                **({"programa": e["programa"]} if e.get("programa") else {}),
                 "titulo": e["titulo"],
                 "descripcion": e["descripcion"],
                 "categoria": e["categoria"],
@@ -693,7 +711,8 @@ def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:
     reparados = 0
     for d in existentes:
         x = d.to_dict() or {}
-        if x.get("origen") != "automatico" or (x.get("tipo") and x.get("imagen")):
+        # Los de un programa verificado ya vienen con su título definitivo («Charla: …») y sin imagen a propósito
+        if x.get("origen") != "automatico" or x.get("programa") or (x.get("tipo") and x.get("imagen")):
             continue
         cambios: dict[str, Any] = {"tipo": x.get("tipo") or tipo_de(x.get("titulo", ""), x.get("categoria", ""))}
         if len(x.get("titulo", "")) > 60 or SEPARADOR.search(x.get("titulo", "")):
@@ -786,6 +805,76 @@ def leer_fuentes(cliente: Any, ahora: int) -> tuple[list[dict], list[tuple[dict,
     return candidatos, noticias, resumen
 
 
+def leer_programas(ahora: int, carpeta: Path = PROGRAMAS) -> tuple[list[dict], list[dict]]:
+    """Programas oficiales transcritos a mano (automatizacion/programas/*.json): festivales cuyo programa sale
+    en PDF o en imágenes y que las alcaldías no publican. Cada archivo cita su documento; se publican como
+    fuente oficial porque alguien los verificó contra ese documento. Ver automatizacion/programas/LEEME.md."""
+    candidatos, resumen = [], []
+    for ruta in sorted(carpeta.glob("*.json")):
+        try:
+            p = json.loads(ruta.read_text(encoding="utf-8"))
+            f = Fuente(p["nombre"], p["sitio"], p.get("municipio") or "Fusagasugá", True)
+            ev = []
+            for x in p["eventos"]:
+                ini = fecha_col(x["inicio"])
+                if not ini:
+                    raise ValueError(f"fecha inválida en «{x.get('titulo')}»")
+                ev.append(
+                    {
+                        "titulo": recortar(x["titulo"], 60),
+                        "descripcion": con_campana(x.get("descripcion") or "", p.get("campana") or ""),
+                        "categoria": x.get("categoria") or p.get("categoria") or "cultura",
+                        "tipo": "plan",
+                        "x": None,
+                        "inicio": ini,
+                        "fin": max(fecha_col(x.get("fin")) or ini + 2 * 3_600_000, ini),
+                        "lugar_nombre": recortar(x["lugar"], 80),
+                        "organizador": recortar(p.get("organizador") or p["nombre"], 80),
+                        "gratis": bool(x.get("gratis")),
+                        "precio": recortar(x.get("precio") or "", 60),
+                        "municipio": x.get("municipio") or f.municipio,
+                        "enlace": p.get("enlace") or p["sitio"],
+                        "fuentes": [p["documento"]] if p.get("documento") else [],
+                        "completo": True,
+                        "programa": ruta.stem,
+                        "F": f,
+                    }
+                )
+            futuros = [e for e in ev if e["fin"] >= ahora]
+            error = ""
+        except Exception as e:  # noqa: BLE001 - un archivo mal escrito no detiene la agenda
+            ev, futuros, error = [], [], f"{ruta.name}: {e}"
+            p = {"nombre": ruta.stem, "sitio": ""}
+            log.error("Programa %s", error)
+        candidatos += futuros
+        resumen.append(
+            {
+                "nombre": "Programa: " + p["nombre"],
+                "sitio": p.get("sitio") or "",
+                "ok": not error,
+                "contenidos": len(ev),
+                "eventos": len(futuros),
+                "noticias": 0,
+                "ultima_noticia": None,
+                "ultimo_evento": de_ms(max(e["inicio"] for e in ev)) if ev else None,
+                "error": error,
+            }
+        )
+        log.info("Programa %s: %d actividades · %d por venir", p["nombre"], len(ev), len(futuros))
+    return candidatos, resumen
+
+
+def motivo_para_correr(pedido: int | None, ultima: int | None, ahora: int) -> str:
+    """Para --revisar: «pedida desde la app» si el admin tocó «Buscar eventos ahora» después de la última corrida;
+    «diaria (recuperada)» si pasaron más de 20 horas sin buscar (GitHub retrasa u omite los horarios programados);
+    cadena vacía si no hay nada que hacer."""
+    if pedido and (not ultima or pedido > ultima):
+        return "pedida desde la app"
+    if not ultima or ahora - ultima > HORAS_SIN_BUSCAR * 3_600_000:
+        return "diaria (recuperada)"
+    return ""
+
+
 def main(argv: list[str] | None = None) -> int:
     a = argparse.ArgumentParser(description="Agenda automática de Fusa Conecta")
     a.add_argument("--simular", action="store_true")
@@ -803,18 +892,21 @@ def main(argv: list[str] | None = None) -> int:
             log.info("Sin FIREBASE_SA: nada que revisar.")
             return 0
         s = estado.get().to_dict() or {}
-        pedido, ultima = a_ms(s.get("solicitado_en")), a_ms(s.get("ultima_corrida"))
-        if not pedido or (ultima and pedido <= ultima):
-            log.info("No hay pedidos nuevos desde la app.")
+        modo = motivo_para_correr(a_ms(s.get("solicitado_en")), a_ms(s.get("ultima_corrida")), ahora)
+        if not modo:
+            log.info("No hay pedidos nuevos desde la app y la última búsqueda es reciente.")
             return 0
-        modo = "pedida desde la app"
-        log.info("Pedido desde la app: se busca ahora.")
+        log.info("Se busca ahora (%s).", modo)
     if not args.simular and not db:
         log.info("Falta FIREBASE_SA (secreto de GitHub): no se hace nada. Ver docs/agenda-ia.md.")
         return 0
     con_clave = bool(os.environ.get("GEMINI_API_KEY"))
     with _http() as cliente:
         candidatos, noticias, resumen = ([], [], []) if args.reparar else leer_fuentes(cliente, ahora)
+        if not args.reparar:
+            de_programas, resumen_programas = leer_programas(ahora)
+            candidatos += de_programas
+            resumen += resumen_programas
         errores_ia = 0
         if con_clave and not args.reparar:
             for x, f in noticias:

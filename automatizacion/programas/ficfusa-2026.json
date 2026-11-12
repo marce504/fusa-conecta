@@ -1,0 +1,270 @@
+{
+  "nombre": "FICFUSA – Festival Internacional de Cine de Fusagasugá",
+  "campana": "13.º FICFUSA, Festival Internacional de Cine de Fusagasugá (11 al 16 de noviembre)",
+  "organizador": "Fundación para las Artes Rodrigo Morales",
+  "sitio": "https://ficfusa.com",
+  "enlace": "https://ficfusa.com/programacion/",
+  "documento": "https://ficfusa.com/documentos/programa-ficfusa-2026.pdf",
+  "leido": "2026-11-12",
+  "municipio": "Fusagasugá",
+  "categoria": "cultura",
+  "nota": "Transcrito del programa oficial en PDF. Sin lugar en el programa (no se publican): Laboratorio Videofragmentos (11 nov), Taller de actuación con activadores emocionales (12 nov) y Taller Autorretrato (14 nov). Si el programa no dice la hora de cierre, se omite «fin» (la agenda pone 2 horas).",
+  "eventos": [
+    {
+      "titulo": "Kanekalon y Comparsa",
+      "inicio": "2026-11-12T10:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Kanekalon (12 min) y Comparsa (79 min).",
+      "fin": "2026-11-12T12:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Club del Pitch: taller-laboratorio con Carla Low",
+      "inicio": "2026-11-12T09:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Taller-laboratorio con Carla Low, cineasta colombo-escocesa, guionista y directora. Gratuito con previa inscripción.",
+      "fin": "2026-11-12T13:30",
+      "gratis": true
+    },
+    {
+      "titulo": "La luz por primera vez",
+      "inicio": "2026-11-12T14:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "La luz por primera vez (77 min). Conversatorio con la directora Ibeth Rey y Mauricio Donoso, director de Fotocultura.",
+      "fin": "2026-11-12T16:15",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "El cine como derecho: accesibilidad y diversidad",
+      "inicio": "2026-11-12T16:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección especial de La gran hazaña con interpretación en lengua de señas. Conversatorio con Andrea Montenegro y Jorge Vela, de Cinemazul.",
+      "fin": "2026-11-12T18:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Florecerán! y Sobre las olas",
+      "inicio": "2026-11-12T18:30",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Proyección de Florecerán! y Sobre las olas (97 min). Edad recomendada: 12+. Gratuito con previa inscripción.",
+      "fin": "2026-11-12T20:30",
+      "gratis": true
+    },
+    {
+      "titulo": "Niña Chilapa y Puntos de fuga",
+      "inicio": "2026-11-13T10:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Niña Chilapa (17 min) y Puntos de fuga (72 min). Hasta completar aforo. Entrada gratuita.",
+      "fin": "2026-11-13T12:00",
+      "gratis": true
+    },
+    {
+      "titulo": "MasterClass: producción audiovisual con material de archivo",
+      "inicio": "2026-11-13T10:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Con Ricardo Cuesta Garnica, director de la Fundación Patrimonio Fílmico Colombiano.",
+      "fin": "2026-11-13T12:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Charla: gestión colectiva y derechos de autor (REDES SGC)",
+      "inicio": "2026-11-13T13:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "El poder de la gestión colectiva en la defensa de los derechos de autor. Con Mónica Guzmán, Adriana Bernal Mor y Táriq Zia Burney Arango.",
+      "fin": "2026-11-13T14:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Película de apertura: MU-KI-RA",
+      "inicio": "2026-11-13T15:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Conversatorio con Jenaro González, director de animación, y María Fernanda Marín, actriz y cantante, voz de Cleo. Gratuito con previa inscripción.",
+      "fin": "2026-11-13T17:15",
+      "gratis": true
+    },
+    {
+      "titulo": "Ensoñación FICFUSA: cortometrajes y Barro Eléctrico en vivo",
+      "inicio": "2026-11-13T18:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección de cortometrajes y Barro Eléctrico A/V_EXP Live Act: Tricófero de Barro (Elviro) + LED.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Masterclass: actuación del subtexto y el lenguaje no verbal",
+      "inicio": "2026-11-14T09:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Por Carlos «Fagua» Medina, director de casting y preparador de actores. Gratuito con previa inscripción.",
+      "fin": "2026-11-14T12:00",
+      "gratis": true
+    },
+    {
+      "titulo": "Entrelazadas, Relatos del camino y La peluquería no se…",
+      "inicio": "2026-11-14T10:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Entrelazadas (14 min), Relatos del camino (11 min) y La peluquería no se cierra (60 min). Conversatorio por videollamada con la directora Vanesa Valdemoros.",
+      "fin": "2026-11-14T12:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "La mona y LA",
+      "inicio": "2026-11-14T12:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "La mona (18 min) y LA (62 min). Conversatorio con Tephy Piedrahita, directora de LA.",
+      "fin": "2026-11-14T14:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Charla entre ideas y planos: El espejo de la vida",
+      "inicio": "2026-11-14T14:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Con Simón Sánchez y Santiago Cruz.",
+      "fin": "2026-11-14T15:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Charla: El reto de construir y destruir Macondo",
+      "inicio": "2026-11-14T15:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Charla con la arquitecta Paula Carrera.",
+      "fin": "2026-11-14T16:30",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Charla: ¿Y qué hace una arquitecta en el cine?",
+      "inicio": "2026-11-14T16:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Charla con Grecia Colomo, set designer de la serie Cien años de soledad.",
+      "fin": "2026-11-14T17:30",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Noche de cortometrajes en el CIIS",
+      "inicio": "2026-11-14T18:00",
+      "lugar": "CIIS, Centro de Innovación e Integración Social (Cl. 4 # 7-59)",
+      "descripcion": "Chaika, Bajo el último aliento, Sukua, Sol de niebla, Desaprender la maternidad, Animista, Pudor ante el asalto de los ojos furtivos, Transversal 30FF, HDLT, Salud mutante, Que el cielo nos perdone y Árbol en pie.",
+      "fin": "2026-11-14T20:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Fiesta 13 años FICFUSA con Alejandro Rincón y la Salmona",
+      "inicio": "2026-11-14T20:30",
+      "lugar": "Hacienda El Novillero (km 64, Novillero)",
+      "descripcion": "Proyección especial y presentación musical de Alejandro Rincón y la Salmona.",
+      "gratis": false,
+      "precio": "$50.000 (aporte)"
+    },
+    {
+      "titulo": "Madres de Nacimiento y Truck Mama",
+      "inicio": "2026-11-15T10:00",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Madres de Nacimiento (8 min) y Truck Mama (85 min). Proyección y conversatorio.",
+      "fin": "2026-11-15T11:50",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Taller de animación con pintura: Mandala animada",
+      "inicio": "2026-11-15T10:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Por Laura Jiménez, directora de Ir hacia adentro. Gratuito con previa inscripción.",
+      "fin": "2026-11-15T12:00",
+      "gratis": true
+    },
+    {
+      "titulo": "Desaprender la maternidad y Matininó",
+      "inicio": "2026-11-15T12:30",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Desaprender la maternidad (10 min) y Matininó (89 min). Proyección y conversatorio.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Framing Her: proyección y conversatorio con Coco Wouters",
+      "inicio": "2026-11-15T14:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Framing Her (92 min). Conversatorio con la directora Coco Wouters.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Cortometrajes en competencia y muestra especial",
+      "inicio": "2026-11-15T16:00",
+      "lugar": "CIIS, Centro de Innovación e Integración Social (Cl. 4 # 7-59)",
+      "descripcion": "Proyección de cortometrajes en competencia y muestra especial.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Legado",
+      "inicio": "2026-11-16T09:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección de Legado y conversatorio.",
+      "fin": "2026-11-16T10:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "La libertad es mi causa",
+      "inicio": "2026-11-16T10:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección de La libertad es mi causa y conversatorio.",
+      "fin": "2026-11-16T12:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Largometraje: La vida es",
+      "inicio": "2026-11-16T12:30",
+      "lugar": "Cinema Los Ángeles (Cra. 5 # 11-25)",
+      "descripcion": "Proyección del largometraje La vida es.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Camino a la primera cumbre de mujeres del Sumapaz",
+      "inicio": "2026-11-16T12:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección y conversatorio.",
+      "fin": "2026-11-16T13:45",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Sostenibilidad y Como el agua, la piedra y la espuma",
+      "inicio": "2026-11-16T13:45",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección y conversatorio.",
+      "fin": "2026-11-16T15:00",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "El eco de sus voces: cuando la palabra se hace búsqueda",
+      "inicio": "2026-11-16T15:00",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Proyección de El eco de sus voces. Conversatorio con Angélica, mujer buscadora; Frank Benítez, director de la película, y Juan Carlos Henao, de la Unidad de Búsqueda (UBPD). Modera: Daniel Triviño.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    },
+    {
+      "titulo": "Ceremonia de clausura y premiación del FICFUSA",
+      "inicio": "2026-11-16T18:30",
+      "lugar": "Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Ceremonia de clausura y premiación del 13.º Festival Internacional de Cine de Fusagasugá.",
+      "gratis": false,
+      "precio": "Consultar en ficfusa.com"
+    }
+  ]
+}

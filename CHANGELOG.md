@@ -9,6 +9,19 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Programas verificados en la agenda automática** (`automatizacion/programas/*.json`). Para festivales cuyo
+  programa sale en PDF o en imágenes y que las alcaldías no publican. El primero es el **13.º FICFUSA** (Festival
+  Internacional de Cine de Fusagasugá, 11 al 16 de noviembre de 2026): 30 funciones, charlas y talleres con hora y sede,
+  transcritas del programa oficial de ficfusa.com. No entran 3 actividades que el programa trae sin lugar. Estos
+  eventos se publican como fuente oficial, sin imagen (serían 30 copias del afiche) y la «reparación» no les recorta
+  el título. Guía en `automatizacion/programas/LEEME.md`.
+- **La agenda se recupera sola si GitHub no la ejecuta.** GitHub retrasa los horarios programados (la corrida de las
+  6:00 a. m. del 11 de noviembre salió a la 1:23 p. m.) y de las revisiones «cada 15 minutos» solo ejecuta unas 5 al
+  día. Ahora cualquier revisión hace la búsqueda completa si pasaron más de 20 horas sin una (`motivo_para_correr`).
+- **La IA de la agenda reintenta** los errores pasajeros (429 y 5xx) hasta 3 veces con espera creciente: el 11 de
+  noviembre dos noticias se quedaron sin leer por «IA HTTP 503».
+- **Diagnóstico:** cuando la llamada a la IA falla por App Check, cupo o saturación, la app dice qué pasa y cómo
+  arreglarlo en vez del texto técnico (`pistaDiagnostico`). PWA v80 (`fusa-v73`).
 - **Logos de 23 marcas en 32 sucursales** (D1, Ara, Éxito, Olímpica, bancos, Terpel, Texaco, Claro, Movistar, Frisby,
   El Corral, Domino's, Oxxo, Cruz Verde, Colsubsidio, Nueva EPS, UNAD y Cámara de Comercio). Salen de la propiedad
   «logo» (P154) de Wikidata de la marca que OSM tiene enlazada, o del nombre de la sucursal; son archivos de Wikimedia

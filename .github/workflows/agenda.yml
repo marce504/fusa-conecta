@@ -1,6 +1,7 @@
 # Procesos automáticos en Python (automatizacion/). Ver automatizacion/LEEME.md y docs/agenda-ia.md.
 # - Agenda automática: todos los días a las 6:00 a. m. (hora de Colombia) y a mano (Actions → Agenda automática → Run workflow).
 #   Cada 15 minutos revisa si el admin tocó «Buscar eventos ahora» en la app; si no, termina en segundos.
+#   GitHub retrasa u omite horarios programados: esa revisión también busca si pasaron más de 20 horas sin una corrida.
 # - Limpieza diaria (6:00 a. m. y a mano): cupones vencidos, eventos de ejemplo y negocios sin foto.
 # Necesita los secretos GEMINI_API_KEY y FIREBASE_SA (Settings → Secrets and variables → Actions); sin ellos no hace nada.
 name: Agenda automática

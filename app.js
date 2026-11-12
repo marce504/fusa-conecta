@@ -5237,6 +5237,14 @@ const PRUEBAS_DIAG=[
   ['Llamada a la IA ('+IA.modelos[0]+')',IA.segundos*1000,async()=>{const m=(await obtenerModeloIA())[0];
     const r=await m.generateContent('Responde {"titulo":"Prueba","categoria":"otro"} sin cambiar nada.');JSON.parse(r.response.text());}]
 ];
+// v1.4.1: errores con arreglo conocido se explican en vez de mostrar el texto técnico
+function pistaDiagnostico(e){
+  const m=String(e&&e.message||e);
+  if(/app ?check/i.test(m))return 'La consola de Firebase está exigiendo App Check para la IA y la app no lo usa. Arreglo: consola de Firebase → App Check → APIs → Firebase AI Logic → «Dejar de aplicar» (Unenforce).';
+  if(/\b429\b|quota|resource.exhausted/i.test(m))return 'Se agotó el cupo gratuito de la IA por hoy o por este minuto. Vuelve a probar más tarde.';
+  if(/\b503\b|overloaded|unavailable/i.test(m))return 'El modelo de IA está saturado en este momento. Vuelve a probar en unos minutos.';
+  return '';
+}
 function abrirDiagnostico(){
   abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Diagnóstico</h2><p class="nota">Prueba la conexión con la base de datos y con la IA desde este teléfono. Versión '+VERSION_APP
     +' · '+(navigator.onLine?'con internet':'sin internet')+'.</p><ul class="diag-lista" id="diagLista" aria-live="polite">'
@@ -5248,7 +5256,7 @@ function abrirDiagnostico(){
   (async()=>{
     for(let i=0;i<PRUEBAS_DIAG.length;i++){
       const [t,ms,fn]=PRUEBAS_DIAG[i],t0=performance.now();let ok=true,det='';
-      try{await conTiempoLimite(Promise.resolve().then(fn),ms,'Sin respuesta en '+ms/1000+' s');}catch(e){ok=false;det=reportarError('diagnóstico · '+t,e)+' · '+String(e.message||e).slice(0,140);}
+      try{await conTiempoLimite(Promise.resolve().then(fn),ms,'Sin respuesta en '+ms/1000+' s');}catch(e){ok=false;det=reportarError('diagnóstico · '+t,e)+' · '+(pistaDiagnostico(e)||String(e.message||e).slice(0,140));}
       const seg=((performance.now()-t0)/1000).toFixed(1).replace('.',',')+' s';
       res.push((ok?'OK':'FALLA')+' · '+t+' · '+seg+(det?' · '+det:''));
       const li=$('#diag'+i);if(!li)return;

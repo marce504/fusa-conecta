@@ -171,3 +171,108 @@ def test_ultima_publicacion_por_tipo():
         "2026-10-19"
     )
     assert agenda.ultima_publicacion([], "Event") is None
+
+
+# ---------- Programas verificados (automatizacion/programas/*.json) ----------
+def test_programas_del_repositorio_son_validos_y_no_se_unen_entre_si():
+    """Cada programa guardado se lee completo: fechas válidas, textos dentro del límite y ninguna función
+    se pierde por la regla de eventos parecidos (mismo día y lugar con títulos casi iguales)."""
+    antes = 0  # con «ahora» en 0 entran todas las actividades, también las que ya pasaron
+    candidatos, resumen = agenda.leer_programas(antes)
+    assert resumen and all(r["ok"] and not r["error"] for r in resumen)
+    assert len(candidatos) == sum(r["contenidos"] for r in resumen)
+    for e in candidatos:
+        assert 3 <= len(e["titulo"]) <= 60 and 2 <= len(e["lugar_nombre"]) <= 80
+        assert e["fin"] >= e["inicio"] and e["enlace"].startswith("https://")
+        assert agenda.decidir(e) == "publicado"
+    assert len(agenda.unir_parecidos(candidatos)) == len(candidatos)
+
+
+def test_programa_ficfusa_2026_fechas_en_hora_de_colombia():
+    candidatos, _ = agenda.leer_programas(0)
+    apertura = next(e for e in candidatos if e["titulo"] == "Película de apertura: MU-KI-RA")
+    assert agenda.de_ms(apertura["inicio"]).isoformat().startswith("2026-11-13T20:00")  # 3:00 p. m. en Colombia
+    assert apertura["gratis"] and "13.º FICFUSA" in apertura["descripcion"]
+    fiesta = next(e for e in candidatos if e["titulo"].startswith("Fiesta 13 años"))
+    assert not fiesta["gratis"] and fiesta["precio"].startswith("$50.000")
+    assert fiesta["fin"] - fiesta["inicio"] == 2 * 3_600_000  # sin hora de cierre en el programa: 2 horas
+
+
+def test_programa_mal_escrito_no_detiene_la_agenda(tmp_path):
+    (tmp_path / "roto.json").write_text('{"nombre": "X", "sitio": "https://x.co", "eventos": [{"titulo": "A"}]}')
+    (tmp_path / "bien.json").write_text(
+        '{"nombre": "Feria", "sitio": "https://feria.co", "eventos": '
+        '[{"titulo": "Desfile", "inicio": "2026-12-01T10:00", "lugar": "Plaza"}]}',
+        encoding="utf-8",
+    )
+    candidatos, resumen = agenda.leer_programas(AHORA, tmp_path)
+    assert [e["titulo"] for e in candidatos] == ["Desfile"]
+    assert [r["ok"] for r in resumen] == [True, False] and "roto.json" in resumen[1]["error"]
+
+
+# ---------- IA: los errores pasajeros (429 y 5xx) se reintentan ----------
+class _Respuesta:
+    def __init__(self, codigo, datos=None):
+        self.status_code, self._datos = codigo, datos
+
+    def json(self):
+        return self._datos
+
+
+class _ClienteIA:
+    def __init__(self, respuestas):
+        self.respuestas, self.llamadas = list(respuestas), 0
+
+    def post(self, *_, **__):
+        self.llamadas += 1
+        return self.respuestas.pop(0)
+
+
+def test_ia_reintenta_503_y_luego_responde(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "clave-de-prueba")
+    monkeypatch.setattr(agenda.time, "sleep", lambda s: None)
+    vacia = _Respuesta(200, {"candidates": [{"content": {"parts": [{"text": "[]"}]}}]})
+    cliente = _ClienteIA([_Respuesta(503), _Respuesta(429), vacia])
+    assert agenda.con_ia(cliente, {"name": "Noticia", "friendlyName": "noticia"}, F_OFICIAL, AHORA) == []
+    assert cliente.llamadas == 3
+
+
+def test_ia_se_rinde_tras_los_reintentos(monkeypatch):
+    import pytest
+
+    monkeypatch.setenv("GEMINI_API_KEY", "clave-de-prueba")
+    monkeypatch.setattr(agenda.time, "sleep", lambda s: None)
+    cliente = _ClienteIA([_Respuesta(503)] * (agenda.REINTENTOS_IA + 1))
+    with pytest.raises(RuntimeError, match="IA HTTP 503"):
+        agenda.con_ia(cliente, {"name": "Noticia", "friendlyName": "noticia"}, F_OFICIAL, AHORA)
+    assert cliente.llamadas == agenda.REINTENTOS_IA + 1
+
+
+def test_reparar_no_toca_los_eventos_de_un_programa():
+    """«Charla: El reto de construir y destruir Macondo» no puede quedar en «Charla» ni recibir el afiche repetido."""
+
+    class Doc:
+        def __init__(self, datos):
+            self.datos, self.cambios, self.reference = datos, None, self
+
+        def to_dict(self):
+            return self.datos
+
+        def update(self, cambios):
+            self.cambios = cambios
+
+    base = {"origen": "automatico", "tipo": "plan", "imagen": "", "enlace_fuente": ""}
+    de_programa = Doc({**base, "titulo": "Charla: El reto de construir y destruir Macondo", "programa": "ficfusa-2026"})
+    de_noticia = Doc({**base, "titulo": "Feria: muestra artesanal"})
+    assert agenda.reparar(None, None, [de_programa, de_noticia], {}) == 1
+    assert de_programa.cambios is None and de_noticia.cambios["titulo"] == "Feria"
+
+
+def test_motivo_para_correr_en_la_revision_de_cada_15_minutos():
+    hora = 3_600_000
+    assert agenda.motivo_para_correr(AHORA - hora, AHORA - 2 * hora, AHORA) == "pedida desde la app"
+    assert agenda.motivo_para_correr(AHORA - 2 * hora, AHORA - hora, AHORA) == ""  # el pedido ya se atendió
+    assert agenda.motivo_para_correr(None, AHORA - 5 * hora, AHORA) == ""
+    # GitHub no ejecutó la corrida diaria: la siguiente revisión la recupera
+    assert agenda.motivo_para_correr(None, AHORA - 21 * hora, AHORA) == "diaria (recuperada)"
+    assert agenda.motivo_para_correr(None, None, AHORA) == "diaria (recuperada)"

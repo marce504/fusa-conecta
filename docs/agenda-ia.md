@@ -65,6 +65,24 @@ GitHub pausa los procesos programados de un repositorio público después de 60 
 
 Probar sin claves: `python automatizacion/agenda.py --simular` (con `--imagenes` también baja y comprime las imágenes).
 
+### Qué revisar cuando «no se publican eventos» (2026-11-12)
+
+1. **Panel de administración → Eventos → estado de la agenda automática.** Dice cuándo fue la última búsqueda, cuántos
+   contenidos leyó de cada fuente y las últimas líneas del registro.
+2. **Si corre pero encuentra 0:** las fuentes no han publicado. El proceso solo lee las alcaldías de Fusagasugá y Pasca
+   y el IDECUT. En noviembre de 2026 la Alcaldía de Fusagasugá no publicó nada del festival de cine, así que no había de
+   dónde leerlo. Para esos casos están los **programas verificados** (`automatizacion/programas/`), los organizadores
+   con cuenta y «Llenar con IA desde un afiche».
+3. **Si no corre:** GitHub retrasa u omite los horarios. Se puede lanzar a mano en GitHub → Actions → «Agenda
+   automática» → Run workflow. Desde v1.4.1 la revisión periódica recupera la corrida diaria si pasan más de 20 horas.
+
+### «Llamada a la IA» falla en el Diagnóstico con «Firebase App Check token is invalid» (401)
+
+La consola de Firebase está **exigiendo App Check** para Firebase AI Logic y la app no envía ese token (el reemplazo de
+reCAPTCHA pide cuenta de facturación; ver 2.1). Mientras esté exigido no funcionan «Pregúntale a Fusa» ni «Llenar con
+IA» para nadie. Arreglo, en la consola: **App Check → APIs → Firebase AI Logic → Dejar de aplicar (Unenforce)**. No
+es un cambio de código. La agenda automática no se afecta: usa su propia clave en los secretos de GitHub.
+
 ## 2.3 Organizadores
 
 Panel → Eventos → **Invitar organizador** (correo + "Confiable"). La app copia un mensaje para enviarle por correo o WhatsApp.
