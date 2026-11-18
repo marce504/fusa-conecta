@@ -29,7 +29,8 @@ Le comparto la información. Toma unos 5 minutos:
 
 ¡Qué bueno! Así de fácil:
 
-1. Entre a *fusa-conecta.web.app* desde el celular (no hay que descargar nada de una tienda)
+1. Entre a *fusa-conecta.web.app* desde el celular. No hay que descargar nada: funciona en el navegador. Si tiene
+   iPhone, ábrala en *Safari* (no está en la App Store)
 2. Cree su cuenta con Google o con su correo
 3. Toque *«Registrar mi negocio»* y llene nombre, categoría, ubicación, WhatsApp, horario y fotos
 4. Nosotros lo revisamos y lo publicamos
@@ -37,6 +38,17 @@ Le comparto la información. Toma unos 5 minutos:
 Si su negocio *ya aparece* en la app, ábralo y toque *«¿Es tu negocio? Reclámalo»*. Así lo administra usted.
 
 Cualquier duda me escribe por aquí y le ayudo con gusto.
+
+## 2b. Si tiene iPhone y pregunta cómo «descargarla»
+
+En iPhone no tiene que descargar nada, ni buscarla en la App Store: Fusa Conecta funciona directo en *Safari*.
+
+Si quiere dejar el ícono en su pantalla:
+1. Abra *fusa-conecta.web.app* en Safari
+2. Toque los tres puntos *•••* de la barra de dirección (en iPhone más antiguos, el botón *Compartir* de abajo)
+3. Toque *Compartir* y luego *«Agregar a inicio»*
+
+La misma app le muestra estos pasos: Perfil → *«Agregar la app a mi inicio»*.
 
 ## 3. Recordatorio (si no ha respondido en unos días)
 

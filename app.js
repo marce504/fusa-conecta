@@ -3849,7 +3849,7 @@ function renderPerfil(){
       +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
-      +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
+      +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon(esIOS?'square-plus':'download')+(esIOS?'Agregar la app a mi inicio':'Instalar la app en mi celular')+'</button>':'')
       +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Aviso legal y privacidad (Ley 1581)</button></div></div>'+footerHTML();
     const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
     $('#pfRegistro').onclick=()=>abrirLogin('registro');$('#pfIngresar').onclick=()=>abrirLogin('ingresar');
@@ -3897,7 +3897,7 @@ function renderPerfil(){
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
     +'<button class="pf-item" id="pfLegal">'+icon('file-text')+'Ver aviso legal y privacidad</button>'
     +'<button class="pf-item peligro" id="pfEliminar">'+icon('trash-2')+'Eliminar mi cuenta y mis datos</button></div>'
-    +'<div class="perfil-acc">'+(puedeInstalar()?'<button class="btn btn-secundario btn-bloque" id="pfInstalar">'+icon('download')+'Instalar la app en mi celular</button>':'')
+    +'<div class="perfil-acc">'+(puedeInstalar()?'<button class="btn btn-secundario btn-bloque" id="pfInstalar">'+icon(esIOS?'square-plus':'download')+(esIOS?'Agregar la app a mi inicio':'Instalar la app en mi celular')+'</button>':'')
     +'<button class="btn btn-secundario btn-bloque" id="pfSalir">'+icon('log-out')+'Cerrar sesión</button></div>'
     +'</div>'+footerHTML();
   const r=$('#pfReenviar');if(r)r.onclick=()=>auth.currentUser.sendEmailVerification().then(()=>toast('Te enviamos el correo de verificación')).catch(()=>toast('Intenta de nuevo en unos minutos'));
@@ -5682,8 +5682,8 @@ function mostrarInstalar(){
 }
 function tarjetaInstalarHTML(){
   if(!mostrarInstalar())return '';
-  return '<div class="tarjeta-instalar" id="tarjetaInstalar"><img src="img/icons/icon-192.png" alt="" width="44" height="44"><div><b>Instala Fusa Conecta</b><span>Úsala como app, sin navegador y sin conexión</span></div>'
-    +'<button class="btn btn-tonal btn-sm" id="tiSi">'+icon('download',18)+'Instalar</button><button class="btn-redondo ti-no" id="tiNo" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button></div>';
+  return '<div class="tarjeta-instalar" id="tarjetaInstalar"><img src="img/icons/icon-192.png" alt="" width="44" height="44"><div><b>'+(esIOS?'Agrégala a tu inicio':'Instala Fusa Conecta')+'</b><span>'+(esIOS?'Sin App Store: ícono propio y avisos':'Úsala como app, sin navegador y sin conexión')+'</span></div>'
+    +'<button class="btn btn-tonal btn-sm" id="tiSi">'+icon(esIOS?'square-plus':'download',18)+(esIOS?'Cómo':'Instalar')+'</button><button class="btn-redondo ti-no" id="tiNo" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button></div>';
 }
 function enlazarInstalar(){
   const si=$('#tiSi');if(!si)return;
@@ -5967,12 +5967,45 @@ async function instalarApp(){
     avisoInstalar=null;
     return;
   }
-  const pasos=esIOS
-    ?'<li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> en la barra inferior.</li><li>Elige <b>«Agregar a inicio»</b> y luego <b>«Agregar»</b>.</li>'
-    :'<li>Abre esta página en <b>Google Chrome</b>.</li><li>Toca el menú de tres puntos (arriba a la derecha).</li><li>Elige <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla principal»</b> y confirma con <b>«Instalar»</b>.</li>';
+  if(esIOS){instalarEnIphone();return;}
+  const pasos='<li>Abre esta página en <b>Google Chrome</b>.</li><li>Toca el menú de tres puntos (arriba a la derecha).</li><li>Elige <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla principal»</b> y confirma con <b>«Instalar»</b>.</li>';
   abrirHoja('<div class="hoja-pad hoja-centro"><img src="img/icons/icon-192.png" alt="Ícono de Fusa Conecta" class="inst-ic"><h2>Instala Fusa Conecta</h2>'
     +'<p>Quedará en tu pantalla de inicio con su propio ícono y se abrirá como una app, sin la barra del navegador.</p>'
     +'<ol class="inst-pasos">'+pasos+'</ol><p class="nota">Funciona sin internet para emergencias, favoritos y cupones guardados.</p></div>');
+}
+
+/* ===== iPHONE (v1.4.3): sin App Store, con los pasos de su Safari y avisos para los navegadores internos =====
+   En iPhone la app ya funciona en Safari; agregarla al inicio es opcional (ícono y avisos). Safari 26 escondió
+   «Compartir» en el menú «•••» de la barra de dirección; Instagram, Facebook o TikTok abren su propio navegador,
+   desde donde no se puede agregar al inicio. */
+function navegadorIphone(ua=navigator.userAgent){
+  if(/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|Snapchat|Line\//i.test(ua))return {tipo:'interno',app:/Instagram/i.test(ua)?'Instagram':/FBAN|FBAV|FB_IAB/i.test(ua)?'Facebook':/musical_ly|Bytedance|TikTok/i.test(ua)?'TikTok':'esta app'};
+  if(/CriOS/i.test(ua))return {tipo:'chrome'};
+  if(/FxiOS|EdgiOS|OPiOS/i.test(ua))return {tipo:'otro'};
+  const v=+((ua.match(/Version\/(\d+)/)||[])[1]||0);
+  return {tipo:v>=26?'safari26':'safari'};
+}
+function pasosIphone(n){
+  const b=(i,t)=>'<span class="ios-boton">'+icon(i,18)+t+'</span>';
+  if(n.tipo==='interno')return ['Toca '+b('ellipsis','')+' (arriba o abajo de la pantalla de '+esc(n.app)+').','Elige <b>«Abrir en el navegador»</b> o <b>«Abrir en Safari»</b>.','Ya en Safari, vuelve a tocar <b>«Agregar a inicio»</b> en Fusa Conecta.'];
+  if(n.tipo==='chrome')return ['Toca '+b('share','Compartir')+' en la barra de dirección, arriba a la derecha.','Elige '+b('square-plus','Agregar a pantalla de inicio')+'.','Toca <b>«Agregar»</b>.'];
+  if(n.tipo==='otro')return ['Abre <b>fusa-conecta.web.app</b> en <b>Safari</b> (el navegador de la brújula azul).','Sigue los pasos que te mostraremos ahí.'];
+  if(n.tipo==='safari26')return ['Toca '+b('ellipsis','')+' en la barra de dirección, abajo.','Toca '+b('share','Compartir')+'.','Elige '+b('square-plus','Agregar a inicio')+' (si no aparece, toca <b>«Ver más»</b>) y luego <b>«Agregar»</b>.'];
+  return ['Toca '+b('share','Compartir')+' en la barra de abajo.','Desliza hacia arriba y elige '+b('square-plus','Agregar a inicio')+'.','Toca <b>«Agregar»</b>.'];
+}
+function instalarEnIphone(){
+  const n=navegadorIphone();
+  medir('instalar_iphone',{navegador:n.tipo});
+  abrirHoja('<div class="hoja-pad"><img src="img/icons/icon-192.png" alt="Ícono de Fusa Conecta" class="inst-ic">'
+    +'<h2 class="hoja-tit centro">En iPhone no tienes que descargar nada</h2>'
+    +'<p class="nota centro">Fusa Conecta ya funciona aquí'+(n.tipo==='interno'?', pero dentro de '+esc(n.app)+' no se puede agregar al inicio':' mismo, en el navegador')+'. Agregarla a tu pantalla de inicio es opcional: te deja su ícono y los avisos. No está en la App Store.</p>'
+    +'<ol class="inst-pasos ios">'+pasosIphone(n).map(p=>'<li>'+p+'</li>').join('')+'</ol>'
+    +(n.tipo==='interno'||n.tipo==='otro'?'<button class="btn btn-secundario btn-bloque" id="iosCopiar">'+icon('copy',18)+'Copiar el enlace para pegarlo en Safari</button>':'')
+    +(logueado()?'<p class="nota">Al abrirla desde el ícono nuevo, inicia sesión una vez más: el iPhone guarda la sesión del ícono aparte de la de Safari.</p>':'')
+    +'<button class="btn btn-primario btn-bloque mt-16" id="iosListo">Seguir usándola aquí</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Agregar Fusa Conecta al inicio del iPhone');
+  const c=$('#iosCopiar');if(c)c.onclick=async()=>{const u=window.location.origin+'/';try{await navigator.clipboard.writeText(u);toast('Enlace copiado: pégalo en Safari');}catch(e){toast(u,8000);}};
+  $('#iosListo').onclick=()=>cerrar('ovGen');
 }
 
 /* ===== ARRANQUE ===== */

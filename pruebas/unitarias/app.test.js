@@ -443,3 +443,35 @@ describe('fechaEvento: eventos sin hora de cierre', () => {
     expect(fechaEvento({ ini, fin })).toBe('Sáb 14 de nov · 8:00 a. m. – 12:00 p. m.');
   });
 });
+
+describe('iPhone: navegador y pasos para agregar la app al inicio', () => {
+  const { navegadorIphone, pasosIphone } = cargar(['esc', 'navegadorIphone', 'pasosIphone'], {
+    icon: n => `[${n}]`,
+  });
+  const base = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)';
+  it('Safari 26 (el sistema congela «OS 18_6» pero la versión dice 26): «•••» y luego Compartir', () => {
+    const n = navegadorIphone(base + ' Version/26.1 Mobile/15E148 Safari/604.1');
+    expect(n.tipo).toBe('safari26');
+    expect(pasosIphone(n)[0]).toContain('[ellipsis]');
+    expect(pasosIphone(n).join(' ')).toContain('Agregar a inicio');
+  });
+  it('Safari 18 o anterior: Compartir en la barra de abajo', () => {
+    const n = navegadorIphone(base + ' Version/18.6 Mobile/15E148 Safari/604.1');
+    expect(n.tipo).toBe('safari');
+    expect(pasosIphone(n)[0]).toContain('[share]Compartir');
+  });
+  it('Chrome en iPhone: Compartir en la barra de dirección', () => {
+    const n = navegadorIphone(base + ' CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1');
+    expect(n.tipo).toBe('chrome');
+    expect(pasosIphone(n).join(' ')).toContain('Agregar a pantalla de inicio');
+  });
+  it('dentro de Instagram o Facebook: primero abrir en Safari', () => {
+    const ig = navegadorIphone(base + ' Mobile/15E148 Instagram 350.0.0.0 (iPhone15,2; iOS 18_6)');
+    expect(ig).toEqual({ tipo: 'interno', app: 'Instagram' });
+    expect(pasosIphone(ig)[1]).toContain('Abrir en Safari');
+    expect(navegadorIphone(base + ' Mobile/15E148 [FBAN/FBIOS;FBAV/450.0]').app).toBe('Facebook');
+  });
+  it('Firefox o Edge en iPhone: pasar a Safari', () => {
+    expect(navegadorIphone(base + ' FxiOS/133.0 Mobile/15E148').tipo).toBe('otro');
+  });
+});

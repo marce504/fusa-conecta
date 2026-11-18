@@ -9,6 +9,14 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Guía de iPhone sin App Store** (`instalarEnIphone`). En iPhone la app ya funciona en Safari, pero la gente la
+  buscaba en la App Store o se perdía en pasos desactualizados: Safari 26 escondió «Compartir» en el menú «•••» y desde
+  Instagram, Facebook o TikTok no se puede agregar al inicio. Ahora la app reconoce el navegador (`navegadorIphone`:
+  Safari 26, Safari anterior, Chrome, navegadores internos u otros) y muestra solo sus pasos, con los botones
+  dibujados. Desde un navegador interno ofrece copiar el enlace para pegarlo en Safari, y avisa que el ícono pide
+  iniciar sesión otra vez. En iPhone la tarjeta y el perfil dicen «Agrégala a tu inicio», no «Instala». Íconos Lucide
+  nuevos: `share`, `ellipsis` y `square-plus`. Con prueba unitaria. PWA v82 (`fusa-v75`).
+- El flyer y los mensajes de WhatsApp (`docs/difusion/`) dicen que en iPhone se abre en Safari y no se descarga.
 - **Programas verificados en la agenda automática** (`automatizacion/programas/*.json`). Para festivales cuyo
   programa sale en PDF o en imágenes y que las alcaldías no publican. El primero es el **13.º FICFUSA** (Festival
   Internacional de Cine de Fusagasugá, 11 al 16 de noviembre de 2026): 30 funciones, charlas y talleres con hora y sede,

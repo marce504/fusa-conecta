@@ -1,5 +1,5 @@
 // Flyer para comerciantes de Fusa Conecta: arma el HTML con el logo e íconos reales de la app y lo exporta a PNG y PDF.
-// Uso: node herramientas/difusion/flyer-comercios.mjs . docs/difusion  (lee el QR en base64 de ../qr.txt respecto a la salida)
+// Uso: node herramientas/difusion/flyer-comercios.mjs <ruta absoluta de app2> <ruta absoluta de salida>  (lee el QR en base64 de <salida>/../qr.txt)
 /* global document */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -44,7 +44,7 @@ const premium = [
   ['trending-up', 'Estadísticas completas'],
 ];
 const pasos = [
-  ['Entra a <b>fusa-conecta.web.app</b>', 'o escanea el código QR de abajo.'],
+  ['Entra a <b>fusa-conecta.web.app</b>', 'o escanea el QR. En iPhone, ábrela en Safari: no está en la App Store.'],
   ['Crea tu cuenta', 'con Google o con tu correo.'],
   ['Toca <b>«Registrar mi negocio»</b>', 'nombre, categoría, ubicación en el mapa, WhatsApp, horario y fotos.'],
   ['Lo revisamos y lo publicamos', 'y ya apareces para vecinos y turistas.'],
@@ -116,7 +116,7 @@ h1 em{font-style:normal;color:#5EEAD4}
 </main>
 <footer class="pie"><img src="data:image/png;base64,${qr}" alt="Código QR de fusa-conecta.web.app">
   <div><div class="url">fusa-conecta.web.app</div>
-  <p>No tienes que descargar nada de una tienda: se abre en el navegador del celular y se instala con un toque.</p>
+  <p>No se descarga de ninguna tienda: funciona en el navegador de cualquier celular, Android o iPhone, y puedes dejar su ícono en tu pantalla de inicio.</p>
   <div class="lema">${ic('map-pin', 26)}Hecha en Fusagasugá, para Fusagasugá y Pasca</div></div></footer>
 </body></html>`;
 
