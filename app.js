@@ -5203,9 +5203,11 @@ function estadoContacto(d,c,reclamos){
 }
 function mensajeContacto(d,remitente,ahora=Date.now()){
   const quien=String(remitente||'').trim().split(/\s+/)[0];
-  return 'Hola, ¿hablo con '+d.nombre+'? Le saluda '+(quien?quien+', de ':'el equipo de ')+'Fusa Conecta, la app gratuita de Fusagasugá y Pasca para encontrar comercios, servicios, planes y eventos.\n\n'
+  return 'Hola, ¿hablo con '+d.nombre+'? Le saluda '+(quien?quien+', de ':'el equipo de ')+'Fusa Conecta. Somos estudiantes del SENA de Análisis y Desarrollo de Software y este es nuestro proyecto: '
+    +'una app gratuita con sentido social para que todo el que venda algo en Fusagasugá y Pasca, del negocio más conocido al emprendimiento más pequeño, sea visible, '
+    +'y para que vecinos y turistas encuentren fácil dónde comer, dónde comprar y qué conocer.\n\n'
     +'Ya agregamos '+d.nombre+' a la app. Así lo ven sus clientes: https://fusa-conecta.web.app/#/lugar/'+d.id+'\n\n'
-    +'Para administrarlo, abra el enlace, cree su cuenta y toque «¿Es tu negocio? Reclámalo». Después puede subir fotos y actualizar el horario y el WhatsApp.\n\n'
+    +'Para administrarlo, abra el enlace, cree su cuenta y toque «¿Es tu negocio? Reclámalo». Después puede subir fotos y actualizar el horario y el WhatsApp. No tiene costo.\n\n'
     +(campanaVigente(ahora)?'Si se une antes del '+CAMPANA.unirseTxt+', le damos Premium gratis hasta el '+CAMPANA.premiumTxt+': cupones de descuento, aparecer en Destacados y primero en las búsquedas, y hasta 10 fotos.\n\n':'')
     +'¿Le ayudo con el registro? Si prefiere no recibir más mensajes, me dice y no le volvemos a escribir.';
 }

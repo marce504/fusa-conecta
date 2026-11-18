@@ -7,9 +7,12 @@ asteriscos sale en negrita.
 
 Hola, [nombre]. Buenas [tardes]. Le escribe [tu nombre], de *Fusa Conecta*.
 
-Somos un proyecto de Fusagasugá: una app gratuita donde vecinos y turistas encuentran comercios, servicios, planes,
-eventos y cupones de Fusagasugá y Pasca. Ya hay más de 540 lugares en el directorio y queremos que *[nombre del
-negocio]* también esté.
+Somos estudiantes del *SENA* de *Análisis y Desarrollo de Software*, y Fusa Conecta es nuestro proyecto: una app
+gratuita con sentido social. Queremos que *todo el que venda algo en Fusagasugá y Pasca* sea visible, desde el negocio
+más conocido hasta el emprendimiento más pequeño, y que vecinos y turistas encuentren fácil dónde comer, dónde
+conseguir lo que buscan y qué lugares conocer. Así ganan el comercio y el turismo de la región.
+
+Ya hay más de 540 lugares en la app y queremos que *[nombre del negocio]* también esté.
 
 Inscribirlo es *gratis* y en la ficha sus clientes encuentran:
 - Su WhatsApp y su teléfono, para escribirle o llamarle con un toque
@@ -53,15 +56,29 @@ La misma app le muestra estos pasos: Perfil → *«Agregar la app a mi inicio»*
 
 ## 3. Recordatorio (si no ha respondido en unos días)
 
-Hola, [nombre]. Le escribo de nuevo de *Fusa Conecta*, la app de comercios y planes de Fusagasugá y Pasca. Inscribir
+Hola, [nombre]. Le escribo de nuevo de *Fusa Conecta*, el proyecto de estudiantes del SENA para que todo el comercio
+de Fusagasugá y Pasca sea visible. Inscribir
 *[nombre del negocio]* sigue siendo gratis y toma unos 5 minutos: *fusa-conecta.web.app*. Si prefiere, me envía el
 nombre, la dirección, el WhatsApp y el horario, y le ayudo a dejarlo listo. ¡Que tenga buen día!
+
+## 3b. Para personas que conocemos en la calle o en redes (usuarios)
+
+Hola, [nombre]. Somos estudiantes del *SENA* de Análisis y Desarrollo de Software y creamos *Fusa Conecta*, una app
+gratuita para que en Fusagasugá y Pasca encontremos todo más fácil: dónde comer, dónde conseguir algo, qué está
+abierto, qué planes hay, lugares que no sabíamos que existían, la emisora en vivo y los números de emergencia.
+
+Es un proyecto con sentido social: entre más personas la usen, más visibles son los comercios y emprendimientos de
+aquí. Pruébela y cuéntenos qué le parece: *fusa-conecta.web.app* (no se descarga de ninguna tienda; funciona en
+Android y iPhone).
+
+Y si conoce a alguien con un negocio, compártale este mensaje: inscribirse es gratis.
 
 ## 4. Para los negocios que ya están en la app (pestaña «Contactar»)
 
 Para los 151 negocios del directorio que tienen celular, no copies estos textos: en la app entra a **Perfil →
 Administración → Contactar**. Cada negocio tiene el botón **«Escribir»**, que abre tu WhatsApp con un mensaje con su
-nombre, el enlace a su ficha, los pasos para reclamarlo y la campaña. Tú lo revisas y lo envías. La lista anota quién
+nombre, quiénes somos (estudiantes del SENA, proyecto con sentido social), el enlace a su ficha, los pasos para
+reclamarlo y la campaña. Tú lo revisas y lo envías. La lista anota quién
 ya recibió el mensaje, quién respondió y quién se unió (cuando reclama su negocio).
 
 **Modo rápido:** toca «Modo rápido: escribir uno tras otro». Se abre el chat del primer negocio; lo envías, vuelves a

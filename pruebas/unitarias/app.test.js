@@ -599,6 +599,8 @@ describe('campaña de lanzamiento y contactos por WhatsApp', () => {
     const t = m.mensajeContacto({ id: 'c331', nombre: 'El Peon' }, 'Marcela Estrella', col('2026-11-18T10:00:00'));
     expect(t).toContain('¿hablo con El Peon?');
     expect(t).toContain('Le saluda Marcela, de Fusa Conecta');
+    expect(t).toContain('estudiantes del SENA de Análisis y Desarrollo de Software');
+    expect(t).toContain('todo el que venda algo en Fusagasugá y Pasca');
     expect(t).toContain('https://fusa-conecta.web.app/#/lugar/c331');
     expect(t).toContain('«¿Es tu negocio? Reclámalo»');
     expect(t).toContain('Premium gratis hasta el 30 de abril de 2027');

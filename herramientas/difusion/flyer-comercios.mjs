@@ -1,5 +1,5 @@
 // Flyer para comerciantes de Fusa Conecta: arma el HTML con el logo e íconos reales de la app y lo exporta a PNG y PDF.
-// Uso: node herramientas/difusion/flyer-comercios.mjs <ruta absoluta de app2> <ruta absoluta de salida>  (lee el QR en base64 de <salida>/../qr.txt)
+// Uso: node herramientas/difusion/flyer-comercios.mjs <ruta absoluta de app2> <ruta absoluta de salida>  (QR en base64: docs/difusion/qr.txt)
 /* global document */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -18,7 +18,7 @@ const ic = (n, s = 40) =>
   `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[n]}</svg>`;
 const iso = (colores, alto) =>
   `<svg height="${alto}" viewBox="102.46 0 194.02 275.6" aria-hidden="true">${hojas.map((d, i) => `<path fill="${colores[i]}" d="${d}"/>`).join('')}</svg>`;
-const qr = readFileSync(join(SALIDA, '..', 'qr.txt'), 'utf8').trim();
+const qr = readFileSync(join(APP, 'docs', 'difusion', 'qr.txt'), 'utf8').trim();
 
 const que = [
   ['store', 'Comercios y servicios'],
@@ -117,7 +117,7 @@ h1 em{font-style:normal;color:#5EEAD4}
 <footer class="pie"><img src="data:image/png;base64,${qr}" alt="Código QR de fusa-conecta.web.app">
   <div><div class="url">fusa-conecta.web.app</div>
   <p>No se descarga de ninguna tienda: funciona en el navegador de cualquier celular, Android o iPhone, y puedes dejar su ícono en tu pantalla de inicio.</p>
-  <div class="lema">${ic('map-pin', 26)}Hecha en Fusagasugá, para Fusagasugá y Pasca</div></div></footer>
+  <div class="lema">${ic('heart', 26)}Proyecto de estudiantes del SENA, con sentido social</div></div></footer>
 </body></html>`;
 
 writeFileSync(join(SALIDA, 'flyer-comercios.html'), html);

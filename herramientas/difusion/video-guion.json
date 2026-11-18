@@ -1,0 +1,35 @@
+[
+  { "id": "pregunta", "voz": "¿Dónde almuerzo? ¿Está abierto? ¿Qué hay para hacer en Fusa?", "min": 4.5 },
+  { "id": "marca", "voz": "Llegó Fusa Conecta: todo Fusa y Pasca, en tu bolsillo.", "min": 5 },
+  {
+    "id": "comercios",
+    "voz": "Aquí está todo el que vende algo: restaurantes, tiendas, talleres, hoteles, fincas y emprendimientos. Ya son más de quinientos cuarenta lugares.",
+    "min": 7
+  },
+  { "id": "busca", "voz": "Escribe lo que necesitas y encuéntralo en segundos.", "min": 4.5 },
+  { "id": "contacta", "voz": "Mira si está abierto, llama, escribe por WhatsApp o llega con el mapa.", "min": 5 },
+  {
+    "id": "ia",
+    "voz": "¿No sabes qué buscar? Pregúntale a Fusa: la inteligencia artificial te recomienda lo que está abierto y cerca.",
+    "min": 6
+  },
+  {
+    "id": "turismo",
+    "voz": "Descubre lugares que no sabías que estaban aquí: senderos, miradores, patrimonio y el páramo de Sumapaz.",
+    "min": 7
+  },
+  { "id": "agenda", "voz": "Entérate de los planes y eventos de la semana.", "min": 4 },
+  { "id": "radio", "voz": "Y escucha en vivo la emisora Vive Fusagasugá, ochenta y ocho punto uno.", "min": 4.5 },
+  { "id": "sos", "voz": "En una emergencia, los números están ahí, incluso sin señal.", "min": 4 },
+  {
+    "id": "negocios",
+    "voz": "¿Tienes un negocio o un emprendimiento? Súmalo gratis. Si te unes antes del treinta y uno de enero, tienes Premium gratis hasta el treinta de abril.",
+    "min": 8
+  },
+  {
+    "id": "sena",
+    "voz": "Fusa Conecta es un proyecto de estudiantes del SENA, con un propósito: que todo Fusa y Pasca se conecte.",
+    "min": 6
+  },
+  { "id": "cierre", "voz": "Ábrela hoy en fusa conecta punto web punto app. ¡Es gratis!", "min": 6 }
+]

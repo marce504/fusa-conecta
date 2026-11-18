@@ -9,6 +9,15 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Quiénes somos en los mensajes.** El mensaje de «Contactar» (`mensajeContacto`), los mensajes de WhatsApp y el flyer
+  dicen que Fusa Conecta es el proyecto de estudiantes del SENA de Análisis y Desarrollo de Software, con sentido
+  social: que todo el que venda algo en Fusagasugá y Pasca sea visible y que vecinos y turistas encuentren fácil dónde
+  comer, comprar y qué conocer. Nuevo mensaje para usuarios que conocemos en la calle o en redes. PWA v86 (`fusa-v79`).
+- **Video promocional con voz, subtítulos y logo animado** (`herramientas/difusion/video-promocional.mjs`). Escenas
+  nuevas: todo tipo de comercio con nombres reales, turismo con fotos de licencia libre, la emisora Vive Fusagasugá
+  88.1 FM y quiénes somos. Cada escena dura lo que dura su frase de voz (`video-guion.json`); la voz de prueba es la
+  de Windows y la final se arma con los audios de ElevenLabs. Guion en `docs/difusion/video-guion.md`. Foto de perfil
+  de WhatsApp en dos versiones (`herramientas/difusion/perfil-whatsapp.mjs`).
 - **Modo rápido en «Contactar».** Un botón abre el chat del siguiente negocio por contactar (en orden alfabético), lo
   marca como enviado y, al volver a la app, ya muestra el próximo. Así cada mensaje toma unos 10 segundos. Lleva la
   cuenta del día (25 como tope sugerido para cuidar el número) y pide confirmar si se pasa de ese tope o si es fuera
