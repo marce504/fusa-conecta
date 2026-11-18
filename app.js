@@ -128,7 +128,7 @@ const estado={
   pos:null,           // [lat,lng] del usuario si dio permiso
   online:navigator.onLine,
   sosMunicipio:'fusagasuga',
-  filtros:{abierto:false,cupon:false,municipio:municipioGuardado(),orden:'recomendados'}  // hoja de Filtros del listado
+  filtros:{abierto:false,noche:false,cupon:false,municipio:municipioGuardado(),orden:'recomendados'}  // hoja de Filtros del listado
 };
 function logueado(){return !!(estado.usuario&&!estado.usuario.anonimo);}
 /* ===== MUNICIPIO (v1.3.0): Fusa Conecta es de Fusagasugá y Pasca =====
@@ -1555,6 +1555,10 @@ db.collection('cupones').onSnapshot(snap=>{
 
 // Números de emergencia editados por el admin; si no hay, se usan los de datos.js. Copia local para modo avión.
 estado.emergencias=ls.get('fc_emergencias',{});
+estado.turnoDrog=ls.get('fc_turno_drog',{});
+db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
+  estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
+},()=>{});
 db.collection('emergencias').onSnapshot(s=>{
   const e={};s.forEach(d=>{const x=d.data();e[d.id]={lista:x.lista||[],actualizado:aMs(x.actualizado)};});
   estado.emergencias=e;ls.set('fc_emergencias',e);if(vistaActual().tipo==='sos')render(true);
@@ -1587,7 +1591,7 @@ function parsearRangos(t){
   const out=[],re=/(\d{1,2})(?::(\d{2}))?\s*[–-]\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|m\.)?/gi;let m;
   while((m=re.exec(t))){
     let s=+m[1]+(+m[2]||0)/60,e=+m[3]+(+m[4]||0)/60;const suf=(m[5]||'').toLowerCase()[0]||'';
-    if(suf==='p'&&e<12)e+=12;else if(suf==='a'&&Math.floor(e)===12)e=24;else if(suf==='m')e=12;else if(!suf&&e<=7)e+=12;
+    if(suf==='p'&&e<12)e+=12;else if(suf==='a'&&Math.floor(e)===12)e=24;else if(suf==='m')e=12;else if(!suf&&e<=7&&s<13)e+=12;
     if(suf==='a'){if(e===24){if(s<8)s+=12;}else if(s>e)s+=12;}
     else if(s<5&&s+12<e)s+=12;
     out.push([Math.round(s*60),Math.round(e*60)]);
@@ -1600,21 +1604,31 @@ function horaTexto(min){
   min=((min%1440)+1440)%1440;const h=Math.floor(min/60),m=min%60;
   return (h%12||12)+':'+String(m).padStart(2,'0')+(h<12?' a. m.':' p. m.');
 }
+// Tramos [días, abre, cierra] en minutos, del horario estructurado (dias/abre/cierra) o del texto
+function tramosDe(d){
+  if(d.dias&&d.dias.length&&d.abre&&d.cierra){
+    const hm=x=>{const[h,mi]=x.split(':');return +h*60+(+mi||0);};
+    return [[d.dias,hm(d.abre),hm(d.cierra)]];
+  }
+  return (d.horario||'').split(';').flatMap(seg=>{const ds=parsearDias(seg);return parsearRangos(seg).map(([s,e])=>[ds,s,e]);});
+}
+function horario24h(d){return !(d.dias&&d.dias.length&&d.abre&&d.cierra)&&/24\s*h|24 horas/i.test(d.horario||'');}
+/* v87 · «De noche»: atiende después de las 9 p. m. al menos un día, según su horario real.
+   Sin horario no entra: la app no supone que un lugar abre de noche. */
+const NOCHE_MIN=21*60;
+function abreDeNoche(d){
+  if(!d||esNatural(d))return false;
+  if(horario24h(d))return true;
+  return tramosDe(d).some(([,s,e])=>e<=s||e>NOCHE_MIN);
+}
 // Devuelve {tipo:'ab'|'pronto'|'cerr', abierto, texto} o null si el lugar no tiene horario calculable
 function estadoApertura(d){
   if(esNatural(d))return null;
   // Tramos [días, abre, cierra]. v1.3.0: varios grupos de días separados por «;»
   // (p. ej. «Lun-Vie 8:00-13:00 y 14:00-17:00; Sáb 8:00-12:00», el horario de la Alcaldía de Pasca)
-  let tramos;
-  if(d.dias&&d.dias.length&&d.abre&&d.cierra){
-    const hm=x=>{const[h,mi]=x.split(':');return +h*60+(+mi||0);};
-    tramos=[[d.dias,hm(d.abre),hm(d.cierra)]];
-  }else{
-    const h=d.horario||'';
-    if(/24\s*h|24 horas/i.test(h))return {tipo:'ab',abierto:true,texto:'Abierto 24 horas'};
-    tramos=h.split(';').flatMap(seg=>{const ds=parsearDias(seg);return parsearRangos(seg).map(([s,e])=>[ds,s,e]);});
-    if(!tramos.length)return null;
-  }
+  if(horario24h(d))return {tipo:'ab',abierto:true,texto:'Abierto 24 horas'};
+  const tramos=tramosDe(d);
+  if(!tramos.length)return null;
   const ahora=new Date(),dia=ahora.getDay(),min=ahora.getHours()*60+ahora.getMinutes(),ayer=(dia+6)%7;
   for(const [dias,s,e] of tramos){
     let resta=null;
@@ -1830,6 +1844,7 @@ const ORDENES=[['recomendados','Recomendados'],['calificados','Mejor calificados
 function filtrosActivos(f=estado.filtros){
   const l=[];
   if(f.abierto)l.push(['abierto','Abierto ahora']);
+  if(f.noche)l.push(['noche','De noche']);
   if(f.cupon)l.push(['cupon','Con cupón']);
   if(f.orden&&f.orden!=='recomendados')l.push(['orden',ORDENES.find(o=>o[0]===f.orden)[1]]);
   return l;
@@ -1847,7 +1862,7 @@ function abrirFiltros(){
   const contar=()=>itemsVisibles(v.cat,v.sub,true,borrador).length;
   const pintar=()=>{
     abrirHoja('<div class="hoja-filtros"><h2 class="hoja-tit">Filtros</h2>'
-      +[['abierto','clock','Abierto ahora'],['cupon','ticket','Con cupón']].map(([k,i,t])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
+      +[['abierto','clock','Abierto ahora'],['noche','moon','De noche',' (después de las 9 p. m.)'],['cupon','ticket','Con cupón']].map(([k,i,t,ayuda])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+(ayuda?'<small class="fil-ayuda">'+ayuda+'</small>':'')+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
       +'<span class="fil-lbl" id="lMun">Municipio</span><div class="seg" role="radiogroup" aria-labelledby="lMun">'+MUNICIPIOS.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.municipio===k)+'" class="'+(borrador.municipio===k?'on':'')+'" data-mun="'+k+'">'+t+'</button>').join('')+'</div>'
       +'<span class="fil-lbl" id="lOrden">Ordenar por</span><div class="seg" role="radiogroup" aria-labelledby="lOrden">'+ORDENES.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.orden===k)+'" class="'+(borrador.orden===k?'on':'')+'" data-orden="'+k+'">'+t+'</button>').join('')+'</div>'
       +'</div><div class="fil-pie"><button class="btn btn-ghost" id="filLimpiar">Limpiar</button><button class="btn btn-primario" id="filVer"></button></div>');
@@ -1856,7 +1871,7 @@ function abrirFiltros(){
     $$('[data-fil]').forEach(x=>(x.onchange=()=>{borrador[x.dataset.fil]=x.checked;const cuantos=contar();$('#filVer').textContent='Ver '+cuantos+(cuantos===1?' lugar':' lugares');}));
     $$('[data-mun]').forEach(b=>(b.onclick=()=>{borrador.municipio=b.dataset.mun;pintar();}));
     $$('[data-orden]').forEach(b=>(b.onclick=()=>{borrador.orden=b.dataset.orden;pintar();}));
-    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,cupon:false,orden:'recomendados'});pintar();};
+    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,noche:false,cupon:false,orden:'recomendados'});pintar();};
     $('#filVer').onclick=async()=>{
       if(borrador.orden==='cercanos'&&!estado.pos){
         const p=await pedirUbicacion();
@@ -1907,6 +1922,7 @@ function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
   if(f.municipio&&cat!=='favoritos')items=items.filter(d=>enMunicipio(d,f.municipio));
   if(conFiltros){
     if(f.abierto)items=items.filter(d=>{const a=estadoApertura(d);return a&&a.abierto;});
+    if(f.noche)items=items.filter(abreDeNoche);
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
   }
   return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
@@ -2044,7 +2060,7 @@ function renderLista(v){
   }
   $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>(b.onclick=()=>{
-    estado.q='';estado.filtros={abierto:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
+    estado.q='';estado.filtros={abierto:false,noche:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
@@ -3877,10 +3893,40 @@ function renderSOS(){
     +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(e=>
       '<div class="sos-fila"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(e.numero)+'</span></div>'
       +'<button class="sos-llamar" data-llamar="'+esc(e.numero)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(e.numero)+'">'+icon('phone')+'</button></div>').join('')).join('')
+    +drogueriasHTML(mun)
     +'</div>'+footerHTML();
+  $$('[data-verdrog]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.verdrog)));
   $$('.seg [data-mun]').forEach(b=>(b.onclick=()=>{estado.sosMunicipio=b.dataset.mun;render();}));
   $$('[data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
   enlazarFooter();
+}
+/* ===== DROGUERÍAS Y TURNO (v87) =====
+   Solo se muestra «De turno» si el admin lo publicó con su fuente oficial (enlace https) y la fecha de hoy está en
+   el rango. config/turno_droguerias: lectura pública, escritura solo del admin (firestore.rules). */
+function droguerias(mun){
+  const m=mun==='pasca'?'Pasca':'Fusagasugá';
+  return database.filter(d=>d.cat==='servicios'&&/drog|farmac/i.test((d.nombre||'')+' '+(d.desc||''))&&municipioDe(d)===m);
+}
+function turnoVigente(t,mun,hoy=hoyISO()){
+  const x=t&&t[mun];
+  if(!x||!x.comercio_id||!x.fuente||!/^https:\/\//.test(x.fuente_url||'')||!x.desde||!x.hasta)return null;
+  return x.desde<=hoy&&hoy<=x.hasta?x:null;
+}
+function drogueriasHTML(mun){
+  const l=droguerias(mun);
+  const t=turnoVigente(estado.turnoDrog,mun);
+  if(!l.length&&!t)return '';
+  const ab=d=>{const a=estadoApertura(d);return a&&a.abierto?0:a?1:2;};
+  const fila=(d,extra)=>'<div class="sos-fila"><span class="sos-ic">'+icon('pill')+'</span><div class="sos-info"><b>'+esc(d.nombre)+'</b>'
+    +'<span>'+esc(extra||d.direccion||'')+'</span>'+estadoHTML(estadoApertura(d))+'</div>'
+    +'<button class="sos-llamar sos-ver" data-verdrog="'+esc(d.id)+'" aria-label="Ver la ficha de '+esc(d.nombre)+'">'+icon('chevron-right')+'</button></div>';
+  const dt=t&&buscar(t.comercio_id);
+  return '<h3 class="sos-grupo">Droguerías</h3>'
+    +(t?'<div class="sos-turno">'+icon('moon',18)+'<div><b>De turno: '+esc(t.nombre||(dt&&dt.nombre)||'')+'</b>'
+      +'<small>Hasta el '+esc(fechaCorta(new Date(t.hasta+'T12:00:00').getTime()))+' · Fuente: <a href="'+esc(t.fuente_url)+'" target="_blank" rel="noopener">'+esc(t.fuente)+'</a></small></div></div>'
+      +(dt?fila(dt):''):'')
+    +'<p class="sos-nota">'+(t?'':'Aún no tenemos el turno oficial de las droguerías. ')+'Llama o pregunta antes de ir: los horarios pueden cambiar.</p>'
+    +l.filter(d=>!t||d.id!==t.comercio_id).sort((a,b)=>ab(a)-ab(b)||a.nombre.localeCompare(b.nombre,'es')).map(d=>fila(d)).join('');
 }
 function confirmarLlamada(entidad,numero){
   abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic peligro">'+icon('phone',28)+'</div><h2>'+esc(entidad)+'</h2><div class="num-grande">'+esc(numero)+'</div>'
@@ -5524,7 +5570,8 @@ function renderAdmin(){
         +'<select class="input" data-emg="'+i+'" data-k="tipo" aria-label="Tipo">'+['Seguridad','Salud','Rescate','Atención ciudadana'].map(t=>'<option'+(e.tipo===t?' selected':'')+'>'+t+'</option>').join('')+'</select>'
         +'</div><button class="btn-redondo" data-emgdel="'+i+'" aria-label="Quitar '+esc(e.entidad)+'">'+icon('trash-2')+'</button></div>').join('')
       +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
-      +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>';
+      +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>'
+      +turnoAdminHTML(mun);
   }
   const fotosAntiguas=D.comercios.filter(c=>!copiaVieja(c)&&fotoAntigua(c._raw));
   // El admin las migra solo al abrir el panel (una vez por sesión); el botón queda por si alguna falla
@@ -5586,7 +5633,41 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
+  enlazarTurnoAdmin(mun);
   cargarFotosPreview();
+}
+function turnoAdminHTML(mun){
+  const l=droguerias(mun),t=(estado.turnoDrog||{})[mun]||{},vig=turnoVigente(estado.turnoDrog,mun);
+  if(!l.length)return '';
+  return '<p class="dash-section">Droguería de turno</p><div class="adm-card">'
+    +'<p class="nota-c izq">Publícalo solo con la fuente oficial (Alcaldía, Secretaría de Salud o la lista que publican las droguerías). '
+    +(vig?'Ahora se muestra: <b>'+esc(vig.nombre)+'</b> hasta el '+esc(vig.hasta)+'.':t.comercio_id?'El turno guardado ya no está vigente.':'No hay turno publicado.')+'</p>'
+    +'<label class="lbl" for="tdDrog">Droguería</label><select class="input" id="tdDrog">'+l.map(d=>'<option value="'+esc(d.id)+'"'+(t.comercio_id===d.id?' selected':'')+'>'+esc(d.nombre)+(d.direccion&&d.direccion!=='Fusagasugá'?' · '+esc(d.direccion):'')+'</option>').join('')+'</select>'
+    +'<div class="fila-2"><div><label class="lbl" for="tdDesde">Desde</label><input class="input" type="date" id="tdDesde" value="'+esc(t.desde||hoyISO())+'"></div>'
+    +'<div><label class="lbl" for="tdHasta">Hasta</label><input class="input" type="date" id="tdHasta" value="'+esc(t.hasta||'')+'"></div></div>'
+    +'<label class="lbl" for="tdFuente">Fuente</label><input class="input" id="tdFuente" maxlength="120" placeholder="Ej.: Secretaría de Salud de Fusagasugá" value="'+esc(t.fuente||'')+'">'
+    +'<label class="lbl" for="tdUrl">Enlace de la fuente</label><input class="input" id="tdUrl" type="url" inputmode="url" placeholder="https://…" value="'+esc(t.fuente_url||'')+'">'
+    +'<div class="dc-actions mt-16"><button class="btn btn-primario btn-sm" id="tdGuardar">Publicar turno</button>'
+    +(t.comercio_id?'<button class="btn btn-ghost btn-sm" id="tdQuitar">Quitar turno</button>':'')+'</div></div>';
+}
+function datosTurno(mun,v){
+  const l=droguerias(mun),d=l.find(x=>x.id===v.comercio_id);
+  if(!d)return 'Elige la droguería';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v.desde||'')||!/^\d{4}-\d{2}-\d{2}$/.test(v.hasta||''))return 'Pon las fechas del turno';
+  if(v.hasta<v.desde)return 'La fecha final va después de la inicial';
+  if(!(v.fuente||'').trim())return 'Escribe de dónde sale el turno';
+  if(!/^https:\/\/\S+\.\S+/.test(v.fuente_url||''))return 'Pega el enlace de la fuente (empieza por https://)';
+  return {comercio_id:d.id,nombre:d.nombre,desde:v.desde,hasta:v.hasta,fuente:v.fuente.trim().slice(0,120),fuente_url:v.fuente_url.trim()};
+}
+function enlazarTurnoAdmin(mun){
+  const g=$('#tdGuardar');if(!g)return;
+  g.onclick=()=>{
+    const r=datosTurno(mun,{comercio_id:$('#tdDrog').value,desde:$('#tdDesde').value,hasta:$('#tdHasta').value,fuente:$('#tdFuente').value,fuente_url:$('#tdUrl').value});
+    if(typeof r==='string'){toast(r);return;}
+    adminAccion(()=>db.collection('config').doc('turno_droguerias').set({[mun]:{...r,por:estado.usuario.uid,actualizado:FV.serverTimestamp()}},{merge:true}),'Turno publicado');
+  };
+  const q=$('#tdQuitar');
+  if(q)q.onclick=()=>adminAccion(()=>db.collection('config').doc('turno_droguerias').set({[mun]:FV.delete()},{merge:true}),'Turno quitado');
 }
 /* ---------- Admin · Banners del inicio (v4 · Fase 5) ----------
    banners/destacado: un solo espacio para un negocio (los Premium se turnan). banners/{id}: banners con foto. */
@@ -5960,7 +6041,7 @@ function enlazarFooter(){
 /* ===== BARRA INFERIOR (RF-04; v1.2.0) =====
    Mapa · Cupones · INICIO (botón central) · Agenda · Perfil. Mis favoritos está en Perfil. */
 // Sin buscador a la vista, la lista de favoritos se abre completa (sin la búsqueda ni los filtros que quedaran del inicio)
-function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,cupon:false};navegar({tipo:'lista',cat:'favoritos'});}
+function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,noche:false,cupon:false};navegar({tipo:'lista',cat:'favoritos'});}
 function renderBottomNav(){
   const v=vistaActual();
   pintarGloboCupones();

@@ -20,7 +20,11 @@ const horarios = cargar([
   'horaTexto',
   'TIPOS_NATURALES',
   'esNatural',
+  'tramosDe',
+  'horario24h',
   'estadoApertura',
+  'NOCHE_MIN',
+  'abreDeNoche',
 ]);
 const estado = (lugar, cuando) => {
   vi.useFakeTimers();
@@ -691,5 +695,75 @@ describe('modo rápido de contactos', () => {
       ['c', { estado: 'respondio', fecha: new Date('2026-11-18T09:00:00-05:00').getTime() }],
     ]);
     expect(enviadosDelDia(c, hoy)).toBe(1);
+  });
+});
+
+describe('abreDeNoche: filtro «De noche» según el horario real', () => {
+  const noche = l => horarios.abreDeNoche({ cat: 'comercio', ...l });
+  it.each([
+    ['Lun-Sáb 8:00-18:00', false],
+    ['Lun-Dom 6:00-21:00', false],
+    ['Lun-Dom 7:00-22:00', true],
+    ['Jue-Sáb 20:00-02:00', true],
+    ['Vie-Sáb 6-11 p. m.', true],
+    ['Abierto 24 horas', true],
+    ['', false],
+  ])('«%s» → %s', (horario, esperado) => expect(noche({ horario })).toBe(esperado));
+  it('usa el horario estructurado si existe', () => {
+    expect(noche({ dias: [5, 6], abre: '20:00', cierra: '02:00' })).toBe(true);
+    expect(noche({ dias: [1, 2], abre: '08:00', cierra: '17:00', horario: '24 horas' })).toBe(false);
+  });
+  it('senderos y cascadas nunca entran', () => {
+    expect(horarios.abreDeNoche({ cat: 'turismo', tipo: 'cascada', horario: '24 horas' })).toBe(false);
+  });
+});
+
+describe('Droguería de turno: solo con fuente oficial y dentro de las fechas', () => {
+  const { turnoVigente } = cargar(['hoyISO', 'turnoVigente']);
+  const t = {
+    fusagasuga: {
+      comercio_id: 'c422',
+      nombre: 'Cruz Verde',
+      desde: '2026-11-17',
+      hasta: '2026-11-23',
+      fuente: 'Secretaría de Salud',
+      fuente_url: 'https://ejemplo.gov.co/turnos',
+    },
+  };
+  it('vigente dentro del rango', () => {
+    expect(turnoVigente(t, 'fusagasuga', '2026-11-17').nombre).toBe('Cruz Verde');
+    expect(turnoVigente(t, 'fusagasuga', '2026-11-23')).not.toBeNull();
+  });
+  it('fuera de fechas, sin fuente o sin enlace https no se muestra', () => {
+    expect(turnoVigente(t, 'fusagasuga', '2026-11-24')).toBeNull();
+    expect(turnoVigente(t, 'pasca', '2026-11-18')).toBeNull();
+    const sinUrl = { fusagasuga: { ...t.fusagasuga, fuente_url: 'http://x.co' } };
+    expect(turnoVigente(sinUrl, 'fusagasuga', '2026-11-18')).toBeNull();
+    expect(turnoVigente({ fusagasuga: { ...t.fusagasuga, fuente: '' } }, 'fusagasuga', '2026-11-18')).toBeNull();
+    expect(turnoVigente(null, 'fusagasuga')).toBeNull();
+  });
+});
+
+describe('datosTurno: validación del formulario del admin', () => {
+  const database = [
+    { id: 'c422', cat: 'servicios', sub: 'salud', nombre: 'Cruz Verde', desc: 'Droguería.', municipio: 'Fusagasugá' },
+    { id: 'c1', cat: 'comercio', nombre: 'Panadería', municipio: 'Fusagasugá' },
+  ];
+  const { datosTurno } = cargar(['municipioDe', 'droguerias', 'datosTurno'], { database });
+  const base = {
+    comercio_id: 'c422',
+    desde: '2026-11-17',
+    hasta: '2026-11-23',
+    fuente: ' Secretaría de Salud ',
+    fuente_url: 'https://ejemplo.gov.co/turnos',
+  };
+  it('devuelve el turno limpio', () => {
+    expect(datosTurno('fusagasuga', base)).toEqual({ ...base, nombre: 'Cruz Verde', fuente: 'Secretaría de Salud' });
+  });
+  it('rechaza lo que no es droguería, fechas al revés y fuentes sin enlace', () => {
+    expect(datosTurno('fusagasuga', { ...base, comercio_id: 'c1' })).toBe('Elige la droguería');
+    expect(datosTurno('fusagasuga', { ...base, hasta: '2026-11-10' })).toMatch(/después/);
+    expect(datosTurno('fusagasuga', { ...base, fuente: '  ' })).toMatch(/de dónde/);
+    expect(datosTurno('fusagasuga', { ...base, fuente_url: 'ejemplo.gov.co' })).toMatch(/https/);
   });
 });

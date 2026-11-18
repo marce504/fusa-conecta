@@ -123,7 +123,11 @@ Notas anteriores:
   Córrelo en segundo plano. Con `MUESTRAS=3,12` antes del comando solo guarda esos fotogramas para revisarlos.
 - La carpeta `video-publicitario/` **no está en git**. No la subas.
 
-### 5.2 Parte 1: Cascadas en la sección Turismo (EN CURSO)
+### 5.2 Parte 1: Cascadas en la sección Turismo (PUBLICADA el 18-nov-2026, commit 903df59, PWA v87)
+
+- Publicado: tipo `cascada`, ficha `c589` Parque Natural San Rafael con 6 fotos en `img/turismo/san-rafael/`, arreglo de la galería. San Gabriel y de los Deseos quedaron dentro de esa ficha (sin fuente pública para fichas propias).
+
+Notas anteriores:
 
 - Hecho, sin commit: tipo `cascada` en `SUBCATS.turismo` (datos.js), ícono `droplets`, `TIPOS_NATURALES` incluye cascada (sin abierto/cerrado) y prueba unitaria (86 pasan). Foto lista: `img/comercios/cascada-san-gabriel.jpg`.
 - Falta: los datos de cada cascada. En internet solo se verifica que el Parque Natural San Rafael está en la vereda La Aguadita (Semana); «San Gabriel» y «de los Deseos» no aparecen en fuentes públicas. Marcela las visitó (fotos propias): pedirle vereda, cómo llegar, si están dentro del parque, si se paga entrada y un punto de Google Maps. Su visita queda como fuente («Visita del equipo Fusa Conecta, fecha»).
@@ -145,7 +149,7 @@ Notas anteriores:
 
 Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud Functions.
 
-1. **Abierto ahora de noche y droguerías de turno.**
+1. **(HECHO 18-nov, PWA v88, pendiente de publicar si no aparece en git log) Abierto de noche y droguerías de turno.** Filtro «De noche» (`abreDeNoche`), sección Droguerías en SOS, turno solo publicado por el admin con fuente https en `config/turno_droguerias`.
    - Agrega un filtro sobre los horarios que ya existen.
    - El turno de droguerías debe venir de una fuente oficial; si no la hay, no lo inventes.
 2. **Alertas municipales como notificación push.**
@@ -175,5 +179,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `09e6d53`, en producción como v86.
+- **Último commit publicado:** `903df59`, en producción como v87 (`fusa-v80`).
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

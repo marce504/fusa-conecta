@@ -9,6 +9,13 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Filtro «De noche» y droguerías en Emergencias.** En Filtros, «De noche» muestra los lugares que atienden
+  después de las 9 p. m. al menos un día, según su horario real (sin horario no entran). En Emergencias hay una
+  sección de **Droguerías** con su estado de abierto o cerrado y el aviso de llamar antes de ir. El turno de
+  droguerías **solo** aparece si el admin lo publica (Panel → Emergencias → Droguería de turno) con su fuente oficial
+  y enlace `https`, y solo entre las fechas que indica; se guarda en `config/turno_droguerias` (lectura pública,
+  escritura solo del admin en `firestore.rules`) y queda disponible sin conexión. No se encontró ninguna fuente
+  pública con los turnos de Fusagasugá, así que la app no muestra ninguno inventado. PWA v88 (`fusa-v81`).
 - **Cascadas en Turismo y ficha del Parque Natural San Rafael.** Nuevo tipo «Cascadas» (ícono de gotas, sin estado
   de abierto o cerrado, como los senderos). Primera ficha: el Parque Natural San Rafael, en la vereda La Aguadita, con
   datos de Semana y de Caminatas al Aire Libre (unos 10 km, 5 horas, entre 1.920 y 2.360 m), ubicación aproximada y una
@@ -18,6 +25,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   Cascada San Gabriel. PWA v87 (`fusa-v80`).
 
 ### Corregido
+- **Horarios de 24 horas que pasan la medianoche.** «20:00-02:00» se leía como de 8 p. m. a 2 p. m.; ahora se lee
+  hasta las 2 a. m. del día siguiente.
 - **Galería de fotos de la ficha.** Las fotos quedaban apiladas una sobre otra y siempre se veía la última, aunque el
   contador dijera «1/6». Ahora cada foto ocupa su lugar y se ven en orden al deslizar. Afectaba también las galerías
   que suben los negocios. Faltaba además el ícono de gotas en el paquete local de Lucide (`icons.js`).
