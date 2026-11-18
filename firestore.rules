@@ -35,6 +35,11 @@ service cloud.firestore {
     function duenoPremium(comercioId) { return duenoDe(comercioId) && premiumVigente(comercio(comercioId)); }
     function cambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasAny(campos); }
     function soloCambia(campos) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(campos); }
+    // v91: «Atiendo a domicilio» y las zonas que cubre (texto corto)
+    function domicilioValido(d) {
+      return d.get('a_domicilio', false) is bool
+        && d.get('zona_cobertura', '') is string && d.get('zona_cobertura', '').size() <= 120;
+    }
 
     /* ---------- Usuarios: identidad y consentimiento Ley 1581 ---------- */
     match /usuarios/{uid} {
@@ -99,6 +104,7 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['suscripcion_vigente_hasta', 'prueba_usada', 'fecha_aprobacion', 'motivo_rechazo'])
         && request.resource.data.nombre is string
         && request.resource.data.nombre.size() > 0
+        && domicilioValido(request.resource.data)
         // La portada en el documento es una miniatura: máx. ~56 000 caracteres (≈ 40 KB)
         && request.resource.data.get('imagen', '').size() <= 56000);
       // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
@@ -107,6 +113,7 @@ service cloud.firestore {
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
             && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
             && request.resource.data.get('fotos', []).size() <= (premiumVigente(resource.data) ? 10 : 4)
+            && domicilioValido(request.resource.data)
             && (!cambia(['imagen']) || request.resource.data.get('imagen', '').size() <= 56000)
             && (!cambia(['estado_publicacion', 'motivo_rechazo'])
                 || (resource.data.get('estado_publicacion', '') == 'rechazado'
@@ -162,7 +169,10 @@ service cloud.firestore {
         && request.resource.data.estrellas >= 1
         && request.resource.data.estrellas <= 5
         && request.resource.data.comentario is string
-        && request.resource.data.comentario.size() <= 500;
+        && request.resource.data.comentario.size() <= 500
+        // v91: nadie califica su propio negocio (los del directorio base no tienen documento ni dueño)
+        && (!exists(/databases/$(database)/documents/comercios/$(request.resource.data.comercio_id))
+            || comercio(request.resource.data.comercio_id).get('propietario_uid', '') != request.auth.uid);
       allow delete: if esAdmin()
         || (cuentaReal() && resource.data.usuario_uid == request.auth.uid);
     }

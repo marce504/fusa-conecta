@@ -766,3 +766,62 @@ test('transporte: el admin publica un horario con su fuente y se ve en «Cómo m
   await expect(ruta).toContainText('Página de prueba');
   await page.screenshot({ path: info.outputPath('transporte.png') });
 });
+
+// v91: servicios a domicilio. El dueño lo marca en su ficha; nadie califica su propio negocio
+test('a domicilio: la dueña lo marca, aparece en el filtro y no puede calificarse a sí misma', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.rosa);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(id => window.buscar(id), NEGOCIO.id);
+  await page.evaluate(id => window.abrirFormComercio(window.buscar(id), { paso: 2 }), NEGOCIO.id);
+  await page.locator('#wDomi').check();
+  await expect(page.locator('#wZona')).toBeVisible();
+  await page.locator('#wZona').fill('Todo Fusagasugá y Chinauta');
+  await page.screenshot({ path: info.outputPath('domicilio-registro.png') });
+  for (let paso = 2; paso < 5; paso++) await page.locator('#wSig').click();
+  await page.locator('#wEnviar').click();
+  await expect(page.locator('#toast')).toBeVisible();
+  const guardado = await page.evaluate(async id => {
+    const s = await window.firebase.firestore().collection('comercios').doc(id).get();
+    return { a: s.data().a_domicilio, z: s.data().zona_cobertura };
+  }, NEGOCIO.id);
+  expect(guardado).toEqual({ a: true, z: 'Todo Fusagasugá y Chinauta' });
+  // Regla: Rosa no puede calificar su propio negocio; Ana sí
+  const propia = await page.evaluate(async id => {
+    const uid = window.firebase.auth().currentUser.uid;
+    return window.firebase
+      .firestore()
+      .collection('calificaciones')
+      .doc(id + '_' + uid)
+      .set({ comercio_id: id, usuario_uid: uid, estrellas: 5, comentario: 'El mejor' })
+      .then(() => 'ok')
+      .catch(e => e.code);
+  }, NEGOCIO.id);
+  expect(propia).toBe('permission-denied');
+  await entrarComo(page, CUENTAS.ana);
+  const ana = await page.evaluate(async id => {
+    const uid = window.firebase.auth().currentUser.uid;
+    return window.firebase
+      .firestore()
+      .collection('calificaciones')
+      .doc(id + '_' + uid)
+      .set({ comercio_id: id, usuario_uid: uid, estrellas: 4, comentario: 'Muy amables' })
+      .then(() => 'ok')
+      .catch(e => e.code);
+  }, NEGOCIO.id);
+  expect(ana).toBe('ok');
+  // El filtro «A domicilio» lo muestra y la ficha dice las zonas
+  await page.waitForFunction(id => window.aDomicilio(window.buscar(id)), NEGOCIO.id);
+  const enFiltro = await page.evaluate(
+    id => window.itemsVisibles('todas', '', true, { ...estado.filtros, domicilio: true }).some(d => d.id === id),
+    NEGOCIO.id,
+  );
+  expect(enFiltro).toBe(true);
+  await page.evaluate(id => window.abrirDetalle(id), NEGOCIO.id);
+  await expect(page.locator('#sheetDetalle')).toContainText('Todo Fusagasugá y Chinauta');
+  await page.screenshot({ path: info.outputPath('domicilio-ficha.png') });
+});

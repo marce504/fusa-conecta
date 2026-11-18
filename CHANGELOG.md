@@ -9,6 +9,12 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Oficios y servicios a domicilio.** Al registrar o editar el negocio, los servicios marcan «Atiendo a domicilio» y
+  los comercios y productos del campo «Hago domicilios», con las zonas que cubren (texto corto). Quien no tiene local
+  puede dejar la dirección vacía y atender por WhatsApp o teléfono, que pasa a ser obligatorio en ese caso. Nuevo
+  filtro **«A domicilio»**, el distintivo en la ficha y el asistente entiende «que vengan a la casa». Los lugares del
+  directorio que ya dicen «domicilios» en su ficha real entran solos. Las calificaciones siguen siendo una por
+  persona y por negocio, y ahora **nadie puede calificar su propio negocio** (`firestore.rules`). PWA v91 (`fusa-v84`).
 - **Cómo moverse: Terminal, paraderos y horarios de buses.** Pantalla nueva (desde Servicios → Transporte o con
   `#/transporte`) con la Terminal de Transporte y el paradero del colectivo a Chinauta. No hay una fuente oficial
   pública con los horarios de la Terminal de Fusagasugá (las páginas de pasajes no coinciden entre ellas), así que

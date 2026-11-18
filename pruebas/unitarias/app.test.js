@@ -870,3 +870,15 @@ describe('Horarios de transporte: solo con fuente y fecha de verificación', () 
     );
   });
 });
+
+describe('aDomicilio: lo marca el dueño o lo dice la ficha real', () => {
+  const { aDomicilio } = cargar(['aDomicilio']);
+  it.each([
+    [{ a_domicilio: true }, true],
+    [{ desc: 'Licorera con servicio a domicilio las 24 horas.' }, true],
+    [{ horario: 'Todos los días, domicilios hasta las 4:00 a. m.' }, true],
+    [{ desc: 'Plomería y electricidad.' }, false],
+    [{ a_domicilio: 'sí' }, false],
+    [null, false],
+  ])('%o → %s', (d, esperado) => expect(aDomicilio(d)).toBe(esperado));
+});

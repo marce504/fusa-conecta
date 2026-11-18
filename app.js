@@ -128,7 +128,7 @@ const estado={
   pos:null,           // [lat,lng] del usuario si dio permiso
   online:navigator.onLine,
   sosMunicipio:'fusagasuga',
-  filtros:{abierto:false,noche:false,cupon:false,municipio:municipioGuardado(),orden:'recomendados'}  // hoja de Filtros del listado
+  filtros:{abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioGuardado(),orden:'recomendados'}  // hoja de Filtros del listado
 };
 function logueado(){return !!(estado.usuario&&!estado.usuario.anonimo);}
 /* ===== MUNICIPIO (v1.3.0): Fusa Conecta es de Fusagasugá y Pasca =====
@@ -181,7 +181,7 @@ function normalizarNube(id,x){
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
     tipo:x.tipo||'',sub,nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
-    fotos:Array.isArray(x.fotos)?x.fotos:[],foto_credito:x.foto_credito||null,creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
+    fotos:Array.isArray(x.fotos)?x.fotos:[],foto_credito:x.foto_credito||null,a_domicilio:x.a_domicilio===true,zona_cobertura:x.zona_cobertura||'',creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
 }
 estado.ocultos=new Set(ls.get('fc_ocultos',[]));
 function reconstruirDirectorio(){
@@ -774,8 +774,9 @@ function herramientasAsis(S){
         categoria:S.enumString({enum:cats,description:'comercio = comida y tiendas; servicios = oficios, belleza, salud, mascotas, mecánica; campo = productos campesinos; turismo = senderos, miradores, fincas; tramite = entidades públicas'}),
         abiertoAhora:S.boolean({description:'true si la persona quiere lugares abiertos en este momento'}),
         cercaDeMi:S.boolean({description:'true solo si pide algo cerca de su ubicación'}),
+        aDomicilio:S.boolean({description:'true si pide que vayan a su casa o que le lleven el pedido (domicilio, a domicilio)'}),
         municipio:S.enumString({enum:['Fusagasugá','Pasca']})},
-        optionalProperties:['texto','categoria','abiertoAhora','cercaDeMi','municipio']})},
+        optionalProperties:['texto','categoria','abiertoAhora','cercaDeMi','aDomicilio','municipio']})},
     {name:'eventosEntre',description:'Eventos publicados en la agenda de Fusa Conecta entre dos fechas, ambas incluidas.',
       parameters:S.object({properties:{
         desde:S.string({description:'Fecha inicial AAAA-MM-DD'}),hasta:S.string({description:'Fecha final AAAA-MM-DD'}),
@@ -815,6 +816,7 @@ const FUNCIONES_ASIS={
     if(mun)l=l.filter(d=>enMunicipio(d,mun));
     l=filtrarTexto(l,a.texto);
     if(a.abiertoAhora)l=l.filter(d=>{const x=estadoApertura(d);return x&&x.abierto;});
+    if(a.aDomicilio)l=l.filter(aDomicilio);
     if(a.cercaDeMi){
       const p=estado.pos||await pedirUbicacion();
       if(p)l=ordenar(l.filter(d=>distanciaA(d)!=null),'cercanos');
@@ -1682,6 +1684,9 @@ function parsearRangos(t){
   }
   return out;
 }
+/* v91 · A domicilio: lo marca el dueño en su ficha (a_domicilio) o lo dice el texto real del lugar en el directorio
+   («domicilios», «servicio a domicilio»). Sin eso no se supone. */
+function aDomicilio(d){return !!d&&(d.a_domicilio===true||/\bdomicili/i.test((d.desc||'')+' '+(d.horario||'')));}
 // Licoreras y bares que atienden las 24 horas
 function es24h(d){return d.cat==='bares'&&/24\s*h|24 horas/i.test(d.horario||'');}
 function horaTexto(min){
@@ -1929,6 +1934,7 @@ function filtrosActivos(f=estado.filtros){
   const l=[];
   if(f.abierto)l.push(['abierto','Abierto ahora']);
   if(f.noche)l.push(['noche','De noche']);
+  if(f.domicilio)l.push(['domicilio','A domicilio']);
   if(f.cupon)l.push(['cupon','Con cupón']);
   if(f.orden&&f.orden!=='recomendados')l.push(['orden',ORDENES.find(o=>o[0]===f.orden)[1]]);
   return l;
@@ -1946,7 +1952,7 @@ function abrirFiltros(){
   const contar=()=>itemsVisibles(v.cat,v.sub,true,borrador).length;
   const pintar=()=>{
     abrirHoja('<div class="hoja-filtros"><h2 class="hoja-tit">Filtros</h2>'
-      +[['abierto','clock','Abierto ahora'],['noche','moon','De noche',' (después de las 9 p. m.)'],['cupon','ticket','Con cupón']].map(([k,i,t,ayuda])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+(ayuda?'<small class="fil-ayuda">'+ayuda+'</small>':'')+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
+      +[['abierto','clock','Abierto ahora'],['noche','moon','De noche',' (después de las 9 p. m.)'],['domicilio','bike','A domicilio'],['cupon','ticket','Con cupón']].map(([k,i,t,ayuda])=>'<label class="fil-fila"><span class="fil-tx">'+icon(i)+t+(ayuda?'<small class="fil-ayuda">'+ayuda+'</small>':'')+'</span><input type="checkbox" role="switch" class="interruptor" data-fil="'+k+'"'+(borrador[k]?' checked':'')+'></label>').join('')
       +'<span class="fil-lbl" id="lMun">Municipio</span><div class="seg" role="radiogroup" aria-labelledby="lMun">'+MUNICIPIOS.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.municipio===k)+'" class="'+(borrador.municipio===k?'on':'')+'" data-mun="'+k+'">'+t+'</button>').join('')+'</div>'
       +'<span class="fil-lbl" id="lOrden">Ordenar por</span><div class="seg" role="radiogroup" aria-labelledby="lOrden">'+ORDENES.map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(borrador.orden===k)+'" class="'+(borrador.orden===k?'on':'')+'" data-orden="'+k+'">'+t+'</button>').join('')+'</div>'
       +'</div><div class="fil-pie"><button class="btn btn-ghost" id="filLimpiar">Limpiar</button><button class="btn btn-primario" id="filVer"></button></div>');
@@ -1955,7 +1961,7 @@ function abrirFiltros(){
     $$('[data-fil]').forEach(x=>(x.onchange=()=>{borrador[x.dataset.fil]=x.checked;const cuantos=contar();$('#filVer').textContent='Ver '+cuantos+(cuantos===1?' lugar':' lugares');}));
     $$('[data-mun]').forEach(b=>(b.onclick=()=>{borrador.municipio=b.dataset.mun;pintar();}));
     $$('[data-orden]').forEach(b=>(b.onclick=()=>{borrador.orden=b.dataset.orden;pintar();}));
-    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,noche:false,cupon:false,orden:'recomendados'});pintar();};
+    $('#filLimpiar').onclick=()=>{Object.assign(borrador,{abierto:false,noche:false,domicilio:false,cupon:false,orden:'recomendados'});pintar();};
     $('#filVer').onclick=async()=>{
       if(borrador.orden==='cercanos'&&!estado.pos){
         const p=await pedirUbicacion();
@@ -2007,6 +2013,7 @@ function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
   if(conFiltros){
     if(f.abierto)items=items.filter(d=>{const a=estadoApertura(d);return a&&a.abierto;});
     if(f.noche)items=items.filter(abreDeNoche);
+    if(f.domicilio)items=items.filter(aDomicilio);
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
   }
   return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
@@ -2145,7 +2152,7 @@ function renderLista(v){
   }
   $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>(b.onclick=()=>{
-    estado.q='';estado.filtros={abierto:false,noche:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
+    estado.q='';estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
@@ -2597,6 +2604,7 @@ function abrirDetalle(id){
   if(d.nivelDificultad)chips.push(['footprints','Dificultad '+d.nivelDificultad.toLowerCase()]);
   if(ruta){chips.push(['route',String(ruta.distanciaTotal).replace('.',',')+' km']);chips.push(['clock',ruta.duracionEstimada]);}
   if(es24h(d))chips.push(['clock','Abierto 24 horas']);
+  if(aDomicilio(d))chips.push(['bike',d.cat==='servicios'?'Atiende a domicilio':'Hace domicilios']);
   chips.push(['map-pin',d.municipio||'Fusagasugá']);
   const chipsHTML='<div class="chips-car">'+chips.map(([i,t])=>'<span class="chip-car">'+icon(i,16)+esc(t)+'</span>').join('')+'</div>';
   const destinoMapa=destinoDe(d);
@@ -2627,6 +2635,7 @@ function abrirDetalle(id){
     +(d.propuesta_por?'<p class="ruta-credito">'+icon('user',16)+'Ruta propuesta por '+esc(d.propuesta_por)+'</p>':'')
     +'<div class="datos">'
     +filaDato('map-pin','Dirección',esc(d.direccion)+(km!=null?' · a '+fmtDist(km)+' de ti':''))
+    +(aDomicilio(d)&&d.zona_cobertura?filaDato('bike','Zonas que cubre',esc(d.zona_cobertura)):'')
     +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
     +(d.horario_nota?filaDato('clock','Horario',esc(d.horario_nota))
       :d.fuentes&&!d.horario?'':filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d))))
@@ -4584,6 +4593,7 @@ function verPlanesDesdeRegistro(){
 let wiz=null,wizMapa=null;
 const CATS_FORM=[['comercio','Comida y tiendas'],['servicios','Servicios'],['campo','Vitrina del campo'],['turismo','Turismo y rutas'],['hospedaje','Hospedaje'],['bares','Bares y licores'],['tramite','Trámites']];
 const PASOS_WIZ=['Qué es','Dónde','Cuándo','Fotos y descripción'];
+const DOMICILIO_CATS=['servicios','comercio','campo'];
 function abrirFormComercio(d,opc={}){
   if(!logueado()){guardarAccionPendiente('negocio');pedirLogin('Inicia sesión para registrar tu negocio.');return;}
   const enNube=d&&(comerciosNube.some(c=>c.id===d.id)||comerciosPropios.some(c=>c.id===d.id));
@@ -4592,7 +4602,7 @@ function abrirFormComercio(d,opc={}){
       lat:d&&d.lat?d.lat:null,lng:d&&d.lng?d.lng:null,ubicacionExacta:!!(d&&d.lat&&!d.ubicacion_aprox),
       dias:d&&d.dias&&d.dias.length?d.dias.slice():[1,2,3,4,5,6],abre:d&&d.abre?d.abre:'08:00',cierra:d&&d.cierra?d.cierra:'18:00',
       desc:d?d.desc:'',imagen:d?d.imagen:'',redes:{...(d&&d.redesSociales||{})},web:d?d.sitioWeb||'':'',
-      municipio:d?municipioDe(d):(municipioRegistro||'')}};
+      municipio:d?municipioDe(d):(municipioRegistro||''),aDomicilio:!!(d&&d.a_domicilio===true),zona:d?d.zona_cobertura||'':''}};
   municipioRegistro='';
   wiz.datos.fotos=fotosIniciales(d);
   pintarWizard();abrir('ovForm');
@@ -4613,6 +4623,9 @@ function pintarWizard(){
         +subs.map(s=>'<button type="button" class="tile'+(d.sub===s.k?' on':'')+'" data-wsub="'+s.k+'" role="radio" aria-checked="'+(d.sub===s.k)+'"><span class="tile-ic">'+icon(ICONO_SUB[s.k]||'circle-help',20)+'</span>'+nombreSub(d.cat,s.k)+'</button>').join('')+'</div>':'');
   }else if(p===2){
     cuerpo='<div class="campo"><label for="wDir">Dirección</label><input id="wDir" maxlength="120" placeholder="Ej: Cra 7 # 6-32, Centro" value="'+esc(d.direccion)+'"></div>'
+      +(DOMICILIO_CATS.includes(d.cat)?'<label class="fil-fila"><span class="fil-tx">'+icon('bike')+(d.cat==='servicios'?'Atiendo a domicilio':'Hago domicilios')+'</span><input type="checkbox" role="switch" class="interruptor" id="wDomi"'+(d.aDomicilio?' checked':'')+'></label>'
+        +'<div class="campo" id="wZonaCampo"'+(d.aDomicilio?'':' hidden')+'><label for="wZona">Zonas que cubres (opcional)</label><input id="wZona" maxlength="120" placeholder="Ej: todo Fusagasugá, Chinauta y Pasca" value="'+esc(d.zona)+'">'
+        +(d.cat==='servicios'?'<p class="ayuda">Si no tienes local, deja la dirección vacía: tus clientes te ubican por WhatsApp o teléfono.</p>':'')+'</div>':'')
       +'<div class="campo"><label for="wTel">WhatsApp o teléfono</label><input id="wTel" type="tel" maxlength="13" placeholder="Ej: 3001234567" value="'+esc(d.tel)+'"><p class="ayuda">Si es celular, los clientes podrán escribirte por WhatsApp.</p></div>'
       +'<p class="lbl">Ubicación en el mapa</p><button type="button" class="btn btn-secundario btn-sm" id="wUbicar">'+icon('locate-fixed')+'Usar mi ubicación</button>'
       +(estado.online?'<div id="wMapa" class="wiz-mapa" role="region" aria-label="Mapa para ubicar tu negocio"></div><p class="ayuda" id="wUbicTxt">'+(d.ubicacionExacta?'Ubicación guardada. Arrastra el pin para ajustarla.':'Toca el mapa o arrastra el pin hasta la puerta de tu negocio.')+'</p>'
@@ -4655,6 +4668,7 @@ function pintarWizard(){
     $$('#sheetForm [data-wmun]').forEach(b=>(b.onclick=()=>{guardarPasoWiz();d.municipio=b.dataset.wmun;pintarWizard();}));
   }
   if(p===2){
+    const dm=$('#wDomi');if(dm)dm.onchange=()=>{d.aDomicilio=dm.checked;$('#wZonaCampo').hidden=!dm.checked;};
     $('#wUbicar').onclick=async()=>{
       $('#wUbicTxt').textContent='Obteniendo tu ubicación…';
       const pos=await pedirUbicacion();
@@ -4687,6 +4701,8 @@ function guardarPasoWiz(){
   if($('#wNombre'))d.nombre=v('wNombre');
   if($('#wDir'))d.direccion=v('wDir');
   if($('#wTel'))d.tel=telLimpio(v('wTel'));
+  if($('#wDomi'))d.aDomicilio=$('#wDomi').checked;
+  if($('#wZona'))d.zona=v('wZona');
   if($('#wAbre'))d.abre=v('wAbre');
   if($('#wCierra'))d.cierra=v('wCierra');
   if($('#wDesc'))d.desc=v('wDesc');
@@ -4702,6 +4718,7 @@ function validarPasoWiz(){
     if(SUBCATS[d.cat]&&!d.sub)return 'Elige el tipo de negocio';
   }
   if(wiz.paso===2&&d.tel&&!/^\d{7,10}$/.test(d.tel))return 'Revisa el número de teléfono';
+  if(wiz.paso===2&&d.aDomicilio&&DOMICILIO_CATS.includes(d.cat)&&!d.tel)return 'Para atender a domicilio, deja un WhatsApp o teléfono';
   if(wiz.paso===3){if(!d.dias.length)return 'Elige al menos un día de atención';if(!d.abre||!d.cierra)return 'Indica la hora de apertura y de cierre';}
   if(wiz.paso===4&&wizPremium()){
     for(const k of ['instagram','facebook','tiktok','youtube','x'])if(d.redes[k]&&!urlValida(d.redes[k]))return 'El enlace de '+RED_TXT[k]+' debe comenzar con https://';
@@ -4723,6 +4740,7 @@ async function publicarComercio(){
       direccion:d.direccion||mun,tel,whatsapp:esCelular(tel)?tel:'',dias:d.dias,abre:d.abre,cierra:d.cierra,
       horario:textoHorarioWiz(),municipio:mun,fecha_modificacion:FV.serverTimestamp()};
     if(cat==='turismo'){datos.tipo=sub;datos.sub='';}else datos.sub=SUBCATS[cat]?sub:'';
+    const domi=DOMICILIO_CATS.includes(cat)&&d.aDomicilio;datos.a_domicilio=!!domi;datos.zona_cobertura=domi?(d.zona||'').slice(0,120):'';
     if(d.lat&&d.lng){datos.lat=d.lat;datos.lng=d.lng;datos.ubicacion_aprox=!d.ubicacionExacta;}
     if(wizPremium()){datos.redesSociales=Object.fromEntries(Object.entries(d.redes).filter(([k,u])=>u));datos.sitioWeb=d.web;}
     // El negocio y sus fotos se guardan juntos (las reglas revisan el límite de fotos en el mismo lote)
@@ -6244,7 +6262,7 @@ function enlazarFooter(){
 /* ===== BARRA INFERIOR (RF-04; v1.2.0) =====
    Mapa · Cupones · INICIO (botón central) · Agenda · Perfil. Mis favoritos está en Perfil. */
 // Sin buscador a la vista, la lista de favoritos se abre completa (sin la búsqueda ni los filtros que quedaran del inicio)
-function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,noche:false,cupon:false};navegar({tipo:'lista',cat:'favoritos'});}
+function irAFavoritos(){if(!logueado()){pedirLogin('Inicia sesión para ver tus favoritos.');return;}estado.q='';$('#busqueda').value='';estado.filtros={...estado.filtros,abierto:false,noche:false,domicilio:false,cupon:false};navegar({tipo:'lista',cat:'favoritos'});}
 function renderBottomNav(){
   const v=vistaActual();
   pintarGloboCupones();
