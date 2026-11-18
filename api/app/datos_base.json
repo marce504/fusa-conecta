@@ -80,6 +80,10 @@
     "t": "Miradores"
    },
    {
+    "k": "cascada",
+    "t": "Cascadas"
+   },
+   {
     "k": "cultural",
     "t": "Cultura"
    },
@@ -193,6 +197,56 @@
     }
    ],
    "verificado": "2026-11-04"
+  },
+  {
+   "id": "c589",
+   "cat": "turismo",
+   "rating": 0,
+   "nombre": "Parque Natural San Rafael",
+   "desc": "Reserva de bosque en la vereda La Aguadita, con senderos y cascadas; una de ellas tiene pozo para bañarse. El recorrido de caminata es de unos 10 km (5 horas), entre 1.920 y 2.360 m de altura. Lleva abrigo: la temperatura va de 10 a 22 °C. Consulta horario y entrada antes de ir.",
+   "horario": "Consultar antes de ir",
+   "direccion": "Vereda La Aguadita, Fusagasugá",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "img/turismo/san-rafael/1-cascada-san-gabriel.jpg",
+   "fotos": [
+    "img/turismo/san-rafael/1-cascada-san-gabriel.jpg",
+    "img/turismo/san-rafael/2-cascada-de-los-deseos.jpg",
+    "img/turismo/san-rafael/3-cascada-del-sendero.jpg",
+    "img/turismo/san-rafael/4-letrero-la-aguadita.jpg",
+    "img/turismo/san-rafael/5-puente.jpg",
+    "img/turismo/san-rafael/6-tronco-tallado.jpg"
+   ],
+   "lat": 4.38834,
+   "lng": -74.32489,
+   "ubicacion_aprox": true,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "tipo": "cascada",
+   "nivelDificultad": "Media",
+   "fuentes": [
+    {
+     "nombre": "Semana: parque San Rafael, vereda La Agüadita",
+     "url": "https://www.semana.com/turismo/articulo/a-dos-horas-de-bogota-asi-es-uno-de-los-municipios-mas-poblados-de-cundinamarca-un-destino-con-historia-y-tradicion/202623/"
+    },
+    {
+     "nombre": "Caminatas al Aire Libre: recorrido al Parque San Rafael (10 km, 1.920–2.360 m)",
+     "url": "https://caminatasalairelibre.com/destinos/parque-san-rafael/"
+    },
+    {
+     "nombre": "Fotos de la visita del equipo Fusa Conecta"
+    }
+   ],
+   "verificado": "2026-11-18",
+   "foto_credito": {
+    "autor": "Equipo Fusa Conecta",
+    "fuente": "fotos propias"
+   }
   },
   {
    "id": "c24",

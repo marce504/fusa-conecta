@@ -10,7 +10,7 @@ dure su frase de voz (`herramientas/difusion/video-guion.json`).
 
 ## Escenas y locución
 
-Para la voz final: en ElevenLabs, con la voz de siempre (Lina - Sunny, Kind and Friendly), genera **un MP3 por frase**
+Para la voz final: en ElevenLabs, con la voz «Daniela - Warm, Professional, Persuasive» (español latino neutro, voice_id NUEuVCKSYxEA5YrK3kmx), genera **un MP3 por frase**
 y nómbralo como dice la primera columna. Me pasas la carpeta y armo el video con esa voz: cada escena se ajusta sola a
 lo que dure su frase.
 
@@ -22,7 +22,7 @@ lo que dure su frase.
 | `03-busca.mp3` | Búsqueda | Escribe lo que necesitas y encuéntralo en segundos. |
 | `04-contacta.mp3` | Ficha | Mira si está abierto, llama, escribe por WhatsApp o llega con el mapa. |
 | `05-ia.mp3` | Pregúntale a Fusa | ¿No sabes qué buscar? Pregúntale a Fusa: la inteligencia artificial te recomienda lo que está abierto y cerca. |
-| `06-turismo.mp3` | Turismo (fotos) | Descubre lugares que no sabías que estaban aquí: senderos, miradores, patrimonio y el páramo de Sumapaz. |
+| `06-turismo.mp3` | Turismo (fotos) | Descubre lugares que no sabías que estaban aquí: cascadas, senderos, miradores y el páramo de Sumapaz. |
 | `07-agenda.mp3` | Agenda | Entérate de los planes y eventos de la semana. |
 | `08-radio.mp3` | Emisora | Y escucha en vivo la emisora Vive Fusagasugá, ochenta y ocho punto uno. |
 | `09-sos.mp3` | Emergencias | En una emergencia, los números están ahí, incluso sin señal. |
@@ -38,7 +38,7 @@ en palabras para que los lea bien.
 - Voz, subtítulos y logo animado (las cuatro hojas crecen una por una).
 - Una escena dedicada a que **todo el que vende algo** cabe en la app: categorías de colores y nombres reales de
   negocios del directorio que pasan en filas.
-- **Turismo** con fotos de la región con licencia libre (Iglesia de Belén, cerro Quininí, páramo de Sumapaz, Quinta de
+- **Turismo** con fotos de la región con licencia libre (Cascada San Gabriel con foto propia del equipo, cerro Quininí, páramo de Sumapaz, Quinta de
   Coburgo), cada una con su crédito.
 - La **emisora** Vive Fusagasugá 88.1 FM sonando en la app.
 - **Quiénes somos:** estudiantes del SENA de Análisis y Desarrollo de Software, con el sentido social del proyecto.

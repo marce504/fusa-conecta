@@ -1,6 +1,9 @@
 // Pruebas unitarias del código real de la PWA (app.js y datos.js), cargado con cargar-app.js.
 // La zona horaria es America/Bogota (vitest.config.js): la app calcula los horarios con la hora local del teléfono.
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
 import { cargar } from './cargar-app.js';
 
 const enColombia = texto => vi.setSystemTime(new Date(`${texto}:00-05:00`));
@@ -61,6 +64,11 @@ describe('estadoApertura: abierto, cierra pronto, cerrado y próxima apertura', 
     expect(estado({ cat: 'turismo', tipo: 'sendero', horario: 'Recom. 5–4 p.m.' }, '2026-10-28T10:00')).toBeNull();
     expect(estado({ cat: 'turismo', nombre: 'Cerro Fusacatán', horario: '6-17' }, '2026-10-28T10:00')).toBeNull();
     expect(estado({ horario: 'Consultar directamente' }, '2026-10-28T10:00')).toBeNull();
+  });
+
+  it('las cascadas son lugares naturales: sin abierto ni cerrado', () => {
+    expect(estado({ cat: 'turismo', tipo: 'cascada', horario: '6-17' }, '2026-10-28T10:00')).toBeNull();
+    expect(estado({ cat: 'turismo', nombre: 'Cascada del Cacique', horario: '6-17' }, '2026-10-28T10:00')).toBeNull();
   });
 });
 
@@ -410,6 +418,45 @@ describe('creditoFotoHTML: autor y licencia de la foto', () => {
   it('no muestra nada sin foto o sin crédito', () => {
     expect(creditoFotoHTML({ imagen: '', foto_credito: credito })).toBe('');
     expect(creditoFotoHTML({ imagen: 'img/comercios/x.jpg' })).toBe('');
+  });
+  it('foto propia del equipo: autor y fuente, sin licencia vacía', () => {
+    const html = creditoFotoHTML({
+      imagen: 'img/turismo/x.jpg',
+      foto_credito: { autor: 'Equipo Fusa Conecta', fuente: 'fotos propias' },
+    });
+    expect(html).toContain('Equipo Fusa Conecta · fotos propias');
+    expect(html).not.toContain('·  ');
+  });
+});
+
+describe('cargarFotosDe: fotos propias del directorio base', () => {
+  it('las rutas img/… se usan tal cual, sin consultar Firestore', async () => {
+    const db = {
+      collection: () => {
+        throw new Error('no debe ir a Firestore');
+      },
+    };
+    const { cargarFotosDe } = cargar(['cargarFotosDe'], { db });
+    const m = await cargarFotosDe('c589', ['img/turismo/san-rafael/1-a.jpg', 'img/turismo/san-rafael/2-b.jpg']);
+    expect(m['img/turismo/san-rafael/2-b.jpg']).toBe('img/turismo/san-rafael/2-b.jpg');
+  });
+});
+
+const RAIZ = path.resolve(import.meta.dirname, '../..');
+describe('Parque Natural San Rafael en el directorio base', () => {
+  it('es una cascada con fuentes, ubicación aproximada y fotos propias', () => {
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(
+      fs.readFileSync(path.join(RAIZ, 'datos.js'), 'utf8') + ';this.B=COMERCIOS_BASE;this.S=SUBCATS',
+      ctx,
+    );
+    const p = ctx.B.find(d => d.id === 'c589');
+    expect(p.tipo).toBe('cascada');
+    expect(p.ubicacion_aprox).toBe(true);
+    expect(p.fuentes.filter(f => /^https:\/\//.test(f.url || '')).length).toBeGreaterThanOrEqual(2);
+    expect(p.fotos.every(f => fs.existsSync(path.join(RAIZ, f)))).toBe(true);
+    expect(ctx.S.turismo.some(s => s.k === 'cascada')).toBe(true);
   });
 });
 

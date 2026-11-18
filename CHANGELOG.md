@@ -9,6 +9,18 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Cascadas en Turismo y ficha del Parque Natural San Rafael.** Nuevo tipo «Cascadas» (ícono de gotas, sin estado
+  de abierto o cerrado, como los senderos). Primera ficha: el Parque Natural San Rafael, en la vereda La Aguadita, con
+  datos de Semana y de Caminatas al Aire Libre (unos 10 km, 5 horas, entre 1.920 y 2.360 m), ubicación aproximada y una
+  galería con 6 fotos propias del equipo (cascadas San Gabriel y de los Deseos, entre otras). Las fichas del directorio
+  base pueden traer su galería en `img/` sin pasar por Firestore, y las fuentes sin enlace se muestran como texto.
+  El video promocional ya tiene la voz final (Daniela, español latino neutro, ElevenLabs) y abre turismo con la
+  Cascada San Gabriel. PWA v87 (`fusa-v80`).
+
+### Corregido
+- **Galería de fotos de la ficha.** Las fotos quedaban apiladas una sobre otra y siempre se veía la última, aunque el
+  contador dijera «1/6». Ahora cada foto ocupa su lugar y se ven en orden al deslizar. Afectaba también las galerías
+  que suben los negocios. Faltaba además el ícono de gotas en el paquete local de Lucide (`icons.js`).
 - **Quiénes somos en los mensajes.** El mensaje de «Contactar» (`mensajeContacto`), los mensajes de WhatsApp y el flyer
   dicen que Fusa Conecta es el proyecto de estudiantes del SENA de Análisis y Desarrollo de Software, con sentido
   social: que todo el que venda algo en Fusagasugá y Pasca sea visible y que vecinos y turistas encuentren fácil dónde

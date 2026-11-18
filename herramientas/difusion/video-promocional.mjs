@@ -61,19 +61,22 @@ const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(readFileSync(join(APP, 'datos.js'), 'utf8') + ';this.B=COMERCIOS_BASE', ctx);
 const BASE = ctx.B;
+// La cascada es foto propia del equipo; las demás salen del directorio con su licencia de Commons.
 const FOTOS = [
-  'Iglesia de Belén',
-  'Sendero Cara del Indio',
-  'Páramo de Sumapaz (desde Pasca)',
-  'Biblioteca Pública Quinta de Coburgo',
-].map(n => {
-  const x = BASE.find(b => b.nombre === n);
-  return {
-    nombre: n.replace(' (desde Pasca)', '').replace('Sendero Cara del Indio', 'Cerro Quininí y Cara del Indio'),
-    src: b64(join(APP, x.imagen), 'image/jpeg'),
-    cred: x.foto_credito,
-  };
-});
+  {
+    nombre: 'Cascada San Gabriel',
+    src: b64(join(APP, 'img/turismo/san-rafael/1-cascada-san-gabriel.jpg'), 'image/jpeg'),
+    cred: 'Foto: equipo Fusa Conecta',
+  },
+  ...['Sendero Cara del Indio', 'Páramo de Sumapaz (desde Pasca)', 'Biblioteca Pública Quinta de Coburgo'].map(n => {
+    const x = BASE.find(b => b.nombre === n);
+    return {
+      nombre: n.replace(' (desde Pasca)', '').replace('Sendero Cara del Indio', 'Cerro Quininí y Cara del Indio'),
+      src: b64(join(APP, x.imagen), 'image/jpeg'),
+      cred: `Foto: ${x.foto_credito.autor} · ${x.foto_credito.licencia} · Wikimedia Commons`,
+    };
+  }),
+];
 const COL = {
   comercio: '#C2410C',
   servicios: '#4338CA',
@@ -259,7 +262,7 @@ ${Object.entries(CEL)
   .join('')}
 <section class="esc oscuro" id="turismo">
   <div class="cab"><span class="et">Turismo</span><h2 style="color:#fff">Lo que no sabías <em style="color:#5EEAD4">que estaba aquí</em></h2></div>
-  ${FOTOS.map((x, k) => `<div class="foto" data-k="${k}"><img src="${x.src}"><div class="tag">${x.nombre}</div><div class="cred">Foto: ${x.cred.autor} · ${x.cred.licencia} · Wikimedia Commons</div></div>`).join('')}
+  ${FOTOS.map((x, k) => `<div class="foto" data-k="${k}"><img src="${x.src}"><div class="tag">${x.nombre}</div><div class="cred">${x.cred}</div></div>`).join('')}
 </section>
 <section class="esc oscuro centro sena" id="sena">${iso(150, 'iso-s')}
   <h2 style="margin-top:44px">Hecho en Fusa por <em>estudiantes del SENA</em></h2>

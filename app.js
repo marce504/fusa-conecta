@@ -1646,7 +1646,7 @@ function horarioTexto(d){
 const ICONO_CAT={todas:'layout-grid',comercio:'store',servicios:'hand-helping',campo:'sprout',turismo:'mountain',hospedaje:'bed-double',bares:'wine',tramite:'landmark',favoritos:'heart'};
 const ICONO_SUB={comidas:'utensils',ferreterias:'hammer',mascotas:'paw-print',panaderias:'croissant',salud:'stethoscope',tiendas:'shopping-bag',
   hogar:'wrench',belleza:'scissors',lavanderia:'washing-machine',mecanica:'car',tecnologia:'smartphone',transporte:'truck',profesionales:'briefcase',educacion:'graduation-cap',
-  sendero:'footprints',mirador:'binoculars',cultural:'church',finca:'tractor'};
+  sendero:'footprints',mirador:'binoculars',cascada:'droplets',cultural:'church',finca:'tractor'};
 const NOMBRE_CAT_CORTO={comercio:'Comida y tiendas',servicios:'Servicios',campo:'Campo',turismo:'Turismo',hospedaje:'Hospedaje',bares:'Bares y licores',tramite:'Trámites'};
 function iconoDe(d){return ICONO_SUB[subDe(d)]||ICONO_CAT[d.cat]||'map-pin';}
 function etiquetaDe(d){return nombreSub(d.cat,subDe(d))||NOMBRE_CAT_CORTO[d.cat]||'Lugar';}
@@ -2364,15 +2364,15 @@ function cuponesDe(d){
 function creditoFotoHTML(d){
   const c=d.foto_credito;if(!c||!c.autor||!imgSegura(d.imagen))return '';
   const enlace=(u,t)=>/^https:\/\//.test(u||'')?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':esc(t);
-  return filaDato('camera','Foto',enlace(c.url,c.autor)+' · '+enlace(c.licencia_url,c.licencia||'')+(c.fuente?', '+esc(c.fuente):''));
+  return filaDato('camera','Foto',enlace(c.url,c.autor)+(c.licencia?' · '+enlace(c.licencia_url,c.licencia):'')+(c.fuente?(c.licencia?', ':' · ')+esc(c.fuente):''));
 }
 function filaDato(ic,etiqueta,valor){return '<div class="fila-dato">'+icon(ic)+'<div><small>'+etiqueta+'</small><span>'+valor+'</span></div></div>';}
 /* ===== SENDEROS Y LUGARES NATURALES (v5 · Fase 2) =====
    Senderos, cerros, miradores y caminos no son comercios: sin abierto/cerrado, sin "Reclámalo", sin llamar ni WhatsApp.
    Trazados reales en rutas/{id}.geojson (150-300 puntos de un GPX real), listados en rutas/indice.json y cargados bajo demanda.
    Sin trazado real no hay "Ver ruta en 3D": se muestra "Trazado en preparación". */
-const TIPOS_NATURALES=['sendero','mirador'];
-const esNatural=d=>!!d&&d.cat==='turismo'&&(TIPOS_NATURALES.includes(d.tipo)||/\b(cerro|sendero|mirador|camino real|alto de)\b/i.test(d.nombre||''));
+const TIPOS_NATURALES=['sendero','mirador','cascada'];
+const esNatural=d=>!!d&&d.cat==='turismo'&&(TIPOS_NATURALES.includes(d.tipo)||/\b(cerro|sendero|mirador|camino real|alto de|cascada|salto)\b/i.test(d.nombre||''));
 // Mejor hora para ir (solo donde hay dato confirmado)
 const MEJOR_HORA={c21:'5:00 – 9:00 a. m.'};
 // "Recom. 5–4 p.m." → "Recomendado: 5:00 a. m. – 4:00 p. m." (usa el mismo lector de horarios que calcula Abierto/Cerrado)
@@ -2532,7 +2532,7 @@ function abrirDetalle(id){
     +(natural||!d.tel?'':filaDato('phone','Contacto',esc(d.tel)))
     +(d.correo?filaDato('mail','Correo','<a href="mailto:'+esc(d.correo)+'">'+esc(d.correo)+'</a>'):'')
     +(d.sitioWeb&&/^https:\/\//.test(d.sitioWeb)?filaDato('globe','Sitio web','<a href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+esc(d.sitioWeb.replace(/^https:\/\/(www\.)?/,''))+'</a>'):'')
-    +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>').join('<br>')
+    +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>/^https:\/\//.test(f.url||'')?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>':esc(f.nombre)).join('<br>')
       +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
     +creditoFotoHTML(d)
     +'</div>'
@@ -4208,6 +4208,8 @@ function miniatura(src){return comprimirFoto(src,320,25000,.7).then(r=>r.src);}
 function idFoto(){return 'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 async function cargarFotosDe(cid,ids){
   if(!ids||!ids.length)return {};
+  // Fichas del directorio base con fotos propias publicadas con la app (img/…): no van a Firestore
+  if(ids.every(i=>/^img\/[\w\-/]+\.(jpg|webp|png)$/.test(i)))return Object.fromEntries(ids.map(i=>[i,i]));
   // Las rutas de la comunidad (id rc-…) guardan sus fotos en rutas_comunidad/{id}/fotos
   const s=await (String(cid).startsWith('rc-')?db.collection('rutas_comunidad').doc(String(cid).slice(3)):db.collection('comercios').doc(String(cid))).collection('fotos').get();
   const m={};s.forEach(x=>{m[x.id]=x.data().data;});return m;
