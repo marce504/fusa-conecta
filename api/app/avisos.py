@@ -6,7 +6,11 @@ POST /v1/notificaciones/aprobacion. Esta API busca a la persona, escribe la nove
 
 Credenciales: una cuenta de servicio APARTE de la de solo lectura (FIREBASE_SA_FCM, en Render) con el rol
 «Firebase Cloud Messaging API Admin» y escritura en Firestore. IAM no limita la escritura por colección, así que
-este módulo es el único que la usa y solo escribe en esas dos subcolecciones (lo comprueban las pruebas).
+este módulo es el único que la usa y solo escribe en esas dos subcolecciones y, para las alertas municipales,
+en alertas/{id}/envios (lo comprueban las pruebas).
+
+Alertas municipales (API v1.4.0): el admin publica alertas/{id} desde el panel y llama a POST /v1/alertas/enviar. La
+API manda el push a todos los dispositivos de quienes no apagaron los avisos, una sola vez por alerta.
 """
 
 from __future__ import annotations
@@ -102,12 +106,37 @@ def mensaje(tipo: str, resultado: str, nombre: str, motivo: str = "", id_: str =
     return "Revisamos tu reclamo", f"Revisamos tu reclamo de {nombre}: {motivo}.", "#/perfil"
 
 
+TIPOS_ALERTA = {
+    "agua": "Corte de agua",
+    "energia": "Corte de energía",
+    "via": "Vía cerrada",
+    "clima": "Clima",
+    "salud": "Salud",
+    "seguridad": "Seguridad",
+    "otro": "Aviso",
+}
+LOTE_FCM = 500  # máximo de tokens por llamada a send_each_for_multicast
+
+
+def mensaje_alerta(doc: dict, id_: str) -> tuple[str, str, str]:
+    """(título, texto, enlace) del push de una alerta municipal."""
+    tipo = TIPOS_ALERTA.get(doc.get("tipo", ""), "Aviso")
+    mun = doc.get("municipio") or "Ambos"
+    lugar = "" if mun == "Ambos" else f" en {mun}"
+    titulo = f"{tipo}{lugar}: {(doc.get('titulo') or '').strip()}"[:110]
+    texto = (doc.get("mensaje") or "").strip()[:300]
+    return titulo, texto, f"#/alerta/{id_}"
+
+
 # ---------- Acceso a Firestore con la cuenta de avisos ----------
 class RepositorioAvisos(Protocol):
     def documento(self, coleccion: str, id_: str) -> dict | None: ...
     def dispositivos(self, uid: str) -> list[str]: ...
     def guardar_novedad(self, uid: str, id_: str, datos: dict) -> bool: ...
     def borrar_dispositivos(self, uid: str, tokens: list[str]) -> None: ...
+    def todos_los_dispositivos(self) -> dict[str, list[str]]: ...
+    def registrar_envio_alerta(self, id_: str, datos: dict) -> bool: ...
+    def completar_envio_alerta(self, id_: str, datos: dict) -> None: ...
 
 
 class Avisador(Protocol):
@@ -143,6 +172,30 @@ class RepositorioAvisosFirestore:
         col = self.db.collection("usuarios").document(uid).collection("dispositivos")
         for t in tokens:
             col.document(t).delete()
+
+    def todos_los_dispositivos(self) -> dict[str, list[str]]:
+        """uid → tokens, de todas las subcolecciones usuarios/{uid}/dispositivos."""
+        out: dict[str, list[str]] = {}
+        for d in self.db.collection_group("dispositivos").stream():
+            padre = d.reference.parent.parent
+            if padre is not None and padre.parent.id == "usuarios":
+                out.setdefault(padre.id, []).append(d.id)
+        return out
+
+    def registrar_envio_alerta(self, id_: str, datos: dict) -> bool:
+        """Marca la alerta como enviada con un id fijo: si el admin reintenta, no se repite (False si ya estaba)."""
+        from google.api_core.exceptions import AlreadyExists
+        from google.cloud.firestore_v1 import SERVER_TIMESTAMP
+
+        try:
+            ref = self.db.collection("alertas").document(id_).collection("envios").document("push")
+            ref.create({**datos, "fecha": SERVER_TIMESTAMP})
+            return True
+        except AlreadyExists:
+            return False
+
+    def completar_envio_alerta(self, id_: str, datos: dict) -> None:
+        self.db.collection("alertas").document(id_).collection("envios").document("push").set(datos, merge=True)
 
 
 class AvisadorFCM:

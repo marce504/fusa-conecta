@@ -1555,6 +1555,44 @@ db.collection('cupones').onSnapshot(snap=>{
 
 // Números de emergencia editados por el admin; si no hay, se usan los de datos.js. Copia local para modo avión.
 estado.emergencias=ls.get('fc_emergencias',{});
+/* ===== ALERTAS MUNICIPALES (v89) =====
+   alertas/{id}: las publica solo el admin con su fuente oficial (firestore.rules); las ve cualquiera, también sin
+   conexión. El aviso al celular lo manda la API (POST /v1/alertas/enviar), porque el plan Spark no tiene Functions. */
+const TIPOS_ALERTA=[['agua','Corte de agua'],['energia','Corte de energía'],['via','Vía cerrada o desvío'],['clima','Clima'],['salud','Salud'],['seguridad','Seguridad'],['otro','Aviso']];
+const MUN_ALERTA=[['Ambos','Fusa y Pasca'],['Fusagasugá','Fusagasugá'],['Pasca','Pasca']];
+function nombreTipoAlerta(k){const t=TIPOS_ALERTA.find(x=>x[0]===k);return t?t[1]:'Aviso';}
+// mun: '' (los dos), 'Fusagasugá' o 'Pasca'
+function alertasVigentes(l,mun,ahora=Date.now()){
+  return (l||[]).filter(a=>a.estado==='publicada'&&a.vence>ahora&&(!mun||a.municipio==='Ambos'||a.municipio===mun))
+    .sort((a,b)=>(b.creada||0)-(a.creada||0));
+}
+function alertaHTML(a,cerrable){
+  const lugar=a.municipio==='Ambos'?'Fusa y Pasca':a.municipio;
+  return '<div class="alerta-muni" role="status" data-alerta="'+esc(a.id)+'"><span class="am-ic">'+icon('triangle-alert',20)+'</span><div class="am-tx">'
+    +'<small>'+esc(nombreTipoAlerta(a.tipo))+' · '+esc(lugar)+'</small><b>'+esc(a.titulo)+'</b><p>'+esc(a.mensaje)+'</p>'
+    +'<small>Fuente: '+(/^https:\/\//.test(a.fuente_url||'')?'<a href="'+esc(a.fuente_url)+'" target="_blank" rel="noopener">'+esc(a.fuente)+'</a>':esc(a.fuente))
+    +' · Hasta el '+esc(fechaHora(a.vence))+'</small></div>'
+    +(cerrable?'<button class="btn-redondo am-cerrar" data-cerraralerta="'+esc(a.id)+'" aria-label="Ocultar esta alerta">'+icon('x',18)+'</button>':'')+'</div>';
+}
+function alertasInicioHTML(){
+  const cerradas=ls.get('fc_alertas_cerradas',[]);
+  return alertasVigentes(estado.alertas,municipioElegido()).filter(a=>!cerradas.includes(a.id)).map(a=>alertaHTML(a,true)).join('');
+}
+function alertaDeDoc(id,x){
+  return {id,titulo:x.titulo||'',mensaje:x.mensaje||'',tipo:x.tipo||'otro',municipio:x.municipio||'Ambos',fuente:x.fuente||'',
+    fuente_url:x.fuente_url||'',vence:aMs(x.vence)||0,creada:aMs(x.creada)||0,estado:x.estado||''};
+}
+estado.alertas=ls.get('fc_alertas',[]);
+db.collection('alertas').where('estado','==','publicada').onSnapshot(s=>{
+  estado.alertas=s.docs.map(d=>alertaDeDoc(d.id,d.data()));ls.set('fc_alertas',estado.alertas);
+  const v=vistaActual();if(v.tipo==='sos'||(v.tipo==='lista'&&v.cat==='todas'))render(true);
+},()=>{});
+document.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('[data-cerraralerta]');if(!c)return;
+  const l=ls.get('fc_alertas_cerradas',[]).filter(id=>(estado.alertas||[]).some(a=>a.id===id));
+  l.push(c.dataset.cerraralerta);ls.set('fc_alertas_cerradas',l);
+  const caja=c.closest('.alerta-muni');if(caja)caja.remove();
+});
 estado.turnoDrog=ls.get('fc_turno_drog',{});
 db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
   estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
@@ -2037,7 +2075,7 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
@@ -3890,6 +3928,7 @@ function renderSOS(){
     +'<div class="sos-head"><h2>'+icon('siren',24)+'Emergencias</h2><p>'+icon('circle-check',16)+'Disponible sin conexión · Actualizado: '+fechaCorta(sync)+'</p></div>'
     +'<div class="seg" role="tablist" aria-label="Municipio"><button data-mun="fusagasuga" role="tab" aria-selected="'+(mun==='fusagasuga')+'" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-mun="pasca" role="tab" aria-selected="'+(mun==='pasca')+'" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
     +(mun==='pasca'?'<p class="sos-nota">Líneas nacionales que operan en Pasca, Cundinamarca.</p>':'')
+    +alertasVigentes(estado.alertas,mun==='pasca'?'Pasca':'Fusagasugá').map(a=>alertaHTML(a,false)).join('')
     +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(e=>
       '<div class="sos-fila"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(e.numero)+'</span></div>'
       +'<button class="sos-llamar" data-llamar="'+esc(e.numero)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(e.numero)+'">'+icon('phone')+'</button></div>').join('')).join('')
@@ -5075,8 +5114,9 @@ function irAEnlaceAviso(enlace){
   const ir=()=>{
     if(!arranque.listo){setTimeout(ir,300);return;}
     ocultarSplash();
-    const ev=enlace.match(/^#\/evento\/(.+)$/);
+    const ev=enlace.match(/^#\/evento\/(.+)$/),al=enlace.match(/^#\/alerta\/(.+)$/);
     if(ev)abrirEvento(decodeURIComponent(ev[1]));
+    else if(al){const a=(estado.alertas||[]).find(x=>x.id===decodeURIComponent(al[1]));estado.sosMunicipio=a&&a.municipio==='Pasca'?'pasca':'fusagasuga';navegar({tipo:'sos'});}
     else if(enlace==='#/agenda')irAgenda();
     else if(enlace==='#/recorridos')navegar({tipo:'recorridos'});
     else if(enlace==='#/mi-negocio'&&comerciosPropios.some(c=>c.estado_publicacion==='aprobado'))navegar({tipo:'dashboard'});
@@ -5249,15 +5289,19 @@ function estadoContacto(d,c,reclamos){
   if(d.propietario_uid||(reclamos&&reclamos.has(d.id)))return 'unido';
   return (c&&ESTADOS_CONTACTO[c.estado]&&c.estado)||'pendiente';
 }
+// Quienes hacen el proyecto: el mensaje saluda de parte de los dos (quien lo envía va primero)
+const EQUIPO_CONTACTO=['Marcela','Jhon'];
 function mensajeContacto(d,remitente,ahora=Date.now()){
-  const quien=String(remitente||'').trim().split(/\s+/)[0];
-  return 'Hola, ¿hablo con '+d.nombre+'? Le saluda '+(quien?quien+', de ':'el equipo de ')+'Fusa Conecta. Somos estudiantes del SENA de Análisis y Desarrollo de Software y este es nuestro proyecto: '
+  const quien=String(remitente||'').trim().split(/\s+/)[0].toLowerCase();
+  const yo=EQUIPO_CONTACTO.find(n=>n.toLowerCase()===quien);
+  const nombres=yo?[yo,...EQUIPO_CONTACTO.filter(n=>n!==yo)]:EQUIPO_CONTACTO;
+  return 'Hola, ¿hablo con '+d.nombre+'? Le saludan '+nombres.join(' y ')+', de Fusa Conecta. Somos estudiantes del SENA de Análisis y Desarrollo de Software y este es nuestro proyecto: '
     +'una app gratuita con sentido social para que todo el que venda algo en Fusagasugá y Pasca, del negocio más conocido al emprendimiento más pequeño, sea visible, '
     +'y para que vecinos y turistas encuentren fácil dónde comer, dónde comprar y qué conocer.\n\n'
     +'Ya agregamos '+d.nombre+' a la app. Así lo ven sus clientes: https://fusa-conecta.web.app/#/lugar/'+d.id+'\n\n'
     +'Para administrarlo, abra el enlace, cree su cuenta y toque «¿Es tu negocio? Reclámalo». Después puede subir fotos y actualizar el horario y el WhatsApp. No tiene costo.\n\n'
     +(campanaVigente(ahora)?'Si se une antes del '+CAMPANA.unirseTxt+', le damos Premium gratis hasta el '+CAMPANA.premiumTxt+': cupones de descuento, aparecer en Destacados y primero en las búsquedas, y hasta 10 fotos.\n\n':'')
-    +'¿Le ayudo con el registro? Si prefiere no recibir más mensajes, me dice y no le volvemos a escribir.';
+    +'¡Muchas gracias por su tiempo!';
 }
 // v1.4.6 · Modo rápido: uno tras otro, en orden alfabético, sin los que se saltaron en esta sesión
 const LIMITE_DIA_CONTACTO=25;
@@ -5571,7 +5615,7 @@ function renderAdmin(){
         +'</div><button class="btn-redondo" data-emgdel="'+i+'" aria-label="Quitar '+esc(e.entidad)+'">'+icon('trash-2')+'</button></div>').join('')
       +'<div class="dc-actions mt-16"><button class="btn btn-secundario btn-sm" id="emgAgregar">'+icon('plus',16)+'Agregar número</button></div>'
       +'<button class="btn btn-primario btn-bloque mt-16" id="emgGuardar">Guardar números de '+(mun==='pasca'?'Pasca':'Fusagasugá')+'</button>'
-      +turnoAdminHTML(mun);
+      +alertasAdminHTML()+turnoAdminHTML(mun);
   }
   const fotosAntiguas=D.comercios.filter(c=>!copiaVieja(c)&&fotoAntigua(c._raw));
   // El admin las migra solo al abrir el panel (una vez por sesión); el botón queda por si alguna falla
@@ -5633,8 +5677,75 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
-  enlazarTurnoAdmin(mun);
+  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);
   cargarFotosPreview();
+}
+function alertasAdminHTML(){
+  const vig=alertasVigentes(estado.alertas,'');
+  const manana=new Date(Date.now()+24*3600e3),local=new Date(manana.getTime()-manana.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  return '<p class="dash-section">Alertas municipales</p><div class="adm-card">'
+    +'<p class="nota-c izq">Cortes de agua o de luz, vías cerradas, clima o salud. Publícalas solo con la fuente oficial (Alcaldía, Emserfusa, Enel, Gobernación, Policía…). Se ven en el inicio y en Emergencias hasta la fecha que pongas.</p>'
+    +'<label class="lbl" for="alTipo">Tipo</label><select class="input" id="alTipo">'+TIPOS_ALERTA.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select>'
+    +'<label class="lbl" for="alMun">Municipio</label><select class="input" id="alMun">'+MUN_ALERTA.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select>'
+    +'<label class="lbl" for="alTitulo">Título</label><input class="input" id="alTitulo" maxlength="80" placeholder="Ej.: Corte de agua en el barrio Pekín">'
+    +'<label class="lbl" for="alMensaje">Mensaje</label><textarea class="input" id="alMensaje" maxlength="400" rows="3" placeholder="Qué pasa, dónde y desde cuándo"></textarea>'
+    +'<label class="lbl" for="alFuente">Fuente</label><input class="input" id="alFuente" maxlength="120" placeholder="Ej.: Alcaldía de Fusagasugá">'
+    +'<label class="lbl" for="alUrl">Enlace de la fuente</label><input class="input" id="alUrl" type="url" inputmode="url" placeholder="https://…">'
+    +'<label class="lbl" for="alVence">Se muestra hasta</label><input class="input" id="alVence" type="datetime-local" value="'+local+'">'
+    +'<label class="fil-fila"><span class="fil-tx">'+icon('bell')+'Avisar al celular</span><input type="checkbox" role="switch" class="interruptor" id="alPush" checked></label>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="alPublicar">Publicar alerta</button></div>'
+    +(vig.length?'<div class="adm-card">'+vig.map(a=>'<div class="adm-fila"><div class="flex-1"><b>'+esc(a.titulo)+'</b><small>'+esc(nombreTipoAlerta(a.tipo))+' · hasta '+esc(fechaHora(a.vence))+'</small></div>'
+      +'<button class="btn btn-ghost btn-sm" data-retiraralerta="'+esc(a.id)+'">Retirar</button></div>').join('')+'</div>':'');
+}
+// Devuelve el texto del error o los datos listos para guardar (vence en milisegundos)
+function datosAlerta(v,ahora=Date.now()){
+  const titulo=(v.titulo||'').trim(),mensaje=(v.mensaje||'').trim(),fuente=(v.fuente||'').trim(),url=(v.fuente_url||'').trim();
+  if(!TIPOS_ALERTA.some(t=>t[0]===v.tipo))return 'Elige el tipo de alerta';
+  if(!MUN_ALERTA.some(t=>t[0]===v.municipio))return 'Elige el municipio';
+  if(titulo.length<3)return 'Escribe un título corto';
+  if(mensaje.length<10)return 'Cuenta qué pasa en el mensaje';
+  if(fuente.length<3)return 'Escribe de dónde sale la alerta';
+  if(!/^https:\/\/\S+\.\S+$/.test(url))return 'Pega el enlace de la fuente (empieza por https://)';
+  const vence=new Date(v.vence||'').getTime();
+  if(!vence||vence<=ahora)return 'La fecha final tiene que ser más adelante';
+  if(vence>ahora+30*24*3600e3)return 'Una alerta dura máximo 30 días';
+  return {tipo:v.tipo,municipio:v.municipio,titulo:titulo.slice(0,80),mensaje:mensaje.slice(0,400),fuente:fuente.slice(0,120),fuente_url:url.slice(0,500),vence};
+}
+const dormirAlerta=ms=>new Promise(ok=>{setTimeout(ok,ms);});
+async function enviarAlertaPush(id){
+  const t0=Date.now();let espera=2000;
+  while(Date.now()-t0<60000){
+    try{
+      const tk=await auth.currentUser.getIdToken();
+      const r=await conTiempoLimite(fetch(API_URL+'/v1/alertas/enviar',{method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({id})}),
+        Math.max(5000,60000-(Date.now()-t0)),'La API no respondió');
+      if(r.ok){const j=await r.json();toast(j.repetido?'Esa alerta ya se había enviado':'Aviso enviado a '+j.enviados+(j.enviados===1?' celular':' celulares'),4000);return j;}
+      if(r.status===503){toast('La alerta quedó publicada. Los avisos al celular aún no están configurados en la API.',5000);return null;}
+      if(r.status<500&&r.status!==429){toast('La alerta quedó publicada, pero no se pudo avisar al celular',4000);return null;}
+    }catch(e){console.warn('Alerta: reintentando',e&&e.message);}
+    await dormirAlerta(espera);espera=Math.min(espera*2,15000);
+  }
+  toast('La alerta quedó publicada. No pudimos avisar al celular ahora.',4000);
+  return null;
+}
+function enlazarAlertasAdmin(){
+  const b=$('#alPublicar');if(!b)return;
+  b.onclick=async()=>{
+    const r=datosAlerta({tipo:$('#alTipo').value,municipio:$('#alMun').value,titulo:$('#alTitulo').value,mensaje:$('#alMensaje').value,
+      fuente:$('#alFuente').value,fuente_url:$('#alUrl').value,vence:$('#alVence').value});
+    if(typeof r==='string'){toast(r);return;}
+    const push=$('#alPush').checked;b.disabled=true;
+    try{
+      const ref=await db.collection('alertas').add({...r,vence:firebase.firestore.Timestamp.fromMillis(r.vence),creada:FV.serverTimestamp(),por:estado.usuario.uid,estado:'publicada'});
+      toast('Alerta publicada');
+      if(push)enviarAlertaPush(ref.id);
+    }catch(e){console.warn(e);toast('No se pudo publicar la alerta');}
+    finally{b.disabled=false;}
+  };
+  $$('[data-retiraralerta]').forEach(x=>(x.onclick=async()=>{
+    if(!await confirmar('Retirar alerta','Deja de verse en la app. Los avisos que ya llegaron al celular no se pueden borrar.','Retirar','Cancelar','triangle-alert',true))return;
+    adminAccion(()=>db.collection('alertas').doc(x.dataset.retiraralerta).update({estado:'retirada'}),'Alerta retirada');
+  }));
 }
 function turnoAdminHTML(mun){
   const l=droguerias(mun),t=(estado.turnoDrog||{})[mun]||{},vig=turnoVigente(estado.turnoDrog,mun);
@@ -6294,6 +6405,7 @@ function rutaHash(){
   const h=window.location.hash,m=h.match(/^#\/lugar\/(.+)$/)||h.match(/^#c\/(.+)$/);
   if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
   const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
+  if(/^#\/alerta\/.+$/.test(h)){try{window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);}catch(e){}irAEnlaceAviso(h);return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
   // Pantallas que abren los avisos al celular cuando la app estaba cerrada; el hash se limpia de la dirección
   if(['#/mi-negocio','#/perfil','#/agenda','#/recorridos'].includes(h)){

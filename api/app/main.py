@@ -3,7 +3,7 @@
 import logging
 import os
 import time
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +16,7 @@ from . import avisos, formatos, ia, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -434,6 +434,88 @@ def avisar_decision(
         repo_avisos.borrar_dispositivos(uid, malos)
         log.info("Tokens borrados por inválidos: %d", len(malos))
     respuesta.update(enviados=enviados, dispositivos=len(tokens) - len(malos))
+    return respuesta
+
+
+class PedidoAlerta(BaseModel):
+    id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id de alertas/{id}")
+
+    model_config = {"json_schema_extra": {"examples": [{"id": "Xy12AbC"}]}}
+
+
+def _ms(v: Any) -> float | None:
+    """Timestamp de Firestore (datetime) o milisegundos → milisegundos."""
+    if v is None:
+        return None
+    if hasattr(v, "timestamp"):
+        return v.timestamp() * 1000
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+@app.post(
+    "/v1/alertas/enviar",
+    tags=["Avisos"],
+    summary="Enviar al celular una alerta municipal que el admin ya publicó",
+    responses={
+        401: {"description": "Sin token o vencido"},
+        403: {"description": "No es admin"},
+        404: {"description": "No existe la alerta"},
+        409: {"description": "La alerta está retirada o ya venció"},
+        503: {"description": "Falta la cuenta de servicio de avisos"},
+    },
+)
+@limiter.limit("5/minute")
+def enviar_alerta(
+    request: Request,
+    repo: Repo,
+    usuario: Usuario,
+    pedido: PedidoAlerta,
+    repo_avisos: Annotated[avisos.RepositorioAvisos, Depends(_repo_avisos)],
+    avisador: Annotated[avisos.Avisador, Depends(_avisador)],
+) -> dict:
+    """El panel admin lo llama **después** de guardar `alertas/{id}` en Firestore.
+
+    1. Comprueba que quien llama es admin y que la alerta está publicada y vigente.
+    2. Registra el envío con un id fijo (`alertas/{id}/envios/push`): un reintento no repite el aviso.
+    3. Manda el push a todos los dispositivos de quienes no apagaron los avisos, en lotes de 500,
+       y borra los tokens que ya no sirven.
+    """
+    uid_admin = usuario.get("uid", "")
+    if repo.rol(uid_admin) != "admin":
+        raise HTTPException(403, "Solo para administradores")
+    doc = repo_avisos.documento("alertas", pedido.id)
+    if doc is None:
+        raise HTTPException(404, "No existe esa alerta")
+    vence = _ms(doc.get("vence"))
+    if doc.get("estado") != "publicada" or vence is None or vence <= time.time() * 1000:
+        raise HTTPException(409, "La alerta está retirada o ya venció")
+    if not repo_avisos.registrar_envio_alerta(pedido.id, {"por": uid_admin}):
+        return {"repetido": True, "dispositivos": 0, "enviados": 0}
+    titulo, texto, enlace = avisos.mensaje_alerta(doc, pedido.id)
+    duenos: dict[str, str] = {}
+    for uid, tokens in repo_avisos.todos_los_dispositivos().items():
+        perfil = repo_avisos.documento("usuarios", uid) or {}
+        if perfil.get("notificaciones_push") is False:
+            continue
+        for t in tokens:
+            duenos[t] = uid
+    todos = list(duenos)
+    enviados, malos = 0, []
+    for i in range(0, len(todos), avisos.LOTE_FCM):
+        e, m = avisador.enviar(todos[i : i + avisos.LOTE_FCM], titulo, texto, enlace, f"alerta-{pedido.id}")
+        enviados += e
+        malos += m
+    por_uid: dict[str, list[str]] = {}
+    for t in malos:
+        por_uid.setdefault(duenos[t], []).append(t)
+    for uid, tokens in por_uid.items():
+        repo_avisos.borrar_dispositivos(uid, tokens)
+    respuesta = {"repetido": False, "dispositivos": len(todos) - len(malos), "enviados": enviados}
+    repo_avisos.completar_envio_alerta(pedido.id, {"dispositivos": respuesta["dispositivos"], "enviados": enviados})
+    log.info("Alerta %s enviada a %d celulares", pedido.id, enviados)
     return respuesta
 
 

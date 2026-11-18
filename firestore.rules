@@ -283,6 +283,32 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
+    /* ---------- Alertas municipales (v89): solo el admin las publica, con fuente oficial https; las ve cualquiera.
+       El registro del aviso al celular (envios/push) lo escribe solo la API con su cuenta de servicio. ---------- */
+    function alertaValida(d) {
+      return d.keys().hasOnly(['titulo', 'mensaje', 'tipo', 'municipio', 'fuente', 'fuente_url', 'vence', 'creada', 'por', 'estado'])
+        && d.keys().hasAll(['titulo', 'mensaje', 'tipo', 'municipio', 'fuente', 'fuente_url', 'vence', 'estado'])
+        && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
+        && d.mensaje is string && d.mensaje.size() >= 10 && d.mensaje.size() <= 400
+        && d.tipo in ['agua', 'energia', 'via', 'clima', 'salud', 'seguridad', 'otro']
+        && d.municipio in ['Ambos', 'Fusagasugá', 'Pasca']
+        && d.fuente is string && d.fuente.size() >= 3 && d.fuente.size() <= 120
+        && d.fuente_url is string && d.fuente_url.size() <= 500 && d.fuente_url.matches('^https://[^ ]+$')
+        && d.vence is timestamp
+        && d.estado in ['publicada', 'retirada'];
+    }
+    match /alertas/{id} {
+      allow read: if true;
+      allow create: if esAdmin() && alertaValida(request.resource.data) && request.resource.data.por == request.auth.uid
+        && request.resource.data.estado == 'publicada';
+      allow update: if esAdmin() && alertaValida(request.resource.data);
+      allow delete: if esAdmin();
+      match /envios/{envio} {
+        allow read: if esAdmin();
+        allow write: if false;
+      }
+    }
+
     /* ---------- Configuración pública del directorio (negocios de muestra ocultos por el admin) ---------- */
     match /config/{id} {
       allow read: if true;
@@ -476,7 +502,7 @@ service cloud.firestore {
        El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales']);
+      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales']);
     }
   }
 }

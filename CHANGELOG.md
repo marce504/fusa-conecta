@@ -9,6 +9,15 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Alertas municipales.** El admin publica alertas (corte de agua o de luz, vía cerrada, clima, salud, seguridad)
+  desde Panel → Emergencias, **siempre con la fuente oficial** (enlace `https`) y una fecha final de máximo 30 días.
+  Se ven en el inicio, que se pueden ocultar una por una, y en Emergencias, también sin conexión. Con «Avisar al
+  celular», la API nueva `POST /v1/alertas/enviar` (API v1.4.0) manda el push a quienes no apagaron los avisos, en
+  lotes de 500 y una sola vez por alerta. Reglas: `alertas/{id}` lo lee cualquiera y solo lo escribe el admin con los
+  campos válidos; `alertas/{id}/envios` solo lo escribe la API. Necesita `FIREBASE_SA_FCM` en Render para el push;
+  sin ella, la alerta igual se publica. PWA v89 (`fusa-v82`).
+- **Mensaje de «Contactar».** Ahora saluda de parte de Marcela y Jhon (quien lo envía va primero) y cierra con un
+  agradecimiento corto.
 - **Filtro «De noche» y droguerías en Emergencias.** En Filtros, «De noche» muestra los lugares que atienden
   después de las 9 p. m. al menos un día, según su horario real (sin horario no entran). En Emergencias hay una
   sección de **Droguerías** con su estado de abierto o cerrado y el aviso de llamar antes de ir. El turno de
@@ -25,6 +34,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   Cascada San Gabriel. PWA v87 (`fusa-v80`).
 
 ### Corregido
+- **Reglas de Firestore.** La regla general del final dejaba al admin escribir alertas sin pasar por su validación;
+  `alertas` quedó excluida como `banners` y `eventos`. Las fechas del turno de droguerías ya no se salen de la pantalla.
 - **Horarios de 24 horas que pasan la medianoche.** «20:00-02:00» se leía como de 8 p. m. a 2 p. m.; ahora se lee
   hasta las 2 a. m. del día siguiente.
 - **Galería de fotos de la ficha.** Las fotos quedaban apiladas una sobre otra y siempre se veía la última, aunque el

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -288,3 +289,118 @@ def test_repositorio_firestore_solo_escribe_novedades_y_dispositivos():
     cambios = set(base) ^ antes
     assert cambios == {"usuarios/u1/notificaciones/comercio-n1-aprobado", "usuarios/u1/dispositivos/tB"}
     assert all(c.startswith("usuarios/u1/") for c in cambios)
+
+
+# ---------- Alertas municipales: POST /v1/alertas/enviar ----------
+class RepoAlertasFalso(RepoAvisosFalso):
+    def __init__(self) -> None:
+        super().__init__()
+        futuro, pasado = (time.time() + 3600) * 1000, (time.time() - 60) * 1000
+        base = {"titulo": "Corte de agua en Pekín", "mensaje": "Mañana de 8 a 12 por arreglos.", "tipo": "agua"}
+        self.docs[("alertas", "a1")] = {**base, "municipio": "Fusagasugá", "estado": "publicada", "vence": futuro}
+        self.docs[("alertas", "vieja")] = {**base, "municipio": "Ambos", "estado": "publicada", "vence": pasado}
+        self.docs[("alertas", "retirada")] = {**base, "municipio": "Ambos", "estado": "retirada", "vence": futuro}
+        self.envios: dict[str, dict] = {}
+
+    def todos_los_dispositivos(self):
+        return {u: list(t) for u, t in self.tokens.items() if t}
+
+    def registrar_envio_alerta(self, id_, datos):
+        if id_ in self.envios:
+            return False
+        self.envios[id_] = dict(datos)
+        return True
+
+    def completar_envio_alerta(self, id_, datos):
+        self.envios[id_].update(datos)
+
+
+@pytest.fixture
+def alertar(cliente, como):
+    ra, fcm = RepoAlertasFalso(), AvisadorFalso()
+    main.app.dependency_overrides[main._repo_avisos] = lambda: ra
+    main.app.dependency_overrides[main._avisador] = lambda: fcm
+    como("admin1")
+    return SimpleNamespace(
+        post=lambda id_: cliente.post("/v1/alertas/enviar", json={"id": id_}), repo=ra, fcm=fcm, como=como
+    )
+
+
+def test_alerta_llega_a_todos_menos_a_quien_apago_los_avisos(alertar):
+    j = alertar.post("a1").json()
+    # duena: 2 tokens (uno viejo); organiza apagó los avisos; otro no tiene dispositivos
+    assert j == {"repetido": False, "dispositivos": 1, "enviados": 1}
+    envio = alertar.fcm.enviados[0]
+    assert sorted(envio["tokens"]) == ["tok-bueno", "tok-viejo"]
+    assert envio["titulo"] == "Corte de agua en Fusagasugá: Corte de agua en Pekín"
+    assert envio["enlace"] == "#/alerta/a1"
+    assert alertar.repo.borrados == [("duena", ["tok-viejo"])]
+    assert alertar.repo.envios["a1"] == {"por": "admin1", "dispositivos": 1, "enviados": 1}
+
+
+def test_alerta_no_se_repite(alertar):
+    alertar.post("a1")
+    j = alertar.post("a1").json()
+    assert j["repetido"] is True and len(alertar.fcm.enviados) == 1
+
+
+def test_alerta_vencida_retirada_o_inexistente(alertar):
+    assert alertar.post("vieja").status_code == 409
+    assert alertar.post("retirada").status_code == 409
+    assert alertar.post("nada").status_code == 404
+    assert alertar.post("../usuarios").status_code == 422
+    assert alertar.fcm.enviados == []
+
+
+def test_alerta_solo_admin(alertar, cliente):
+    alertar.como("duena")
+    assert alertar.post("a1").status_code == 403
+    assert alertar.repo.envios == {}
+
+
+def test_alerta_en_lotes_de_500(alertar, monkeypatch):
+    monkeypatch.setattr(avisos, "LOTE_FCM", 2)
+    alertar.repo.tokens = {"u1": ["t1", "t2", "t3"], "u2": ["t4", "t5"]}
+    j = alertar.post("a1").json()
+    assert [len(e["tokens"]) for e in alertar.fcm.enviados] == [2, 2, 1] and j["enviados"] == 5
+
+
+def test_mensaje_alerta_para_los_dos_municipios():
+    t, x, e = avisos.mensaje_alerta(
+        {"tipo": "via", "municipio": "Ambos", "titulo": "Vía Sibaté", "mensaje": "Cerrada"}, "z"
+    )
+    assert (t, x, e) == ("Vía cerrada: Vía Sibaté", "Cerrada", "#/alerta/z")
+
+
+def test_repositorio_firestore_alerta_solo_escribe_su_envio():
+    base = {"usuarios/u1/dispositivos/tA": {}, "usuarios/u2/dispositivos/tB": {}, "alertas/a1": {"titulo": "x"}}
+    cliente = _RefGrupo(base, [])
+    repo = avisos.RepositorioAvisosFirestore(cliente)
+    antes = set(base)
+    assert repo.todos_los_dispositivos() == {"u1": ["tA"], "u2": ["tB"]}
+    assert repo.registrar_envio_alerta("a1", {"por": "admin"}) is True
+    assert repo.registrar_envio_alerta("a1", {"por": "admin"}) is False
+    repo.completar_envio_alerta("a1", {"enviados": 2})
+    assert set(base) ^ antes == {"alertas/a1/envios/push"}
+    assert base["alertas/a1/envios/push"]["enviados"] == 2
+
+
+class _RefGrupo(_Ref):
+    def collection(self, nombre):
+        return _RefGrupo(self.base, self.ruta + [nombre])
+
+    def document(self, id_):
+        return _RefGrupo(self.base, self.ruta + [id_])
+
+    def set(self, datos, merge=False):
+        clave = "/".join(self.ruta)
+        self.base[clave] = {**(self.base.get(clave) or {}), **datos} if merge else datos
+
+    def collection_group(self, nombre):
+        docs = []
+        for k in self.base:
+            p = k.split("/")
+            if len(p) >= 2 and p[-2] == nombre:
+                padre = SimpleNamespace(id=p[-3], parent=SimpleNamespace(id=p[-4]))
+                docs.append(SimpleNamespace(id=p[-1], reference=SimpleNamespace(parent=SimpleNamespace(parent=padre))))
+        return SimpleNamespace(stream=lambda: docs)

@@ -149,10 +149,10 @@ Notas anteriores:
 
 Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud Functions.
 
-1. **(HECHO 18-nov, PWA v88, pendiente de publicar si no aparece en git log) Abierto de noche y droguerías de turno.** Filtro «De noche» (`abreDeNoche`), sección Droguerías en SOS, turno solo publicado por el admin con fuente https en `config/turno_droguerias`.
+1. **(PUBLICADO 18-nov, commit ad4cea8, PWA v88) Abierto de noche y droguerías de turno.** Filtro «De noche» (`abreDeNoche`), sección Droguerías en SOS, turno solo publicado por el admin con fuente https en `config/turno_droguerias`.
    - Agrega un filtro sobre los horarios que ya existen.
    - El turno de droguerías debe venir de una fuente oficial; si no la hay, no lo inventes.
-2. **Alertas municipales como notificación push.**
+2. **(HECHO 18-nov, PWA v89 / API v1.4.0; ver git log si ya se publicó) Alertas municipales como notificación push.** `alertas/{id}` + `POST /v1/alertas/enviar`; el push necesita `FIREBASE_SA_FCM` en Render.
    - Usa FCM desde la API de Render, porque no se pueden usar Cloud Functions.
    - Hace falta el secreto `FIREBASE_SA_FCM` en Render, y lo configura Marcela.
    - Solo el admin puede crear alertas.
@@ -179,5 +179,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `903df59`, en producción como v87 (`fusa-v80`).
+- **Último commit publicado:** `ad4cea8`, en producción como v88 (`fusa-v81`).
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

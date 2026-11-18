@@ -632,3 +632,83 @@ test('admin: contactar un negocio por WhatsApp desde el panel y anotar el seguim
   await rapido.locator('[data-crapido="terminar"]').click();
   await expect(page.locator('.contacto-rapido')).toHaveCount(0);
 });
+
+// v89: alertas municipales. Solo el admin publica (con fuente https); se ven en el inicio y en Emergencias
+test('alertas: el admin publica una alerta, se ve en el inicio y nadie más puede publicar', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.admin);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => {
+    estado.admin.tab = 'emergencias';
+    window.navegar({ tipo: 'admin' });
+  });
+  await page.locator('#alTipo').selectOption('agua');
+  await page.locator('#alTitulo').fill('Corte de agua de prueba E2E');
+  await page.locator('#alMensaje').fill('Mañana de 8 a. m. a 12 m. por arreglos de la red.');
+  await page.locator('#alFuente').fill('Fuente de prueba');
+  await page.locator('#alUrl').fill('http://sin-https.test');
+  await page.locator('#alPush').uncheck();
+  await page.locator('#alPublicar').click();
+  await expect(page.locator('#toast')).toContainText('https');
+  await page.locator('#alUrl').fill('https://ejemplo.test/aviso');
+  await page.locator('#alPublicar').click();
+  await expect(page.locator('#toast')).toContainText('Alerta publicada');
+  await page.screenshot({ path: info.outputPath('alerta-admin.png') });
+  // Reglas: Ana no puede publicar ni retirar; sin fuente https tampoco el admin
+  const reglas = await page.evaluate(async () => {
+    const fs = window.firebase.firestore();
+    const base = {
+      titulo: 'Falsa',
+      mensaje: 'Una alerta que no es oficial.',
+      tipo: 'otro',
+      municipio: 'Ambos',
+      fuente: 'Nadie',
+      fuente_url: 'https://x.test',
+      vence: window.firebase.firestore.Timestamp.fromMillis(Date.now() + 3600e3),
+      estado: 'publicada',
+      por: window.firebase.auth().currentUser.uid,
+    };
+    const intentar = async p => p.then(() => 'ok').catch(e => e.code);
+    return { adminSinHttps: await intentar(fs.collection('alertas').add({ ...base, fuente_url: 'http://x.test' })) };
+  });
+  expect(reglas.adminSinHttps).toBe('permission-denied');
+  await entrarComo(page, CUENTAS.ana);
+  const ana = await page.evaluate(async () => {
+    const fs = window.firebase.firestore();
+    const s = await fs.collection('alertas').where('estado', '==', 'publicada').get();
+    const id = s.docs[0].id;
+    const intentar = async p => p.then(() => 'ok').catch(e => e.code);
+    return {
+      lee: s.size,
+      crea: await intentar(
+        fs.collection('alertas').add({
+          titulo: 'Falsa',
+          mensaje: 'Una alerta que no es oficial.',
+          tipo: 'otro',
+          municipio: 'Ambos',
+          fuente: 'Nadie',
+          fuente_url: 'https://x.test',
+          vence: window.firebase.firestore.Timestamp.fromMillis(Date.now() + 3600e3),
+          estado: 'publicada',
+          por: window.firebase.auth().currentUser.uid,
+        }),
+      ),
+      retira: await intentar(fs.collection('alertas').doc(id).update({ estado: 'retirada' })),
+      envios: await intentar(fs.collection('alertas').doc(id).collection('envios').doc('push').get()),
+    };
+  });
+  expect(ana).toEqual({ lee: 1, crea: 'permission-denied', retira: 'permission-denied', envios: 'permission-denied' });
+  // En el inicio y en Emergencias
+  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
+  const alerta = page.locator('#cuerpo .alerta-muni').first();
+  await expect(alerta).toContainText('Corte de agua de prueba E2E');
+  await expect(alerta).toContainText('Fuente de prueba');
+  await page.screenshot({ path: info.outputPath('alerta-inicio.png') });
+  await alerta.locator('[data-cerraralerta]').click();
+  await expect(page.locator('#cuerpo .alerta-muni')).toHaveCount(0);
+  await page.evaluate(() => window.navegar({ tipo: 'sos' }));
+  await expect(page.locator('#cuerpo .alerta-muni')).toContainText('Corte de agua de prueba E2E');
+});

@@ -624,6 +624,7 @@ describe('campaña de lanzamiento y contactos por WhatsApp', () => {
       'premiumCampana',
       'ESTADOS_CONTACTO',
       'estadoContacto',
+      'EQUIPO_CONTACTO',
       'mensajeContacto',
       'horarioContactoOK',
     ],
@@ -646,16 +647,19 @@ describe('campaña de lanzamiento y contactos por WhatsApp', () => {
       m.premiumCampana({ esPremium: true, suscripcion_vigente_hasta: col('2026-12-15T00:00:00') }, ahora).esPremium,
     ).toBe(true);
   });
-  it('el mensaje lleva el nombre, el enlace a la ficha, la campaña y cómo no recibir más', () => {
+  it('el mensaje lleva el nombre, el enlace a la ficha, la campaña y el agradecimiento', () => {
     const t = m.mensajeContacto({ id: 'c331', nombre: 'El Peon' }, 'Marcela Estrella', col('2026-11-18T10:00:00'));
     expect(t).toContain('¿hablo con El Peon?');
-    expect(t).toContain('Le saluda Marcela, de Fusa Conecta');
+    expect(t).toContain('Le saludan Marcela y Jhon, de Fusa Conecta.');
+    expect(m.mensajeContacto({ id: 'c1', nombre: 'X' }, 'Jhon', col('2026-11-18T10:00:00'))).toContain(
+      'Le saludan Jhon y Marcela, de Fusa Conecta.',
+    );
     expect(t).toContain('estudiantes del SENA de Análisis y Desarrollo de Software');
     expect(t).toContain('todo el que venda algo en Fusagasugá y Pasca');
     expect(t).toContain('https://fusa-conecta.web.app/#/lugar/c331');
     expect(t).toContain('«¿Es tu negocio? Reclámalo»');
     expect(t).toContain('Premium gratis hasta el 30 de abril de 2027');
-    expect(t).toContain('no le volvemos a escribir');
+    expect(t.endsWith('¡Muchas gracias por su tiempo!')).toBe(true);
     expect(m.mensajeContacto({ id: 'c1', nombre: 'X' }, '', col('2027-03-01T10:00:00'))).not.toContain('Premium');
   });
   it('se une si ya tiene dueño o pidió el reclamo; si no, el estado guardado', () => {
@@ -765,5 +769,45 @@ describe('datosTurno: validación del formulario del admin', () => {
     expect(datosTurno('fusagasuga', { ...base, hasta: '2026-11-10' })).toMatch(/después/);
     expect(datosTurno('fusagasuga', { ...base, fuente: '  ' })).toMatch(/de dónde/);
     expect(datosTurno('fusagasuga', { ...base, fuente_url: 'ejemplo.gov.co' })).toMatch(/https/);
+  });
+});
+
+describe('Alertas municipales: vigencia, municipio y validación del admin', () => {
+  const { alertasVigentes, datosAlerta } = cargar(['TIPOS_ALERTA', 'MUN_ALERTA', 'alertasVigentes', 'datosAlerta']);
+  const ahora = Date.parse('2026-11-18T10:00:00-05:00');
+  const a = (id, municipio, vence, est = 'publicada') => ({ id, municipio, vence, estado: est, creada: vence - 1 });
+  const l = [
+    a('fusa', 'Fusagasugá', ahora + 3600e3),
+    a('pasca', 'Pasca', ahora + 3600e3),
+    a('ambos', 'Ambos', ahora + 7200e3),
+    a('vieja', 'Ambos', ahora - 1),
+    a('retirada', 'Ambos', ahora + 3600e3, 'retirada'),
+  ];
+  it('solo las publicadas y vigentes, del municipio elegido o de los dos', () => {
+    expect(alertasVigentes(l, 'Pasca', ahora).map(x => x.id)).toEqual(['ambos', 'pasca']);
+    expect(alertasVigentes(l, '', ahora).map(x => x.id)).toEqual(['ambos', 'fusa', 'pasca']);
+    expect(alertasVigentes(null, '', ahora)).toEqual([]);
+  });
+  const ok = {
+    tipo: 'agua',
+    municipio: 'Fusagasugá',
+    titulo: 'Corte de agua en Pekín',
+    mensaje: 'Mañana de 8 a 12 por arreglos de la red.',
+    fuente: 'Emserfusa',
+    fuente_url: 'https://emserfusa.gov.co/aviso',
+    vence: '2026-11-19T12:00',
+  };
+  it('devuelve la alerta lista para guardar', () => {
+    const r = datosAlerta(ok, ahora);
+    expect(r.titulo).toBe('Corte de agua en Pekín');
+    expect(r.vence).toBe(new Date('2026-11-19T12:00').getTime());
+  });
+  it('exige fuente https, mensaje y una fecha futura de máximo 30 días', () => {
+    expect(datosAlerta({ ...ok, fuente_url: 'http://x.co' }, ahora)).toMatch(/https/);
+    expect(datosAlerta({ ...ok, fuente: '' }, ahora)).toMatch(/de dónde/);
+    expect(datosAlerta({ ...ok, mensaje: 'corto' }, ahora)).toMatch(/qué pasa/);
+    expect(datosAlerta({ ...ok, vence: '2026-11-17T12:00' }, ahora)).toMatch(/más adelante/);
+    expect(datosAlerta({ ...ok, vence: '2027-01-30T12:00' }, ahora)).toMatch(/30 días/);
+    expect(datosAlerta({ ...ok, tipo: 'fiesta' }, ahora)).toMatch(/tipo/);
   });
 });

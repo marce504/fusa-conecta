@@ -29,6 +29,7 @@ Servicios web REST de Fusa Conecta, en **Python 3.12** con **FastAPI**.
 | `GET /v1/comercios/{id}/reporte?formato=xlsx\|pdf&mes=AAAA-MM` | Reporte del mes: vistas, toques en WhatsApp y Llamar, cupones obtenidos y canjeados. **Solo el dueño o el admin** | Panel del negocio → **Descargar reporte** |
 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas. **Solo admin** | — |
 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó lo que envió: novedad en su campana y push (FCM) a sus celulares. **Solo admin** | Panel admin → al aprobar o rechazar |
+| `POST /v1/alertas/enviar` | Manda al celular una alerta municipal ya publicada en `alertas/{id}` (con fuente oficial y vigente) a todos los que no apagaron los avisos, una sola vez por alerta (`alertas/{id}/envios/push`). **Solo admin** | Panel admin → Emergencias → Alertas municipales |
 | `GET /v1/salud` | Estado del servicio y de Firestore | Panel → **Diagnóstico** |
 
 Ejemplos:
@@ -137,6 +138,8 @@ Si Render asigna otra dirección (por ejemplo, porque `fusa-conecta-api` ya est�
 `POST /v1/notificaciones/aprobacion` escribe la novedad en `usuarios/{uid}/notificaciones`, borra los tokens que ya no
 sirven y envía el push con Firebase Cloud Messaging. Por eso necesita una cuenta **aparte** de la de solo lectura.
 Sin ella, el endpoint responde 503 y el panel admin sigue funcionando igual, solo que sin avisos.
+`POST /v1/alertas/enviar` usa la misma cuenta: lee los dispositivos de todos (`collection_group('dispositivos')`) y
+solo escribe el registro del envío en `alertas/{id}/envios/push`. Sin la cuenta, la alerta igual se ve en la app.
 
 Pasos (los hace la dueña del proyecto; unos 10 minutos):
 

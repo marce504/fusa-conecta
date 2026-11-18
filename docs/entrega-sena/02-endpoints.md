@@ -28,6 +28,7 @@ Las respuestas de abajo son **reales**: se pidieron a la API en producción el 2
 | 8 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas | Token de admin | — |
 | 9 | `GET /v1/salud` | Estado del servicio y de Firestore | Pública, sin límite | Panel → «Diagnóstico» |
 | 10 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó su negocio, evento, ruta, Premium o reclamo: novedad en su campana y push con Firebase Cloud Messaging | Token de admin | Panel admin → al aprobar o rechazar |
+| 11 | `POST /v1/alertas/enviar` | Manda al celular una alerta municipal (corte de agua, vía cerrada, clima…) que el admin ya publicó en `alertas/{id}` con su fuente oficial: a todos los que no apagaron los avisos, en lotes de 500, una sola vez por alerta | Token de admin | Panel admin → Emergencias → Alertas municipales |
 
 ## Ejemplos
 
