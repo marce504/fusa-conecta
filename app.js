@@ -589,6 +589,55 @@ async function moduloIA(){
   modIA={getGenerativeModel:m.getGenerativeModel,Schema:m.Schema,ai:m.getAI(app,{backend:new m.GoogleAIBackend()})};
   return modIA;
 }
+/* ===== IA DE RESPALDO POR LA API (v1.4.4) =====
+   Si la consola de Firebase exige App Check (Google lo hará solo el 21 de enero de 2027), Firebase AI Logic responde
+   401 y la app pasa por la API de Render (/v1/ia/generar), que guarda la clave en sus variables. El cambio dura un día
+   en este teléfono. La API del plan gratuito tarda hasta ~50 s en despertar: se despierta al abrir el asistente o el
+   formulario, y en ese camino los tiempos de espera son más largos. */
+let iaPorAPI=Date.now()-(+ls.get('fc_ia_api',0)||0)<864e5;
+const bloqueoAppCheck=e=>/app ?check/i.test(String(e&&e.message||e));
+function usarIAporAPI(){if(!iaPorAPI)console.warn('IA: Firebase exige App Check; se usa la API de respaldo');iaPorAPI=true;ls.set('fc_ia_api',Date.now());}
+function despertarAPI(){if(iaPorAPI&&navigator.onLine)fetch(API_URL+'/v1/salud').catch(()=>{});}
+const segIA=base=>iaPorAPI?Math.max(base,80):base;
+const partesIA=p=>typeof p==='string'?[{text:p}]:Array.isArray(p)?p:[p];
+function respuestaIA(d){
+  const c=(d.candidates||[])[0]||{},partes=(c.content&&c.content.parts)||[];
+  return {response:{candidates:d.candidates||[],
+    text:()=>partes.filter(x=>typeof x.text==='string').map(x=>x.text).join(''),
+    functionCalls:()=>{const l=partes.filter(x=>x.functionCall).map(x=>x.functionCall);return l.length?l:undefined;}}};
+}
+async function pedirIA(uso,cuerpo){
+  if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión para usar la IA'),{code:'unauthenticated'});
+  const r=await fetch(API_URL+'/v1/ia/generar',{method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+await auth.currentUser.getIdToken()},body:JSON.stringify({uso,...cuerpo})});
+  let d={};try{d=await r.json();}catch(e){}
+  if(!r.ok)throw Object.assign(new Error('API de IA: HTTP '+r.status+(d.error?' · '+d.error:'')),{code:'api-'+r.status});
+  return d;
+}
+// Modelo con la misma forma que el del SDK (generateContent, startChat/sendMessage, response.text y functionCalls):
+// primero Firebase AI Logic; si responde que falta App Check, la API, y desde ahí siempre la API
+function modeloDoble(o){
+  let sdk=null;const conSDK=()=>sdk||(sdk=o.sdk());
+  // Los Schema del SDK se convierten solos al formato de Gemini al pasarlos a JSON
+  const base=()=>JSON.parse(JSON.stringify({tools:o.tools,generationConfig:o.generationConfig,
+    systemInstruction:o.systemInstruction?{parts:[{text:o.systemInstruction}]}:undefined}));
+  const porAPI=async contents=>respuestaIA(await pedirIA(o.uso,{...base(),contents}));
+  return {
+    async generateContent(p){
+      if(!iaPorAPI){try{return await conSDK().generateContent(p);}catch(e){if(!bloqueoAppCheck(e))throw e;usarIAporAPI();}}
+      return porAPI([{role:'user',parts:partesIA(p)}]);
+    },
+    startChat({history=[]}={}){
+      const hist=JSON.parse(JSON.stringify(history));let chat=null;
+      const anotar=(parts,r)=>{const c=((r.response.candidates||[])[0]||{}).content;hist.push({role:'user',parts},c&&c.parts?{role:'model',parts:c.parts}:{role:'model',parts:[{text:r.response.text()}]});};
+      return {async sendMessage(p){
+        const parts=partesIA(p);
+        if(!iaPorAPI){try{chat=chat||conSDK().startChat({history});const r=await chat.sendMessage(p);anotar(parts,r);return r;}catch(e){if(!bloqueoAppCheck(e))throw e;usarIAporAPI();}}
+        const r=await porAPI([...hist,{role:'user',parts}]);anotar(parts,r);return r;
+      }};
+    }
+  };
+}
 async function obtenerModeloIA(){
   if(modelosIA)return modelosIA;
   const {getGenerativeModel,Schema,ai}=await moduloIA();
@@ -606,7 +655,8 @@ async function obtenerModeloIA(){
       organizador:Schema.string(),
       enlace_fuente:Schema.string({description:'Enlace https de la publicación oficial, si aparece'})},
     optionalProperties:['descripcion','fecha_fin','precio','organizador','enlace_fuente']});
-  modelosIA=IA.modelos.map(m=>getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:'application/json',responseSchema:esquema,temperature:0}}));
+  const config={responseMimeType:'application/json',responseSchema:esquema,temperature:0};
+  modelosIA=IA.modelos.map(m=>modeloDoble({uso:'evento',generationConfig:config,sdk:()=>getGenerativeModel(ai,{model:m,generationConfig:config})}));
   return modelosIA;
 }
 // Cuenta un uso de hoy (día UTC); las reglas impiden pasar de 20 o saltarse el contador
@@ -619,6 +669,7 @@ async function contarUsoIA(){
   });
 }
 function iaCajaHTML(){
+  despertarAPI();
   return '<div class="ia-caja"><p class="bloque-tit">'+icon('sparkles',18)+'Llenar con IA desde un afiche o texto</p>'
     +'<p class="nota-c izq">Sube la foto del afiche o pega el texto de la publicación. Revisa todo antes de enviar.</p>'
     +'<label class="btn btn-secundario btn-bloque ia-afiche" id="iaAficheBtn">'+icon('image-plus',18)+'<span id="iaAficheTx">Subir afiche</span><input type="file" accept="image/*" id="iaAfiche" class="sr-only"></label>'
@@ -652,7 +703,7 @@ function enlazarIAEvento(alLlenar){
         const modelos=await obtenerModeloIA();let ultimo=null;
         for(const m of modelos){try{return await m.generateContent(partes);}catch(e){ultimo=e;console.warn('IA:',e);}}
         throw ultimo;
-      })(),IA.segundos*1000,'La IA tardó demasiado');
+      })(),segIA(IA.segundos)*1000,'La IA tardó demasiado');
       const d=JSON.parse(r.response.text());
       alLlenar(d,afiche);
       medir('evento_ia',{con_afiche:!!afiche});
@@ -828,7 +879,9 @@ function tarjetasAsis(resultados,texto){
 }
 async function modeloAsistente(){
   const m=await moduloIA();
-  return m.getGenerativeModel(m.ai,{model:IA.modelos[0],tools:herramientasAsis(m.Schema),systemInstruction:instruccionAsis(),generationConfig:{temperature:0.3}});
+  const tools=herramientasAsis(m.Schema),systemInstruction=instruccionAsis(),generationConfig={temperature:0.3};
+  return modeloDoble({uso:'asistente',tools,systemInstruction,generationConfig,
+    sdk:()=>m.getGenerativeModel(m.ai,{model:IA.modelos[0],tools,systemInstruction,generationConfig})});
 }
 async function preguntarFusa(texto){
   const A=estado.asis;texto=String(texto||'').trim().slice(0,300);
@@ -840,7 +893,7 @@ async function preguntarFusa(texto){
     A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
     // Cada vuelta con la IA tiene su límite. Gemini tarda entre 5 y 20 s por vuelta: en cuanto las funciones
     // devuelven datos, las tarjetas aparecen; si la frase final no llega a tiempo, se responde solo con ellas.
-    const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),ASIS.segundos*1000,'La IA tardó demasiado');A.parcial=resultados;
+    const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),segIA(ASIS.segundos)*1000,'La IA tardó demasiado');A.parcial=resultados;
     const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
     let x=await enviar(chat,texto),resp='';
     try{
@@ -911,6 +964,7 @@ function pintarAsis(){
   const c=$('#cuerpo');c.scrollTop=c.scrollHeight;
 }
 function renderAsistente(){
+  despertarAPI();
   $('#cuerpo').innerHTML='<div class="vista asis">'
     +'<div class="asis-head"><span class="asis-logo" aria-hidden="true">'+icon('sparkles',24)+'</span><div><h2>Pregúntale a Fusa</h2><p>Tu guía de Fusagasugá y Pasca, con IA</p></div></div>'
     +'<div class="asis-log" id="asisLog" role="log" aria-live="polite" aria-label="Conversación con Fusa"></div>'
@@ -5236,12 +5290,14 @@ const PRUEBAS_DIAG=[
     .set({fecha:FV.serverTimestamp(),version:VERSION_APP,navegador:navigator.userAgent.slice(0,200),en_linea:navigator.onLine})],
   ['Cola de escrituras del teléfono',10000,()=>db.waitForPendingWrites()],
   ['API REST (/v1/salud)',70000,async()=>{const r=await(await pedirAPI('/v1/salud')).json();if(!r.firestore)throw new Error('La API responde, pero no llega a Firestore');}],
-  ['Llamada a la IA ('+IA.modelos[0]+')',IA.segundos*1000,async()=>{const m=(await obtenerModeloIA())[0];
-    const r=await m.generateContent('Responde {"titulo":"Prueba","categoria":"otro"} sin cambiar nada.');JSON.parse(r.response.text());}]
+  ['Llamada a la IA ('+IA.modelos[0]+')',80000,async()=>{const m=(await obtenerModeloIA())[0];
+    const r=await m.generateContent('Responde {"titulo":"Prueba","categoria":"otro"} sin cambiar nada.');JSON.parse(r.response.text());
+    return iaPorAPI?'por la API de respaldo (Firebase exige App Check)':'directo con Firebase AI Logic';}]
 ];
 // v1.4.1: errores con arreglo conocido se explican en vez de mostrar el texto técnico
 function pistaDiagnostico(e){
   const m=String(e&&e.message||e);
+  if(/GEMINI_API_KEY/.test(m))return 'Firebase exige App Check y la IA de respaldo de la API todavía no tiene su clave. Arreglo: Render → fusa-conecta-api → Environment → agregar GEMINI_API_KEY.';
   if(/app ?check/i.test(m))return 'La consola de Firebase está exigiendo App Check para la IA y la app no lo usa. Arreglo: consola de Firebase → App Check → APIs → Firebase AI Logic → «Dejar de aplicar» (Unenforce).';
   if(/\b429\b|quota|resource.exhausted/i.test(m))return 'Se agotó el cupo gratuito de la IA por hoy o por este minuto. Vuelve a probar más tarde.';
   if(/\b503\b|overloaded|unavailable/i.test(m))return 'El modelo de IA está saturado en este momento. Vuelve a probar en unos minutos.';
@@ -5258,7 +5314,7 @@ function abrirDiagnostico(){
   (async()=>{
     for(let i=0;i<PRUEBAS_DIAG.length;i++){
       const [t,ms,fn]=PRUEBAS_DIAG[i],t0=performance.now();let ok=true,det='';
-      try{await conTiempoLimite(Promise.resolve().then(fn),ms,'Sin respuesta en '+ms/1000+' s');}catch(e){ok=false;det=reportarError('diagnóstico · '+t,e)+' · '+(pistaDiagnostico(e)||String(e.message||e).slice(0,140));}
+      try{const r=await conTiempoLimite(Promise.resolve().then(fn),ms,'Sin respuesta en '+ms/1000+' s');if(typeof r==='string')det=r;}catch(e){ok=false;det=reportarError('diagnóstico · '+t,e)+' · '+(pistaDiagnostico(e)||String(e.message||e).slice(0,140));}
       const seg=((performance.now()-t0)/1000).toFixed(1).replace('.',',')+' s';
       res.push((ok?'OK':'FALLA')+' · '+t+' · '+seg+(det?' · '+det:''));
       const li=$('#diag'+i);if(!li)return;

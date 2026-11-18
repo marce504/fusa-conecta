@@ -12,11 +12,11 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 
-from . import avisos, formatos, servicios
+from . import avisos, formatos, ia, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -39,7 +39,8 @@ app = FastAPI(
         "Servicios web REST de **Fusa Conecta**, la guía de Fusagasugá y Pasca (https://fusa-conecta.web.app).\n\n"
         "- Lectura pública: comercios, agenda (JSON e ICS), rutas (GPX) y números de emergencia.\n"
         "- Protegido con el token de Firebase Auth (`Authorization: Bearer <idToken>`): "
-        "reporte del negocio, estadísticas del admin y avisos al celular cuando el admin aprueba o rechaza.\n"
+        "reporte del negocio, estadísticas del admin, avisos al celular cuando el admin aprueba o rechaza "
+        "e IA de respaldo.\n"
         f"- Límite: {LIMITE} por IP. Datos de Firestore en caché de 2 minutos."
     ),
     contact={"name": "Fusa Conecta", "url": "https://fusa-conecta.web.app"},
@@ -51,6 +52,7 @@ app = FastAPI(
         {"name": "Negocios", "description": "Requiere ser dueño del negocio o admin"},
         {"name": "Admin", "description": "Requiere rol admin"},
         {"name": "Avisos", "description": "Notificaciones push (Firebase Cloud Messaging). Requiere rol admin"},
+        {"name": "IA", "description": "Respaldo de Firebase AI Logic cuando Google exige App Check. Requiere sesión"},
         {"name": "Servicio"},
     ],
 )
@@ -433,3 +435,51 @@ def avisar_decision(
         log.info("Tokens borrados por inválidos: %d", len(malos))
     respuesta.update(enviados=enviados, dispositivos=len(tokens) - len(malos))
     return respuesta
+
+
+# ---------- IA de respaldo (v1.3.0) ----------
+MAX_BYTES_IA = 1_500_000  # un afiche comprimido (unos 600 KB) en base64 más el texto
+
+
+def _gemini() -> ia.Gemini:
+    try:
+        return ia.gemini()
+    except ia.SinClave as e:
+        raise HTTPException(503, "La IA de respaldo aún no está configurada (falta GEMINI_API_KEY en Render)") from e
+
+
+def _contador() -> ia.Contador:
+    return ia.contador()
+
+
+@app.post(
+    "/v1/ia/generar",
+    tags=["IA"],
+    summary="Gemini por la API cuando Firebase AI Logic exige App Check",
+    responses={
+        401: {"description": "Sin token o vencido"},
+        413: {"description": "El pedido es demasiado grande"},
+        429: {"description": "Cupo diario agotado o Gemini sin cupo"},
+        503: {"description": "Falta GEMINI_API_KEY o Gemini no responde"},
+    },
+)
+@limiter.limit("30/minute")
+def generar_ia(
+    request: Request,
+    usuario: Usuario,
+    pedido: ia.PedidoIA,
+    modelo: Annotated[ia.Gemini, Depends(_gemini)],
+    cupo: Annotated[ia.Contador, Depends(_contador)],
+) -> dict:
+    """Recibe lo mismo que el SDK de Firebase AI Logic le enviaría a Gemini y devuelve la respuesta de Gemini
+    (`candidates`). Solo para la app: «evento» (leer un afiche o texto, salida JSON) y «asistente» (con funciones).
+    El modelo, la temperatura y el largo de la respuesta los fija la API, y cada persona tiene un cupo diario."""
+    if int(request.headers.get("content-length") or 0) > MAX_BYTES_IA:
+        raise HTTPException(413, "El pedido es demasiado grande")
+    try:
+        restantes = cupo.usar(usuario.get("uid", ""))
+        r = modelo.generar(ia.cuerpo_gemini(pedido))
+    except ia.ErrorIA as e:
+        estado = 429 if e.estado == 429 else 503
+        raise HTTPException(estado, str(e) if estado == 429 else "La IA no respondió. Intenta de nuevo.") from e
+    return {"candidates": r.get("candidates") or [], "usageMetadata": r.get("usageMetadata") or {}, "cupo": restantes}

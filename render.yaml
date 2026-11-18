@@ -30,3 +30,7 @@ services:
       # Avisos al celular (FCM): cuenta aparte con «Firebase Cloud Messaging API Admin» (ver api/LEEME.md)
       - key: FIREBASE_SA_FCM
         sync: false
+      # IA de respaldo (/v1/ia/generar) para cuando Google exija App Check en Firebase AI Logic: la misma clave de
+      # Gemini que GEMINI_API_KEY en los secretos de GitHub (ver docs/agenda-ia.md)
+      - key: GEMINI_API_KEY
+        sync: false

@@ -9,6 +9,13 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **IA de respaldo por la API** (`POST /v1/ia/generar`, API v1.3.0). Google exigirá App Check en Firebase AI Logic
+  el 21 de enero de 2027 y la app no puede usarlo en el plan Spark. Si Firebase responde que falta App Check, la app
+  (`modeloDoble`) repite la misma llamada por la API de Render, con la sesión de Firebase, y sigue por ahí ese día. La
+  API solo acepta los usos «evento» y «asistente», fija modelo, temperatura y largo, limita el tamaño del pedido y da un
+  cupo diario por persona en Firestore. La clave va en la variable `GEMINI_API_KEY` de Render, nunca en la app. La app
+  despierta la API al abrir el asistente o el formulario de eventos y espera más en ese camino. El Diagnóstico dice si
+  la IA respondió directo o por la API. Con pruebas en la API y en la app. PWA v83 (`fusa-v76`).
 - **Guía de iPhone sin App Store** (`instalarEnIphone`). En iPhone la app ya funciona en Safari, pero la gente la
   buscaba en la App Store o se perdía en pasos desactualizados: Safari 26 escondió «Compartir» en el menú «•••» y desde
   Instagram, Facebook o TikTok no se puede agregar al inicio. Ahora la app reconoce el navegador (`navegadorIphone`:

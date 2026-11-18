@@ -83,6 +83,23 @@ reCAPTCHA pide cuenta de facturación; ver 2.1). Mientras esté exigido no funci
 IA» para nadie. Arreglo, en la consola: **App Check → APIs → Firebase AI Logic → Dejar de aplicar (Unenforce)**. No
 es un cambio de código. La agenda automática no se afecta: usa su propia clave en los secretos de GitHub.
 
+### IA de respaldo por la API (v1.4.4, antes del 21 de enero de 2027)
+
+Google anunció que **exigirá App Check en Firebase AI Logic el 21 de enero de 2027**, aunque hoy se haya quitado. La
+app no puede usar App Check en el plan Spark. Por eso ahora hace esto:
+
+1. Llama a Gemini con Firebase AI Logic, como siempre: es lo más rápido.
+2. Si Firebase responde «App Check token is invalid», pasa por la API de Render (`POST /v1/ia/generar`), y en ese
+   teléfono sigue por ahí durante un día. La API verifica la sesión de Firebase, solo acepta los dos usos de la app
+   (leer un evento y el asistente), fija el modelo y el largo de la respuesta, y da un cupo de 80 llamadas al día por
+   persona (`uso_ia_api/{uid}`, solo la escribe la API).
+3. La API del plan gratuito se duerme: la app la despierta al abrir el asistente o el formulario de eventos, y espera
+   hasta 80 s en ese camino.
+
+**Lo que hay que hacer una vez (la dueña del proyecto):** en Render → `fusa-conecta-api` → **Environment** → **Add
+Environment Variable**: `GEMINI_API_KEY` con la misma clave de Gemini que está en los secretos de GitHub. Guardar y
+esperar el redespliegue. El Diagnóstico de la app dice por dónde respondió la IA.
+
 ## 2.3 Organizadores
 
 Panel → Eventos → **Invitar organizador** (correo + "Confiable"). La app copia un mensaje para enviarle por correo o WhatsApp.

@@ -475,3 +475,91 @@ describe('iPhone: navegador y pasos para agregar la app al inicio', () => {
     expect(navegadorIphone(base + ' FxiOS/133.0 Mobile/15E148').tipo).toBe('otro');
   });
 });
+
+describe('modeloDoble: Firebase AI Logic y, si exige App Check, la API de respaldo', () => {
+  const armar = () => {
+    const guardado = {},
+      pedidos = [];
+    const ls = { get: k => guardado[k], set: (k, v) => (guardado[k] = v) };
+    const auth = { currentUser: { getIdToken: async () => 'token-de-prueba' } };
+    const fetch = async (url, o) => {
+      const cuerpo = JSON.parse(o.body);
+      pedidos.push({ url, auth: o.headers.Authorization, cuerpo });
+      const ultimo = cuerpo.contents.at(-1).parts[0];
+      const parts = ultimo.functionResponse
+        ? [{ text: 'Te recomiendo el Vivero.' }]
+        : cuerpo.uso === 'asistente'
+          ? [{ functionCall: { name: 'buscarLugares', args: { texto: 'vivero' } } }]
+          : [{ text: '{"titulo":"Feria"}' }];
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { role: 'model', parts } }] }) };
+    };
+    const m = cargar(
+      ['iaPorAPI', 'bloqueoAppCheck', 'usarIAporAPI', 'partesIA', 'respuestaIA', 'pedirIA', 'modeloDoble'],
+      { ls, auth, fetch, API_URL: 'https://api.prueba', console: { warn() {} } },
+    );
+    return { ...m, pedidos, guardado };
+  };
+  const appCheck = () => {
+    throw new Error('[401 ] Firebase App Check token is invalid. (AI/fetch-error)');
+  };
+
+  it('usa el SDK mientras funciona', async () => {
+    const { modeloDoble, pedidos } = armar();
+    const sdk = { generateContent: async () => ({ response: { text: () => 'directo' } }) };
+    const r = await modeloDoble({ uso: 'evento', sdk: () => sdk }).generateContent('hola');
+    expect(r.response.text()).toBe('directo');
+    expect(pedidos).toHaveLength(0);
+  });
+
+  it('con App Check pasa a la API, con sesión y el esquema, y se queda ahí', async () => {
+    const { modeloDoble, pedidos, guardado } = armar();
+    let usosSDK = 0;
+    const sdk = {
+      generateContent: async () => {
+        usosSDK++;
+        appCheck();
+      },
+    };
+    const esquema = { type: 'OBJECT', properties: { titulo: { type: 'STRING' } } };
+    const m = modeloDoble({ uso: 'evento', generationConfig: { responseSchema: esquema }, sdk: () => sdk });
+    expect(JSON.parse((await m.generateContent('Feria el sábado')).response.text())).toEqual({ titulo: 'Feria' });
+    expect(pedidos[0].url).toBe('https://api.prueba/v1/ia/generar');
+    expect(pedidos[0].auth).toBe('Bearer token-de-prueba');
+    expect(pedidos[0].cuerpo).toMatchObject({ uso: 'evento', generationConfig: { responseSchema: esquema } });
+    expect(pedidos[0].cuerpo.contents).toEqual([{ role: 'user', parts: [{ text: 'Feria el sábado' }] }]);
+    await m.generateContent('otra');
+    expect(usosSDK).toBe(1);
+    expect(guardado.fc_ia_api).toBeGreaterThan(0);
+  });
+
+  it('el asistente por la API conserva el historial y la respuesta de las funciones', async () => {
+    const { modeloDoble, pedidos } = armar();
+    const sdk = { startChat: () => ({ sendMessage: async () => appCheck() }) };
+    const m = modeloDoble({
+      uso: 'asistente',
+      systemInstruction: 'Eres Fusa',
+      tools: [{ functionDeclarations: [] }],
+      sdk: () => sdk,
+    });
+    const chat = m.startChat({ history: [{ role: 'user', parts: [{ text: 'antes' }] }] });
+    const x = await chat.sendMessage('¿Dónde compro plantas?');
+    expect(x.response.functionCalls()[0].name).toBe('buscarLugares');
+    const y = await chat.sendMessage([{ functionResponse: { name: 'buscarLugares', response: { lugares: [] } } }]);
+    expect(y.response.text()).toBe('Te recomiendo el Vivero.');
+    const ultimo = pedidos.at(-1).cuerpo;
+    expect(ultimo.systemInstruction).toEqual({ parts: [{ text: 'Eres Fusa' }] });
+    expect(ultimo.contents.map(c => c.role)).toEqual(['user', 'user', 'model', 'user']);
+    expect(ultimo.contents[2].parts[0].functionCall.name).toBe('buscarLugares');
+  });
+
+  it('otros errores del SDK no cambian de camino', async () => {
+    const { modeloDoble, pedidos } = armar();
+    const sdk = {
+      generateContent: async () => {
+        throw new Error('[503 ] overloaded');
+      },
+    };
+    await expect(modeloDoble({ uso: 'evento', sdk: () => sdk }).generateContent('x')).rejects.toThrow('503');
+    expect(pedidos).toHaveLength(0);
+  });
+});
