@@ -494,6 +494,13 @@ button:disabled{opacity:.6;pointer-events:none}
 .ruta-tr small{display:block;font-size:var(--text-xs);color:var(--ink-2)}
 .ruta-tr a{color:var(--primary-700)}
 .rt-viejo{display:flex!important;align-items:center;gap:4px;color:var(--warning-700)!important;margin-top:4px}
+.mercado-c .head-v h2{display:flex;align-items:center;gap:8px}
+.mercado-c .head-v h2 .ic{color:var(--mint-700)}
+.mc-plaza{display:flex;align-items:center;gap:12px;width:100%;padding:12px;margin-top:8px;border:1px solid var(--soft);border-radius:var(--radius-md);background:var(--bg);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.mc-plaza>.ic:first-child{color:var(--mint-700);flex-shrink:0}
+.mc-plaza span{flex:1;min-width:0}
+.mc-plaza b{display:block;font-weight:600}
+.mc-plaza small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
 .num-grande{font-size:var(--text-2xl);font-weight:600;color:var(--danger-600);margin:8px 0 16px}
 .hoja-acc{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 

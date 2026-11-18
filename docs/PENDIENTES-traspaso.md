@@ -157,10 +157,10 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - Hace falta el secreto `FIREBASE_SA_FCM` en Render, y lo configura Marcela.
    - Solo el admin puede crear alertas.
 3. **(PUBLICADO 18-nov, commit c4b5483, PWA v90) Horarios de transporte.** Pantalla «Cómo moverse» y Panel → Transporte; sin fuente oficial pública, solo horarios publicados por el admin con fuente y fecha. Solo con datos verificados de las empresas o de la terminal.
-4. **(HECHO 18-nov, PWA v91; ver git log si ya se publicó) Oficios y servicios a domicilio con calificaciones.** `a_domicilio` y `zona_cobertura` en comercios, filtro «A domicilio», regla contra autocalificarse.
+4. **(PUBLICADO 18-nov, commit 6874035, PWA v91) Oficios y servicios a domicilio con calificaciones.** `a_domicilio` y `zona_cobertura` en comercios, filtro «A domicilio», regla contra autocalificarse.
    - Las reseñas solo pueden venir de usuarios con sesión.
    - Una reseña por usuario, con la regla en `firestore.rules`.
-5. **Mercado campesino.** Fechas y lugar deben venir de una fuente oficial.
+5. **(HECHO 18-nov, PWA v92; ver git log si ya se publicó) Mercado campesino.** Sección en Campo con eventos de la Agenda (`esMercadoCampesino`) y plazas c372, c465, c499. Fechas y lugar deben venir de una fuente oficial.
 6. **Pedidos por WhatsApp desde un menú:** el comercio carga su menú y el cliente arma un mensaje de WhatsApp.
 7. **Mascotas y objetos perdidos:**
    - publicaciones con sesión iniciada;
@@ -179,5 +179,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `c4b5483`, en producción como v90 (`fusa-v83`), API v1.4.0.
+- **Último commit publicado:** `6874035`, en producción como v91 (`fusa-v84`), API v1.4.0.
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

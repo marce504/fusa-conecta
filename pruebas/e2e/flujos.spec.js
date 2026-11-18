@@ -825,3 +825,35 @@ test('a domicilio: la dueña lo marca, aparece en el filtro y no puede calificar
   await expect(page.locator('#sheetDetalle')).toContainText('Todo Fusagasugá y Chinauta');
   await page.screenshot({ path: info.outputPath('domicilio-ficha.png') });
 });
+
+// v92: mercado campesino. Las fechas salen de la Agenda; las plazas son lugares reales del directorio
+test('mercado campesino: plazas del directorio y el próximo mercado de la agenda en Campo y en el inicio', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'campo' }));
+  const sec = page.locator('#cuerpo .mercado-c');
+  await expect(sec).toContainText('No hay mercados campesinos anunciados');
+  await expect(sec).toContainText('Plaza de Mercado de Pasca');
+  // Un evento publicado en la agenda (solo en el emulador)
+  const ini = Date.now() + 3 * 24 * 3600e3;
+  await poner('eventos/e2e-mercado', {
+    titulo: 'Mercado Campesino de prueba E2E',
+    descripcion: 'Productores de la región.',
+    estado: 'publicado',
+    categoria: 'feria',
+    tipo: 'plan',
+    municipio: 'Fusagasugá',
+    lugar_nombre: 'Parque principal',
+    fecha_inicio: new Date(ini),
+    fecha_fin: new Date(ini + 6 * 3600e3),
+  });
+  await page.waitForFunction(() => mercadosCampesinos().length === 1);
+  await page.evaluate(() => window.render(true));
+  await expect(sec).toContainText('Mercado Campesino de prueba E2E');
+  await page.screenshot({ path: info.outputPath('mercado-campo.png') });
+  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
+  await expect(page.locator('#cuerpo')).toContainText('Mercado campesino:');
+});

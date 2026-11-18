@@ -281,6 +281,29 @@ function eventosVigentes(){const ahora=Date.now();return estado.eventos.filter(e
 // Planes para la gente: sin avisos del municipio ni eventos de ejemplo
 const planesVigentes=()=>eventosVigentes().filter(e=>!e.demo&&!esAviso(e));
 const avisosVigentes=()=>eventosVigentes().filter(e=>!e.demo&&esAviso(e));
+/* ===== MERCADO CAMPESINO (v92) =====
+   Las fechas salen de la Agenda (eventos publicados con su fuente; la agenda automática ya busca «mercado campesino»).
+   Las plazas de mercado son lugares reales del directorio (OpenStreetMap). No hay fechas fijas inventadas. */
+const RE_MERCADO=/mercado(s)? (campesino|agro|de productores|verde|org[aá]nico)|feria (campesina|agropecuaria|de productores)|del campo a la ciudad/i;
+const esMercadoCampesino=e=>!!e&&!e.demo&&RE_MERCADO.test((e.titulo||'')+' '+(e.descripcion||''));
+const mercadosCampesinos=(mun='')=>planesVigentes().filter(e=>esMercadoCampesino(e)&&enMunicipio(e,mun));
+const PLAZAS_MERCADO=['c372','c465','c499']; // Plaza de Mercado y Maximercado (Fusagasugá), Plaza de Mercado de Pasca
+function mercadoCampesinoHTML(){
+  const mun=municipioElegido(),l=mercadosCampesinos(mun);
+  const plazas=PLAZAS_MERCADO.map(id=>buscar(id)).filter(d=>d&&enMunicipio(d,mun));
+  return '<section class="seccion-inicio mercado-c" aria-labelledby="tMercado"><div class="head-v"><h2 id="tMercado">'+icon('sprout',22)+'Mercado campesino</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
+    +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
+      :'<p class="nota-c izq">No hay mercados campesinos anunciados por ahora. Cuando la Alcaldía o los productores publiquen uno, aparece aquí y en la Agenda.</p>')
+    +(plazas.length?'<p class="lbl mt-16">Plazas de mercado</p>'+plazas.map(d=>'<button class="mc-plaza" data-verplaza="'+esc(d.id)+'">'+icon('store',18)+'<span><b>'+esc(d.nombre)+'</b><small>'+esc(d.direccion||municipioDe(d))+'</small></span>'+icon('chevron-right',18)+'</button>').join(''):'')
+    +'</section>';
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-verplaza]');if(b)abrirDetalle(b.dataset.verplaza);});
+// En el inicio, solo si hay un mercado campesino en los próximos 14 días
+function avisoMercadoInicioHTML(){
+  const e=mercadosCampesinos(municipioElegido()).find(x=>x.ini<=Date.now()+14*24*3600e3);
+  if(!e)return '';
+  return '<button class="tarjeta-opinion mb-16" data-evento="'+esc(e.id)+'"><span class="to-ic">'+icon('sprout',22)+'</span><span class="to-tx"><b>Mercado campesino: '+esc(fechaEvento(e))+'</b><small>'+esc(e.titulo)+' · '+esc(e.lugar_nombre||'')+'</small></span>'+icon('chevron-right')+'</button>';
+}
 function finDelDomingo(){const d=new Date();d.setHours(23,59,59,999);d.setDate(d.getDate()+((7-d.getDay())%7));return d.getTime();}
 function inicioDelViernes(){const d=new Date();if([0,5,6].includes(d.getDay()))return Date.now();d.setHours(0,0,0,0);d.setDate(d.getDate()+(5-d.getDay()));return d.getTime();}
 function eventosEn(rango,cat){
@@ -2134,7 +2157,7 @@ function renderLista(v){
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
@@ -2380,7 +2403,7 @@ function seccionCercaHTML(){
   const l=itemsVisibles('todas','',false).filter(d=>{const k=distanciaA(d);return k!=null&&k<=3;}).sort((a,b)=>distanciaA(a)-distanciaA(b)).slice(0,10);
   return carruselHTML('Cerca','Cerca de ti',l,'cercanos');
 }
-function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
+function seccionCampoHTML(){return avisoMercadoInicioHTML()+carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
   const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&enMunicipio(d,municipioElegido())).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);

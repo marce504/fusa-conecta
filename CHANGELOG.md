@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Mercado campesino.** En Campo hay una sección con los próximos mercados campesinos de la Agenda (los que se
+  publican con su fuente; la agenda automática ya los busca) y las plazas de mercado reales del directorio: Plaza de
+  Mercado y Maximercado de Fusagasugá, y Plaza de Mercado de Pasca. En el inicio aparece un aviso solo si hay un
+  mercado campesino en los próximos 14 días. No se inventan fechas fijas: no hay un calendario oficial publicado.
+  PWA v92 (`fusa-v85`).
 - **Oficios y servicios a domicilio.** Al registrar o editar el negocio, los servicios marcan «Atiendo a domicilio» y
   los comercios y productos del campo «Hago domicilios», con las zonas que cubren (texto corto). Quien no tiene local
   puede dejar la dirección vacía y atender por WhatsApp o teléfono, que pasa a ser obligatorio en ese caso. Nuevo

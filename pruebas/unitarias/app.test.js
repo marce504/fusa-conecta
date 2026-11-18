@@ -882,3 +882,15 @@ describe('aDomicilio: lo marca el dueño o lo dice la ficha real', () => {
     [null, false],
   ])('%o → %s', (d, esperado) => expect(aDomicilio(d)).toBe(esperado));
 });
+
+describe('Mercado campesino: reconoce los eventos de la agenda', () => {
+  const { esMercadoCampesino } = cargar(['RE_MERCADO', 'esMercadoCampesino']);
+  it.each([
+    [{ titulo: 'Mercado Campesino Provincial' }, true],
+    [{ titulo: 'Gran feria campesina del Sumapaz' }, true],
+    [{ titulo: 'Festival de cine', descripcion: 'Habrá mercado de productores en la plaza.' }, true],
+    [{ titulo: 'Concierto en el parque' }, false],
+    [{ titulo: 'Mercado campesino', demo: true }, false],
+    [null, false],
+  ])('%o → %s', (e, esperado) => expect(esMercadoCampesino(e)).toBe(esperado));
+});

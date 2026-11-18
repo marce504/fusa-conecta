@@ -128,6 +128,7 @@ export default [
         arranque: 'readonly',
         auth: 'readonly',
         database: 'readonly',
+        mercadosCampesinos: 'readonly',
       },
     },
   },
