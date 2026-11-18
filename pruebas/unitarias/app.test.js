@@ -811,3 +811,62 @@ describe('Alertas municipales: vigencia, municipio y validación del admin', () 
     expect(datosAlerta({ ...ok, tipo: 'fiesta' }, ahora)).toMatch(/tipo/);
   });
 });
+
+describe('Horarios de transporte: solo con fuente y fecha de verificación', () => {
+  const ahora = Date.parse('2026-11-18T10:00:00-05:00');
+  const { rutasTransporte, datosRutaTransporte, rutaTransporteHTML } = cargar(
+    ['telLimpio', 'esc', 'fechaCorta', 'DIAS_VIEJO', 'rutasTransporte', 'datosRutaTransporte', 'rutaTransporteHTML'],
+    { icon: () => '' },
+  );
+  const ok = {
+    empresa: 'Empresa de prueba',
+    origen: 'Fusagasugá',
+    destino: 'Bogotá',
+    salidas: 'Cada 30 min, de 5:00 a. m. a 8:00 p. m.',
+    precio: '$ 16.000',
+    tel: '301 234 5678',
+    fuente: 'Página de la empresa',
+    fuente_url: 'https://ejemplo.test/horarios',
+    verificado: '2026-11-18',
+  };
+  it('limpia y valida los datos del admin', () => {
+    const r = datosRutaTransporte(ok, ahora);
+    expect(r.tel).toBe('3012345678');
+    expect(r.verificado).toBe(new Date('2026-11-18T12:00:00').getTime());
+    expect(datosRutaTransporte({ ...ok, fuente_url: 'ejemplo.test' }, ahora)).toMatch(/https/);
+    expect(datosRutaTransporte({ ...ok, salidas: '' }, ahora)).toMatch(/salidas/);
+    expect(datosRutaTransporte({ ...ok, verificado: '2025-10-01' }, ahora)).toMatch(/más de un año/);
+    expect(datosRutaTransporte({ ...ok, verificado: '2026-12-01' }, ahora)).toMatch(/futura/);
+    expect(datosRutaTransporte({ ...ok, tel: '12' }, ahora)).toMatch(/teléfono/);
+  });
+  it('solo se muestran las activas con fuente https y avisa si el dato es viejo', () => {
+    const l = [
+      {
+        id: 'b',
+        activo: true,
+        empresa: 'B',
+        origen: 'Fusagasugá',
+        destino: 'Girardot',
+        fuente: 'F',
+        fuente_url: 'https://x.test',
+      },
+      {
+        id: 'a',
+        activo: true,
+        empresa: 'A',
+        origen: 'Fusagasugá',
+        destino: 'Bogotá',
+        fuente: 'F',
+        fuente_url: 'https://x.test',
+      },
+      { id: 'c', activo: false, empresa: 'C', origen: 'X', destino: 'Y', fuente: 'F', fuente_url: 'https://x.test' },
+      { id: 'd', activo: true, empresa: 'D', origen: 'X', destino: 'Y', fuente: 'F', fuente_url: 'http://x.test' },
+    ];
+    expect(rutasTransporte(l).map(r => r.id)).toEqual(['a', 'b']);
+    const viejo = rutaTransporteHTML({ ...l[1], salidas: 'x', verificado: ahora - 100 * 24 * 3600e3 }, ahora);
+    expect(viejo).toContain('puede haber cambiado');
+    expect(rutaTransporteHTML({ ...l[1], salidas: 'x', verificado: ahora }, ahora)).not.toContain(
+      'puede haber cambiado',
+    );
+  });
+});

@@ -1593,6 +1593,52 @@ document.addEventListener('click',e=>{
   l.push(c.dataset.cerraralerta);ls.set('fc_alertas_cerradas',l);
   const caja=c.closest('.alerta-muni');if(caja)caja.remove();
 });
+/* ===== CÓMO MOVERSE: HORARIOS DE TRANSPORTE (v90) =====
+   No hay una fuente oficial pública con los horarios de la Terminal de Fusagasugá (las páginas de pasajes se
+   contradicen), así que la app solo muestra los que el admin publica con su fuente y la fecha en que los verificó.
+   transporte/{id}: lectura pública, escritura solo del admin con los campos válidos (firestore.rules). */
+const LUGARES_TRANSPORTE=['c369','c368']; // Terminal de Transporte y paradero del colectivo a Chinauta (OpenStreetMap)
+const DIAS_VIEJO=90;
+function rutasTransporte(l){
+  return (l||[]).filter(r=>r.activo&&r.fuente&&/^https:\/\//.test(r.fuente_url||''))
+    .sort((a,b)=>(a.origen+a.destino+a.empresa).localeCompare(b.origen+b.destino+b.empresa,'es'));
+}
+function rutaTransporteHTML(r,ahora=Date.now()){
+  const viejo=r.verificado&&ahora-r.verificado>DIAS_VIEJO*24*3600e3;
+  return '<div class="ruta-tr"><div class="rt-cab">'+icon('bus',18)+'<b>'+esc(r.origen)+' → '+esc(r.destino)+'</b></div>'
+    +'<span class="rt-emp">'+esc(r.empresa)+'</span><p>'+esc(r.salidas)+(r.precio?' · '+esc(r.precio):'')+'</p>'
+    +'<small>Fuente: <a href="'+esc(r.fuente_url)+'" target="_blank" rel="noopener">'+esc(r.fuente)+'</a> · Verificado el '+esc(fechaCorta(r.verificado))+'</small>'
+    +(viejo?'<small class="rt-viejo">'+icon('clock',14)+'Verificado hace más de 3 meses: puede haber cambiado</small>':'')
+    +(r.tel?'<button class="btn btn-secundario btn-sm mt-8" data-llamar="'+esc(r.tel)+'" data-ent="'+esc(r.empresa)+'">'+icon('phone',16)+'Llamar a '+esc(r.empresa)+'</button>':'')
+    +'</div>';
+}
+function transporteEntradaHTML(){
+  return '<button class="tarjeta-opinion mb-16" id="irTransporte"><span class="to-ic">'+icon('bus',22)+'</span><span class="to-tx"><b>Cómo moverse</b><small>Terminal, paraderos y horarios de buses con su fuente</small></span>'+icon('chevron-right')+'</button>';
+}
+function renderTransporte(){
+  const cuerpo=$('#cuerpo'),l=rutasTransporte(estado.transporte);
+  const lugares=LUGARES_TRANSPORTE.map(id=>buscar(id)).filter(Boolean);
+  cuerpo.innerHTML='<div class="vista"><div class="sos-head tr-head"><h2>'+icon('bus',24)+'Cómo moverse</h2><p>'+icon('circle-check',16)+'Horarios con su fuente. Confirma en la taquilla antes de viajar.</p></div>'
+    +(lugares.length?'<h3 class="sos-grupo">Terminal y paraderos</h3>'+lugares.map(d=>'<div class="sos-fila"><span class="sos-ic sos-ic-neutro">'+icon('map-pin')+'</span><div class="sos-info"><b>'+esc(d.nombre)+'</b><span>'+esc(d.direccion||'')+'</span></div>'
+      +'<button class="sos-llamar sos-ver" data-vertr="'+esc(d.id)+'" aria-label="Ver la ficha de '+esc(d.nombre)+'">'+icon('chevron-right')+'</button></div>').join(''):'')
+    +'<h3 class="sos-grupo">Horarios de buses</h3>'
+    +(l.length?l.map(r=>rutaTransporteHTML(r)).join('')
+      :'<p class="sos-nota">Aún no tenemos horarios verificados: las páginas de pasajes no coinciden entre ellas y no queremos darte un dato falso. Pregunta en la taquilla de la Terminal o llama a la empresa antes de viajar.</p>')
+    +'</div>'+footerHTML();
+  $$('[data-vertr]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vertr)));
+  $$('[data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
+  enlazarFooter();
+}
+function transporteDeDoc(id,x){
+  return {id,empresa:x.empresa||'',origen:x.origen||'',destino:x.destino||'',salidas:x.salidas||'',precio:x.precio||'',tel:x.tel||'',
+    fuente:x.fuente||'',fuente_url:x.fuente_url||'',verificado:aMs(x.verificado)||0,activo:x.activo===true};
+}
+estado.transporte=ls.get('fc_transporte',[]);
+db.collection('transporte').where('activo','==',true).onSnapshot(s=>{
+  estado.transporte=s.docs.map(d=>transporteDeDoc(d.id,d.data()));ls.set('fc_transporte',estado.transporte);
+  if(vistaActual().tipo==='transporte')render(true);
+},()=>{});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#irTransporte'))navegar({tipo:'transporte'});});
 estado.turnoDrog=ls.get('fc_turno_drog',{});
 db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
   estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
@@ -1748,7 +1794,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',transporte:'Cómo moverse',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -2046,6 +2092,7 @@ function render(conservarScroll){
   if(v.tipo==='dashboard')renderDashboard();
   else if(v.tipo==='perfil')renderPerfil();
   else if(v.tipo==='sos')renderSOS();
+  else if(v.tipo==='transporte')renderTransporte();
   else if(v.tipo==='mapa')renderMapa();
   else if(v.tipo==='ruta')renderRuta(v.id);
   else if(v.tipo==='admin')renderAdmin();
@@ -2080,7 +2127,7 @@ function renderLista(v){
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
@@ -5543,7 +5590,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -5601,6 +5648,8 @@ function renderAdmin(){
     html=bannersAdminHTML()+avisoMudanzaHTML();
   }else if(A.tab==='contactar'){
     html=contactosAdminHTML(D);
+  }else if(A.tab==='transporte'){
+    html=transporteAdminHTML();
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -5677,7 +5726,7 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
-  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);
+  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);enlazarTransporteAdmin();
   cargarFotosPreview();
 }
 function alertasAdminHTML(){
@@ -5746,6 +5795,49 @@ function enlazarAlertasAdmin(){
     if(!await confirmar('Retirar alerta','Deja de verse en la app. Los avisos que ya llegaron al celular no se pueden borrar.','Retirar','Cancelar','triangle-alert',true))return;
     adminAccion(()=>db.collection('alertas').doc(x.dataset.retiraralerta).update({estado:'retirada'}),'Alerta retirada');
   }));
+}
+function transporteAdminHTML(){
+  const l=rutasTransporte(estado.transporte);
+  return '<p class="dash-section">Horarios de buses</p><div class="adm-card">'
+    +'<p class="nota-c izq">Publica solo horarios que verificaste: la página o la red oficial de la empresa, o una foto del tablero de la Terminal subida a una página del proyecto. Anota la fecha en que lo verificaste.</p>'
+    +'<label class="lbl" for="trEmpresa">Empresa</label><input class="input" id="trEmpresa" maxlength="80" placeholder="Ej.: Cootransfusa">'
+    +'<div class="fila-2"><div><label class="lbl" for="trOrigen">Desde</label><input class="input" id="trOrigen" maxlength="60" value="Fusagasugá"></div>'
+    +'<div><label class="lbl" for="trDestino">Hasta</label><input class="input" id="trDestino" maxlength="60" placeholder="Ej.: Bogotá"></div></div>'
+    +'<label class="lbl" for="trSalidas">Salidas</label><input class="input" id="trSalidas" maxlength="300" placeholder="Ej.: cada 30 min, de 4:30 a. m. a 8:00 p. m.">'
+    +'<div class="fila-2"><div><label class="lbl" for="trPrecio">Precio (opcional)</label><input class="input" id="trPrecio" maxlength="40" placeholder="$ 16.000"></div>'
+    +'<div><label class="lbl" for="trTel">Teléfono (opcional)</label><input class="input" id="trTel" inputmode="tel" maxlength="15"></div></div>'
+    +'<label class="lbl" for="trFuente">Fuente</label><input class="input" id="trFuente" maxlength="120" placeholder="Ej.: página de la empresa">'
+    +'<label class="lbl" for="trUrl">Enlace de la fuente</label><input class="input" id="trUrl" type="url" inputmode="url" placeholder="https://…">'
+    +'<label class="lbl" for="trVerif">Lo verifiqué el</label><input class="input" type="date" id="trVerif" value="'+hoyISO()+'">'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="trGuardar">Publicar horario</button></div>'
+    +(l.length?'<div class="adm-card">'+l.map(r=>'<div class="adm-fila"><div class="flex-1"><b>'+esc(r.origen)+' → '+esc(r.destino)+'</b><small>'+esc(r.empresa)+' · verificado el '+esc(fechaCorta(r.verificado))+'</small></div>'
+      +'<button class="btn btn-ghost btn-sm" data-quitartr="'+esc(r.id)+'">Quitar</button></div>').join('')+'</div>':'');
+}
+function datosRutaTransporte(v,ahora=Date.now()){
+  const t=k=>(v[k]||'').trim();
+  if(t('empresa').length<3)return 'Escribe el nombre de la empresa';
+  if(t('origen').length<2||t('destino').length<2)return 'Escribe desde dónde y hasta dónde va';
+  if(t('salidas').length<3)return 'Escribe las salidas o la frecuencia';
+  if(t('fuente').length<3)return 'Escribe de dónde sale el horario';
+  if(!/^https:\/\/\S+\.\S+$/.test(t('fuente_url')))return 'Pega el enlace de la fuente (empieza por https://)';
+  const tel=telLimpio(v.tel||'');
+  if(tel&&!/^\d{7,15}$/.test(tel))return 'Revisa el teléfono';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v.verificado||''))return 'Pon la fecha en que lo verificaste';
+  const ver=new Date(v.verificado+'T12:00:00').getTime();
+  if(ver>ahora+24*3600e3)return 'La fecha de verificación no puede ser futura';
+  if(ver<ahora-365*24*3600e3)return 'Ese dato tiene más de un año: verifícalo de nuevo';
+  return {empresa:t('empresa').slice(0,80),origen:t('origen').slice(0,60),destino:t('destino').slice(0,60),salidas:t('salidas').slice(0,300),
+    precio:t('precio').slice(0,40),tel,fuente:t('fuente').slice(0,120),fuente_url:t('fuente_url').slice(0,500),verificado:ver};
+}
+function enlazarTransporteAdmin(){
+  const g=$('#trGuardar');if(!g)return;
+  g.onclick=()=>{
+    const r=datosRutaTransporte({empresa:$('#trEmpresa').value,origen:$('#trOrigen').value,destino:$('#trDestino').value,salidas:$('#trSalidas').value,
+      precio:$('#trPrecio').value,tel:$('#trTel').value,fuente:$('#trFuente').value,fuente_url:$('#trUrl').value,verificado:$('#trVerif').value});
+    if(typeof r==='string'){toast(r);return;}
+    adminAccion(()=>db.collection('transporte').add({...r,verificado:firebase.firestore.Timestamp.fromMillis(r.verificado),activo:true,por:estado.usuario.uid,actualizado:FV.serverTimestamp()}),'Horario publicado');
+  };
+  $$('[data-quitartr]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('transporte').doc(b.dataset.quitartr).delete(),'Horario quitado')));
 }
 function turnoAdminHTML(mun){
   const l=droguerias(mun),t=(estado.turnoDrog||{})[mun]||{},vig=turnoVigente(estado.turnoDrog,mun);
@@ -6405,6 +6497,7 @@ function rutaHash(){
   const h=window.location.hash,m=h.match(/^#\/lugar\/(.+)$/)||h.match(/^#c\/(.+)$/);
   if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
   const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
+  if(h==='#/transporte'){ocultarSplash();navegar({tipo:'transporte'});return;}
   if(/^#\/alerta\/.+$/.test(h)){try{window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);}catch(e){}irAEnlaceAviso(h);return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
   // Pantallas que abren los avisos al celular cuando la app estaba cerrada; el hash se limpia de la dirección

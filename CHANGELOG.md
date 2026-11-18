@@ -9,6 +9,12 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Cómo moverse: Terminal, paraderos y horarios de buses.** Pantalla nueva (desde Servicios → Transporte o con
+  `#/transporte`) con la Terminal de Transporte y el paradero del colectivo a Chinauta. No hay una fuente oficial
+  pública con los horarios de la Terminal de Fusagasugá (las páginas de pasajes no coinciden entre ellas), así que
+  solo aparecen los que el admin publica en Panel → Transporte, con su fuente `https` y la fecha en que los verificó.
+  Si el dato tiene más de 3 meses, la app avisa que puede haber cambiado; no se aceptan datos de más de un año.
+  Reglas: `transporte/{id}` lo lee cualquiera y solo lo escribe el admin con los campos válidos. PWA v90 (`fusa-v83`).
 - **Alertas municipales.** El admin publica alertas (corte de agua o de luz, vía cerrada, clima, salud, seguridad)
   desde Panel → Emergencias, **siempre con la fuente oficial** (enlace `https`) y una fecha final de máximo 30 días.
   Se ven en el inicio, que se pueden ocultar una por una, y en Emergencias, también sin conexión. Con «Avisar al

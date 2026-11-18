@@ -712,3 +712,57 @@ test('alertas: el admin publica una alerta, se ve en el inicio y nadie más pued
   await page.evaluate(() => window.navegar({ tipo: 'sos' }));
   await expect(page.locator('#cuerpo .alerta-muni')).toContainText('Corte de agua de prueba E2E');
 });
+
+// v90: horarios de transporte. Solo el admin los publica, con fuente y fecha; se ven en «Cómo moverse»
+test('transporte: el admin publica un horario con su fuente y se ve en «Cómo moverse»', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  // Sin horarios publicados: lo dice en vez de inventar
+  await page.evaluate(() => window.navegar({ tipo: 'transporte' }));
+  await expect(page.locator('#cuerpo')).toContainText('Aún no tenemos horarios verificados');
+  await expect(page.locator('#cuerpo')).toContainText('Terminal de Transporte de Fusagasugá');
+  await entrarComo(page, CUENTAS.admin);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => {
+    estado.admin.tab = 'transporte';
+    window.navegar({ tipo: 'admin' });
+  });
+  await page.locator('#trEmpresa').fill('Empresa de prueba E2E');
+  await page.locator('#trDestino').fill('Bogotá');
+  await page.locator('#trSalidas').fill('Cada 30 min, de 5:00 a. m. a 8:00 p. m.');
+  await page.locator('#trFuente').fill('Página de prueba');
+  await page.locator('#trUrl').fill('https://ejemplo.test/horarios');
+  await page.locator('#trGuardar').click();
+  await expect(page.locator('#toast')).toContainText('Horario publicado');
+  await entrarComo(page, CUENTAS.ana);
+  const ana = await page.evaluate(async () => {
+    const fs = window.firebase.firestore();
+    const s = await fs.collection('transporte').where('activo', '==', true).get();
+    const intentar = async p => p.then(() => 'ok').catch(e => e.code);
+    return {
+      lee: s.size,
+      borra: await intentar(fs.collection('transporte').doc(s.docs[0].id).delete()),
+      crea: await intentar(
+        fs.collection('transporte').add({
+          empresa: 'Falsa',
+          origen: 'Fusagasugá',
+          destino: 'Pasca',
+          salidas: 'Siempre',
+          fuente: 'Nadie',
+          fuente_url: 'https://x.test',
+          verificado: window.firebase.firestore.Timestamp.now(),
+          activo: true,
+        }),
+      ),
+    };
+  });
+  expect(ana).toEqual({ lee: 1, borra: 'permission-denied', crea: 'permission-denied' });
+  await page.evaluate(() => window.navegar({ tipo: 'transporte' }));
+  const ruta = page.locator('#cuerpo .ruta-tr');
+  await expect(ruta).toContainText('Fusagasugá → Bogotá');
+  await expect(ruta).toContainText('Empresa de prueba E2E');
+  await expect(ruta).toContainText('Página de prueba');
+  await page.screenshot({ path: info.outputPath('transporte.png') });
+});

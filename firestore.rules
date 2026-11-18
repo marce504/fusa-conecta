@@ -309,6 +309,27 @@ service cloud.firestore {
       }
     }
 
+    /* ---------- Horarios de transporte (v90): solo el admin los publica, con fuente https y fecha de verificación ---------- */
+    function rutaTransporteValida(d) {
+      return d.keys().hasOnly(['empresa', 'origen', 'destino', 'salidas', 'precio', 'tel', 'fuente', 'fuente_url', 'verificado', 'activo', 'por', 'actualizado'])
+        && d.keys().hasAll(['empresa', 'origen', 'destino', 'salidas', 'fuente', 'fuente_url', 'verificado', 'activo'])
+        && d.empresa is string && d.empresa.size() >= 3 && d.empresa.size() <= 80
+        && d.origen is string && d.origen.size() >= 2 && d.origen.size() <= 60
+        && d.destino is string && d.destino.size() >= 2 && d.destino.size() <= 60
+        && d.salidas is string && d.salidas.size() >= 3 && d.salidas.size() <= 300
+        && d.get('precio', '') is string && d.get('precio', '').size() <= 40
+        && d.get('tel', '') is string && d.get('tel', '').matches('^[0-9]{0,15}$')
+        && d.fuente is string && d.fuente.size() >= 3 && d.fuente.size() <= 120
+        && d.fuente_url is string && d.fuente_url.size() <= 500 && d.fuente_url.matches('^https://[^ ]+$')
+        && d.verificado is timestamp && d.verificado <= request.time + duration.value(1, 'd')
+        && d.activo is bool;
+    }
+    match /transporte/{id} {
+      allow read: if true;
+      allow create, update: if esAdmin() && rutaTransporteValida(request.resource.data);
+      allow delete: if esAdmin();
+    }
+
     /* ---------- Configuración pública del directorio (negocios de muestra ocultos por el admin) ---------- */
     match /config/{id} {
       allow read: if true;
@@ -502,7 +523,7 @@ service cloud.firestore {
        El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales']);
+      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
     }
   }
 }
