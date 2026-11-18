@@ -563,3 +563,59 @@ describe('modeloDoble: Firebase AI Logic y, si exige App Check, la API de respal
     expect(pedidos).toHaveLength(0);
   });
 });
+
+describe('campaña de lanzamiento y contactos por WhatsApp', () => {
+  const m = cargar(
+    [
+      'CAMPANA',
+      'campanaVigente',
+      'cambiosPremium',
+      'premiumCampana',
+      'ESTADOS_CONTACTO',
+      'estadoContacto',
+      'mensajeContacto',
+      'horarioContactoOK',
+    ],
+    { aMs: x => x, TS: { fromMillis: x => ({ ms: x }) }, FV: { delete: () => 'borrar' } },
+  );
+  const col = t => new Date(t + '-05:00').getTime();
+  it('quien se une hasta el 31 de enero de 2027 recibe Premium hasta el 30 de abril', () => {
+    const p = m.premiumCampana(null, col('2027-01-31T20:00:00'));
+    expect(p.esPremium).toBe(true);
+    expect(p.suscripcion_vigente_hasta.ms).toBe(col('2027-04-30T23:59:59'));
+    expect(m.premiumCampana(null, col('2027-02-01T08:00:00'))).toEqual({});
+  });
+  it('no acorta un Premium más largo o sin fecha', () => {
+    const ahora = col('2026-12-01T10:00:00');
+    expect(m.premiumCampana({ esPremium: true }, ahora)).toEqual({});
+    expect(m.premiumCampana({ esPremium: true, suscripcion_vigente_hasta: col('2027-12-31T00:00:00') }, ahora)).toEqual(
+      {},
+    );
+    expect(
+      m.premiumCampana({ esPremium: true, suscripcion_vigente_hasta: col('2026-12-15T00:00:00') }, ahora).esPremium,
+    ).toBe(true);
+  });
+  it('el mensaje lleva el nombre, el enlace a la ficha, la campaña y cómo no recibir más', () => {
+    const t = m.mensajeContacto({ id: 'c331', nombre: 'El Peon' }, 'Marcela Estrella', col('2026-11-18T10:00:00'));
+    expect(t).toContain('¿hablo con El Peon?');
+    expect(t).toContain('Le saluda Marcela, de Fusa Conecta');
+    expect(t).toContain('https://fusa-conecta.web.app/#/lugar/c331');
+    expect(t).toContain('«¿Es tu negocio? Reclámalo»');
+    expect(t).toContain('Premium gratis hasta el 30 de abril de 2027');
+    expect(t).toContain('no le volvemos a escribir');
+    expect(m.mensajeContacto({ id: 'c1', nombre: 'X' }, '', col('2027-03-01T10:00:00'))).not.toContain('Premium');
+  });
+  it('se une si ya tiene dueño o pidió el reclamo; si no, el estado guardado', () => {
+    expect(m.estadoContacto({ id: 'a', propietario_uid: 'u' }, null, new Set())).toBe('unido');
+    expect(m.estadoContacto({ id: 'a' }, null, new Set(['a']))).toBe('unido');
+    expect(m.estadoContacto({ id: 'a' }, { estado: 'respondio' }, new Set())).toBe('respondio');
+    expect(m.estadoContacto({ id: 'a' }, null, new Set())).toBe('pendiente');
+  });
+  it('horario de la Ley 2300: lunes a viernes 7-19, sábado 8-15, domingo no', () => {
+    expect(m.horarioContactoOK(new Date('2026-11-18T10:00:00-05:00'))).toBe(true);
+    expect(m.horarioContactoOK(new Date('2026-11-18T19:30:00-05:00'))).toBe(false);
+    expect(m.horarioContactoOK(new Date('2026-11-21T14:00:00-05:00'))).toBe(true);
+    expect(m.horarioContactoOK(new Date('2026-11-21T15:30:00-05:00'))).toBe(false);
+    expect(m.horarioContactoOK(new Date('2026-11-22T10:00:00-05:00'))).toBe(false);
+  });
+});

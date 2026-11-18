@@ -102,11 +102,11 @@ h1 em{font-style:normal;color:#5EEAD4}
 <main class="cuerpo">
   <section class="que"><h2>Qué encuentra la gente en la app</h2>
     <div class="rej">${que.map(([i, t]) => `<div class="it"><i>${ic(i, 32)}</i>${t}</div>`).join('')}</div>
-    <p>Ya hay <b>más de 540 lugares</b> en el directorio. <b>Súmate con el tuyo.</b></p></section>
+    <p>Únete antes del <b>31 de enero</b>: <b>Premium gratis hasta el 30 de abril</b>.</p></section>
   <section class="planes">
     <div class="plan g"><h3>Gratis</h3><span class="et">Para siempre</span>
       <ul>${gratis.map(([i, t]) => `<li><i>${ic(i, 24)}</i>${t}</li>`).join('')}</ul></div>
-    <div class="plan p"><h3>${ic('star', 34)}Premium</h3><span class="et">Gratis en la fase de pruebas</span>
+    <div class="plan p"><h3>${ic('star', 34)}Premium</h3><span class="et">Gratis hasta el 30 de abril de 2027</span>
       <ul>${premium.map(([i, t]) => `<li><i>${ic(i, 24)}</i>${t}</li>`).join('')}</ul></div>
   </section>
   <section class="sec"><h2>Inscribe tu negocio en 4 pasos</h2>

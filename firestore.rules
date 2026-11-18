@@ -451,6 +451,15 @@ service cloud.firestore {
           : request.resource.data.n == resource.data.n + 1);
     }
 
+    // v1.4.5: seguimiento de la campaña de contactos por WhatsApp (pestaña «Contactar» del panel): solo el admin
+    match /contactos/{id} {
+      allow read: if esAdmin();
+      allow create, update: if esAdmin()
+        && request.resource.data.keys().hasOnly(['estado', 'fecha', 'por', 'comercio_nombre'])
+        && request.resource.data.estado in ['pendiente', 'enviado', 'respondio', 'no_interesa', 'numero_malo']
+        && request.resource.data.por == request.auth.uid;
+      allow delete: if esAdmin();
+    }
     match /uso_ia/{uid} {
       allow read: if cuentaReal() && request.auth.uid == uid;
       allow create, update: if tienePerfil() && request.auth.uid == uid

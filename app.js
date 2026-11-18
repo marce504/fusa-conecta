@@ -4413,7 +4413,7 @@ function planesHTML(d,enRegistro){
   else if(pedido)cta='<p class="plan-estado">'+icon('clock',20)+'Solicitud enviada, te avisaremos.</p>';
   else cta='<button class="btn btn-primario btn-bloque" id="plSolicitar">'+icon('star',18)+'Solicitar Premium</button>';
   return '<div class="planes"><h2 class="titulo-planes">Planes para tu negocio</h2>'
-    +'<p class="plan-cinta">'+icon('sparkles',18)+'Premium es gratis durante la fase de pruebas</p>'
+    +'<p class="plan-cinta">'+icon('sparkles',18)+(campanaVigente()?'Únete antes del '+CAMPANA.unirseTxt+' y tendrás Premium gratis hasta el '+CAMPANA.premiumTxt:'Premium es gratis durante la fase de pruebas')+'</p>'
     +(!enRegistro&&mis.length>1&&!prem?'<div class="campo mt-16"><label for="plNegocio">¿Para cuál negocio?</label><select class="input" id="plNegocio">'+mis.map(x=>'<option value="'+esc(x.id)+'"'+(d&&x.id===d.id?' selected':'')+'>'+esc(x.nombre)+'</option>').join('')+'</select></div>':'')
     +'<table class="tabla-planes"><caption class="sr-only">Comparación de los planes Gratis y Premium</caption>'
     +'<thead><tr><th scope="col">Beneficio</th><th scope="col">Gratis</th><th scope="col" class="col-prem">'+icon('star',14,'ic-fill')+'Premium</th></tr></thead>'
@@ -5190,6 +5190,69 @@ async function cargarAdmin(){
   estado.admin.cargando=false;
   if(vistaActual().tipo==='admin')render(true);
 }
+/* ===== CONTACTAR COMERCIOS POR WHATSAPP (v1.4.5) =====
+   Lista de los negocios del directorio que tienen celular y aún no tienen dueño. «Escribir» abre WhatsApp con un
+   mensaje con su nombre y el enlace a su ficha; quien envía es la persona del equipo, desde su propio WhatsApp
+   (la app no manda nada sola). El seguimiento queda en contactos/{id}, que solo lee y escribe el admin. */
+const ESTADOS_CONTACTO={pendiente:'Por contactar',enviado:'Mensaje enviado',respondio:'Respondió',no_interesa:'No le interesa',numero_malo:'Número equivocado',unido:'Se unió'};
+const celularDe=d=>{const t=telLimpio(d.whatsapp||'')||telLimpio(d.tel||'');return /^3\d{9}$/.test(t)?t:'';};
+function contactables(lista){return lista.filter(d=>idsBase.has(d.id)&&!['tramite','turismo'].includes(d.cat)&&celularDe(d));}
+function estadoContacto(d,c,reclamos){
+  if(d.propietario_uid||(reclamos&&reclamos.has(d.id)))return 'unido';
+  return (c&&ESTADOS_CONTACTO[c.estado]&&c.estado)||'pendiente';
+}
+function mensajeContacto(d,remitente,ahora=Date.now()){
+  const quien=String(remitente||'').trim().split(/\s+/)[0];
+  return 'Hola, ¿hablo con '+d.nombre+'? Le saluda '+(quien?quien+', de ':'el equipo de ')+'Fusa Conecta, la app gratuita de Fusagasugá y Pasca para encontrar comercios, servicios, planes y eventos.\n\n'
+    +'Ya agregamos '+d.nombre+' a la app. Así lo ven sus clientes: https://fusa-conecta.web.app/#/lugar/'+d.id+'\n\n'
+    +'Para administrarlo, abra el enlace, cree su cuenta y toque «¿Es tu negocio? Reclámalo». Después puede subir fotos y actualizar el horario y el WhatsApp.\n\n'
+    +(campanaVigente(ahora)?'Si se une antes del '+CAMPANA.unirseTxt+', le damos Premium gratis hasta el '+CAMPANA.premiumTxt+': cupones de descuento, aparecer en Destacados y primero en las búsquedas, y hasta 10 fotos.\n\n':'')
+    +'¿Le ayudo con el registro? Si prefiere no recibir más mensajes, me dice y no le volvemos a escribir.';
+}
+// Ley 2300 de 2023: los mensajes comerciales van de lunes a viernes de 7 a. m. a 7 p. m. y los sábados de 8 a. m. a 3 p. m.
+function horarioContactoOK(f=new Date()){const d=f.getDay(),h=f.getHours();return d===0?false:d===6?h>=8&&h<15:h>=7&&h<19;}
+async function cargarContactos(){
+  const A=estado.admin;A.contactosCargando=true;
+  try{const s=await db.collection('contactos').get();A.contactos=new Map(s.docs.map(x=>[x.id,{...x.data(),fecha:aMs(x.data().fecha)}]));}
+  catch(e){reportarError('contactos',e);A.contactos=new Map();toast('No se pudo cargar el seguimiento de contactos');}
+  A.contactosCargando=false;if(vistaActual().tipo==='admin'&&A.tab==='contactar')render(true);
+}
+function contactosAdminHTML(D){
+  const A=estado.admin,lim=A.contactoLimite||40;
+  if(!A.contactos){if(!A.contactosCargando)cargarContactos();return '<div class="vacio">'+icon('clock',48)+'<b>Cargando contactos…</b></div>';}
+  const reclamos=new Set(D.solicitudes.filter(s=>s.tipo==='reclamo').map(s=>s.comercio_id));
+  const todos=contactables(database).map(d=>({d,e:estadoContacto(d,A.contactos.get(d.id),reclamos),c:A.contactos.get(d.id)}));
+  const n=k=>todos.filter(x=>x.e===k).length,f=A.contactoFiltro||'pendiente';
+  const hoy=new Date().toDateString(),enviadosHoy=[...A.contactos.values()].filter(c=>c.estado==='enviado'&&c.fecha&&new Date(c.fecha).toDateString()===hoy).length;
+  const lista=todos.filter(x=>f==='todos'||x.e===f).sort((a,b)=>a.d.nombre.localeCompare(b.d.nombre,'es'));
+  return '<p class="nota-c izq">'+todos.length+' negocios del directorio tienen celular. Contactados: '+(todos.length-n('pendiente'))+' · Se unieron: '+n('unido')+'. '
+    +'«Escribir» abre tu WhatsApp con el mensaje listo; tú decides si lo envías.</p>'
+    +(campanaVigente()?'<p class="plan-cinta">'+icon('sparkles',18)+'Campaña: quien se una antes del '+CAMPANA.unirseTxt+' recibe Premium gratis hasta el '+CAMPANA.premiumTxt+' al aprobar su reclamo.</p>':'')
+    +(!horarioContactoOK()?'<p class="aviso-oficial">'+icon('clock',18)+'Fuera del horario para mensajes comerciales (Ley 2300 de 2023): lunes a viernes de 7 a. m. a 7 p. m. y sábados de 8 a. m. a 3 p. m. Los domingos y festivos no se escribe.</p>':'')
+    +(enviadosHoy>=25?'<p class="aviso-oficial">'+icon('circle-alert',18)+'Hoy ya enviaste '+enviadosHoy+' mensajes. WhatsApp puede bloquear un número que escribe a muchos desconocidos el mismo día: sigue mañana.</p>':'')
+    +'<div class="seg" role="tablist" aria-label="Estado del contacto">'+['pendiente','enviado','respondio','unido','todos'].map(k=>'<button role="tab" aria-selected="'+(f===k)+'" class="'+(f===k?'on':'')+'" data-cfiltro="'+k+'">'
+      +(k==='todos'?'Todos':ESTADOS_CONTACTO[k])+' <span class="contador">'+(k==='todos'?todos.length:n(k))+'</span></button>').join('')+'</div>'
+    +(lista.length?lista.slice(0,lim).map(({d,e,c})=>'<div class="adm-fila contacto"><div class="dc-info"><b>'+esc(d.nombre)+'</b><span>'+esc(etiquetaDe(d))+' · '+esc(municipioDe(d))+' · '+esc(celularDe(d))
+        +(c&&c.fecha?' · '+esc(ESTADOS_CONTACTO[c.estado]||'')+' el '+esc(fechaCorta(c.fecha)):'')+'</span></div>'
+      +'<div class="dc-actions">'+(e==='unido'?'<span class="chip-estado pub">Se unió</span>'
+        :'<button class="btn btn-primario btn-sm" data-cwa="'+esc(d.id)+'">'+icon('phone',16)+(e==='pendiente'?'Escribir':'Escribir de nuevo')+'</button>'
+        +'<select class="input input-sm" data-cestado="'+esc(d.id)+'" aria-label="Estado de '+esc(d.nombre)+'">'+['pendiente','enviado','respondio','no_interesa','numero_malo'].map(k=>'<option value="'+k+'"'+(e===k?' selected':'')+'>'+ESTADOS_CONTACTO[k]+'</option>').join('')+'</select>')
+      +'</div></div>').join('')
+      +(lista.length>lim?'<button class="btn btn-secundario btn-bloque mt-16" id="cMas">Ver más ('+(lista.length-lim)+')</button>':'')
+      :'<div class="vacio">'+icon('circle-check',48)+'<b>Nada en esta lista</b></div>');
+}
+function enlazarContactos(){
+  const A=estado.admin;
+  const guardar=async(id,est)=>{const datos={estado:est,fecha:FV.serverTimestamp(),por:estado.usuario.uid,comercio_nombre:(buscar(id)||{}).nombre||''};
+    try{await db.collection('contactos').doc(id).set(datos,{merge:true});A.contactos.set(id,{...datos,fecha:Date.now()});}catch(e){toast('No se pudo guardar (Error '+reportarError('contacto',e)+')');}
+    render(true);};
+  $$('[data-cfiltro]').forEach(b=>(b.onclick=()=>{A.contactoFiltro=b.dataset.cfiltro;A.contactoLimite=40;render(true);}));
+  const mas=$('#cMas');if(mas)mas.onclick=()=>{A.contactoLimite=(A.contactoLimite||40)+40;render(true);};
+  $$('[data-cwa]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.cwa);if(!d)return;
+    window.open('https://wa.me/57'+celularDe(d)+'?text='+encodeURIComponent(mensajeContacto(d,estado.perfil&&estado.perfil.nombre)),'_blank','noopener');
+    medir('contacto_whatsapp');guardar(d.id,'enviado');}));
+  $$('[data-cestado]').forEach(x=>(x.onchange=()=>guardar(x.dataset.cestado,x.value)));
+}
 /* ===== PANEL DE ADMINISTRACIÓN (v4 · Fase 2) — ruta #/admin, solo rol admin =====
    Pestañas: Por aprobar (Negocios nuevos · Solicitudes Premium), Negocios, Reportes, Opiniones y Emergencias. */
 const MOTIVOS_RECHAZO=['Datos incompletos','Fotos inadecuadas','Duplicado','No está en Fusagasugá o Pasca','Otro'];
@@ -5266,6 +5329,18 @@ function pedirPremium(nombre,cb){
     cerrar('ovGen');cb(sinFin?null:aMs(f));
   };
 }
+/* ===== CAMPAÑA DE LANZAMIENTO (v1.4.5) =====
+   Quien se una (reclame su negocio o registre uno nuevo y el admin lo apruebe) hasta el 31 de enero de 2027 recibe
+   Premium gratis hasta el 30 de abril de 2027: el cobro empieza el mismo día para todos. */
+const CAMPANA={unirseHasta:new Date('2027-01-31T23:59:59-05:00').getTime(),premiumHasta:new Date('2027-04-30T23:59:59-05:00').getTime(),
+  unirseTxt:'31 de enero de 2027',premiumTxt:'30 de abril de 2027'};
+const campanaVigente=(ahora=Date.now())=>ahora<=CAMPANA.unirseHasta;
+// Premium de la campaña al aprobar; nunca acorta un Premium que ya tenía otra fecha más lejana o ninguna
+function premiumCampana(c,ahora=Date.now()){
+  if(!campanaVigente(ahora))return {};
+  if(c&&c.esPremium&&(!c.suscripcion_vigente_hasta||aMs(c.suscripcion_vigente_hasta)>=CAMPANA.premiumHasta))return {};
+  return cambiosPremium(CAMPANA.premiumHasta);
+}
 function cambiosPremium(hasta){
   return {esPremium:true,plan:'premium',prioridadBusqueda:1,prueba_usada:true,suscripcion_vigente_hasta:hasta?TS.fromMillis(hasta):FV.delete()};
 }
@@ -5336,7 +5411,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -5392,6 +5467,8 @@ function renderAdmin(){
     html=eventosAdminHTML();
   }else if(A.tab==='banners'){
     html=bannersAdminHTML()+avisoMudanzaHTML();
+  }else if(A.tab==='contactar'){
+    html=contactosAdminHTML(D);
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -5424,10 +5501,11 @@ function renderAdmin(){
     const n=await migrarFotosAntiguas(fotosAntiguas.map(c=>({id:c.id,nombre:c.nombre,imagen:c._raw.imagen})));
     toast(n+(n===1?' foto pasada':' fotos pasadas')+' a la galería');cargarAdmin();};
   $$('[data-atab]').forEach(b=>(b.onclick=()=>{A.tab=b.dataset.atab;render(true);}));
+  if(A.tab==='contactar')enlazarContactos();
   $$('[data-asub]').forEach(b=>(b.onclick=()=>{A.subtab=b.dataset.asub;render(true);}));
   const pend=id=>D.pendientes.find(c=>c.id===id),sol=id=>D.solicitudes.find(s=>s.id===id),rep=id=>D.reportes.find(r=>r.id===id);
   const negocio=id=>negociosAdmin(D).find(c=>c.id===id);
-  $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete()}),'Negocio aprobado y publicado',['comercio',b.dataset.aprobar,'aprobado'])));
+  $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete(),...premiumCampana(pend(b.dataset.aprobar)&&pend(b.dataset.aprobar)._raw)}),campanaVigente()?'Negocio aprobado, con Premium gratis hasta el '+CAMPANA.premiumTxt:'Negocio aprobado y publicado',['comercio',b.dataset.aprobar,'aprobado'])));
   $$('[data-rechazar]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.',['comercio',b.dataset.rechazar,'rechazado']))));
   $$('[data-okreclamo]').forEach(b=>(b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo))));
   $$('[data-noreclamo]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado',['reclamo',b.dataset.noreclamo,'rechazado']),['No se pudo verificar que sea el dueño','Duplicado','Otro'])));
@@ -5627,14 +5705,15 @@ async function adminAccion(fn,msg,aviso){
 // Aprobar un reclamo: el negocio queda con dueño (si era de muestra, se crea en la nube con el mismo id)
 async function aprobarReclamo(s){
   if(!s)return;
-  if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.','Aprobar','Cancelar','store'))return;
+  if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.'
+    +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
   adminAccion(async()=>{
     const ref=db.collection('comercios').doc(s.comercio_id);const snap=await ref.get();
     const bt=db.batch();
-    if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp()});
+    if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),...premiumCampana(snap.data())});
     else{
       const b=COMERCIOS_BASE.find(c=>c.id===s.comercio_id);if(!b)throw new Error('sin-datos');
-      bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||''}));
+      bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',...premiumCampana(null)}));
     }
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
     await bt.commit();

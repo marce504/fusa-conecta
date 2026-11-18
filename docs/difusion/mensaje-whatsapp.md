@@ -17,8 +17,9 @@ Inscribirlo es *gratis* y en la ficha sus clientes encuentran:
 - Su horario, con el aviso «Abierto ahora»
 - Hasta 4 fotos de su negocio
 
-Además, mientras estamos en fase de pruebas, el plan *Premium también es gratis*: cupones de descuento, aparecer en
-Destacados y primero en las búsquedas, anuncio en el banner principal, redes sociales y hasta 10 fotos.
+Además, si se une *antes del 31 de enero de 2027*, le damos *Premium gratis hasta el 30 de abril de 2027*: cupones
+de descuento, aparecer en Destacados y primero en las búsquedas, anuncio en el banner principal, redes sociales y
+hasta 10 fotos.
 
 Le comparto la información. Toma unos 5 minutos:
 *fusa-conecta.web.app*
@@ -56,9 +57,23 @@ Hola, [nombre]. Le escribo de nuevo de *Fusa Conecta*, la app de comercios y pla
 *[nombre del negocio]* sigue siendo gratis y toma unos 5 minutos: *fusa-conecta.web.app*. Si prefiere, me envía el
 nombre, la dirección, el WhatsApp y el horario, y le ayudo a dejarlo listo. ¡Que tenga buen día!
 
+## 4. Para los negocios que ya están en la app (pestaña «Contactar»)
+
+Para los 151 negocios del directorio que tienen celular, no copies estos textos: en la app entra a **Perfil →
+Administración → Contactar**. Cada negocio tiene el botón **«Escribir»**, que abre tu WhatsApp con un mensaje con su
+nombre, el enlace a su ficha, los pasos para reclamarlo y la campaña. Tú lo revisas y lo envías. La lista anota quién
+ya recibió el mensaje, quién respondió y quién se unió (cuando reclama su negocio).
+
+- Escribe de lunes a viernes de 7 a. m. a 7 p. m. o los sábados de 8 a. m. a 3 p. m. (Ley 2300 de 2023). Los domingos
+  y festivos no. La app avisa si estás fuera de ese horario.
+- No pases de unos 25 mensajes al día desde el mismo número: WhatsApp bloquea a quien escribe a muchos desconocidos.
+  A ese ritmo, los 151 quedan listos en unas dos semanas.
+- Si alguien dice que no quiere más mensajes, márcalo como «No le interesa» y no le vuelvas a escribir.
+- Cuando apruebes su reclamo en «Por aprobar», la app le activa sola el Premium gratis hasta el 30 de abril de 2027.
+
 ## Notas
 
-- Lo que dicen los mensajes es lo que hace la app hoy: plan Gratis con 4 fotos; Premium gratis solo durante la fase de
-  pruebas. Si cambia el precio de Premium, cambia también estos textos y el flyer (`herramientas/difusion/`).
+- Lo que dicen los mensajes es lo que hace la app hoy: plan Gratis con 4 fotos; Premium gratis hasta el 30 de abril de
+  2027 para quien se una antes del 31 de enero de 2027. Si cambia el precio de Premium, cambia también estos textos y el flyer (`herramientas/difusion/`).
 - Mande el primer mensaje solo a personas que esperan el contacto o que ya conocen el proyecto. WhatsApp bloquea los
   números que envían muchos mensajes a desconocidos.

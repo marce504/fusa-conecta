@@ -9,6 +9,18 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Campaña de lanzamiento.** Quien se una hasta el **31 de enero de 2027** (el admin aprueba su reclamo o su negocio
+  nuevo) recibe **Premium gratis hasta el 30 de abril de 2027**, la misma fecha para todos (`CAMPANA`,
+  `premiumCampana`). Nunca acorta un Premium que ya tenía una fecha más lejana o ninguna. La hoja de planes, la
+  confirmación del reclamo y el aviso de aprobación lo dicen.
+- **Pestaña «Contactar» en el panel de administración.** Lista de los 151 negocios del directorio que tienen celular y
+  aún no tienen dueño. «Escribir» abre WhatsApp con un mensaje con el nombre del negocio, el enlace a su ficha, los pasos
+  para reclamarlo, la campaña y cómo pedir que no le escriban más (`mensajeContacto`). Lo envía la persona del equipo
+  desde su WhatsApp: la app no manda nada sola. Filtros por estado (por contactar, enviado, respondió, se unió) y
+  seguimiento en `contactos/{id}`, que solo lee y escribe el admin (`firestore.rules`). Avisa si es fuera del horario
+  de la Ley 2300 de 2023 (lunes a viernes de 7 a 19 y sábados de 8 a 15) y desde 25 mensajes en un día. Con pruebas
+  unitarias y de punta a punta. PWA v84 (`fusa-v77`).
+- Flyer y mensajes de WhatsApp con las fechas de la campaña (`docs/difusion/`).
 - **IA de respaldo por la API** (`POST /v1/ia/generar`, API v1.3.0). Google exigirá App Check en Firebase AI Logic
   el 21 de enero de 2027 y la app no puede usarlo en el plan Spark. Si Firebase responde que falta App Check, la app
   (`modeloDoble`) repite la misma llamada por la API de Render, con la sesión de Firebase, y sigue por ahí ese día. La

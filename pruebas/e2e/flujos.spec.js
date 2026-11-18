@@ -570,3 +570,44 @@ test('admin: foto nueva en un lugar del directorio, con su fuente, crédito y ho
   await page.evaluate(() => window.abrirDetalle(database.find(x => x.nombre === 'Paneton').id));
   await expect(page.locator('#sheetDetalle #bReclamar')).toBeVisible();
 });
+
+// v1.4.5: el admin escribe por WhatsApp a un negocio del directorio y queda el seguimiento
+test('admin: contactar un negocio por WhatsApp desde el panel y anotar el seguimiento', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.admin);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => {
+    estado.admin.tab = 'contactar';
+    window.navegar({ tipo: 'admin' });
+  });
+  const fila = page.locator('.adm-fila.contacto').first();
+  await expect(fila).toBeVisible({ timeout: 20000 });
+  const nombre = (await fila.locator('b').textContent()).trim();
+  await expect(page.locator('.adm-cuerpo')).toContainText('Premium gratis hasta el 30 de abril de 2027');
+  // No se abre WhatsApp de verdad: se guarda el enlace que abriría
+  await page.evaluate(() => {
+    window.abiertosWa = [];
+    window.open = u => {
+      window.abiertosWa.push(u);
+      return null;
+    };
+  });
+  await fila.locator('[data-cwa]').click();
+  const enlace = await page.evaluate(() => window.abiertosWa[0]);
+  expect(enlace).toMatch(/^https:\/\/wa\.me\/573\d{9}\?text=/);
+  const texto = decodeURIComponent(enlace.split('?text=')[1]);
+  expect(texto).toContain('¿hablo con ' + nombre + '?');
+  expect(texto).toContain('fusa-conecta.web.app/#/lugar/c');
+  // Queda en «Mensaje enviado» y se guarda en contactos/{id} (reglas: solo el admin)
+  await page.locator('[data-cfiltro="enviado"]').click();
+  await expect(page.locator('.adm-fila.contacto').first()).toContainText(nombre);
+  const guardado = await page.evaluate(async () => {
+    const s = await window.firebase.firestore().collection('contactos').get();
+    return s.docs.map(d => d.data().estado);
+  });
+  expect(guardado).toEqual(['enviado']);
+  await page.screenshot({ path: info.outputPath('admin-contactar.png') });
+});
