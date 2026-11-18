@@ -610,4 +610,25 @@ test('admin: contactar un negocio por WhatsApp desde el panel y anotar el seguim
   });
   expect(guardado).toEqual(['enviado']);
   await page.screenshot({ path: info.outputPath('admin-contactar.png') });
+  // Modo rápido: escribe al siguiente, salta otro y termina
+  await page.locator('[data-cfiltro="pendiente"]').click();
+  await page.locator('#cRapido').click();
+  const rapido = page.locator('.contacto-rapido');
+  await expect(rapido).toContainText('Hoy: 1 de 25');
+  const primero = (await rapido.locator('.cr-sig b').textContent()).trim();
+  page.on('dialog', d => d.accept());
+  await page.evaluate(() => {
+    window.confirmar = async () => true; // fuera del horario de la Ley 2300 la app pide confirmar
+  });
+  await rapido.locator('[data-crapido="escribir"]').click();
+  await expect(rapido).toContainText('Hoy: 2 de 25');
+  await expect(rapido).toContainText('Listo: ' + primero);
+  const segundo = (await rapido.locator('.cr-sig b').textContent()).trim();
+  expect(segundo).not.toBe(primero);
+  await rapido.locator('[data-crapido="saltar"]').click();
+  await expect(rapido.locator('.cr-sig b')).not.toHaveText(segundo);
+  expect(await page.evaluate(() => window.abiertosWa.length)).toBe(2);
+  await page.screenshot({ path: info.outputPath('admin-contactar-rapido.png') });
+  await rapido.locator('[data-crapido="terminar"]').click();
+  await expect(page.locator('.contacto-rapido')).toHaveCount(0);
 });

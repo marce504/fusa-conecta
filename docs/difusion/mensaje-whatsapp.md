@@ -64,6 +64,10 @@ Administración → Contactar**. Cada negocio tiene el botón **«Escribir»**, 
 nombre, el enlace a su ficha, los pasos para reclamarlo y la campaña. Tú lo revisas y lo envías. La lista anota quién
 ya recibió el mensaje, quién respondió y quién se unió (cuando reclama su negocio).
 
+**Modo rápido:** toca «Modo rápido: escribir uno tras otro». Se abre el chat del primer negocio; lo envías, vuelves a
+la app y ya aparece el siguiente con el botón «Escribir a …». Unos 10 segundos por negocio: los 25 del día son unos 5
+minutos. «Saltar este» lo deja para otro día y «Terminar» cierra el modo rápido.
+
 - Escribe de lunes a viernes de 7 a. m. a 7 p. m. o los sábados de 8 a. m. a 3 p. m. (Ley 2300 de 2023). Los domingos
   y festivos no. La app avisa si estás fuera de ese horario.
 - No pases de unos 25 mensajes al día desde el mismo número: WhatsApp bloquea a quien escribe a muchos desconocidos.

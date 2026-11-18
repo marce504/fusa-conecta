@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Modo rápido en «Contactar».** Un botón abre el chat del siguiente negocio por contactar (en orden alfabético), lo
+  marca como enviado y, al volver a la app, ya muestra el próximo. Así cada mensaje toma unos 10 segundos. Lleva la
+  cuenta del día (25 como tope sugerido para cuidar el número) y pide confirmar si se pasa de ese tope o si es fuera
+  del horario de la Ley 2300 de 2023. «Saltar este» lo deja para después. Con pruebas unitarias y de punta a punta.
+  PWA v85 (`fusa-v78`).
 - **Campaña de lanzamiento.** Quien se una hasta el **31 de enero de 2027** (el admin aprueba su reclamo o su negocio
   nuevo) recibe **Premium gratis hasta el 30 de abril de 2027**, la misma fecha para todos (`CAMPANA`,
   `premiumCampana`). Nunca acorta un Premium que ya tenía una fecha más lejana o ninguna. La hoja de planes, la

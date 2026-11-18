@@ -619,3 +619,28 @@ describe('campaña de lanzamiento y contactos por WhatsApp', () => {
     expect(m.horarioContactoOK(new Date('2026-11-22T10:00:00-05:00'))).toBe(false);
   });
 });
+
+describe('modo rápido de contactos', () => {
+  const { siguienteContacto, enviadosDelDia } = cargar(['siguienteContacto', 'enviadosDelDia']);
+  const x = (id, nombre, e) => ({ d: { id, nombre }, e });
+  const todos = [
+    x('c3', 'Zagus', 'pendiente'),
+    x('c1', 'Árbol', 'enviado'),
+    x('c2', 'Bambú', 'pendiente'),
+    x('c4', 'Café', 'unido'),
+  ];
+  it('sigue el primer pendiente en orden alfabético y respeta los saltados', () => {
+    expect(siguienteContacto(todos, new Set()).d.id).toBe('c2');
+    expect(siguienteContacto(todos, new Set(['c2'])).d.id).toBe('c3');
+    expect(siguienteContacto(todos, new Set(['c2', 'c3']))).toBeNull();
+  });
+  it('cuenta solo los enviados de hoy', () => {
+    const hoy = new Date('2026-11-18T10:00:00-05:00');
+    const c = new Map([
+      ['a', { estado: 'enviado', fecha: new Date('2026-11-18T08:00:00-05:00').getTime() }],
+      ['b', { estado: 'enviado', fecha: new Date('2026-11-17T08:00:00-05:00').getTime() }],
+      ['c', { estado: 'respondio', fecha: new Date('2026-11-18T09:00:00-05:00').getTime() }],
+    ]);
+    expect(enviadosDelDia(c, hoy)).toBe(1);
+  });
+});

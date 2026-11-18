@@ -5209,6 +5209,30 @@ function mensajeContacto(d,remitente,ahora=Date.now()){
     +(campanaVigente(ahora)?'Si se une antes del '+CAMPANA.unirseTxt+', le damos Premium gratis hasta el '+CAMPANA.premiumTxt+': cupones de descuento, aparecer en Destacados y primero en las búsquedas, y hasta 10 fotos.\n\n':'')
     +'¿Le ayudo con el registro? Si prefiere no recibir más mensajes, me dice y no le volvemos a escribir.';
 }
+// v1.4.6 · Modo rápido: uno tras otro, en orden alfabético, sin los que se saltaron en esta sesión
+const LIMITE_DIA_CONTACTO=25;
+function siguienteContacto(todos,saltados){
+  return todos.filter(x=>x.e==='pendiente'&&!(saltados&&saltados.has(x.d.id))).sort((a,b)=>a.d.nombre.localeCompare(b.d.nombre,'es'))[0]||null;
+}
+function enviadosDelDia(contactos,hoy=new Date()){
+  const dia=hoy.toDateString();return [...contactos.values()].filter(c=>c.estado==='enviado'&&c.fecha&&new Date(c.fecha).toDateString()===dia).length;
+}
+function rapidoHTML(todos,enviadosHoy){
+  const A=estado.admin,R=A.rapido,sig=siguienteContacto(todos,R.saltados),ult=R.ultimo&&buscar(R.ultimo);
+  const lleno=enviadosHoy>=LIMITE_DIA_CONTACTO,fuera=!horarioContactoOK();
+  return '<div class="contacto-rapido" role="region" aria-label="Modo rápido">'
+    +'<div class="cr-cab"><b>'+icon('phone',18)+'Modo rápido</b><span class="cr-cuenta">Hoy: '+enviadosHoy+' de '+LIMITE_DIA_CONTACTO+'</span></div>'
+    +'<div class="cr-barra" aria-hidden="true"><i style="width:'+Math.min(100,Math.round(enviadosHoy/LIMITE_DIA_CONTACTO*100))+'%"></i></div>'
+    +(ult?'<p class="nota-c izq">'+icon('circle-check',14)+' Listo: '+esc(ult.nombre)+'. Si no lo enviaste, cámbialo abajo a «Por contactar».</p>':'')
+    +(!sig?'<p class="cr-fin">'+icon('circle-check',20)+'No quedan negocios por contactar.</p><button class="btn btn-secundario btn-bloque" data-crapido="terminar">Terminar</button>'
+      :'<p class="cr-sig-lbl">Sigue</p><p class="cr-sig"><b>'+esc(sig.d.nombre)+'</b><span>'+esc(etiquetaDe(sig.d))+' · '+esc(municipioDe(sig.d))+' · '+esc(celularDe(sig.d))+'</span></p>'
+      +(lleno?'<p class="aviso-oficial">'+icon('circle-alert',18)+'Ya van '+enviadosHoy+' mensajes hoy. Para cuidar tu número, sigue mañana.</p>':'')
+      +(fuera?'<p class="aviso-oficial">'+icon('clock',18)+'Fuera del horario para mensajes comerciales (Ley 2300 de 2023).</p>':'')
+      +'<button class="btn btn-primario btn-bloque" data-crapido="escribir" data-id="'+esc(sig.d.id)+'">'+icon('phone',18)+(lleno||fuera?'Escribir de todos modos':'Escribir a '+esc(sig.d.nombre))+'</button>'
+      +'<div class="dc-actions"><button class="btn btn-secundario btn-sm" data-crapido="saltar" data-id="'+esc(sig.d.id)+'">Saltar este</button>'
+      +'<button class="btn btn-ghost btn-sm" data-crapido="terminar">Terminar</button></div>')
+    +'</div>';
+}
 // Ley 2300 de 2023: los mensajes comerciales van de lunes a viernes de 7 a. m. a 7 p. m. y los sábados de 8 a. m. a 3 p. m.
 function horarioContactoOK(f=new Date()){const d=f.getDay(),h=f.getHours();return d===0?false:d===6?h>=8&&h<15:h>=7&&h<19;}
 async function cargarContactos(){
@@ -5223,13 +5247,16 @@ function contactosAdminHTML(D){
   const reclamos=new Set(D.solicitudes.filter(s=>s.tipo==='reclamo').map(s=>s.comercio_id));
   const todos=contactables(database).map(d=>({d,e:estadoContacto(d,A.contactos.get(d.id),reclamos),c:A.contactos.get(d.id)}));
   const n=k=>todos.filter(x=>x.e===k).length,f=A.contactoFiltro||'pendiente';
-  const hoy=new Date().toDateString(),enviadosHoy=[...A.contactos.values()].filter(c=>c.estado==='enviado'&&c.fecha&&new Date(c.fecha).toDateString()===hoy).length;
+  const enviadosHoy=enviadosDelDia(A.contactos);
   const lista=todos.filter(x=>f==='todos'||x.e===f).sort((a,b)=>a.d.nombre.localeCompare(b.d.nombre,'es'));
   return '<p class="nota-c izq">'+todos.length+' negocios del directorio tienen celular. Contactados: '+(todos.length-n('pendiente'))+' · Se unieron: '+n('unido')+'. '
     +'«Escribir» abre tu WhatsApp con el mensaje listo; tú decides si lo envías.</p>'
     +(campanaVigente()?'<p class="plan-cinta">'+icon('sparkles',18)+'Campaña: quien se una antes del '+CAMPANA.unirseTxt+' recibe Premium gratis hasta el '+CAMPANA.premiumTxt+' al aprobar su reclamo.</p>':'')
     +(!horarioContactoOK()?'<p class="aviso-oficial">'+icon('clock',18)+'Fuera del horario para mensajes comerciales (Ley 2300 de 2023): lunes a viernes de 7 a. m. a 7 p. m. y sábados de 8 a. m. a 3 p. m. Los domingos y festivos no se escribe.</p>':'')
-    +(enviadosHoy>=25?'<p class="aviso-oficial">'+icon('circle-alert',18)+'Hoy ya enviaste '+enviadosHoy+' mensajes. WhatsApp puede bloquear un número que escribe a muchos desconocidos el mismo día: sigue mañana.</p>':'')
+    +(A.rapido?rapidoHTML(todos,enviadosHoy)
+      :(n('pendiente')?'<button class="btn btn-primario btn-bloque" id="cRapido">'+icon('phone',18)+'Modo rápido: escribir uno tras otro ('+n('pendiente')+')</button>'
+        +'<p class="ayuda">Abre el chat del siguiente negocio, tú lo envías y vuelves aquí para el próximo. Unos 10 segundos por negocio.</p>':''))
+    +(!A.rapido&&enviadosHoy>=LIMITE_DIA_CONTACTO?'<p class="aviso-oficial">'+icon('circle-alert',18)+'Hoy ya enviaste '+enviadosHoy+' mensajes. WhatsApp puede bloquear un número que escribe a muchos desconocidos el mismo día: sigue mañana.</p>':'')
     +'<div class="seg" role="tablist" aria-label="Estado del contacto">'+['pendiente','enviado','respondio','unido','todos'].map(k=>'<button role="tab" aria-selected="'+(f===k)+'" class="'+(f===k?'on':'')+'" data-cfiltro="'+k+'">'
       +(k==='todos'?'Todos':ESTADOS_CONTACTO[k])+' <span class="contador">'+(k==='todos'?todos.length:n(k))+'</span></button>').join('')+'</div>'
     +(lista.length?lista.slice(0,lim).map(({d,e,c})=>'<div class="adm-fila contacto"><div class="dc-info"><b>'+esc(d.nombre)+'</b><span>'+esc(etiquetaDe(d))+' · '+esc(municipioDe(d))+' · '+esc(celularDe(d))
@@ -5247,10 +5274,21 @@ function enlazarContactos(){
     try{await db.collection('contactos').doc(id).set(datos,{merge:true});A.contactos.set(id,{...datos,fecha:Date.now()});}catch(e){toast('No se pudo guardar (Error '+reportarError('contacto',e)+')');}
     render(true);};
   $$('[data-cfiltro]').forEach(b=>(b.onclick=()=>{A.contactoFiltro=b.dataset.cfiltro;A.contactoLimite=40;render(true);}));
+  const escribir=d=>{window.open('https://wa.me/57'+celularDe(d)+'?text='+encodeURIComponent(mensajeContacto(d,estado.perfil&&estado.perfil.nombre)),'_blank','noopener');
+    medir('contacto_whatsapp');};
+  const cr=$('#cRapido');if(cr)cr.onclick=()=>{A.rapido={saltados:new Set(),ultimo:null};medir('contacto_rapido');render(true);};
+  $$('[data-crapido]').forEach(b=>(b.onclick=async()=>{
+    const acc=b.dataset.crapido,d=b.dataset.id&&buscar(b.dataset.id);
+    if(acc==='terminar'){A.rapido=null;render(true);return;}
+    if(acc==='saltar'&&d){A.rapido.saltados.add(d.id);render(true);return;}
+    if(acc==='escribir'&&d){
+      const lleno=enviadosDelDia(A.contactos)>=LIMITE_DIA_CONTACTO,fuera=!horarioContactoOK();
+      if((lleno||fuera)&&!await confirmar('¿Escribir de todos modos?',lleno?'Ya enviaste '+LIMITE_DIA_CONTACTO+' o más mensajes hoy y WhatsApp podría bloquear tu número.':'Estás fuera del horario para mensajes comerciales de la Ley 2300 de 2023.','Escribir','Mejor no','circle-alert'))return;
+      escribir(d);A.rapido.ultimo=d.id;guardar(d.id,'enviado');
+    }
+  }));
   const mas=$('#cMas');if(mas)mas.onclick=()=>{A.contactoLimite=(A.contactoLimite||40)+40;render(true);};
-  $$('[data-cwa]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.cwa);if(!d)return;
-    window.open('https://wa.me/57'+celularDe(d)+'?text='+encodeURIComponent(mensajeContacto(d,estado.perfil&&estado.perfil.nombre)),'_blank','noopener');
-    medir('contacto_whatsapp');guardar(d.id,'enviado');}));
+  $$('[data-cwa]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.cwa);if(!d)return;escribir(d);guardar(d.id,'enviado');}));
   $$('[data-cestado]').forEach(x=>(x.onchange=()=>guardar(x.dataset.cestado,x.value)));
 }
 /* ===== PANEL DE ADMINISTRACIÓN (v4 · Fase 2) — ruta #/admin, solo rol admin =====
