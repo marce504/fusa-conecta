@@ -293,6 +293,8 @@ function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getM
 function fechaEvento(e){
   const a=new Date(e.ini),b=new Date(e.fin),mismoDia=a.toDateString()===b.toDateString();
   const dia=d=>DIAS_EV[d.getDay()]+' '+d.getDate()+' de '+MESES3[d.getMonth()];
+  // v1.4.2: la fuente no dijo a qué hora termina (la agenda lo deja vigente todo el día)
+  if(e.sin_hora_fin&&mismoDia)return dia(a)+' · desde las '+horaEv(e.ini);
   return dia(a)+' · '+horaEv(e.ini)+(mismoDia?' – '+horaEv(e.fin):' al '+dia(b));
 }
 const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};

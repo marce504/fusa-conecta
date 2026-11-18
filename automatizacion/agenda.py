@@ -198,6 +198,12 @@ def palabras_lugar(lugar: Any) -> set[str]:
     return {p for p in norm(lugar).split() if p not in VACIAS_LUGAR and len(p) > 1}
 
 
+def fin_del_dia(ms: int) -> int:
+    """Último minuto (23:59) del día en Colombia de ese instante."""
+    d = de_ms(ms).astimezone(ZONA_COL).replace(hour=23, minute=59, second=0, microsecond=0)
+    return int(d.timestamp() * 1000)
+
+
 def dia_col_de(ms: int) -> str:
     return de_ms(ms - 5 * 3_600_000).strftime("%Y-%m-%d")
 
@@ -360,7 +366,9 @@ def de_evento(x: dict, f: Fuente) -> dict | None:
         "tipo": tipo_de(sin_html(x.get("name")), "otro"),
         "x": x,
         "inicio": ini,
-        "fin": max(fecha_col(x.get("closingDate")) or ini + 2 * 3_600_000, ini),
+        # Sin hora de cierre: vigente hasta el final de su día y la app muestra solo «desde las …»
+        "fin": max(fecha_col(x.get("closingDate")) or fin_del_dia(ini), ini),
+        **({} if fecha_col(x.get("closingDate")) else {"sin_hora_fin": True}),
         "lugar_nombre": recortar(lugar or f.municipio or "Por confirmar", 80),
         "organizador": recortar(sin_html(atributo(x, "EventHost")) or f.nombre, 80),
         "gratis": True,
@@ -513,10 +521,10 @@ def depurar(candidatos: list[dict], ahora: int) -> list[dict]:
     validos = [
         e
         for e in candidatos
-        if len(e["titulo"]) >= 3
-        and len(e["lugar_nombre"]) >= 2
-        and e["fin"] >= ahora
-        and e["inicio"] < ahora + 183 * DIA_MS
+        if len(e["titulo"]) >= 3 and len(e["lugar_nombre"]) >= 2
+        # Sigue vigente si no ha terminado o si empezó hoy: las alcaldías a veces publican el evento el mismo día,
+        # después de la hora de inicio y sin hora de cierre (Festival de Juventudes de Pasca, 14 nov 2026, 9:28 a. m.)
+        and (e["fin"] >= ahora or dia_col_de(e["inicio"]) == dia_col_de(ahora)) and e["inicio"] < ahora + 183 * DIA_MS
     ]
     por_clave: dict[str, dict] = {}
     for e in validos:  # como un Map de JavaScript: gana el último, conserva la posición del primero
@@ -592,6 +600,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             db.collection("eventos").document(),
             {
                 **({"programa": e["programa"]} if e.get("programa") else {}),
+                **({"sin_hora_fin": True} if e.get("sin_hora_fin") else {}),
                 "titulo": e["titulo"],
                 "descripcion": e["descripcion"],
                 "categoria": e["categoria"],
@@ -771,7 +780,11 @@ def leer_fuentes(cliente: Any, ahora: int) -> tuple[list[dict], list[tuple[dict,
             except Exception as e:  # noqa: BLE001
                 errores.append(f"{p}: {e}")
         items = [x for x in vistos.values() if not f.filtro or f.filtro.search(texto_de(x))]
-        ev = [e for e in (de_evento(x, f) for x in items if x.get("contentType") == "Event") if e and e["fin"] >= ahora]
+        ev = [
+            e
+            for e in (de_evento(x, f) for x in items if x.get("contentType") == "Event")
+            if e and (e["fin"] >= ahora or dia_col_de(e["inicio"]) == dia_col_de(ahora))
+        ]
         nt = [
             x
             for x in items

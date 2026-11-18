@@ -82,6 +82,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
     Notaría Segunda (existe, pero no se encontró su dirección), Cruz Roja y Casa de la Mujer (sin sede confirmada).
 
 ### Corregido
+- **Eventos sin hora de cierre.** El Festival de Juventudes de Pasca (14 de noviembre) se publicó en el sitio de la
+  alcaldía ese mismo día a las 9:28 a. m., con inicio a las 8:00 y sin hora de fin. La agenda le ponía 2 horas, así
+  que cuando lo leyó ya lo daba por terminado y no lo guardó. Ahora un evento sin hora de cierre queda vigente hasta el
+  final de su día (`sin_hora_fin`) y la app muestra «desde las 8:00 a. m.» sin inventar la hora de fin. PWA v81
+  (`fusa-v74`).
 - **Fotos desde el panel del admin en lugares del directorio.** Las reglas no dejaban al admin crear la copia en la nube
   de un lugar de `datos.js` (ahora `allow create: if esAdmin() || …`). Al guardar ya no se pierden la fuente, la web,
   el correo ni el crédito de la foto, y no se inventa el horario «Lun-Sáb 8-18» si el lugar no tenía uno por días.

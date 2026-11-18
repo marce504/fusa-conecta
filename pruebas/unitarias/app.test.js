@@ -427,3 +427,19 @@ describe('pistaDiagnostico: errores de la IA con arreglo conocido', () => {
     expect(pistaDiagnostico(new Error('Sin respuesta en 25 s'))).toBe('');
   });
 });
+
+describe('fechaEvento: eventos sin hora de cierre', () => {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'fechaEvento'], {
+    DIAS_EV: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+    MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  });
+  const ini = new Date('2026-11-14T08:00:00-05:00').getTime();
+  it('dice «desde las» y no inventa la hora de fin', () => {
+    const fin = new Date('2026-11-14T23:59:00-05:00').getTime();
+    expect(fechaEvento({ ini, fin, sin_hora_fin: true })).toBe('Sáb 14 de nov · desde las 8:00 a. m.');
+  });
+  it('con hora de cierre muestra el rango', () => {
+    const fin = new Date('2026-11-14T12:00:00-05:00').getTime();
+    expect(fechaEvento({ ini, fin })).toBe('Sáb 14 de nov · 8:00 a. m. – 12:00 p. m.');
+  });
+});

@@ -276,3 +276,29 @@ def test_motivo_para_correr_en_la_revision_de_cada_15_minutos():
     # GitHub no ejecutó la corrida diaria: la siguiente revisión la recupera
     assert agenda.motivo_para_correr(None, AHORA - 21 * hora, AHORA) == "diaria (recuperada)"
     assert agenda.motivo_para_correr(None, None, AHORA) == "diaria (recuperada)"
+
+
+def test_evento_publicado_el_mismo_dia_despues_de_empezar_sigue_vigente():
+    """Pasca publicó el Festival de Juventudes a las 9:28 a. m. con inicio a las 8:00 y sin hora de cierre;
+    la siguiente corrida de GitHub fue después del mediodía."""
+    inicio = 1794661200000  # 2026-11-14 08:00 en Colombia
+    corrida = inicio + 5 * 3_600_000  # 1:00 p. m.
+    festival = ev("Festival de Juventudes Pasca 2026", inicio, "Gusta Guchipas")
+    assert festival["fin"] < corrida  # 2 horas por defecto: ya habría «terminado»
+    assert agenda.depurar([festival], corrida) == [festival]
+    assert agenda.depurar([festival], inicio + agenda.DIA_MS) == []  # al día siguiente ya no
+
+
+def test_evento_sin_hora_de_cierre_dura_todo_su_dia():
+    x = {
+        "name": "FESTIVAL DE JUVENTUDES PASCA 2026",
+        "friendlyName": "festival-de-juventudes-pasca-2026",
+        "startingDate": "2026-11-14T08:00:00",
+        "closingDate": None,
+        "attributes": [{"attribute": "EventLocation", "value": "Gusta Guchipas"}],
+    }
+    e = agenda.de_evento(x, agenda.FUENTES[1])
+    assert e["sin_hora_fin"] is True
+    assert agenda.de_ms(e["fin"]).astimezone(agenda.ZONA_COL).strftime("%Y-%m-%d %H:%M") == "2026-11-14 23:59"
+    con_cierre = agenda.de_evento({**x, "closingDate": "2026-11-14T12:00:00"}, agenda.FUENTES[1])
+    assert "sin_hora_fin" not in con_cierre
