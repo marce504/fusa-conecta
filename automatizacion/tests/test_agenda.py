@@ -302,3 +302,16 @@ def test_evento_sin_hora_de_cierre_dura_todo_su_dia():
     assert agenda.de_ms(e["fin"]).astimezone(agenda.ZONA_COL).strftime("%Y-%m-%d %H:%M") == "2026-11-14 23:59"
     con_cierre = agenda.de_evento({**x, "closingDate": "2026-11-14T12:00:00"}, agenda.FUENTES[1])
     assert "sin_hora_fin" not in con_cierre
+
+
+def test_sin_hora_clara_queda_pendiente_y_marcada_para_revisar():
+    """v95: «Conexión Sumapaz» quedó a las 9:00 a. m. porque la noticia no decía la hora; el panel debe avisarlo."""
+    f = agenda.Fuente("Alcaldía de Fusagasugá", "https://www.fusagasuga.gov.co", "Fusagasugá", True)
+    base = {"titulo": "Noches de Teatro", "inicio": "2026-11-20T09:00", "lugar_nombre": "Casona Quinta Balmoral"}
+    sin_hora = agenda.de_respuesta_ia([{**base, "fecha_clara": False, "lugar_claro": True}], {"friendlyName": "n"}, f)[
+        0
+    ]
+    assert sin_hora["hora_por_confirmar"] is True and sin_hora["lugar_por_confirmar"] is False
+    assert agenda.decidir(sin_hora) == "pendiente"
+    clara = agenda.de_respuesta_ia([{**base, "fecha_clara": True, "lugar_claro": True}], {"friendlyName": "n"}, f)[0]
+    assert clara["hora_por_confirmar"] is False and agenda.decidir(clara) == "publicado"

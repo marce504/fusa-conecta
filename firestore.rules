@@ -377,7 +377,7 @@ service cloud.firestore {
     function eventoValido(d) {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
-          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes'])
+          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 60) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -391,6 +391,7 @@ service cloud.firestore {
         // Campos de la agenda automática: programa de un festival, evento sin hora de fin y fuentes adicionales
         && campoTexto(d, 'programa', 80)
         && d.get('sin_hora_fin', false) is bool
+        && d.get('hora_por_confirmar', false) is bool && d.get('lugar_por_confirmar', false) is bool
         && d.get('fuentes', []) is list && d.get('fuentes', []).size() <= 5
         // v8: plan para la gente o aviso del municipio (jornadas de salud, vacunación, cortes de servicio)
         && d.get('tipo', 'plan') in ['plan', 'aviso']

@@ -9,6 +9,17 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Programa oficial del Festival Nacional de las Artes «Conexión Sumapaz» (19 al 29 de noviembre).** Transcrito del
+  PDF de la Secretaría de Cultura en `automatizacion/programas/conexion-sumapaz-2026.json`: 16 actividades por venir en
+  el Parque Max Aya, la Casona Quinta Balmoral y el Parque Coburgo, con su hora real y entrada libre.
+
+### Corregido
+- **Eventos sin hora confirmada.** Cuando la noticia no dice la hora, la agenda automática pone 9:00 a. m. y deja el
+  evento pendiente, pero el panel no lo advertía: así se aprobaron «Noches de Teatro» y «Conexión Sumapaz» a las
+  9:00 a. m. de un solo día. Ahora la agenda marca `hora_por_confirmar` y `lugar_por_confirmar`, y el panel muestra
+  «Revisa antes de publicar» con lo que falta confirmar. PWA v96 (`fusa-v89`).
+
+### Agregado
 - **Avisos al celular para los administradores.** Cuando alguien registra un negocio (o lo reenvía), sugiere un
   evento, propone una ruta, pide Premium, reclama un negocio o reporta un problema, los admin reciben la novedad en la
   campana y en el celular, con un enlace que abre el panel. La API nueva `POST /v1/notificaciones/pendiente` (API

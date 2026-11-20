@@ -1521,6 +1521,9 @@ function eventosAdminHTML(){
   const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
   const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e.ini)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
     +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA',automatico:'agenda automática'+(e.fuente_oficial?' (fuente oficial)':'')}[e.origen]||e.origen)+'</p>'
+    +(e.hora_por_confirmar||e.lugar_por_confirmar?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p><b>Revisa antes de publicar:</b> '
+      +[e.hora_por_confirmar?'la noticia no dice la hora (la agenda puso 9:00 a. m.)':'',e.lugar_por_confirmar?'el lugar no está claro':''].filter(Boolean).join(' y ')
+      +'. Ábrela en «Ver la fuente» y corrígela con «Editar».</p></div>':'')
     +(e.descripcion?'<p class="adm-desc">'+esc(e.descripcion.slice(0,220))+'</p>':'')
     +(e.enlace_fuente?'<p class="nota-c izq"><a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la fuente</a></p>':'')
     +'<div class="dc-actions">'+botones+'</div></div>';

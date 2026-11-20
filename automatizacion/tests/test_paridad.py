@@ -41,7 +41,8 @@ def test_campana_en_descripcion_igual():
 
 def test_respuesta_de_la_ia_igual():
     py = [
-        {k: v for k, v in e.items() if k not in ("x", "F")}
+        # hora_por_confirmar y lugar_por_confirmar (v95) son solo de la versión en Python
+        {k: v for k, v in e.items() if k not in ("x", "F", "hora_por_confirmar", "lugar_por_confirmar")}
         for e in agenda.de_respuesta_ia(CASOS["ia"], {"friendlyName": "noticia-prueba"}, FUENTE)
     ]
     assert py == JS["ia"]

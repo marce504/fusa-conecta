@@ -922,6 +922,7 @@ test('agenda automática: el admin publica un evento de un programa con sus fuen
   await poner('eventos/e2e-auto-programa', {
     programa: 'conexion-sumapaz-2026',
     sin_hora_fin: true,
+    hora_por_confirmar: true,
     titulo: 'Noches de Teatro de prueba E2E',
     descripcion: 'Hace parte de: Festival de prueba. Obras de teatro.',
     categoria: 'cultura',
@@ -956,6 +957,8 @@ test('agenda automática: el admin publica un evento de un programa con sus fuen
   });
   const pub = page.locator('[data-evpub="e2e-auto-programa"]');
   await expect(pub).toBeVisible({ timeout: 20000 });
+  // El panel avisa que la noticia no decía la hora
+  await expect(page.locator('.adm-card', { has: pub })).toContainText('la noticia no dice la hora');
   await pub.click();
   await expect(page.locator('#toast')).toContainText('Evento publicado');
   const est = await page.evaluate(async () => {

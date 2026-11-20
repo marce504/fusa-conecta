@@ -1,0 +1,142 @@
+{
+  "nombre": "Festival Nacional de las Artes «Conexión Sumapaz» Fusagasugá 2026",
+  "campana": "Festival Nacional de las Artes «Conexión Sumapaz» (19 al 29 de noviembre, entrada libre)",
+  "organizador": "Alcaldía de Fusagasugá - Secretaría de Cultura",
+  "sitio": "https://www.fusagasuga.gov.co",
+  "enlace": "https://www.fusagasuga.gov.co/noticias/invitacion-al-festival-nacional-de-las-artes-conexion",
+  "documento": "https://cultura.alcaldiafusagasuga.gov.co/wp-content/uploads/sites/6/2026/11/Programa-Conexion-Sumapaz-1-1.pdf",
+  "leido": "2026-11-20",
+  "municipio": "Fusagasugá",
+  "categoria": "cultura",
+  "nota": "Transcrito del programa oficial en PDF (15 páginas) y de la noticia de la Alcaldía: del 19 al 29 de noviembre, entrada libre. Las presentaciones de una misma tarde y escenario van juntas en un solo evento. El 19 de noviembre ya pasó y no se incluye. Las exposiciones de la Escuela de Artes Visuales EFAC van del 24 al 28, de 2:00 a 6:00 p. m.",
+  "eventos": [
+    {
+      "titulo": "Tarde EFAC y artistas del Sumapaz",
+      "inicio": "2026-11-20T13:00",
+      "fin": "2026-11-20T18:40",
+      "lugar": "Parque Max Aya",
+      "descripcion": "Danza urbana, danza folclórica, circo y el ensamble «Ranadores» de las EFAC; Agrupación de Danzas de Pasca, Agrupación de Danzas de Silvania y Cuerdas de mi Tierra.",
+      "gratis": true
+    },
+    {
+      "titulo": "Tarde Musical y Escénica",
+      "inicio": "2026-11-21T13:00",
+      "fin": "2026-11-21T19:10",
+      "lugar": "Parque Max Aya",
+      "descripcion": "Banda Sinfónica Infantil, Banda Tradicional Sinfónica, orquestas de cuerdas pulsadas y frotadas, ensambles y músicas campesinas de las EFAC. A las 6:30 p. m., la obra «La Cumbia de Delia» (Arjona, Bolívar).",
+      "gratis": true
+    },
+    {
+      "titulo": "Noche de Teatro: En el espacio no hay estrellas fugaces",
+      "inicio": "2026-11-21T19:30",
+      "fin": "2026-11-21T20:30",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Conejo Doble Teatro (Bogotá).",
+      "gratis": true
+    },
+    {
+      "titulo": "Ceremonia de Graduación EFAC",
+      "inicio": "2026-11-22T08:00",
+      "fin": "2026-11-22T12:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Apertura, recitales de grado y entrega de diplomas de las Escuelas de Formación Artística y Cultural.",
+      "gratis": true
+    },
+    {
+      "titulo": "Tarde de Música y Fusiones",
+      "inicio": "2026-11-22T13:00",
+      "fin": "2026-11-22T18:30",
+      "lugar": "Parque Max Aya",
+      "descripcion": "Agrupaciones EFAC: población con discapacidad, coro Piccolo y Capela, percusión, rock «Stardust» y carranga rock con Pasca. Cierra La Matachera (Bucaramanga) a las 5:30 p. m.",
+      "gratis": true
+    },
+    {
+      "titulo": "Noche de Teatro: Efímero",
+      "inicio": "2026-11-22T19:00",
+      "fin": "2026-11-22T20:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Asociación Cultural Casa del Silencio.",
+      "gratis": true
+    },
+    {
+      "titulo": "Muchos Mundos (Daniel Avendaño)",
+      "inicio": "2026-11-23T17:00",
+      "fin": "2026-11-23T18:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Ganadores del Portafolio de Estímulos 2026.",
+      "gratis": true
+    },
+    {
+      "titulo": "Exposiciones de la Escuela de Artes Visuales EFAC",
+      "inicio": "2026-11-24T14:00",
+      "fin": "2026-11-28T18:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Del martes 24 al sábado 28 de noviembre, de 2:00 a 6:00 p. m. El 24 y el 25 también con Artes Literarias.",
+      "gratis": true
+    },
+    {
+      "titulo": "Taller Tribu: producción y escenografía",
+      "inicio": "2026-11-24T14:00",
+      "fin": "2026-11-24T18:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Producción general para espectáculos de artes escénicas; diseño, construcción y montaje de escenografías.",
+      "gratis": true
+    },
+    {
+      "titulo": "La Mansión de los Payasos (Kareli Uribe)",
+      "inicio": "2026-11-24T18:00",
+      "fin": "2026-11-24T19:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Ganadores del Portafolio de Estímulos 2026.",
+      "gratis": true
+    },
+    {
+      "titulo": "Los Manuales que Heredamos (Yurany Morales)",
+      "inicio": "2026-11-24T19:00",
+      "fin": "2026-11-24T20:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Ganadores del Portafolio de Estímulos 2026.",
+      "gratis": true
+    },
+    {
+      "titulo": "Taller Tribu: iluminación y sonido",
+      "inicio": "2026-11-25T14:00",
+      "fin": "2026-11-25T18:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Introducción a la iluminación escénica y fundamentos del sonido para espectáculos en vivo.",
+      "gratis": true
+    },
+    {
+      "titulo": "Taller Tribu: gestión cultural",
+      "inicio": "2026-11-26T15:00",
+      "fin": "2026-11-26T17:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Taller de gestión cultural.",
+      "gratis": true
+    },
+    {
+      "titulo": "Recontra Gala Audiovisuales y Literarias EFAC",
+      "inicio": "2026-11-26T17:00",
+      "fin": "2026-11-26T20:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Gala de las escuelas de artes audiovisuales y literarias.",
+      "gratis": true
+    },
+    {
+      "titulo": "Cierre del festival: Milonga y Taller de Tango",
+      "inicio": "2026-11-28T17:00",
+      "fin": "2026-11-28T20:00",
+      "lugar": "Casona Quinta Balmoral (Cra. 12 # 18A-94)",
+      "descripcion": "Protocolo y cierre del Festival Conexión Sumapaz.",
+      "gratis": true
+    },
+    {
+      "titulo": "La Vorágine (Agrupación de Teatro EFAC)",
+      "inicio": "2026-11-29T17:00",
+      "fin": "2026-11-29T19:00",
+      "lugar": "Parque Coburgo",
+      "descripcion": "Obra de teatro de la Agrupación de Teatro EFAC.",
+      "gratis": true
+    }
+  ]
+}

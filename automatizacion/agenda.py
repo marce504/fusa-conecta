@@ -480,6 +480,10 @@ def de_respuesta_ia(lista: Any, x: dict, f: Fuente) -> list[dict]:
                 "precio": recortar(e.get("precio"), 40) if e.get("gratis") is False else "",
                 "municipio": "Pasca" if e.get("municipio") == "Pasca" else "Fusagasugá",
                 "enlace": f"{f.sitio}/noticias/{x.get('friendlyName')}",
+                # v95: el panel avisa qué falta confirmar antes de publicar (la hora por defecto es 9:00 a. m.)
+                "hora_por_confirmar": e.get("fecha_clara") is not True,
+                "lugar_por_confirmar": e.get("lugar_claro") is not True
+                or bool(re.search(r"por confirmar", e.get("lugar_nombre") or "", re.I)),
                 "completo": e.get("fecha_clara") is True
                 and e.get("lugar_claro") is True
                 and not re.search(r"por confirmar", e.get("lugar_nombre") or "", re.I),
@@ -605,6 +609,8 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             {
                 **({"programa": e["programa"]} if e.get("programa") else {}),
                 **({"sin_hora_fin": True} if e.get("sin_hora_fin") else {}),
+                **({"hora_por_confirmar": True} if e.get("hora_por_confirmar") else {}),
+                **({"lugar_por_confirmar": True} if e.get("lugar_por_confirmar") else {}),
                 "titulo": e["titulo"],
                 "descripcion": e["descripcion"],
                 "categoria": e["categoria"],
