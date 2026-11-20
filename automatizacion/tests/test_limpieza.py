@@ -89,3 +89,13 @@ def test_corrida_contra_el_emulador():
         and r["sin_whatsapp_total"] >= 1
         and r["registro"]
     )
+
+
+def test_perdidos_vencidos():
+    lista = [
+        {"id": "a", "estado": "activo", "vence": AHORA - 1},
+        {"id": "b", "estado": "activo", "vence": AHORA + 1},
+        {"id": "c", "estado": "resuelto", "vence": AHORA - 1},
+        {"id": "d", "estado": "oculto", "vence": AHORA - 1},
+    ]
+    assert [a["id"] for a in limpieza.perdidos_vencidos(lista, AHORA)] == ["a", "c"]

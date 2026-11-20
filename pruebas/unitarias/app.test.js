@@ -933,3 +933,48 @@ describe('IA de respaldo: cuándo se pasa a la API', () => {
     ['AI: 429 quota exceeded', false],
   ])('«%s» → %s', (m, esperado) => expect(bloqueoAppCheck(new Error(m))).toBe(esperado));
 });
+
+describe('Perdidos y encontrados: validación y qué se muestra', () => {
+  const ahora = Date.parse('2026-11-20T10:00:00-05:00');
+  const { datosPerdido, perdidosVisibles } = cargar(['telLimpio', 'datosPerdido', 'perdidosVisibles']);
+  const ok = {
+    tipo: 'mascota',
+    situacion: 'perdido',
+    titulo: 'Perrita criolla café',
+    zona: 'Barrio Pekín',
+    municipio: 'Fusagasugá',
+    fecha: '2026-11-19',
+    whatsapp: '301 234 5678',
+    acepta: true,
+  };
+  it('limpia los datos y exige WhatsApp, fecha y aceptar mostrar el número', () => {
+    expect(datosPerdido(ok, ahora).whatsapp).toBe('3012345678');
+    expect(datosPerdido({ ...ok, acepta: false }, ahora)).toMatch(/Acepta/);
+    expect(datosPerdido({ ...ok, whatsapp: '6018671234' }, ahora)).toMatch(/celular/);
+    expect(datosPerdido({ ...ok, fecha: '2026-12-01' }, ahora)).toMatch(/futura/);
+    expect(datosPerdido({ ...ok, fecha: '2026-07-01' }, ahora)).toMatch(/3 meses/);
+    expect(datosPerdido({ ...ok, tipo: 'vehiculo' }, ahora)).toMatch(/mascota o un objeto/);
+  });
+  it('muestra activos y resueltos sin vencer, primero los activos', () => {
+    const p = (id, estadoP, vence, extra = {}) => ({
+      id,
+      estado: estadoP,
+      vence,
+      creado: 1,
+      tipo: 'mascota',
+      situacion: 'perdido',
+      municipio: 'Fusagasugá',
+      ...extra,
+    });
+    const l = [
+      p('res', 'resuelto', ahora + 1),
+      p('act', 'activo', ahora + 1),
+      p('venc', 'activo', ahora - 1),
+      p('oc', 'oculto', ahora + 1),
+      p('pasca', 'activo', ahora + 1, { municipio: 'Pasca' }),
+      p('obj', 'activo', ahora + 1, { tipo: 'objeto' }),
+    ];
+    expect(perdidosVisibles(l, { tipo: 'mascota', mun: 'Fusagasugá' }, ahora).map(x => x.id)).toEqual(['act', 'res']);
+    expect(perdidosVisibles(l, { tipo: 'objeto' }, ahora).map(x => x.id)).toEqual(['obj']);
+  });
+});

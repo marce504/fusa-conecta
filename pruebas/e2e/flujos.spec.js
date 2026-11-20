@@ -968,3 +968,45 @@ test('agenda automática: el admin publica un evento de un programa con sus fuen
   expect(est).toBe('publicado');
   await page.screenshot({ path: info.outputPath('evento-programa-publicado.png') });
 });
+
+// v97: perdidos y encontrados. Se publica sin revisión, la autora lo marca resuelto y nadie más lo puede cambiar
+test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca resuelta', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.ana);
+  await sinAvisoEmulador(page);
+  await page.evaluate(() => window.navegar({ tipo: 'perdidos' }));
+  await expect(page.locator('#cuerpo')).toContainText('No hay avisos por ahora');
+  await page.locator('#pdPublicar').click();
+  await page.locator('#pdTit').fill('Perrita criolla de prueba E2E');
+  await page.locator('#pdDesc').fill('Responde al nombre de Luna. Collar rojo.');
+  await page.locator('#pdZona').fill('Barrio Pekín');
+  await page.locator('#pdWa').fill('3012345678');
+  await page.locator('#pdEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Acepta');
+  await page.locator('#pdAcepta').check();
+  await page.locator('#pdEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Aviso publicado');
+  const aviso = page.locator('#cuerpo .perdido').first();
+  await expect(aviso).toContainText('Perrita criolla de prueba E2E');
+  await page.screenshot({ path: info.outputPath('perdidos.png') });
+  // En el inicio
+  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
+  await expect(page.locator('#cuerpo')).toContainText('Ayúdalos a volver a casa');
+  // Rosa no puede cambiarlo ni borrarlo
+  const id = await page.evaluate(() => estado.perdidos[0].id);
+  await entrarComo(page, CUENTAS.rosa);
+  const rosa = await page.evaluate(async idAviso => {
+    const ref = window.firebase.firestore().collection('perdidos').doc(idAviso);
+    const intentar = async p => p.then(() => 'ok').catch(e => e.code);
+    return { cambia: await intentar(ref.update({ estado: 'resuelto' })), borra: await intentar(ref.delete()) };
+  }, id);
+  expect(rosa).toEqual({ cambia: 'permission-denied', borra: 'permission-denied' });
+  // Ana lo marca resuelto
+  await entrarComo(page, CUENTAS.ana);
+  await page.evaluate(() => window.navegar({ tipo: 'perdidos' }));
+  await page.locator(`[data-pdres="${id}"]`).first().click();
+  await expect(page.locator('#toast')).toContainText('volvió a casa');
+  await expect(page.locator('#cuerpo .perdido.resuelto').first()).toContainText('¡Ya volvió a casa!');
+});

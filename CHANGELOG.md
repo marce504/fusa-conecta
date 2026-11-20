@@ -8,6 +8,17 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Agregado
+- **Perdidos y encontrados.** Avisos de mascotas y objetos perdidos o encontrados en Fusa y Pasca: foto opcional,
+  barrio, fecha y WhatsApp (quien publica acepta mostrarlo). Se publican de inmediato porque son urgentes, vencen a los
+  30 días (la limpieza diaria los marca vencidos), quien publica los marca resueltos («¡Ya volvió a casa!») o los
+  borra, y el admin los oculta desde Panel → Perdidos. Máximo 3 avisos activos por persona. Aparecen en «Ayúdalos a
+  volver a casa» en el inicio, en Servicios → Mascotas, en el Perfil y con `#/perdidos`. Reglas: `perdidos/{id}` con
+  campos validados; solo la autora cambia el estado o lo borra. PWA v97 (`fusa-v90`).
+
+### Corregido
+- **Ícono de «Foto o afiche».** `image-plus` se usaba en el formulario de eventos pero no estaba en `icons.js`.
+
 ### Corregido
 - **Actividades en paralelo de un programa oficial.** La agenda tomaba como repetidas dos actividades en el mismo lugar
   y a la misma hora (la exposición y el Taller Tribu del 24 de noviembre en la Casona Balmoral) y publicaba solo una.

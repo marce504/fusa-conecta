@@ -1676,6 +1676,130 @@ db.collection('transporte').where('activo','==',true).onSnapshot(s=>{
   if(vistaActual().tipo==='transporte')render(true);
 },()=>{});
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#irTransporte'))navegar({tipo:'transporte'});});
+/* ===== PERDIDOS Y ENCONTRADOS (v97) =====
+   perdidos/{id}: avisos de mascotas y objetos perdidos o encontrados. Los publica cualquier persona con cuenta (es
+   urgente: no esperan revisión), vencen a los 30 días, quien publica los marca resueltos o los borra y el admin los
+   puede ocultar. Las reglas viven en firestore.rules; la limpieza diaria marca los vencidos. */
+const PERDIDOS_DIAS=30,PERDIDOS_MAX_ACTIVOS=3;
+const TIPOS_PERDIDO=[['mascota','Mascotas','paw-print'],['objeto','Objetos','package']];
+function perdidoDeDoc(id,x){
+  return {id,tipo:x.tipo==='objeto'?'objeto':'mascota',situacion:x.situacion==='encontrado'?'encontrado':'perdido',titulo:x.titulo||'',descripcion:x.descripcion||'',
+    zona:x.zona||'',municipio:x.municipio==='Pasca'?'Pasca':'Fusagasugá',fecha:x.fecha||'',whatsapp:x.whatsapp||'',foto:x.foto||'',autor_uid:x.autor_uid||'',
+    autor_nombre:x.autor_nombre||'',estado:x.estado||'activo',creado:aMs(x.creado)||0,vence:aMs(x.vence)||0};
+}
+// Visibles: activos o resueltos, sin vencer, del municipio elegido
+function perdidosVisibles(l,{tipo='',situacion='',mun=''}={},ahora=Date.now()){
+  return (l||[]).filter(p=>['activo','resuelto'].includes(p.estado)&&p.vence>ahora&&(!tipo||p.tipo===tipo)&&(!situacion||p.situacion===situacion)&&(!mun||p.municipio===mun))
+    .sort((a,b)=>(a.estado==='resuelto')-(b.estado==='resuelto')||b.creado-a.creado);
+}
+function datosPerdido(v,ahora=Date.now()){
+  const t=k=>String(v[k]||'').trim();
+  if(!['mascota','objeto'].includes(v.tipo))return 'Elige si es una mascota o un objeto';
+  if(!['perdido','encontrado'].includes(v.situacion))return 'Elige si se perdió o lo encontraste';
+  if(t('titulo').length<3)return 'Escribe un título corto, por ejemplo «Perrita criolla café»';
+  if(t('zona').length<2)return 'Escribe el barrio o el lugar';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v.fecha||''))return 'Pon la fecha';
+  const f=new Date(v.fecha+'T12:00:00').getTime();
+  if(f>ahora+24*3600e3)return 'La fecha no puede ser futura';
+  if(f<ahora-90*24*3600e3)return 'Solo avisos de los últimos 3 meses';
+  const wa=telLimpio(v.whatsapp);
+  if(!/^3\d{9}$/.test(wa))return 'Escribe un celular de WhatsApp (10 dígitos)';
+  if(!v.acepta)return 'Acepta mostrar tu WhatsApp en el aviso';
+  return {tipo:v.tipo,situacion:v.situacion,titulo:t('titulo').slice(0,60),descripcion:t('descripcion').slice(0,400),zona:t('zona').slice(0,80),
+    municipio:v.municipio==='Pasca'?'Pasca':'Fusagasugá',fecha:v.fecha,whatsapp:wa};
+}
+function tarjetaPerdidoHTML(p,propio){
+  const ic=p.tipo==='objeto'?'package':'paw-print',resuelto=p.estado==='resuelto';
+  return '<article class="perdido'+(resuelto?' resuelto':'')+'"><div class="pd-foto">'+(p.foto?'<img src="'+esc(p.foto)+'" alt="Foto de '+esc(p.titulo)+'" loading="lazy">':icon(ic,40))
+    +'<span class="pd-chip '+p.situacion+'">'+(resuelto?(p.tipo==='mascota'?'¡Ya volvió a casa!':'Resuelto'):p.situacion==='perdido'?'Se perdió':'Lo encontraron')+'</span></div>'
+    +'<div class="pd-tx"><b>'+esc(p.titulo)+'</b><small>'+icon('map-pin',12)+esc(p.zona)+' · '+esc(p.municipio)+' · '+esc(fechaCorta(new Date(p.fecha+'T12:00:00').getTime()))+'</small>'
+    +(p.descripcion?'<p>'+esc(p.descripcion)+'</p>':'')+'</div>'
+    +'<div class="pd-acc">'+(propio?(resuelto?'':'<button class="btn btn-primario btn-sm" data-pdres="'+esc(p.id)+'">'+icon('check',16)+'Marcar resuelto</button>')
+      +'<button class="btn btn-ghost btn-sm" data-pdborrar="'+esc(p.id)+'">'+icon('trash-2',16)+'Borrar</button>'
+      :resuelto?'':'<button class="btn btn-secundario btn-sm" data-pdwa="'+esc(p.id)+'">'+icon('message-circle-heart',16)+'Escribir por WhatsApp</button>')
+    +'</div></article>';
+}
+estado.perdidos=ls.get('fc_perdidos',[]);estado.pd={tipo:'mascota',situacion:''};
+db.collection('perdidos').where('estado','in',['activo','resuelto']).onSnapshot(s=>{
+  estado.perdidos=s.docs.map(d=>perdidoDeDoc(d.id,d.data()));
+  // Sin fotos en el teléfono: pesan demasiado para el almacenamiento local
+  ls.set('fc_perdidos',estado.perdidos.map(p=>({...p,foto:''})));
+  const v=vistaActual();if(v.tipo==='perdidos'||(v.tipo==='lista'&&v.cat==='todas'))render(true);
+},()=>{});
+function seccionPerdidosHTML(){
+  const l=perdidosVisibles(estado.perdidos,{mun:municipioElegido()}).filter(p=>p.estado==='activo').slice(0,8);
+  if(!l.length)return '';
+  return '<section class="seccion-inicio" aria-labelledby="tPerdidos"><div class="head-v"><h2 id="tPerdidos">Ayúdalos a volver a casa</h2><button class="btn-ghost" data-irperdidos>Ver todos</button></div>'
+    +'<div class="carrusel carrusel-pd">'+l.map(p=>tarjetaPerdidoHTML(p,false)).join('')+'</div></section>';
+}
+function renderPerdidos(){
+  const cuerpo=$('#cuerpo'),f=estado.pd,uid=logueado()&&estado.usuario.uid;
+  const l=perdidosVisibles(estado.perdidos,{tipo:f.tipo,situacion:f.situacion,mun:municipioElegido()});
+  const mios=uid?estado.perdidos.filter(p=>p.autor_uid===uid&&['activo','resuelto'].includes(p.estado)):[];
+  cuerpo.innerHTML='<div class="vista"><div class="sos-head tr-head"><h2>'+icon('heart-handshake',24)+'Perdidos y encontrados</h2><p>'+icon('circle-check',16)+'Mascotas y objetos de Fusa y Pasca. Los avisos vencen a los '+PERDIDOS_DIAS+' días.</p></div>'
+    +'<button class="btn btn-primario btn-bloque" id="pdPublicar">'+icon('plus',18)+'Publicar un aviso</button>'
+    +'<div class="seg mt-16" role="tablist" aria-label="Tipo">'+TIPOS_PERDIDO.map(([k,t,i])=>'<button role="tab" data-pdtipo="'+k+'" aria-selected="'+(f.tipo===k)+'" class="'+(f.tipo===k?'on':'')+'">'+icon(i,16)+t+'</button>').join('')+'</div>'
+    +'<div class="chips-fila mt-8">'+[['','Todos'],['perdido','Se perdieron'],['encontrado','Los encontraron']].map(([k,t])=>'<button class="chip-filtro'+(f.situacion===k?' on':'')+'" data-pdsit="'+k+'" aria-pressed="'+(f.situacion===k)+'">'+t+'</button>').join('')+'</div>'
+    +(l.some(p=>p.autor_uid!==uid)?'<div class="lista-pd">'+l.filter(p=>p.autor_uid!==uid).map(p=>tarjetaPerdidoHTML(p,false)).join('')+'</div>'
+      :'<div class="vacio">'+icon(f.tipo==='objeto'?'package':'paw-print',48)+'<b>No hay avisos por ahora</b><p>Si se te perdió '+(f.tipo==='objeto'?'algo':'tu mascota')+' o encontraste '+(f.tipo==='objeto'?'un objeto':'una')+', publícalo: los vecinos lo verán aquí y en el inicio.</p></div>')
+    +(mios.length?'<p class="dash-section">Mis avisos</p><div class="lista-pd">'+mios.map(p=>tarjetaPerdidoHTML(p,true)).join('')+'</div>':'')
+    +'</div>'+footerHTML();
+  $('#pdPublicar').onclick=formPerdido;
+  $$('[data-pdtipo]').forEach(b=>(b.onclick=()=>{estado.pd.tipo=b.dataset.pdtipo;render(true);}));
+  $$('[data-pdsit]').forEach(b=>(b.onclick=()=>{estado.pd.situacion=b.dataset.pdsit;render(true);}));
+  enlazarFooter();
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest&&e.target.closest('[data-pdwa],[data-pdres],[data-pdborrar],[data-irperdidos]');if(!t)return;
+  if(t.dataset.irperdidos!==undefined){navegar({tipo:'perdidos'});return;}
+  const p=estado.perdidos.find(x=>x.id===(t.dataset.pdwa||t.dataset.pdres||t.dataset.pdborrar));if(!p)return;
+  if(t.dataset.pdwa){
+    medir('perdido_whatsapp',{tipo:p.tipo});
+    window.open('https://wa.me/57'+p.whatsapp+'?text='+encodeURIComponent('Hola, vi tu aviso en Fusa Conecta: «'+p.titulo+'». '),'_blank','noopener');
+  }else if(t.dataset.pdres){
+    db.collection('perdidos').doc(p.id).update({estado:'resuelto'}).then(()=>toast(p.tipo==='mascota'?'¡Qué bueno que volvió a casa!':'Aviso marcado como resuelto')).catch(()=>toast('No se pudo actualizar el aviso'));
+  }else confirmar('Borrar aviso','«'+p.titulo+'» deja de verse en la app.','Borrar','Cancelar','trash-2',true).then(ok=>{
+    if(ok)db.collection('perdidos').doc(p.id).delete().then(()=>toast('Aviso borrado')).catch(()=>toast('No se pudo borrar el aviso'));
+  });
+});
+function formPerdido(){
+  if(!logueado()){pedirLogin('Inicia sesión para publicar un aviso.');return;}
+  const activos=estado.perdidos.filter(p=>p.autor_uid===estado.usuario.uid&&p.estado==='activo').length;
+  if(activos>=PERDIDOS_MAX_ACTIVOS){toast('Ya tienes '+PERDIDOS_MAX_ACTIVOS+' avisos activos. Marca uno como resuelto o bórralo.');return;}
+  let foto=null;
+  const wa=telLimpio((estado.perfil&&estado.perfil.telefono)||'');
+  abrirHoja('<div class="form-head"><h2>Publicar un aviso</h2><p>Mascotas y objetos perdidos o encontrados</p></div><div class="form-body">'
+    +'<div class="seg" role="radiogroup" aria-label="Qué es">'+TIPOS_PERDIDO.map(([k,t,i],n)=>'<button type="button" role="radio" data-ftipo="'+k+'" aria-checked="'+(n===0)+'" class="'+(n===0?'on':'')+'">'+icon(i,16)+(k==='mascota'?'Mascota':'Objeto')+'</button>').join('')+'</div>'
+    +'<div class="seg mt-8" role="radiogroup" aria-label="Qué pasó">'+[['perdido','Se perdió'],['encontrado','Lo encontré']].map(([k,t],n)=>'<button type="button" role="radio" data-fsit="'+k+'" aria-checked="'+(n===0)+'" class="'+(n===0?'on':'')+'">'+t+'</button>').join('')+'</div>'
+    +'<label class="foto-banner mt-16" id="pdCaja"><input type="file" accept="image/*" id="pdFoto" class="sr-only"><span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto (opcional, ayuda mucho)</b></span></label>'
+    +'<div class="campo"><label for="pdTit">Título <span class="req">*</span></label><input class="input" id="pdTit" maxlength="60" placeholder="Ej.: Perrita criolla café con collar rojo"></div>'
+    +'<div class="campo"><label for="pdDesc">Descripción</label><textarea class="input" id="pdDesc" maxlength="400" rows="3" placeholder="Señas, nombre al que responde, recompensa…"></textarea></div>'
+    +'<div class="fila-2"><div class="campo"><label for="pdZona">Barrio o lugar <span class="req">*</span></label><input class="input" id="pdZona" maxlength="80" placeholder="Ej.: Barrio Pekín"></div>'
+    +'<div class="campo"><label for="pdMun">Municipio</label><select class="input" id="pdMun"><option>Fusagasugá</option><option'+(municipioElegido()==='Pasca'?' selected':'')+'>Pasca</option></select></div></div>'
+    +'<div class="fila-2"><div class="campo"><label for="pdFecha">Fecha <span class="req">*</span></label><input class="input" type="date" id="pdFecha" value="'+hoyISO()+'"></div>'
+    +'<div class="campo"><label for="pdWa">WhatsApp <span class="req">*</span></label><input class="input" id="pdWa" inputmode="tel" maxlength="13" value="'+esc(wa)+'"></div></div>'
+    +'<label class="me-disp"><input type="checkbox" id="pdAcepta"> Acepto que mi WhatsApp se muestre en el aviso para que me contacten.</label>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="pdEnviar">Publicar aviso</button>'
+    +'<p class="nota-c izq">El aviso se publica de inmediato y vence en '+PERDIDOS_DIAS+' días. No publiques datos de otras personas.</p></div>');
+  $('#sheetGen').setAttribute('aria-label','Publicar un aviso');
+  const sel=(attr)=>{$$('['+attr+']').forEach(b=>(b.onclick=()=>{$$('['+attr+']').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});}));};
+  sel('data-ftipo');sel('data-fsit');
+  $('#pdFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#pdCaja').classList.add('cargando');
+    try{foto=await comprimirFoto(f,900,200000,.75);$('#pdCaja').innerHTML='<input type="file" accept="image/*" id="pdFoto" class="sr-only"><img src="'+foto.src+'" alt="Foto del aviso">';}
+    catch(e){toast('No se pudo usar esa foto');}finally{$('#pdCaja').classList.remove('cargando');}};
+  $('#pdEnviar').onclick=async()=>{
+    const r=datosPerdido({tipo:($('[data-ftipo].on')||{}).dataset.ftipo,situacion:($('[data-fsit].on')||{}).dataset.fsit,titulo:$('#pdTit').value,descripcion:$('#pdDesc').value,
+      zona:$('#pdZona').value,municipio:$('#pdMun').value,fecha:$('#pdFecha').value,whatsapp:$('#pdWa').value,acepta:$('#pdAcepta').checked});
+    if(typeof r==='string'){toast(r);return;}
+    const b=$('#pdEnviar');b.disabled=true;
+    try{
+      await conTiempoLimite(db.collection('perdidos').add({...r,foto:foto?foto.src:'',autor_uid:estado.usuario.uid,autor_nombre:nombreCorto(estado.usuario.nombre||'').slice(0,40),
+        estado:'activo',creado:FV.serverTimestamp(),vence:firebase.firestore.Timestamp.fromMillis(Date.now()+PERDIDOS_DIAS*24*3600e3)}),15000,'Sin confirmación del servidor');
+      cerrar('ovGen');estado.pd.tipo=r.tipo;estado.pd.situacion='';medir('perdido_publicado',{tipo:r.tipo,situacion:r.situacion});
+      toast('Aviso publicado. ¡Ojalá pronto tenga final feliz!');if(vistaActual().tipo!=='perdidos')navegar({tipo:'perdidos'});else render(true);
+    }catch(e){console.error(e);b.disabled=false;toast('No se pudo publicar el aviso. Revisa tu conexión.');}
+  };
+}
 estado.turnoDrog=ls.get('fc_turno_drog',{});
 db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
   estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
@@ -1834,7 +1958,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',transporte:'Cómo moverse',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',transporte:'Cómo moverse',perdidos:'Perdidos y encontrados',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -2181,6 +2305,7 @@ function render(conservarScroll){
   else if(v.tipo==='perfil')renderPerfil();
   else if(v.tipo==='sos')renderSOS();
   else if(v.tipo==='transporte')renderTransporte();
+  else if(v.tipo==='perdidos')renderPerdidos();
   else if(v.tipo==='mapa')renderMapa();
   else if(v.tipo==='ruta')renderRuta(v.id);
   else if(v.tipo==='admin')renderAdmin();
@@ -2210,12 +2335,12 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
@@ -4124,6 +4249,7 @@ function renderPerfil(){
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
       +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+icon('chevron-right')+'</button>'
       +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
+    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon(esIOS?'square-plus':'download')+(esIOS?'Agregar la app a mi inicio':'Instalar la app en mi celular')+'</button>':'')
@@ -4160,6 +4286,7 @@ function renderPerfil(){
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
+    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
@@ -5743,7 +5870,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['perdidos','Perdidos','heart-handshake',0],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -5803,6 +5930,8 @@ function renderAdmin(){
     html=contactosAdminHTML(D);
   }else if(A.tab==='transporte'){
     html=transporteAdminHTML();
+  }else if(A.tab==='perdidos'){
+    html=perdidosAdminHTML();
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -5879,7 +6008,7 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
-  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);enlazarTransporteAdmin();
+  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);enlazarTransporteAdmin();enlazarPerdidosAdmin();
   cargarFotosPreview();
 }
 function alertasAdminHTML(){
@@ -5948,6 +6077,16 @@ function enlazarAlertasAdmin(){
     if(!await confirmar('Retirar alerta','Deja de verse en la app. Los avisos que ya llegaron al celular no se pueden borrar.','Retirar','Cancelar','triangle-alert',true))return;
     adminAccion(()=>db.collection('alertas').doc(x.dataset.retiraralerta).update({estado:'retirada'}),'Alerta retirada');
   }));
+}
+function perdidosAdminHTML(){
+  const l=perdidosVisibles(estado.perdidos,{});
+  return '<p class="dash-section">Perdidos y encontrados</p><p class="nota-c izq">Se publican sin revisión porque son urgentes. Oculta los que no correspondan (ventas, datos de otras personas, contenido ofensivo).</p>'
+    +(l.length?'<div class="adm-card">'+l.map(p=>'<div class="adm-fila"><div class="flex-1"><b>'+esc(p.titulo)+'</b><small>'+(p.tipo==='mascota'?'Mascota':'Objeto')+' · '+(p.situacion==='perdido'?'se perdió':'encontrado')
+      +' · '+esc(p.zona)+' · '+esc(p.autor_nombre)+' · vence '+esc(fechaCorta(p.vence))+'</small></div><button class="btn btn-ghost btn-sm" data-pdocultar="'+esc(p.id)+'">'+icon('eye-off',16)+'Ocultar</button></div>').join('')+'</div>'
+      :'<p class="nota-c izq">No hay avisos activos.</p>');
+}
+function enlazarPerdidosAdmin(){
+  $$('[data-pdocultar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('perdidos').doc(b.dataset.pdocultar).update({estado:'oculto'}),'Aviso ocultado')));
 }
 function transporteAdminHTML(){
   const l=rutasTransporte(estado.transporte);
@@ -6651,6 +6790,7 @@ function rutaHash(){
   if(m){ocultarSplash();setTimeout(()=>abrirDetalle(decodeURIComponent(m[1])),300);return;}
   const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
   if(h==='#/transporte'){ocultarSplash();navegar({tipo:'transporte'});return;}
+  if(h==='#/perdidos'){ocultarSplash();navegar({tipo:'perdidos'});return;}
   if(/^#\/alerta\/.+$/.test(h)){try{window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);}catch(e){}irAEnlaceAviso(h);return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
   // Pantallas que abren los avisos al celular cuando la app estaba cerrada; el hash se limpia de la dirección

@@ -41,6 +41,11 @@ def ejemplos_vencidos(eventos: list[dict], ahora: int) -> list[dict]:
     return [e for e in eventos if e.get("demo") and (a_ms(e.get("fecha_creacion")) or 0) < ahora - DIA_MS]
 
 
+def perdidos_vencidos(avisos: list[dict], ahora: int) -> list[dict]:
+    """Avisos de Perdidos y encontrados (v97) activos o resueltos cuya fecha de vencimiento ya pasó."""
+    return [a for a in avisos if a.get("estado") in ("activo", "resuelto") and (a_ms(a.get("vence")) or 0) <= ahora]
+
+
 def sin_foto(comercios: list[dict]) -> list[dict]:
     return sorted(
         (
@@ -84,6 +89,12 @@ def main(argv: list[str] | None = None) -> int:
         for ref, e in _docs(db.collection("eventos").where(filter=igual("demo", True)))
         if ejemplos_vencidos([e], ahora)
     ]
+    perdidos = [
+        (ref, p)
+        for ref, p in _docs(db.collection("perdidos").where(filter=igual("estado", "activo")))
+        + _docs(db.collection("perdidos").where(filter=igual("estado", "resuelto")))
+        if perdidos_vencidos([p], ahora)
+    ]
     publicados = [c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))]
     faltan_foto, faltan_wa = sin_foto(publicados), sin_whatsapp(publicados)
     for _, c in vencidos:
@@ -111,12 +122,15 @@ def main(argv: list[str] | None = None) -> int:
         lote.update(ref, {"estado": "finalizado", "finalizado_por": "limpieza", "fecha_finalizado": servidor()})
     for ref, _ in demos:
         lote.delete(ref)
+    for ref, _ in perdidos:
+        lote.update(ref, {"estado": "vencido"})
     lote.commit()
     log.info(
-        "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d negocios sin foto · "
-        "%d sin WhatsApp.",
+        "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d avisos de perdidos vencidos · "
+        "%d negocios sin foto · %d sin WhatsApp.",
         len(vencidos),
         len(demos),
+        len(perdidos),
         len(faltan_foto),
         len(faltan_wa),
     )
@@ -127,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
             "cupones_vencidos": len(vencidos),
             "cupones_lista": [f"{c.get('comercio_nombre', '')} · {c.get('descripcion', '')}" for _, c in vencidos][:20],
             "ejemplos_borrados": len(demos),
+            "perdidos_vencidos": len(perdidos),
             "sin_foto": faltan_foto[:50],
             "sin_foto_total": len(faltan_foto),
             "sin_whatsapp": faltan_wa[:50],

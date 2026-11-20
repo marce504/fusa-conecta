@@ -344,6 +344,36 @@ service cloud.firestore {
       allow delete: if esAdmin();
     }
 
+    /* ---------- Perdidos y encontrados (v97): cualquier persona con cuenta publica (es urgente), vence a los 30 días,
+       quien publica lo marca resuelto o lo borra y el admin lo oculta. El WhatsApp lo muestra quien lo acepta. ---------- */
+    function perdidoValido(d) {
+      return d.keys().hasOnly(['tipo', 'situacion', 'titulo', 'descripcion', 'zona', 'municipio', 'fecha', 'whatsapp', 'foto',
+          'autor_uid', 'autor_nombre', 'estado', 'creado', 'vence'])
+        && d.keys().hasAll(['tipo', 'situacion', 'titulo', 'zona', 'municipio', 'fecha', 'whatsapp', 'autor_uid', 'estado', 'vence'])
+        && d.tipo in ['mascota', 'objeto'] && d.situacion in ['perdido', 'encontrado']
+        && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 60
+        && campoTexto(d, 'descripcion', 400) && campoTexto(d, 'autor_nombre', 40)
+        && d.zona is string && d.zona.size() >= 2 && d.zona.size() <= 80
+        && d.municipio in ['Fusagasugá', 'Pasca']
+        && d.fecha is string && d.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.whatsapp is string && d.whatsapp.matches('^3[0-9]{9}$')
+        && (d.get('foto', '') == '' || (d.foto is string && d.foto.matches('data:image/(webp|jpeg);base64,.*') && d.foto.size() <= 280000))
+        && d.estado in ['activo', 'resuelto', 'oculto', 'vencido']
+        && d.vence is timestamp;
+    }
+    match /perdidos/{id} {
+      allow read: if resource.data.estado in ['activo', 'resuelto'] || esAdmin()
+        || (cuentaReal() && resource.data.autor_uid == request.auth.uid);
+      allow create: if cuentaReal() && perdidoValido(request.resource.data)
+        && request.resource.data.autor_uid == request.auth.uid && request.resource.data.estado == 'activo'
+        && request.resource.data.creado == request.time
+        && request.resource.data.vence > request.time && request.resource.data.vence <= request.time + duration.value(31, 'd');
+      allow update: if (cuentaReal() && resource.data.autor_uid == request.auth.uid && soloCambia(['estado'])
+            && resource.data.estado in ['activo', 'resuelto'] && request.resource.data.estado in ['activo', 'resuelto'])
+        || (esAdmin() && perdidoValido(request.resource.data));
+      allow delete: if esAdmin() || (cuentaReal() && resource.data.autor_uid == request.auth.uid);
+    }
+
     /* ---------- Configuración pública del directorio (negocios de muestra ocultos por el admin) ---------- */
     match /config/{id} {
       allow read: if true;
@@ -546,7 +576,7 @@ service cloud.firestore {
        El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
+      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'perdidos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
     }
   }
 }
