@@ -95,6 +95,12 @@ def main(argv: list[str] | None = None) -> int:
         + _docs(db.collection("perdidos").where(filter=igual("estado", "resuelto")))
         if perdidos_vencidos([p], ahora)
     ]
+    empleos = [
+        (ref, e)
+        for ref, e in _docs(db.collection("empleos").where(filter=igual("estado", "publicado")))
+        + _docs(db.collection("empleos").where(filter=igual("estado", "pendiente")))
+        if (a_ms(e.get("vence")) or 0) <= ahora
+    ]
     publicados = [c for _, c in _docs(db.collection("comercios").where(filter=igual("estado_publicacion", "aprobado")))]
     faltan_foto, faltan_wa = sin_foto(publicados), sin_whatsapp(publicados)
     for _, c in vencidos:
@@ -122,15 +128,16 @@ def main(argv: list[str] | None = None) -> int:
         lote.update(ref, {"estado": "finalizado", "finalizado_por": "limpieza", "fecha_finalizado": servidor()})
     for ref, _ in demos:
         lote.delete(ref)
-    for ref, _ in perdidos:
+    for ref, _ in perdidos + empleos:
         lote.update(ref, {"estado": "vencido"})
     lote.commit()
     log.info(
         "Listo: %d cupones vencidos ocultados · %d eventos de ejemplo borrados · %d avisos de perdidos vencidos · "
-        "%d negocios sin foto · %d sin WhatsApp.",
+        "%d ofertas de empleo vencidas · %d negocios sin foto · %d sin WhatsApp.",
         len(vencidos),
         len(demos),
         len(perdidos),
+        len(empleos),
         len(faltan_foto),
         len(faltan_wa),
     )
@@ -142,6 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             "cupones_lista": [f"{c.get('comercio_nombre', '')} · {c.get('descripcion', '')}" for _, c in vencidos][:20],
             "ejemplos_borrados": len(demos),
             "perdidos_vencidos": len(perdidos),
+            "empleos_vencidos": len(empleos),
             "sin_foto": faltan_foto[:50],
             "sin_foto_total": len(faltan_foto),
             "sin_whatsapp": faltan_wa[:50],

@@ -20,7 +20,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
-Tipo = Literal["comercio", "evento", "ruta", "premium", "reclamo"]
+Tipo = Literal["comercio", "evento", "ruta", "premium", "reclamo", "empleo"]
 Resultado = Literal["aprobado", "rechazado"]
 
 APP_URL = os.environ.get("APP_URL", "https://fusa-conecta.web.app").rstrip("/")
@@ -56,6 +56,7 @@ FUENTES: dict[str, Fuente] = {
     "reclamo": Fuente(
         "solicitudes", "uid", "comercio_nombre", "motivo", {"aprobado": "aprobada", "rechazado": "rechazada"}
     ),
+    "empleo": Fuente("empleos", "autor_uid", "titulo", "motivo", {"aprobado": "publicado", "rechazado": "rechazado"}),
 }
 CAMPO_ESTADO = {"comercios": "estado_publicacion"}  # las demás colecciones usan "estado"
 
@@ -97,6 +98,10 @@ def mensaje(tipo: str, resultado: str, nombre: str, motivo: str = "", id_: str =
             f"Revisamos la solicitud Premium de {nombre}: {motivo}.",
             "#/mi-negocio",
         )
+    if tipo == "empleo":
+        if resultado == "aprobado":
+            return "Oferta publicada", f"¡Tu oferta «{nombre}» ya está en Empleos de Fusa Conecta!", "#/empleos"
+        return "Revisamos tu oferta", f"Revisamos tu oferta «{nombre}»: {motivo}. Puedes corregirla.", "#/mi-negocio"
     if resultado == "aprobado":  # reclamo
         return (
             "Reclamo aprobado",
@@ -137,6 +142,7 @@ PENDIENTES: dict[str, Pendiente] = {
     "premium": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "pidió Premium para", "premium"),
     "reclamo": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "reclamó el negocio", "reclamo"),
     "reporte": Pendiente("reportes", "uid", "comercio_nombre", "estado", "reportó un problema en"),
+    "empleo": Pendiente("empleos", "autor_uid", "titulo", "estado", "publicó la oferta de empleo"),
 }
 TITULO_PENDIENTE = {
     "comercio": "Negocio por aprobar",
@@ -145,6 +151,7 @@ TITULO_PENDIENTE = {
     "premium": "Solicitud Premium",
     "reclamo": "Reclamo de negocio",
     "reporte": "Reporte por revisar",
+    "empleo": "Oferta de empleo por aprobar",
 }
 
 

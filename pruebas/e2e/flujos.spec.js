@@ -1010,3 +1010,72 @@ test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca r
   await expect(page.locator('#toast')).toContainText('volvió a casa');
   await expect(page.locator('#cuerpo .perdido.resuelto').first()).toContainText('¡Ya volvió a casa!');
 });
+
+// v98: empleos locales. El negocio publica, el admin aprueba, cualquiera ve y se postula; el negocio la cierra
+test('empleos: Rosa ofrece un empleo, el admin lo publica y se ve en Empleos', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.rosa);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(id => window.buscar(id), NEGOCIO.id);
+  await page.evaluate(() => window.navegar({ tipo: 'dashboard' }));
+  await page.locator('#aEmpleo').click();
+  await page.locator('#emTit').fill('Auxiliar de vivero de prueba E2E');
+  await page.locator('#emDesc').fill('Riego, trasplante y atención a clientes. Lunes a viernes de 8 a 5.');
+  await page.locator('#emSal').fill('SMMLV + prestaciones');
+  await page.locator('#emEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Oferta enviada');
+  await expect(page.locator('#cuerpo')).toContainText('Mis ofertas de empleo');
+  await expect(page.locator('#cuerpo .empleo').first()).toContainText('En revisión');
+  // Ana no puede ofrecer empleos en nombre del negocio de Rosa
+  await entrarComo(page, CUENTAS.ana);
+  const ana = await page.evaluate(async id => {
+    const fs = window.firebase.firestore();
+    return fs
+      .collection('empleos')
+      .add({
+        comercio_id: id,
+        comercio_nombre: 'Ajeno',
+        titulo: 'Oferta falsa',
+        descripcion: 'Una oferta que no es de mi negocio.',
+        jornada: 'por_dias',
+        municipio: 'Fusagasugá',
+        whatsapp: '3012345678',
+        autor_uid: window.firebase.auth().currentUser.uid,
+        estado: 'pendiente',
+        creado: window.firebase.firestore.FieldValue.serverTimestamp(),
+        vence: window.firebase.firestore.Timestamp.fromMillis(Date.now() + 864e5),
+      })
+      .then(() => 'ok')
+      .catch(e => e.code);
+  }, NEGOCIO.id);
+  expect(ana).toBe('permission-denied');
+  // El admin la publica
+  await entrarComo(page, CUENTAS.admin);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => {
+    estado.admin.tab = 'empleos';
+    window.navegar({ tipo: 'admin' });
+  });
+  const pub = page.locator('[data-empub]').first();
+  await expect(pub).toBeVisible({ timeout: 20000 });
+  await pub.click();
+  await expect(page.locator('#toast')).toContainText('Oferta publicada');
+  // Cualquiera la ve y se postula por WhatsApp
+  await entrarComo(page, CUENTAS.ana);
+  await page.evaluate(() => {
+    window.abiertosWa = [];
+    window.open = u => {
+      window.abiertosWa.push(u);
+      return null;
+    };
+    window.navegar({ tipo: 'empleos' });
+  });
+  const oferta = page.locator('#cuerpo .empleo').first();
+  await expect(oferta).toContainText('Auxiliar de vivero de prueba E2E');
+  await page.screenshot({ path: info.outputPath('empleos.png') });
+  await oferta.locator('[data-emwa]').click();
+  const texto = decodeURIComponent((await page.evaluate(() => window.abiertosWa[0])).split('?text=')[1]);
+  expect(texto).toContain('vi la oferta «Auxiliar de vivero de prueba E2E»');
+});

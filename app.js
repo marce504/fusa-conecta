@@ -1800,6 +1800,107 @@ function formPerdido(){
     }catch(e){console.error(e);b.disabled=false;toast('No se pudo publicar el aviso. Revisa tu conexión.');}
   };
 }
+/* ===== EMPLEOS LOCALES (v98) =====
+   empleos/{id}: ofertas que publican los negocios aprobados. Un admin las revisa antes de publicarlas (sin cobros al
+   aspirante ni requisitos discriminatorios), vencen a los 30 días y el negocio las cierra cuando consigue a alguien. */
+const EMPLEOS_DIAS=30;
+const JORNADAS=[['tiempo_completo','Tiempo completo'],['medio_tiempo','Medio tiempo'],['por_dias','Por días o fines de semana'],['practica','Práctica o aprendiz']];
+const nombreJornada=k=>(JORNADAS.find(j=>j[0]===k)||['',''])[1];
+function empleoDeDoc(id,x){
+  return {id,comercio_id:x.comercio_id||'',comercio_nombre:x.comercio_nombre||'',titulo:x.titulo||'',descripcion:x.descripcion||'',jornada:x.jornada||'',
+    salario:x.salario||'',lugar:x.lugar||'',municipio:x.municipio==='Pasca'?'Pasca':'Fusagasugá',whatsapp:x.whatsapp||'',autor_uid:x.autor_uid||'',
+    estado:x.estado||'pendiente',motivo:x.motivo||'',creado:aMs(x.creado)||0,vence:aMs(x.vence)||0};
+}
+function empleosVisibles(l,mun='',ahora=Date.now()){
+  return (l||[]).filter(e=>e.estado==='publicado'&&e.vence>ahora&&(!mun||e.municipio===mun)).sort((a,b)=>b.creado-a.creado);
+}
+// Frases que una oferta no puede tener: cobros al aspirante y requisitos discriminatorios
+const RE_EMPLEO_MAL=/\b(cobr|pag(ue|ar) (la |el )?(inscripci|curso|kit|examen)|consign|inversi[oó]n inicial|solo (hombres|mujeres)|menores de \d+ a[nñ]os|buena presencia)/i;
+function datosEmpleo(v,d){
+  const t=k=>String(v[k]||'').trim();
+  if(!d||d.estado_publicacion!=='aprobado')return 'Tu negocio debe estar publicado para ofrecer empleos';
+  const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
+  if(!/^3\d{9}$/.test(wa))return 'Agrega el WhatsApp de tu negocio para recibir postulaciones';
+  if(t('titulo').length<3)return 'Escribe el cargo, por ejemplo «Mesero(a) fines de semana»';
+  if(t('descripcion').length<20)return 'Cuenta en qué consiste el trabajo y qué se necesita';
+  if(!JORNADAS.some(j=>j[0]===v.jornada))return 'Elige la jornada';
+  if(RE_EMPLEO_MAL.test(t('titulo')+' '+t('descripcion')+' '+t('salario')))return 'La oferta no puede pedir pagos al aspirante ni requisitos de edad, sexo o apariencia';
+  return {comercio_id:String(d.id),comercio_nombre:String(d.nombre||'').slice(0,80),titulo:t('titulo').slice(0,60),descripcion:t('descripcion').slice(0,600),
+    jornada:v.jornada,salario:t('salario').slice(0,60),lugar:String(d.direccion||'').slice(0,80),municipio:municipioDe(d),whatsapp:wa};
+}
+function tarjetaEmpleoHTML(e,propio){
+  const est={pendiente:'En revisión',publicado:'Publicada',rechazado:'Rechazada',cerrado:'Cerrada',vencido:'Vencida'}[e.estado]||e.estado;
+  return '<article class="empleo"><div class="em-cab"><span class="em-ic">'+icon('briefcase',20)+'</span><div class="flex-1"><b>'+esc(e.titulo)+'</b><small>'+esc(e.comercio_nombre)+' · '+esc(e.municipio)+'</small></div>'
+    +(propio?'<span class="chip-estado '+(e.estado==='publicado'?'pub':'rev')+'">'+est+'</span>':'')+'</div>'
+    +'<p class="em-datos">'+icon('clock',14)+esc(nombreJornada(e.jornada))+(e.salario?' · '+esc(e.salario):'')+(e.lugar?' · '+esc(e.lugar):'')+'</p>'
+    +'<p class="em-desc">'+esc(e.descripcion)+'</p>'
+    +(propio&&e.estado==='rechazado'&&e.motivo?'<p class="nota-c izq">Motivo: '+esc(e.motivo)+'</p>':'')
+    +'<div class="pd-acc">'+(propio?(['pendiente','publicado'].includes(e.estado)?'<button class="btn btn-secundario btn-sm" data-emcerrar="'+esc(e.id)+'">Cerrar oferta</button>':'')
+      +'<button class="btn btn-ghost btn-sm" data-emborrar="'+esc(e.id)+'">'+icon('trash-2',16)+'Borrar</button>'
+      :'<button class="btn btn-primario btn-sm" data-emwa="'+esc(e.id)+'">'+icon('send',16)+'Postularme por WhatsApp</button>')+'</div></article>';
+}
+estado.empleos=ls.get('fc_empleos',[]);estado.misEmpleos=[];
+db.collection('empleos').where('estado','==','publicado').onSnapshot(s=>{
+  estado.empleos=s.docs.map(d=>empleoDeDoc(d.id,d.data()));ls.set('fc_empleos',estado.empleos);
+  const v=vistaActual();if(v.tipo==='empleos'||(v.tipo==='lista'&&v.cat==='todas'))render(true);
+},()=>{});
+let misEmpleosUnsub=null;
+function escucharMisEmpleos(){
+  if(misEmpleosUnsub||!logueado())return;
+  misEmpleosUnsub=db.collection('empleos').where('autor_uid','==',estado.usuario.uid).onSnapshot(s=>{
+    estado.misEmpleos=s.docs.map(d=>empleoDeDoc(d.id,d.data()));if(['dashboard','empleos'].includes(vistaActual().tipo))render(true);
+  },()=>{});
+}
+function seccionEmpleosHTML(){
+  const l=empleosVisibles(estado.empleos,municipioElegido()).slice(0,6);
+  if(!l.length)return '';
+  return '<section class="seccion-inicio" aria-labelledby="tEmpleos"><div class="head-v"><h2 id="tEmpleos">Empleos en '+nombreZona()+'</h2><button class="btn-ghost" data-irempleos>Ver todos</button></div>'
+    +'<div class="carrusel carrusel-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div></section>';
+}
+function renderEmpleos(){
+  const cuerpo=$('#cuerpo'),l=empleosVisibles(estado.empleos,municipioElegido());
+  cuerpo.innerHTML='<div class="vista"><div class="sos-head tr-head"><h2>'+icon('briefcase',24)+'Empleos locales</h2><p>'+icon('circle-check',16)+'Ofertas de negocios de Fusa y Pasca, revisadas antes de publicarse. Nadie debe cobrarte por postularte.</p></div>'
+    +(l.length?'<div class="lista-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div>'
+      :'<div class="vacio">'+icon('briefcase',48)+'<b>Aún no hay ofertas publicadas</b><p>Los negocios publican sus vacantes desde «Mi negocio». Vuelve pronto.</p></div>')
+    +'<p class="nota-c izq mt-16">¿Tienes un negocio en la app? Publica tu vacante desde Mi negocio → «Ofrecer empleo».</p>'
+    +'</div>'+footerHTML();
+  enlazarFooter();
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest&&e.target.closest('[data-emwa],[data-emcerrar],[data-emborrar],[data-irempleos]');if(!t)return;
+  if(t.dataset.irempleos!==undefined){navegar({tipo:'empleos'});return;}
+  const id=t.dataset.emwa||t.dataset.emcerrar||t.dataset.emborrar;
+  const o=estado.empleos.find(x=>x.id===id)||estado.misEmpleos.find(x=>x.id===id);if(!o)return;
+  if(t.dataset.emwa){
+    medir('empleo_postulacion',{cargo:o.titulo});
+    window.open('https://wa.me/57'+o.whatsapp+'?text='+encodeURIComponent('Hola '+o.comercio_nombre+', vi la oferta «'+o.titulo+'» en Fusa Conecta y quiero postularme.'),'_blank','noopener');
+  }else if(t.dataset.emcerrar){
+    db.collection('empleos').doc(id).update({estado:'cerrado'}).then(()=>toast('Oferta cerrada')).catch(()=>toast('No se pudo cerrar la oferta'));
+  }else confirmar('Borrar oferta','«'+o.titulo+'» deja de verse en la app.','Borrar','Cancelar','trash-2',true).then(ok=>{
+    if(ok)db.collection('empleos').doc(id).delete().then(()=>toast('Oferta borrada')).catch(()=>toast('No se pudo borrar la oferta'));
+  });
+});
+function formEmpleo(d){
+  abrirHoja('<div class="form-head"><h2>Ofrecer empleo</h2><p>'+esc(d.nombre)+' · la revisamos antes de publicarla</p></div><div class="form-body">'
+    +'<div class="campo"><label for="emTit">Cargo <span class="req">*</span></label><input class="input" id="emTit" maxlength="60" placeholder="Ej.: Mesero(a) fines de semana"></div>'
+    +'<div class="campo"><label for="emDesc">Descripción <span class="req">*</span></label><textarea class="input" id="emDesc" maxlength="600" rows="4" placeholder="Funciones, horario, experiencia o estudios que se necesitan"></textarea></div>'
+    +'<div class="fila-2"><div class="campo"><label for="emJor">Jornada <span class="req">*</span></label><select class="input" id="emJor">'+JORNADAS.map(([k,t])=>'<option value="'+k+'">'+t+'</option>').join('')+'</select></div>'
+    +'<div class="campo"><label for="emSal">Salario (opcional)</label><input class="input" id="emSal" maxlength="60" placeholder="Ej.: SMMLV + prestaciones"></div></div>'
+    +'<p class="nota-c izq">Las postulaciones te llegan al WhatsApp del negocio. La oferta vence en '+EMPLEOS_DIAS+' días. No se publican ofertas que cobren al aspirante ni que pidan edad, sexo o «buena presencia».</p>'
+    +'<button class="btn btn-primario btn-bloque mt-16" id="emEnviar">Enviar a revisión</button></div>');
+  $('#sheetGen').setAttribute('aria-label','Ofrecer empleo');
+  $('#emEnviar').onclick=async()=>{
+    const r=datosEmpleo({titulo:$('#emTit').value,descripcion:$('#emDesc').value,jornada:$('#emJor').value,salario:$('#emSal').value},d);
+    if(typeof r==='string'){toast(r);return;}
+    const b=$('#emEnviar');b.disabled=true;
+    try{
+      const ref=await conTiempoLimite(db.collection('empleos').add({...r,autor_uid:estado.usuario.uid,estado:'pendiente',creado:FV.serverTimestamp(),
+        vence:firebase.firestore.Timestamp.fromMillis(Date.now()+EMPLEOS_DIAS*24*3600e3)}),15000,'Sin confirmación del servidor');
+      avisarAdmins('empleo',ref.id);cerrar('ovGen');medir('empleo_publicado',{cargo:r.titulo});
+      toast('Oferta enviada. Te avisamos cuando esté publicada.');render(true);
+    }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la oferta. Revisa tu conexión.');}
+  };
+}
 estado.turnoDrog=ls.get('fc_turno_drog',{});
 db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
   estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
@@ -1958,7 +2059,7 @@ function rutaDeVista(v){
     if(!v.cat||v.cat==='todas')return v.sub?['/categoria/todas/'+v.sub,'Inicio']:['/','Inicio'];
     return ['/categoria/'+v.cat+(v.sub?'/'+v.sub:''),(NOMBRE_CAT_CORTO[v.cat]||v.cat)+(v.sub?' · '+nombreSub(v.cat,v.sub):'')];
   }
-  const T={mapa:'Mapa',sos:'Emergencias SOS',transporte:'Cómo moverse',perdidos:'Perdidos y encontrados',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
+  const T={mapa:'Mapa',sos:'Emergencias SOS',transporte:'Cómo moverse',perdidos:'Perdidos y encontrados',empleos:'Empleos locales',perfil:'Perfil',dashboard:'Mi negocio',planes:'Planes',agenda:'Agenda',recorridos:'Mis recorridos',recorrido:'Recorrido',admin:'Administración',billetera:'Mis cupones',cupones:'Cupones disponibles',ruta:'Ruta guiada',asistente:'Pregúntale a Fusa',proponerRuta:'Proponer una ruta',grabarRuta:'Grabar una ruta nueva'};
   return [v.tipo==='ruta'?'/ruta/'+v.id:'/'+v.tipo,T[v.tipo]||v.tipo];
 }
 
@@ -2306,6 +2407,7 @@ function render(conservarScroll){
   else if(v.tipo==='sos')renderSOS();
   else if(v.tipo==='transporte')renderTransporte();
   else if(v.tipo==='perdidos')renderPerdidos();
+  else if(v.tipo==='empleos')renderEmpleos();
   else if(v.tipo==='mapa')renderMapa();
   else if(v.tipo==='ruta')renderRuta(v.id);
   else if(v.tipo==='admin')renderAdmin();
@@ -2335,7 +2437,7 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
@@ -4249,6 +4351,7 @@ function renderPerfil(){
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
       +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+icon('chevron-right')+'</button>'
       +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
+    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
@@ -4286,6 +4389,7 @@ function renderPerfil(){
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
+    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
@@ -4441,6 +4545,7 @@ function renderDashboard(){
     +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
     +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
     +'<button class="accion" id="aFotos">'+icon('images',28)+'<b>Fotos</b><span>'+(d.fotos||[]).length+' de '+limiteFotos(d)+' · la primera es la portada</span></button>'
+    +(e==='aprobado'?'<button class="accion" id="aEmpleo">'+icon('briefcase',28)+'<b>Ofrecer empleo</b><span>Publica una vacante en Empleos</span></button>':'')
     +'<button class="accion" id="aMenu">'+icon('utensils',28)+'<b>Mi menú</b><span>'+(d.menu&&d.menu.length?d.menu.length+' productos · pedidos por WhatsApp':'Recibe pedidos por WhatsApp')+'</span></button>'
     +'<button class="accion" id="aPlan">'+icon('star',28)+'<b>Mi plan</b><span>'+(prem?'Premium activo':'Gratis · ver Premium')+'</span></button>'
     +'</div>'
@@ -4450,6 +4555,7 @@ function renderDashboard(){
     +(prem?'<button class="btn btn-secundario btn-bloque mt-16" id="aNovedad">'+icon('megaphone')+'Publicar una novedad</button>'
       :'<button class="btn btn-secundario btn-bloque mt-16 btn-bloqueado" data-planes aria-label="Publicar una novedad: función Premium. Ver planes">'+icon('megaphone')+'Publicar una novedad'+chipPremium()+'</button>')
     +listaCupones
+    +(estado.misEmpleos.some(x=>x.comercio_id===d.id)?'<p class="dash-section">Mis ofertas de empleo</p><div class="lista-pd">'+estado.misEmpleos.filter(x=>x.comercio_id===d.id).sort((a,b)=>b.creado-a.creado).map(x=>tarjetaEmpleoHTML(x,true)).join('')+'</div>':'')
     +'<div class="perfil-acc mt-16"><button class="btn btn-secundario btn-bloque" id="bVerFicha">'+icon('eye')+'Ver mi ficha pública</button>'
     +'<button class="btn btn-ghost" id="bDashNuevo">'+icon('plus',18)+'Registrar otro negocio</button></div>'
     +'</div>'+footerHTML();
@@ -4466,6 +4572,8 @@ function renderDashboard(){
   $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
   $('#aPlan').onclick=()=>irAPlanes(d);
   $('#aMenu').onclick=()=>formMenu(d);
+  const ae=$('#aEmpleo');if(ae)ae.onclick=()=>formEmpleo(d);
+  escucharMisEmpleos();
   const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
   $('#bVerFicha').onclick=()=>abrirDetalle(d.id);
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
@@ -5424,6 +5532,7 @@ function irAEnlaceAviso(enlace){
     if(ev)abrirEvento(decodeURIComponent(ev[1]));
     else if(al){const a=(estado.alertas||[]).find(x=>x.id===decodeURIComponent(al[1]));estado.sosMunicipio=a&&a.municipio==='Pasca'?'pasca':'fusagasuga';navegar({tipo:'sos'});}
     else if(enlace==='#/agenda')irAgenda();
+    else if(enlace==='#/empleos')navegar({tipo:'empleos'});
     else if(enlace==='#/admin'&&esAdmin()){estado.admin.datos=null;navegar({tipo:'admin'});}
     else if(enlace==='#/recorridos')navegar({tipo:'recorridos'});
     else if(enlace==='#/mi-negocio'&&comerciosPropios.some(c=>c.estado_publicacion==='aprobado'))navegar({tipo:'dashboard'});
@@ -5480,7 +5589,7 @@ async function avisarAdmins(tipo,id){
 }
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
-estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[]};
+estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};
 function escucharAdmin(){
   if(adminUnsubs.length||!esAdmin())return;
   adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
@@ -5502,13 +5611,17 @@ function escucharAdmin(){
     estado.adminPend.rutas=s.docs.map(d=>({id:d.id,...d.data()}));avisosAdminCambiaron();
     if(vistaActual().tipo==='admin'&&estado.admin.tab==='rutas')render(true);
   },()=>{}));
+  adminUnsubs.push(db.collection('empleos').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.empleos=s.docs.map(d=>empleoDeDoc(d.id,d.data()));avisosAdminCambiaron();
+    if(vistaActual().tipo==='admin'&&estado.admin.tab==='empleos')render(true);
+  },()=>{}));
   // Eventos sugeridos o publicados por organizadores (y los de la IA), pendientes de revisión
   adminUnsubs.push(db.collection('eventos').where('estado','==','pendiente').onSnapshot(s=>{
     estado.adminPend.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin),fecha:aMs(x.fecha_creacion)||0};});
     avisosAdminCambiaron();
   },()=>{}));
 }
-function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[]};}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};}
 // "Por aprobar" = comercios nuevos + reclamos de negocio
 function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
 function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
@@ -5870,7 +5983,7 @@ function renderAdmin(){
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
   const nNegocios=D.pendientes.length+reclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
-    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['perdidos','Perdidos','heart-handshake',0],['emergencias','Emergencias','siren',0]];
+    ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['perdidos','Perdidos','heart-handshake',0],['empleos','Empleos','briefcase',(estado.adminPend.empleos||[]).length],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
   let html='';
   if(A.tab==='aprobar'){
@@ -5932,6 +6045,8 @@ function renderAdmin(){
     html=transporteAdminHTML();
   }else if(A.tab==='perdidos'){
     html=perdidosAdminHTML();
+  }else if(A.tab==='empleos'){
+    html=empleosAdminHTML();
   }else{
     const mun=A.mun||'fusagasuga',lista=(A.borrador&&A.borrador[mun])||listaEmergencias(mun).map(e=>({...e}));
     A.borrador=A.borrador||{};A.borrador[mun]=lista;
@@ -6008,7 +6123,7 @@ function renderAdmin(){
     if(!lista.length){toast('Agrega al menos un número');return;}
     adminAccion(()=>db.collection('emergencias').doc(mun).set({lista,actualizado:FV.serverTimestamp()}),'Números de emergencia actualizados');
   };
-  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);enlazarTransporteAdmin();enlazarPerdidosAdmin();
+  enlazarAlertasAdmin();enlazarTurnoAdmin(mun);enlazarTransporteAdmin();enlazarPerdidosAdmin();enlazarEmpleosAdmin();
   cargarFotosPreview();
 }
 function alertasAdminHTML(){
@@ -6077,6 +6192,22 @@ function enlazarAlertasAdmin(){
     if(!await confirmar('Retirar alerta','Deja de verse en la app. Los avisos que ya llegaron al celular no se pueden borrar.','Retirar','Cancelar','triangle-alert',true))return;
     adminAccion(()=>db.collection('alertas').doc(x.dataset.retiraralerta).update({estado:'retirada'}),'Alerta retirada');
   }));
+}
+function empleosAdminHTML(){
+  const pend=(estado.adminPend.empleos||[]),pub=empleosVisibles(estado.empleos,'');
+  const fila=(o,botones)=>'<div class="adm-card"><b>'+esc(o.titulo)+'</b><p class="nota-c izq">'+esc(o.comercio_nombre)+' · '+esc(nombreJornada(o.jornada))+(o.salario?' · '+esc(o.salario):'')+' · '+esc(o.municipio)+'</p>'
+    +'<p class="adm-desc">'+esc(o.descripcion)+'</p><div class="dc-actions">'+botones+'</div></div>';
+  return '<p class="dash-section">Ofertas por aprobar</p><p class="nota-c izq">Revisa que no cobren al aspirante ni pidan edad, sexo o apariencia, y que el negocio exista.</p>'
+    +(pend.length?pend.map(o=>fila(o,'<button class="btn btn-primario btn-sm" data-empub="'+esc(o.id)+'">'+icon('check',16)+'Publicar</button><button class="btn btn-ghost btn-sm" data-emrech="'+esc(o.id)+'">Rechazar</button>')).join('')
+      :'<p class="nota-c izq">No hay ofertas pendientes.</p>')
+    +'<p class="dash-section">Publicadas</p>'+(pub.length?pub.map(o=>fila(o,'<button class="btn btn-ghost btn-sm" data-emcerraradm="'+esc(o.id)+'">'+icon('eye-off',16)+'Cerrar</button>')).join(''):'<p class="nota-c izq">No hay ofertas publicadas.</p>');
+}
+function enlazarEmpleosAdmin(){
+  const col=db.collection('empleos');
+  $$('[data-empub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.empub).update({estado:'publicado'}),'Oferta publicada',['empleo',b.dataset.empub,'aprobado'])));
+  $$('[data-emrech]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar oferta',m=>adminAccion(()=>col.doc(b.dataset.emrech).update({estado:'rechazado',motivo:m}),'Oferta rechazada',['empleo',b.dataset.emrech,'rechazado']),
+    ['Cobra al aspirante','Requisitos discriminatorios','Datos incompletos','Otro'])));
+  $$('[data-emcerraradm]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.emcerraradm).update({estado:'cerrado'}),'Oferta cerrada')));
 }
 function perdidosAdminHTML(){
   const l=perdidosVisibles(estado.perdidos,{});
@@ -6791,6 +6922,7 @@ function rutaHash(){
   const me=h.match(/^#\/evento\/(.+)$/);if(me){ocultarSplash();abrirEvento(decodeURIComponent(me[1]));return;}
   if(h==='#/transporte'){ocultarSplash();navegar({tipo:'transporte'});return;}
   if(h==='#/perdidos'){ocultarSplash();navegar({tipo:'perdidos'});return;}
+  if(h==='#/empleos'){ocultarSplash();navegar({tipo:'empleos'});return;}
   if(/^#\/alerta\/.+$/.test(h)){try{window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);}catch(e){}irAEnlaceAviso(h);return;}
   if(h==='#/admin'){if(esAdmin()){ocultarSplash();estado.admin.datos=null;navegar({tipo:'admin'});}else adminPendiente=true;}
   // Pantallas que abren los avisos al celular cuando la app estaba cerrada; el hash se limpia de la dirección

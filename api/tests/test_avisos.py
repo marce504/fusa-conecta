@@ -476,3 +476,19 @@ def test_pendiente_que_ya_se_reviso_o_no_existe(pendiente):
 
 def test_pendiente_sin_token_401(cliente):
     assert cliente.post("/v1/notificaciones/pendiente", json={"tipo": "comercio", "id": "x"}).status_code == 401
+
+
+def test_empleo_aprobado_avisa_a_la_duena(avisar):
+    avisar.repo.docs[("empleos", "e1")] = {
+        "titulo": "Mesero fines de semana",
+        "estado": "publicado",
+        "autor_uid": "duena",
+    }
+    j = avisar.post("empleo", "e1", "aprobado").json()
+    assert j["novedad"] is True and avisar.fcm.enviados[-1]["enlace"] == "#/empleos"
+
+
+def test_empleo_pendiente_avisa_a_los_admin(pendiente):
+    pendiente.repo.docs[("empleos", "e2")] = {"titulo": "Cocinero", "estado": "pendiente", "autor_uid": "duena"}
+    j = pendiente.post("empleo", "e2").json()
+    assert j["nuevos"] == 2 and pendiente.fcm.enviados[-1]["titulo"] == "Oferta de empleo por aprobar"

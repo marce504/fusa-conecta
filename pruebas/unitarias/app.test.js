@@ -978,3 +978,42 @@ describe('Perdidos y encontrados: validación y qué se muestra', () => {
     expect(perdidosVisibles(l, { tipo: 'objeto' }, ahora).map(x => x.id)).toEqual(['obj']);
   });
 });
+
+describe('Empleos locales: validación de la oferta', () => {
+  const { datosEmpleo } = cargar(['telLimpio', 'esCelular', 'municipioDe', 'JORNADAS', 'RE_EMPLEO_MAL', 'datosEmpleo']);
+  const d = {
+    id: 'c1',
+    nombre: 'Café de prueba',
+    estado_publicacion: 'aprobado',
+    whatsapp: '3012345678',
+    direccion: 'Cra 6',
+    municipio: 'Fusagasugá',
+  };
+  const ok = {
+    titulo: 'Mesero(a) fines de semana',
+    descripcion: 'Atención en mesas sábados y domingos de 8 a 4.',
+    jornada: 'por_dias',
+    salario: '$ 60.000 por día',
+  };
+  it('arma la oferta con los datos del negocio', () => {
+    const r = datosEmpleo(ok, d);
+    expect(r).toMatchObject({
+      comercio_id: 'c1',
+      comercio_nombre: 'Café de prueba',
+      whatsapp: '3012345678',
+      municipio: 'Fusagasugá',
+      lugar: 'Cra 6',
+    });
+  });
+  it('rechaza negocios sin publicar o sin WhatsApp, cobros y requisitos discriminatorios', () => {
+    expect(datosEmpleo(ok, { ...d, estado_publicacion: 'pendiente' })).toMatch(/publicado/);
+    expect(datosEmpleo(ok, { ...d, whatsapp: '', tel: '6018671234' })).toMatch(/WhatsApp/);
+    expect(datosEmpleo({ ...ok, descripcion: 'Debe pagar la inscripción de 50.000 para empezar.' }, d)).toMatch(
+      /pagos/,
+    );
+    expect(datosEmpleo({ ...ok, descripcion: 'Solo mujeres menores de 25 años, buena presencia.' }, d)).toMatch(
+      /edad, sexo/,
+    );
+    expect(datosEmpleo({ ...ok, jornada: 'noche' }, d)).toMatch(/jornada/);
+  });
+});

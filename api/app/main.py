@@ -16,7 +16,7 @@ from . import avisos, formatos, ia, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -343,7 +343,9 @@ def estadisticas(request: Request, repo: Repo, usuario: Usuario) -> dict:
 
 
 class Decision(BaseModel):
-    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo"] = Field(description="Qué revisó el admin")
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "empleo"] = Field(
+        description="Qué revisó el admin"
+    )
     id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")
     resultado: Literal["aprobado", "rechazado"]
 
@@ -438,7 +440,9 @@ def avisar_decision(
 
 
 class PedidoPendiente(BaseModel):
-    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reporte"] = Field(description="Qué se envió")
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reporte", "empleo"] = Field(
+        description="Qué se envió"
+    )
     id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")
 
     model_config = {"json_schema_extra": {"examples": [{"tipo": "comercio", "id": "AbC123"}]}}

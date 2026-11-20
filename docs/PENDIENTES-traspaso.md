@@ -162,11 +162,11 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - Una reseña por usuario, con la regla en `firestore.rules`.
 5. **(PUBLICADO 18-nov, commit b904895, PWA v92) Mercado campesino.** Sección en Campo con eventos de la Agenda (`esMercadoCampesino`) y plazas c372, c465, c499. Fechas y lugar deben venir de una fuente oficial.
 6. **(PUBLICADO 20-nov, commit c54e549, PWA v93) Pedidos por WhatsApp desde un menú:** campo `menu` en comercios, `formMenu`, `menuFichaHTML`, `mensajePedido`. el comercio carga su menú y el cliente arma un mensaje de WhatsApp.
-7. **(HECHO 20-nov, PWA v97; ver git log si ya se publicó) Mascotas y objetos perdidos:** colección `perdidos`, vista `perdidos`, Panel → Perdidos, limpieza diaria marca vencidos.
+7. **(PUBLICADO 20-nov, commit a9ae1f1, PWA v97) Mascotas y objetos perdidos:** colección `perdidos`, vista `perdidos`, Panel → Perdidos, limpieza diaria marca vencidos.
    - publicaciones con sesión iniciada;
    - que vencen solas;
    - que el admin puede moderar.
-8. **Empleos locales:** publicados por los comercios, con moderación y vencimiento.
+8. **(HECHO 20-nov, PWA v98 / API v1.6.0; ver git log si ya se publicó) Empleos locales:** colección `empleos`, Mi negocio → «Ofrecer empleo», Panel → Empleos. publicados por los comercios, con moderación y vencimiento.
 9. **Rutas turísticas, cajeros, parqueaderos y pico y placa.** El pico y placa debe salir de un decreto oficial de la
    Alcaldía.
 
@@ -185,5 +185,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `34be104`, en producción como v96 (`fusa-v89`), API v1.5.0.
+- **Último commit publicado:** `a9ae1f1`, en producción como v97 (`fusa-v90`), API v1.5.0.
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

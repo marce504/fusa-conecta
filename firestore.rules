@@ -374,6 +374,37 @@ service cloud.firestore {
       allow delete: if esAdmin() || (cuentaReal() && resource.data.autor_uid == request.auth.uid);
     }
 
+    /* ---------- Empleos locales (v98): los publica el dueño de un negocio aprobado; el admin los revisa antes. ---------- */
+    function empleoValido(d) {
+      return d.keys().hasOnly(['comercio_id', 'comercio_nombre', 'titulo', 'descripcion', 'jornada', 'salario', 'lugar', 'municipio',
+          'whatsapp', 'autor_uid', 'estado', 'motivo', 'creado', 'vence'])
+        && d.keys().hasAll(['comercio_id', 'comercio_nombre', 'titulo', 'descripcion', 'jornada', 'municipio', 'whatsapp', 'autor_uid', 'estado', 'vence'])
+        && d.comercio_id is string && campoTexto(d, 'comercio_nombre', 80)
+        && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 60
+        && d.descripcion is string && d.descripcion.size() >= 20 && d.descripcion.size() <= 600
+        && d.jornada in ['tiempo_completo', 'medio_tiempo', 'por_dias', 'practica']
+        && campoTexto(d, 'salario', 60) && campoTexto(d, 'lugar', 80) && campoTexto(d, 'motivo', 200)
+        && d.municipio in ['Fusagasugá', 'Pasca']
+        && d.whatsapp is string && d.whatsapp.matches('^3[0-9]{9}$')
+        && d.estado in ['pendiente', 'publicado', 'rechazado', 'cerrado', 'vencido']
+        && d.vence is timestamp;
+    }
+    match /empleos/{id} {
+      allow read: if resource.data.estado == 'publicado' || esAdmin()
+        || (cuentaReal() && resource.data.autor_uid == request.auth.uid);
+      allow create: if cuentaReal() && empleoValido(request.resource.data)
+        && request.resource.data.autor_uid == request.auth.uid && request.resource.data.estado == 'pendiente'
+        && duenoDe(request.resource.data.comercio_id)
+        && comercio(request.resource.data.comercio_id).get('estado_publicacion', '') == 'aprobado'
+        && request.resource.data.creado == request.time
+        && request.resource.data.vence > request.time && request.resource.data.vence <= request.time + duration.value(31, 'd');
+      // El negocio solo puede cerrar su oferta; publicar o rechazar es del admin
+      allow update: if (cuentaReal() && resource.data.autor_uid == request.auth.uid && soloCambia(['estado'])
+            && resource.data.estado in ['pendiente', 'publicado'] && request.resource.data.estado == 'cerrado')
+        || (esAdmin() && empleoValido(request.resource.data));
+      allow delete: if esAdmin() || (cuentaReal() && resource.data.autor_uid == request.auth.uid);
+    }
+
     /* ---------- Configuración pública del directorio (negocios de muestra ocultos por el admin) ---------- */
     match /config/{id} {
       allow read: if true;
@@ -576,7 +607,7 @@ service cloud.firestore {
        El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'eventos', 'perdidos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
+      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'empleos', 'eventos', 'perdidos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
     }
   }
 }

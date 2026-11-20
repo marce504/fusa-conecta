@@ -9,6 +9,18 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Empleos locales.** Los negocios aprobados publican vacantes desde Mi negocio → «Ofrecer empleo» (cargo,
+  descripción, jornada y salario opcional). Un admin las revisa en Panel → Empleos antes de publicarlas: la app
+  rechaza de entrada las que cobran al aspirante o piden edad, sexo o «buena presencia». Quien busca trabajo las ve
+  en Empleos (Perfil, `#/empleos` y «Empleos en…» en el inicio) y se postula por WhatsApp. Vencen a los 30 días (la
+  limpieza diaria las marca) y el negocio las cierra cuando consigue a alguien. La API (v1.6.0) avisa a los admin de
+  cada oferta nueva y al negocio cuando se aprueba o rechaza. Reglas: `empleos/{id}` solo lo crea el dueño de un
+  negocio aprobado. PWA v98 (`fusa-v91`).
+
+### Corregido
+- **Ícono de «Profesionales».** `briefcase` se usaba en esa subcategoría pero no estaba en `icons.js` (salía «?»).
+
+### Agregado
 - **Perdidos y encontrados.** Avisos de mascotas y objetos perdidos o encontrados en Fusa y Pasca: foto opcional,
   barrio, fecha y WhatsApp (quien publica acepta mostrarlo). Se publican de inmediato porque son urgentes, vencen a los
   30 días (la limpieza diaria los marca vencidos), quien publica los marca resueltos («¡Ya volvió a casa!») o los
