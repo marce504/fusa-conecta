@@ -8,6 +8,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Corregido
+- **Actividades en paralelo de un programa oficial.** La agenda tomaba como repetidas dos actividades en el mismo lugar
+  y a la misma hora (la exposición y el Taller Tribu del 24 de noviembre en la Casona Balmoral) y publicaba solo una.
+  En los programas oficiales, la clave de lugar y hora ahora incluye el título.
+
 ### Agregado
 - **Programa oficial del Festival Nacional de las Artes «Conexión Sumapaz» (19 al 29 de noviembre).** Transcrito del
   PDF de la Secretaría de Cultura en `automatizacion/programas/conexion-sumapaz-2026.json`: 16 actividades por venir en

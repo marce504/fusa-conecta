@@ -182,8 +182,11 @@ def clave(e: dict) -> str:
 
 
 def clave_lugar_hora(e: dict) -> str:
-    """Mismo lugar a la misma hora = mismo evento aunque el título cambie."""
-    return norm(e["lugar_nombre"]) + "|" + str(_redondear(e["inicio"] / 60_000))
+    """Mismo lugar a la misma hora = mismo evento aunque el título cambie. En un programa oficial no: sus
+    actividades van en paralelo (la exposición y el taller del 24 de noviembre en la Casona Balmoral, a las 2:00 p. m.).
+    """
+    k = norm(e["lugar_nombre"]) + "|" + str(_redondear(e["inicio"] / 60_000))
+    return k + "|" + norm(e["titulo"]) if e.get("programa") else k
 
 
 # ---------- Eventos parecidos (v1.2.0) ----------

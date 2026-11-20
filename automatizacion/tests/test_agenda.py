@@ -315,3 +315,14 @@ def test_sin_hora_clara_queda_pendiente_y_marcada_para_revisar():
     assert agenda.decidir(sin_hora) == "pendiente"
     clara = agenda.de_respuesta_ia([{**base, "fecha_clara": True, "lugar_claro": True}], {"friendlyName": "n"}, f)[0]
     assert clara["hora_por_confirmar"] is False and agenda.decidir(clara) == "publicado"
+
+
+def test_programa_con_actividades_en_paralelo_no_se_pierden():
+    """v96: en «Conexión Sumapaz» la exposición y el Taller Tribu empiezan a la misma hora y en el mismo lugar."""
+    ev, _ = agenda.leer_programas(agenda.fecha_col("2026-11-20T08:00"))
+    unicos = agenda.depurar(
+        [e for e in ev if e.get("programa") == "conexion-sumapaz-2026"], agenda.fecha_col("2026-11-20T08:00")
+    )
+    titulos = {e["titulo"] for e in unicos}
+    assert len(unicos) == 16
+    assert {"Exposiciones de la Escuela de Artes Visuales EFAC", "Taller Tribu: producción y escenografía"} <= titulos
