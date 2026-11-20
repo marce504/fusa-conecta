@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Menú y pedidos por WhatsApp.** En Mi negocio → «Mi menú», el dueño arma su menú (hasta 40 productos con precio,
+  descripción corta y si está disponible). En la ficha, el cliente elige cantidades, escribe una nota y toca «Pedir
+  por WhatsApp»: se abre el chat del negocio con el pedido, el precio de cada producto y el total. Fusa Conecta no
+  cobra ni guarda el pedido; lo confirma el negocio en el chat. Cuenta como toque de WhatsApp en las estadísticas del
+  negocio. Gratis en todos los planes. Reglas: el menú es una lista de máximo 40 productos. PWA v93 (`fusa-v86`).
 - **Mercado campesino.** En Campo hay una sección con los próximos mercados campesinos de la Agenda (los que se
   publican con su fuente; la agenda automática ya los busca) y las plazas de mercado reales del directorio: Plaza de
   Mercado y Maximercado de Fusagasugá, y Plaza de Mercado de Pasca. En el inicio aparece un aviso solo si hay un

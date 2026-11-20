@@ -857,3 +857,61 @@ test('mercado campesino: plazas del directorio y el próximo mercado de la agend
   await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
   await expect(page.locator('#cuerpo')).toContainText('Mercado campesino:');
 });
+
+// v93: menú y pedidos por WhatsApp. La dueña arma el menú; el cliente elige y se abre WhatsApp con el pedido
+test('menú: la dueña lo guarda y el cliente arma un pedido que se abre en WhatsApp', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.rosa);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(id => window.buscar(id), NEGOCIO.id);
+  await page.evaluate(() => window.navegar({ tipo: 'dashboard' }));
+  await page.locator('#aMenu').click();
+  await page.locator('[data-mi="0"][data-k="n"]').fill('Orquídea mini');
+  await page.locator('[data-mi="0"][data-k="p"]').fill('25000');
+  await page.locator('#mAgregar').click();
+  await page.locator('[data-mi="1"][data-k="n"]').fill('Abono orgánico');
+  await page.locator('[data-mi="1"][data-k="p"]').fill('8000');
+  await page.screenshot({ path: info.outputPath('menu-editor.png') });
+  await page.locator('#mGuardar').click();
+  await expect(page.locator('#toast')).toContainText('Menú guardado: 2 productos');
+  // Las reglas no dejan guardar más de 40 productos
+  const demasiado = await page.evaluate(async id => {
+    const menu = Array.from({ length: 41 }, (_, i) => ({ n: 'P' + i, p: 1, d: '', x: true }));
+    return window.firebase
+      .firestore()
+      .collection('comercios')
+      .doc(id)
+      .update({ menu })
+      .then(() => 'ok')
+      .catch(e => e.code);
+  }, NEGOCIO.id);
+  expect(demasiado).toBe('permission-denied');
+  await entrarComo(page, CUENTAS.ana);
+  await page.waitForFunction(id => (window.buscar(id).menu || []).length === 2, NEGOCIO.id);
+  await page.evaluate(() => {
+    window.abiertosWa = [];
+    window.open = u => {
+      window.abiertosWa.push(u);
+      return null;
+    };
+  });
+  await page.evaluate(id => window.abrirDetalle(id), NEGOCIO.id);
+  const menu = page.locator('#sheetDetalle .menu-ficha');
+  await expect(menu).toContainText('Orquídea mini');
+  await expect(page.locator('#mfPedir')).toBeDisabled();
+  await menu.locator('[data-mas="0"]').click();
+  await menu.locator('[data-mas="0"]').click();
+  await menu.locator('[data-mas="1"]').click();
+  await expect(page.locator('#mfPedir')).toContainText('3 productos · $ 58.000');
+  await page.locator('#mfNota').fill('Para recoger el sábado');
+  await page.screenshot({ path: info.outputPath('menu-ficha.png') });
+  await page.locator('#mfPedir').click();
+  const enlace = await page.evaluate(() => window.abiertosWa[0]);
+  expect(enlace).toMatch(/^https:\/\/wa\.me\/573\d{9}\?text=/);
+  const texto = decodeURIComponent(enlace.split('?text=')[1]);
+  expect(texto).toContain('2 × Orquídea mini ($ 25.000) = $ 50.000');
+  expect(texto).toContain('Total: $ 58.000');
+  expect(texto).toContain('Nota: Para recoger el sábado');
+});

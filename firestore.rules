@@ -40,6 +40,10 @@ service cloud.firestore {
       return d.get('a_domicilio', false) is bool
         && d.get('zona_cobertura', '') is string && d.get('zona_cobertura', '').size() <= 120;
     }
+    // v93: menú para pedidos por WhatsApp, máximo 40 productos
+    function menuValido(d) {
+      return d.get('menu', []) is list && d.get('menu', []).size() <= 40;
+    }
 
     /* ---------- Usuarios: identidad y consentimiento Ley 1581 ---------- */
     match /usuarios/{uid} {
@@ -104,7 +108,7 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['suscripcion_vigente_hasta', 'prueba_usada', 'fecha_aprobacion', 'motivo_rechazo'])
         && request.resource.data.nombre is string
         && request.resource.data.nombre.size() > 0
-        && domicilioValido(request.resource.data)
+        && domicilioValido(request.resource.data) && menuValido(request.resource.data)
         // La portada en el documento es una miniatura: máx. ~56 000 caracteres (≈ 40 KB)
         && request.resource.data.get('imagen', '').size() <= 56000);
       // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
@@ -113,7 +117,7 @@ service cloud.firestore {
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
             && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
             && request.resource.data.get('fotos', []).size() <= (premiumVigente(resource.data) ? 10 : 4)
-            && domicilioValido(request.resource.data)
+            && domicilioValido(request.resource.data) && menuValido(request.resource.data)
             && (!cambia(['imagen']) || request.resource.data.get('imagen', '').size() <= 56000)
             && (!cambia(['estado_publicacion', 'motivo_rechazo'])
                 || (resource.data.get('estado_publicacion', '') == 'rechazado'

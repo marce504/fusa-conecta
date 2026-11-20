@@ -501,6 +501,22 @@ button:disabled{opacity:.6;pointer-events:none}
 .mc-plaza span{flex:1;min-width:0}
 .mc-plaza b{display:block;font-weight:600}
 .mc-plaza small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
+.menu-ficha{margin:16px 0;padding:16px;border:1px solid var(--soft);border-radius:var(--radius-lg);background:var(--bg)}
+.menu-ficha h3{display:flex;align-items:center;gap:8px;font-size:var(--text-lg);margin:0 0 8px;color:var(--ink)}
+.menu-ficha h3 .ic{color:var(--primary-600)}
+.mf-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--soft)}
+.mf-tx{flex:1;min-width:0}
+.mf-tx b{display:block;font-weight:600}
+.mf-tx small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
+.mf-tx span{display:block;font-size:var(--text-sm);font-weight:600;color:var(--primary-700);margin-top:2px}
+.mf-cant{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mf-cant .btn-redondo{width:36px;height:36px}
+.mf-cant b{min-width:20px;text-align:center}
+.menu-edit{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--soft)}
+.me-campos{flex:1;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px}
+.me-campos .input{width:100%;min-width:0}
+.me-desc,.me-disp{grid-column:1/-1}
+.me-disp{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--ink-2)}
 .num-grande{font-size:var(--text-2xl);font-weight:600;color:var(--danger-600);margin:8px 0 16px}
 .hoja-acc{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 

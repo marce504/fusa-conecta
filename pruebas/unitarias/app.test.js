@@ -894,3 +894,32 @@ describe('Mercado campesino: reconoce los eventos de la agenda', () => {
     [null, false],
   ])('%o → %s', (e, esperado) => expect(esMercadoCampesino(e)).toBe(esperado));
 });
+
+describe('Menú y pedido por WhatsApp', () => {
+  const { menuLimpio, mensajePedido } = cargar(['MENU_MAX', 'menuLimpio', 'pesos', 'mensajePedido']);
+  const d = {
+    nombre: 'Restaurante de prueba',
+    menu: [
+      { n: 'Almuerzo ejecutivo', p: 15000, d: 'Sopa, seco y jugo', x: true },
+      { n: 'Jugo natural', p: 4500, x: true },
+      { n: 'Postre agotado', p: 5000, x: false },
+    ],
+  };
+  it('limpia el menú: sin nombre no entra, precios enteros y máximo 40', () => {
+    expect(menuLimpio([{ n: ' ', p: 1 }, { n: 'Café', p: '2500.4' }, null])).toEqual([
+      { n: 'Café', p: 2500, d: '', x: true },
+    ]);
+    expect(menuLimpio(Array.from({ length: 50 }, (_, i) => ({ n: 'P' + i, p: 1 }))).length).toBe(40);
+    expect(menuLimpio('nada')).toEqual([]);
+  });
+  it('arma el mensaje con cantidades, total y nota; ignora lo agotado', () => {
+    const m = mensajePedido(d, { 0: 2, 1: 1, 2: 3 }, ' sin cebolla ');
+    expect(m).toContain('Hola Restaurante de prueba, quiero hacer un pedido');
+    expect(m).toContain('• 2 × Almuerzo ejecutivo ($ 15.000) = $ 30.000');
+    expect(m).toContain('• 1 × Jugo natural ($ 4.500) = $ 4.500');
+    expect(m).not.toContain('Postre agotado');
+    expect(m).toContain('Total: $ 34.500');
+    expect(m).toContain('Nota: sin cebolla');
+    expect(mensajePedido(d, { 2: 1 }, '')).toBe('');
+  });
+});

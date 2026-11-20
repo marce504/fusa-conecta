@@ -181,7 +181,7 @@ function normalizarNube(id,x){
     redesSociales:x.redesSociales||{},sitioWeb:x.sitioWeb||'',propietario_uid:x.propietario_uid||null,municipio:x.municipio||'Fusagasugá',
     tipo:x.tipo||'',sub,nivelDificultad:x.nivelDificultad||'',
     estado_publicacion:x.estado_publicacion||'pendiente',motivo_rechazo:x.motivo_rechazo||'',prueba_usada:!!x.prueba_usada,
-    fotos:Array.isArray(x.fotos)?x.fotos:[],foto_credito:x.foto_credito||null,a_domicilio:x.a_domicilio===true,zona_cobertura:x.zona_cobertura||'',creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
+    fotos:Array.isArray(x.fotos)?x.fotos:[],foto_credito:x.foto_credito||null,a_domicilio:x.a_domicilio===true,zona_cobertura:x.zona_cobertura||'',menu:menuLimpio(x.menu),creado:aMs(x.fecha_aprobacion)||aMs(x.fechaCreacion)||null};
 }
 estado.ocultos=new Set(ls.get('fc_ocultos',[]));
 function reconstruirDirectorio(){
@@ -2071,6 +2071,52 @@ function enlazarTarjetas(){
 }
 function buscar(id){return database.find(x=>String(x.id)===String(id))||comerciosPropios.find(x=>String(x.id)===String(id));}
 
+/* ===== MENÚ Y PEDIDOS POR WHATSAPP (v93) =====
+   El dueño arma su menú (máx. 40 productos) en Mi negocio; el cliente elige cantidades en la ficha y la app abre
+   WhatsApp con el pedido escrito. Fusa Conecta no cobra ni guarda el pedido: lo confirma el negocio en el chat. */
+const MENU_MAX=40;
+function menuLimpio(l){
+  return (Array.isArray(l)?l:[]).slice(0,MENU_MAX).map(x=>({n:String(x&&x.n||'').trim().slice(0,60),p:Math.max(0,Math.min(10000000,Math.round(+(x&&x.p)||0))),
+    d:String(x&&x.d||'').trim().slice(0,100),x:!(x&&x.x===false)})).filter(x=>x.n);
+}
+const pesos=n=>'$ '+Math.round(n).toLocaleString('es-CO');
+function mensajePedido(d,carrito,nota){
+  const l=menuLimpio(d.menu),lineas=[];let total=0;
+  Object.entries(carrito||{}).forEach(([i,c])=>{const it=l[+i];c=Math.round(+c||0);if(!it||!it.x||c<1)return;total+=it.p*c;
+    lineas.push('• '+c+' × '+it.n+(it.p?' ('+pesos(it.p)+') = '+pesos(it.p*c):''));});
+  if(!lineas.length)return '';
+  return 'Hola '+d.nombre+', quiero hacer un pedido que armé en Fusa Conecta:\n\n'+lineas.join('\n')
+    +(total?'\n\nTotal: '+pesos(total):'')+((nota||'').trim()?'\n\nNota: '+nota.trim().slice(0,200):'')
+    +'\n\n¿Me confirman, por favor? Gracias.';
+}
+function menuFichaHTML(d){
+  const l=menuLimpio(d.menu).map((it,i)=>({...it,i})).filter(it=>it.x);
+  const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
+  if(!l.length||!wa)return '';
+  return '<section class="menu-ficha" aria-labelledby="tMenu"><h3 id="tMenu">'+icon('utensils',18)+'Menú</h3>'
+    +l.map(it=>'<div class="mf-item"><div class="mf-tx"><b>'+esc(it.n)+'</b>'+(it.d?'<small>'+esc(it.d)+'</small>':'')+(it.p?'<span>'+pesos(it.p)+'</span>':'')+'</div>'
+      +'<div class="mf-cant" role="group" aria-label="Cantidad de '+esc(it.n)+'"><button class="btn-redondo" data-menos="'+it.i+'" aria-label="Quitar uno">'+icon('minus',16)+'</button>'
+      +'<b data-cant="'+it.i+'" aria-live="polite">0</b><button class="btn-redondo" data-mas="'+it.i+'" aria-label="Agregar uno">'+icon('plus',16)+'</button></div></div>').join('')
+    +'<div class="campo mt-8"><label for="mfNota">Nota para el negocio (opcional)</label><textarea id="mfNota" maxlength="200" rows="2" placeholder="Ej: sin cebolla; para recoger a las 12"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="mfPedir" disabled>'+icon('send',18)+'Elige lo que quieres pedir</button>'
+    +'<p class="nota-c izq">El pedido se envía por WhatsApp y lo confirma el negocio. Fusa Conecta no cobra nada.</p></section>';
+}
+function enlazarMenuFicha(d){
+  const b=$('#mfPedir');if(!b)return;
+  const carrito={},l=menuLimpio(d.menu);
+  const pintar=()=>{
+    let n=0,total=0;Object.entries(carrito).forEach(([i,c])=>{n+=c;total+=(l[+i]?l[+i].p:0)*c;const el=$('[data-cant="'+i+'"]');if(el)el.textContent=c;});
+    b.disabled=!n;b.innerHTML=icon('send',18)+(n?'Pedir por WhatsApp · '+n+(n===1?' producto':' productos')+(total?' · '+pesos(total):''):'Elige lo que quieres pedir');
+  };
+  $$('[data-mas]').forEach(x=>(x.onclick=()=>{const i=x.dataset.mas;carrito[i]=Math.min(99,(carrito[i]||0)+1);pintar();}));
+  $$('[data-menos]').forEach(x=>(x.onclick=()=>{const i=x.dataset.menos;carrito[i]=Math.max(0,(carrito[i]||0)-1);pintar();}));
+  b.onclick=()=>{
+    const msg=mensajePedido(d,carrito,$('#mfNota').value);if(!msg)return;
+    const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
+    registrarEvento(d,'toques_wa');medir('pedido_menu',{comercio:d.nombre,categoria:d.cat});
+    window.open('https://wa.me/57'+wa+'?text='+encodeURIComponent(msg),'_blank','noopener');
+  };
+}
 /* ===== ACCIONES DE CONTACTO (RF-09, RF-13) ===== */
 function abrirWhatsApp(d){
   if(!d)return;
@@ -2668,7 +2714,7 @@ function abrirDetalle(id){
     +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>/^https:\/\//.test(f.url||'')?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>':esc(f.nombre)).join('<br>')
       +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
     +creditoFotoHTML(d)
-    +'</div>'
+    +'</div>'+menuFichaHTML(d)
     +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
       +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'
         +'<p class="relieve-cred">Mapa: OpenFreeMap · © OpenStreetMap · Relieve: Mapzen / AWS</p>':'')
@@ -2701,6 +2747,7 @@ function abrirDetalle(id){
   enlazarGaleriaFicha(d);
   $('#cerrarDet').onclick=()=>{quitarPreviaRelieve();cerrar('ovDetalle');};
   const dw=$('#detWa');if(dw)dw.onclick=()=>abrirWhatsApp(d);
+  enlazarMenuFicha(d);
   const dc=$('#detCompartir');if(dc)dc.onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
   if(natural){
     // Trazado real: "Ver ruta en 3D" (y "Cómo llegar al inicio" va al primer punto del trazado); sin él, "Trazado en preparación"
@@ -4255,6 +4302,7 @@ function renderDashboard(){
     +'<button class="accion" id="aEditar">'+icon('pencil',28)+'<b>Editar mi ficha</b><span>Datos, horario y foto</span></button>'
     +'<button class="accion" id="aQR">'+icon('qr-code',28)+'<b>Mi código QR</b><span>Para tu mostrador</span></button>'
     +'<button class="accion" id="aFotos">'+icon('images',28)+'<b>Fotos</b><span>'+(d.fotos||[]).length+' de '+limiteFotos(d)+' · la primera es la portada</span></button>'
+    +'<button class="accion" id="aMenu">'+icon('utensils',28)+'<b>Mi menú</b><span>'+(d.menu&&d.menu.length?d.menu.length+' productos · pedidos por WhatsApp':'Recibe pedidos por WhatsApp')+'</span></button>'
     +'<button class="accion" id="aPlan">'+icon('star',28)+'<b>Mi plan</b><span>'+(prem?'Premium activo':'Gratis · ver Premium')+'</span></button>'
     +'</div>'
     +'<p class="dash-section">Canjes de hoy</p>'
@@ -4278,6 +4326,7 @@ function renderDashboard(){
   const ar=$('#aReporte');if(ar)ar.onclick=()=>formReporte(d);
   $('#aFotos').onclick=()=>abrirFormComercio(d,{paso:4});
   $('#aPlan').onclick=()=>irAPlanes(d);
+  $('#aMenu').onclick=()=>formMenu(d);
   const an=$('#aNovedad');if(an)an.onclick=()=>formPromo(d);
   $('#bVerFicha').onclick=()=>abrirDetalle(d.id);
   $('#bDashNuevo').onclick=()=>abrirFormComercio(null);
@@ -4321,6 +4370,33 @@ async function solicitarPremium(d){
       solicitudesPremium.add(d.id);cerrar('ovGen');toast('Solicitud enviada, te avisaremos.');render(true);medir('premium_solicitado');
     }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
   };
+}
+function formMenu(d){
+  const items=menuLimpio(d.menu).map(x=>({...x}));if(!items.length)items.push({n:'',p:0,d:'',x:true});
+  const wa=d.whatsapp||(esCelular(d.tel)?telLimpio(d.tel):'');
+  const pintar=()=>{
+    abrirHoja('<div class="form-head"><h2>Mi menú</h2><p>'+esc(d.nombre)+' · hasta '+MENU_MAX+' productos</p></div><div class="form-body">'
+      +(wa?'':'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p>Tu ficha no tiene WhatsApp: el menú no se mostrará hasta que lo agregues en «Editar mi ficha».</p></div>')
+      +items.map((it,i)=>'<div class="menu-edit"><div class="me-campos">'
+        +'<input class="input" data-mi="'+i+'" data-k="n" maxlength="60" placeholder="Producto" aria-label="Producto '+(i+1)+'" value="'+esc(it.n)+'">'
+        +'<input class="input" data-mi="'+i+'" data-k="p" inputmode="numeric" placeholder="Precio" aria-label="Precio del producto '+(i+1)+'" value="'+(it.p||'')+'">'
+        +'<input class="input me-desc" data-mi="'+i+'" data-k="d" maxlength="100" placeholder="Descripción corta (opcional)" aria-label="Descripción del producto '+(i+1)+'" value="'+esc(it.d)+'">'
+        +'<label class="me-disp"><input type="checkbox" data-mi="'+i+'" data-k="x"'+(it.x?' checked':'')+'> Disponible</label></div>'
+        +'<button class="btn-redondo" data-mdel="'+i+'" aria-label="Quitar el producto '+(i+1)+'">'+icon('trash-2')+'</button></div>').join('')
+      +(items.length<MENU_MAX?'<button class="btn btn-secundario btn-sm" id="mAgregar">'+icon('plus',16)+'Agregar producto</button>':'')
+      +'<button class="btn btn-primario btn-bloque mt-16" id="mGuardar">Guardar menú</button>'
+      +'<p class="nota-c izq">Tus clientes eligen en tu ficha y te llega el pedido por WhatsApp. Pon el precio en pesos, sin puntos.</p></div>');
+    $('#sheetGen').setAttribute('aria-label','Mi menú');
+    $$('[data-mi]').forEach(el=>{const f=()=>{const it=items[+el.dataset.mi],k=el.dataset.k;it[k]=k==='x'?el.checked:k==='p'?Math.round(+telLimpio(el.value)||0):el.value;};el.oninput=f;el.onchange=f;});
+    $$('[data-mdel]').forEach(b=>(b.onclick=()=>{items.splice(+b.dataset.mdel,1);pintar();}));
+    const ag=$('#mAgregar');if(ag)ag.onclick=()=>{items.push({n:'',p:0,d:'',x:true});pintar();const u=$$('[data-k="n"]');if(u.length)u[u.length-1].focus();};
+    $('#mGuardar').onclick=async()=>{
+      const menu=menuLimpio(items);
+      try{await db.collection('comercios').doc(d.id).update({menu,fecha_modificacion:FV.serverTimestamp()});cerrar('ovGen');toast(menu.length?'Menú guardado: '+menu.length+(menu.length===1?' producto':' productos'):'Menú vacío guardado');}
+      catch(e){console.error(e);toast('No se pudo guardar el menú');}
+    };
+  };
+  pintar();
 }
 function formPromo(d){
   abrirHoja('<div class="form-head"><h2>Publicar novedad</h2><p>'+esc(d.nombre)+' · máximo 3 por semana</p></div><div class="form-body">'
