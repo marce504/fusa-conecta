@@ -915,3 +915,53 @@ test('menú: la dueña lo guarda y el cliente arma un pedido que se abre en What
   expect(texto).toContain('Total: $ 58.000');
   expect(texto).toContain('Nota: Para recoger el sábado');
 });
+
+// v94: los eventos de la agenda automática (con programa, fuentes y sin hora de fin) se pueden publicar desde el panel
+test('agenda automática: el admin publica un evento de un programa con sus fuentes', async ({ page }, info) => {
+  const ini = Date.now() + 2 * 24 * 3600e3;
+  await poner('eventos/e2e-auto-programa', {
+    programa: 'conexion-sumapaz-2026',
+    sin_hora_fin: true,
+    titulo: 'Noches de Teatro de prueba E2E',
+    descripcion: 'Hace parte de: Festival de prueba. Obras de teatro.',
+    categoria: 'cultura',
+    tipo: 'plan',
+    fecha_inicio: new Date(ini),
+    fecha_fin: new Date(ini + 2 * 3600e3),
+    lugar_nombre: 'Casona Quinta Balmoral',
+    lat: null,
+    lng: null,
+    municipio: 'Fusagasugá',
+    imagen: '',
+    organizador: 'Alcaldía de Fusagasugá - Secretaría de Cultura',
+    enlace_fuente: 'https://ejemplo.test/festival',
+    fuentes: ['https://ejemplo.test/programa.pdf'],
+    gratis: true,
+    precio: 'Entrada libre con inscripción previa en la Secretaría de Cultura',
+    fuente_oficial: true,
+    estado: 'pendiente',
+    origen: 'automatico',
+    creado_por: 'agenda-automatica',
+    fecha_creacion: new Date(),
+  });
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.admin);
+  await sinAvisoEmulador(page);
+  await page.waitForFunction(() => estado.perfil && estado.perfil.rol === 'admin');
+  await page.evaluate(() => {
+    estado.admin.tab = 'eventos';
+    window.navegar({ tipo: 'admin' });
+  });
+  const pub = page.locator('[data-evpub="e2e-auto-programa"]');
+  await expect(pub).toBeVisible({ timeout: 20000 });
+  await pub.click();
+  await expect(page.locator('#toast')).toContainText('Evento publicado');
+  const est = await page.evaluate(async () => {
+    const s = await window.firebase.firestore().collection('eventos').doc('e2e-auto-programa').get();
+    return s.data().estado;
+  });
+  expect(est).toBe('publicado');
+  await page.screenshot({ path: info.outputPath('evento-programa-publicado.png') });
+});

@@ -235,7 +235,13 @@ db.collection('banners').onSnapshot(s=>{
 const API_URL=new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
 async function pedirAPI(ruta,{token=false,segundos=70}={}){
   const h={};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
-  const r=await conTiempoLimite(fetch(API_URL+ruta,{headers:h}),segundos*1000,'La API no respondió');
+  // Render (plan gratis) duerme la API: al despertar puede cortar la conexión («Failed to fetch»). Se reintenta
+  // cada 3 s mientras quede tiempo, en vez de rendirse al primer intento.
+  const fin=Date.now()+segundos*1000;let r;
+  for(;;){
+    try{r=await conTiempoLimite(fetch(API_URL+ruta,{headers:h}),Math.max(1000,fin-Date.now()),'La API no respondió');break;}
+    catch(e){if(e instanceof TypeError&&navigator.onLine&&Date.now()+3000<fin){await new Promise(ok=>{setTimeout(ok,3000);});continue;}throw e;}
+  }
   if(!r.ok){let d='';try{d=(await r.json()).error;}catch(e){}throw Object.assign(new Error(d||('HTTP '+r.status)),{code:'api-'+r.status});}
   return r;
 }
@@ -618,7 +624,8 @@ async function moduloIA(){
    en este teléfono. La API del plan gratuito tarda hasta ~50 s en despertar: se despierta al abrir el asistente o el
    formulario, y en ese camino los tiempos de espera son más largos. */
 let iaPorAPI=Date.now()-(+ls.get('fc_ia_api',0)||0)<864e5;
-const bloqueoAppCheck=e=>/app ?check/i.test(String(e&&e.message||e));
+// v94: también si la llamada a Firebase AI ni siquiera sale (red o navegador que bloquea googleapis): se usa la API
+const bloqueoAppCheck=e=>/app ?check|error fetching from|failed to fetch|networkerror|load failed/i.test(String(e&&e.message||e));
 function usarIAporAPI(){if(!iaPorAPI)console.warn('IA: Firebase exige App Check; se usa la API de respaldo');iaPorAPI=true;ls.set('fc_ia_api',Date.now());}
 function despertarAPI(){if(iaPorAPI&&navigator.onLine)fetch(API_URL+'/v1/salud').catch(()=>{});}
 const segIA=base=>iaPorAPI?Math.max(base,80):base;

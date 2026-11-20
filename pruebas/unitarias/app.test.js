@@ -923,3 +923,13 @@ describe('Menú y pedido por WhatsApp', () => {
     expect(mensajePedido(d, { 2: 1 }, '')).toBe('');
   });
 });
+
+describe('IA de respaldo: cuándo se pasa a la API', () => {
+  const { bloqueoAppCheck } = cargar(['bloqueoAppCheck']);
+  it.each([
+    ['AI: App Check token is invalid', true],
+    ['AI: Error fetching from https://firebasevertexai.googleapis.com/v1beta/…', true],
+    ['TypeError: Failed to fetch', true],
+    ['AI: 429 quota exceeded', false],
+  ])('«%s» → %s', (m, esperado) => expect(bloqueoAppCheck(new Error(m))).toBe(esperado));
+});

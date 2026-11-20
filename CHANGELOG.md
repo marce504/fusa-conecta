@@ -8,6 +8,16 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Corregido
+- **No se podían publicar eventos de la agenda automática.** Los eventos de un programa (por ejemplo el Festival
+  Nacional de las Artes «Conexión Sumapaz») traen los campos `programa`, `sin_hora_fin` y `fuentes`, y precios de hasta
+  60 caracteres, que las reglas de Firestore no aceptaban: al tocar «Publicar» salía «No se pudo completar». Las reglas
+  ya los aceptan, y el admin puede publicar o descartar cambiando solo el estado aunque el evento traiga un campo nuevo.
+- **Diagnóstico: la API dormida.** Render (plan gratis) apaga la API; al despertar puede cortar la conexión y el
+  diagnóstico se rendía al primer «Failed to fetch». Ahora reintenta cada 3 s hasta 70 s.
+- **IA: respaldo también sin red hacia Firebase.** Si la llamada a Firebase AI ni siquiera sale (red o navegador que
+  bloquea googleapis), la app usa la IA de respaldo de la API, igual que con App Check. PWA v94 (`fusa-v87`).
+
 ### Agregado
 - **Menú y pedidos por WhatsApp.** En Mi negocio → «Mi menú», el dueño arma su menú (hasta 40 productos con precio,
   descripción corta y si está disponible). En la ficha, el cliente elige cantidades, escribe una nota y toca «Pedir

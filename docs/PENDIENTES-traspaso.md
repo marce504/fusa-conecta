@@ -170,6 +170,12 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 9. **Rutas turísticas, cajeros, parqueaderos y pico y placa.** El pico y placa debe salir de un decreto oficial de la
    Alcaldía.
 
+### 5.3b Pedido de Marcela (20-nov): avisos al celular para el admin
+- Hoy NO existe push al admin cuando llega algo por aprobar (negocios, eventos, rutas, Premium): solo la campana con la
+  app abierta. Propuesta: endpoint en la API que, cuando alguien envía algo «pendiente», avise a los dispositivos de
+  los admin (verifica que el documento exista y esté pendiente). La agenda automática también puede llamarlo.
+  Necesita FIREBASE_SA_FCM en Render.
+
 ### 5.4 Cosas que debe hacer Marcela (no las hagas tú)
 
 - Agregar `GEMINI_API_KEY` en Render. Es la IA de respaldo; App Check se vuelve obligatorio el 21 de enero de 2027.
