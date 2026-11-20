@@ -16,7 +16,7 @@ from . import avisos, formatos, ia, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -434,6 +434,72 @@ def avisar_decision(
         repo_avisos.borrar_dispositivos(uid, malos)
         log.info("Tokens borrados por inválidos: %d", len(malos))
     respuesta.update(enviados=enviados, dispositivos=len(tokens) - len(malos))
+    return respuesta
+
+
+class PedidoPendiente(BaseModel):
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reporte"] = Field(description="Qué se envió")
+    id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")
+
+    model_config = {"json_schema_extra": {"examples": [{"tipo": "comercio", "id": "AbC123"}]}}
+
+
+@app.post(
+    "/v1/notificaciones/pendiente",
+    tags=["Avisos"],
+    summary="Avisar a los admin que alguien envió algo a revisión",
+    responses={
+        401: {"description": "Sin token o vencido"},
+        403: {"description": "Quien llama no es quien lo envió"},
+        404: {"description": "No existe"},
+        409: {"description": "Ya no está pendiente"},
+        503: {"description": "Falta la cuenta de servicio de avisos"},
+    },
+)
+@limiter.limit("10/minute")
+def avisar_pendiente(
+    request: Request,
+    usuario: Usuario,
+    pedido: PedidoPendiente,
+    repo_avisos: Annotated[avisos.RepositorioAvisos, Depends(_repo_avisos)],
+    avisador: Annotated[avisos.Avisador, Depends(_avisador)],
+) -> dict:
+    """La app lo llama **después** de guardar algo pendiente (negocio, evento, ruta, Premium, reclamo o reporte).
+
+    1. Comprueba que existe, que sigue pendiente y que lo envió quien llama (nadie avisa por otro).
+    2. Deja la novedad en la campana de cada admin (`usuarios/{admin}/notificaciones`), una sola vez.
+    3. Manda el push a los celulares de los admin que no apagaron los avisos y borra los tokens que ya no sirven.
+    """
+    p = avisos.PENDIENTES[pedido.tipo]
+    doc = repo_avisos.documento(p.coleccion, pedido.id)
+    if doc is None or (p.tipo_doc and doc.get("tipo") != p.tipo_doc):
+        raise HTTPException(404, "No existe eso que se envió")
+    uid = usuario.get("uid", "")
+    if doc.get(p.dueno) != uid:
+        raise HTTPException(403, "Solo quien lo envió puede avisar")
+    if doc.get(p.campo_estado) != "pendiente":
+        raise HTTPException(409, "Ya no está pendiente")
+    quien = (repo_avisos.documento("usuarios", uid) or {}).get("nombre", "")
+    titulo, texto, enlace = avisos.mensaje_pendiente(pedido.tipo, quien, doc.get(p.nombre, ""))
+    respuesta = {"admins": 0, "nuevos": 0, "enviados": 0}
+    for admin in repo_avisos.admins():
+        respuesta["admins"] += 1
+        nueva = repo_avisos.guardar_novedad(
+            admin,
+            f"pendiente-{pedido.tipo}-{pedido.id}",
+            {"tipo": "pendiente", "ref_id": pedido.id, "titulo": titulo, "mensaje": texto, "enlace": enlace},
+        )
+        if not nueva:
+            continue
+        respuesta["nuevos"] += 1
+        perfil = repo_avisos.documento("usuarios", admin) or {}
+        tokens = repo_avisos.dispositivos(admin)
+        if not tokens or perfil.get("notificaciones_push") is False:
+            continue
+        enviados, malos = avisador.enviar(tokens, titulo, texto, enlace, f"pendiente-{pedido.tipo}-{pedido.id}")
+        respuesta["enviados"] += enviados
+        if malos:
+            repo_avisos.borrar_dispositivos(admin, malos)
     return respuesta
 
 

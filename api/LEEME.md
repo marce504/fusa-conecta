@@ -30,6 +30,7 @@ Servicios web REST de Fusa Conecta, en **Python 3.12** con **FastAPI**.
 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas. **Solo admin** | — |
 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó lo que envió: novedad en su campana y push (FCM) a sus celulares. **Solo admin** | Panel admin → al aprobar o rechazar |
 | `POST /v1/alertas/enviar` | Manda al celular una alerta municipal ya publicada en `alertas/{id}` (con fuente oficial y vigente) a todos los que no apagaron los avisos, una sola vez por alerta (`alertas/{id}/envios/push`). **Solo admin** | Panel admin → Emergencias → Alertas municipales |
+| `POST /v1/notificaciones/pendiente` | Avisa a los admin que alguien envió algo a revisión (negocio, evento, ruta, Premium, reclamo o reporte): novedad en su campana y push. Solo lo puede pedir quien lo envió y solo si sigue pendiente | La app, después de enviar a revisión |
 | `GET /v1/salud` | Estado del servicio y de Firestore | Panel → **Diagnóstico** |
 
 Ejemplos:

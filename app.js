@@ -552,7 +552,8 @@ function formEvento(e,opc={}){
         origen:porIA?'ia':admin?'admin':(esOrganizador()||esComerciante())?'organizador':'usuario',
         creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
     try{
-      await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
+      const refEv=await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
+      if(!directo&&!(admin&&e)&&refEv&&refEv.id)avisarAdmins('evento',refEv.id);
       cerrar('ovGen');medir(directo?'evento_publicado':'evento_sugerido');
       toast(directo?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
       if(vistaActual().tipo==='admin')cargarAdmin();
@@ -1238,6 +1239,7 @@ async function enviarPropuesta(){
       estado:'pendiente',fecha_creacion:FV.serverTimestamp()});
     fotos.forEach((f,i)=>b.set(ref.collection('fotos').doc(String(i)),{data:f.src,ancho:f.ancho,alto:f.alto,bytes:f.bytes}));
     await conTiempoLimite(b.commit(),30000,'Sin confirmación del servidor');
+    avisarAdmins('ruta',ref.id);
     medir('ruta_propuesta',{origen:P.fuente,km:c.km});
     estado.prop=null;estado.misPropuestas=null;volver();
     toast('¡Gracias! Tu ruta quedó en revisión. Verás su estado en «Mis recorridos».',5000);
@@ -4372,8 +4374,9 @@ async function solicitarPremium(d){
   $('#premEnviar').onclick=async()=>{
     const b=$('#premEnviar');b.disabled=true;
     try{
-      await db.collection('solicitudes').add({tipo:'premium',plan:'premium',mensaje:$('#premMsg').value.trim().slice(0,300),comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
+      const refPrem=await db.collection('solicitudes').add({tipo:'premium',plan:'premium',mensaje:$('#premMsg').value.trim().slice(0,300),comercio_id:d.id,comercio_nombre:d.nombre,uid:estado.usuario.uid,
         usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
+      avisarAdmins('premium',refPrem.id);
       solicitudesPremium.add(d.id);cerrar('ovGen');toast('Solicitud enviada, te avisaremos.');render(true);medir('premium_solicitado');
     }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
   };
@@ -4866,12 +4869,14 @@ async function publicarComercio(){
       const reenviar=w.original&&w.original.estado_publicacion==='rechazado';
       if(reenviar){datos.estado_publicacion='pendiente';datos.motivo_rechazo=FV.delete();}
       lote.update(ref,datos);await lote.commit();
+      if(reenviar)avisarAdmins('comercio',ref.id);
       toast(reenviar?'Cambios enviados a revisión':'Cambios guardados');
     }else{
       if(!datos.lat){const c=mun==='Pasca'?PLAZA_PASCA:PLAZA_FUSA;datos.lat=c[0];datos.lng=c[1];datos.ubicacion_aprox=true;}
       Object.assign(datos,{propietario_uid:estado.usuario.uid,propietario:estado.usuario.nombre,estado_publicacion:'pendiente',esPremium:false,prioridadBusqueda:0,
         redesSociales:{},sitioWeb:'',fechaCreacion:FV.serverTimestamp()});
       lote.set(ref,datos);await lote.commit();estado.comercioSel=ref.id;
+      avisarAdmins('comercio',ref.id);
       toast('Tu negocio quedó en revisión. Lo verás en tu Perfil, en «Mis negocios».');
     }
     cerrar('ovForm');
@@ -5289,6 +5294,7 @@ function irAEnlaceAviso(enlace){
     if(ev)abrirEvento(decodeURIComponent(ev[1]));
     else if(al){const a=(estado.alertas||[]).find(x=>x.id===decodeURIComponent(al[1]));estado.sosMunicipio=a&&a.municipio==='Pasca'?'pasca':'fusagasuga';navegar({tipo:'sos'});}
     else if(enlace==='#/agenda')irAgenda();
+    else if(enlace==='#/admin'&&esAdmin()){estado.admin.datos=null;navegar({tipo:'admin'});}
     else if(enlace==='#/recorridos')navegar({tipo:'recorridos'});
     else if(enlace==='#/mi-negocio'&&comerciosPropios.some(c=>c.estado_publicacion==='aprobado'))navegar({tipo:'dashboard'});
     else navegar({tipo:'perfil'});
@@ -5324,6 +5330,24 @@ async function avisarDecision(tipo,id,resultado){
   return null;
 }
 
+/* v95: cuando alguien envía algo a revisión, la API avisa a los admin (campana y celular). Va en segundo plano:
+   si la API está dormida se reintenta hasta 60 s, y si los avisos no están configurados no se molesta a nadie. */
+async function avisarAdmins(tipo,id){
+  if(!id||!auth.currentUser)return null;
+  const t0=Date.now();let espera=2000;
+  while(Date.now()-t0<60000){
+    try{
+      const tk=await auth.currentUser.getIdToken();
+      const r=await conTiempoLimite(fetch(API_URL+'/v1/notificaciones/pendiente',{method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},
+        body:JSON.stringify({tipo,id:String(id)})}),Math.max(5000,60000-(Date.now()-t0)),'La API no respondió');
+      if(r.ok)return await r.json();
+      if(r.status<500&&r.status!==429)return null;
+      if(r.status===503)return null;
+    }catch(e){/* la API está despertando: se reintenta */}
+    await dormir(espera);espera=Math.min(espera*2,15000);
+  }
+  return null;
+}
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
 estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[]};
@@ -5390,8 +5414,9 @@ async function reclamarNegocio(d){
     try{
       const prev=await db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','reclamo').get();
       if(prev.docs.some(x=>x.data().comercio_id===d.id&&x.data().estado==='pendiente')){cerrar('ovGen');toast('Ya enviaste una solicitud para este negocio');return;}
-      await db.collection('solicitudes').add({tipo:'reclamo',comercio_id:String(d.id),comercio_nombre:d.nombre,telefono:tel,mensaje:$('#rMsg').value.trim().slice(0,300),
+      const refRec=await db.collection('solicitudes').add({tipo:'reclamo',comercio_id:String(d.id),comercio_nombre:d.nombre,telefono:tel,mensaje:$('#rMsg').value.trim().slice(0,300),
         uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
+      avisarAdmins('reclamo',refRec.id);
       cerrar('ovGen');toast('Solicitud enviada. Te contactaremos pronto.');
     }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
   };
@@ -5411,9 +5436,10 @@ function reportar(d,resena){
   $('#repEnviar').onclick=async()=>{
     if(!motivo){toast('Elige un motivo');return;}
     try{
-      await db.collection('reportes').add({tipo:resena?'resena':'ficha',comercio_id:String(d.id),comercio_nombre:d.nombre,calificacion_id:resena?resena._id:null,
+      const refRep=await db.collection('reportes').add({tipo:resena?'resena':'ficha',comercio_id:String(d.id),comercio_nombre:d.nombre,calificacion_id:resena?resena._id:null,
         resena_texto:resena?(resena.comentario||''):null,motivo,detalle:$('#repTxt').value.trim().slice(0,300),
         uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,estado:'pendiente',fecha:FV.serverTimestamp()});
+      avisarAdmins('reporte',refRep.id);
       cerrar('ovGen');toast('Gracias. Un administrador revisará tu reporte.');
     }catch(e){console.error(e);toast('No se pudo enviar el reporte');}
   };

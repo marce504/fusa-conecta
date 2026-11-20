@@ -118,6 +118,44 @@ TIPOS_ALERTA = {
 LOTE_FCM = 500  # máximo de tokens por llamada a send_each_for_multicast
 
 
+@dataclass(frozen=True)
+class Pendiente:
+    """Algo que alguien envió a revisión: dónde vive, quién lo envió, cómo se llama y el campo de su estado."""
+
+    coleccion: str
+    dueno: str
+    nombre: str
+    campo_estado: str
+    texto: str  # «registró el negocio», «sugirió el evento»…
+    tipo_doc: str = ""  # en «solicitudes», el campo tipo debe coincidir
+
+
+PENDIENTES: dict[str, Pendiente] = {
+    "comercio": Pendiente("comercios", "propietario_uid", "nombre", "estado_publicacion", "registró el negocio"),
+    "evento": Pendiente("eventos", "creado_por", "titulo", "estado", "sugirió el evento"),
+    "ruta": Pendiente("rutas_comunidad", "autor_uid", "nombre", "estado", "propuso la ruta"),
+    "premium": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "pidió Premium para", "premium"),
+    "reclamo": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "reclamó el negocio", "reclamo"),
+    "reporte": Pendiente("reportes", "uid", "comercio_nombre", "estado", "reportó un problema en"),
+}
+TITULO_PENDIENTE = {
+    "comercio": "Negocio por aprobar",
+    "evento": "Evento por aprobar",
+    "ruta": "Ruta por aprobar",
+    "premium": "Solicitud Premium",
+    "reclamo": "Reclamo de negocio",
+    "reporte": "Reporte por revisar",
+}
+
+
+def mensaje_pendiente(tipo: str, quien: str, nombre: str) -> tuple[str, str, str]:
+    """(título, texto, enlace) del aviso al admin. El enlace abre el panel."""
+    p = PENDIENTES[tipo]
+    quien = (quien or "Alguien").strip().split(" ")[0] or "Alguien"
+    nombre = (nombre or "").strip() or "sin nombre"
+    return TITULO_PENDIENTE[tipo], f"{quien} {p.texto} «{nombre}». Revísalo en el panel.", "#/admin"
+
+
 def mensaje_alerta(doc: dict, id_: str) -> tuple[str, str, str]:
     """(título, texto, enlace) del push de una alerta municipal."""
     tipo = TIPOS_ALERTA.get(doc.get("tipo", ""), "Aviso")
@@ -135,6 +173,7 @@ class RepositorioAvisos(Protocol):
     def guardar_novedad(self, uid: str, id_: str, datos: dict) -> bool: ...
     def borrar_dispositivos(self, uid: str, tokens: list[str]) -> None: ...
     def todos_los_dispositivos(self) -> dict[str, list[str]]: ...
+    def admins(self) -> list[str]: ...
     def registrar_envio_alerta(self, id_: str, datos: dict) -> bool: ...
     def completar_envio_alerta(self, id_: str, datos: dict) -> None: ...
 
@@ -172,6 +211,12 @@ class RepositorioAvisosFirestore:
         col = self.db.collection("usuarios").document(uid).collection("dispositivos")
         for t in tokens:
             col.document(t).delete()
+
+    def admins(self) -> list[str]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        q = self.db.collection("usuarios").where(filter=FieldFilter("rol", "==", "admin"))
+        return [d.id for d in q.stream()]
 
     def todos_los_dispositivos(self) -> dict[str, list[str]]:
         """uid → tokens, de todas las subcolecciones usuarios/{uid}/dispositivos."""

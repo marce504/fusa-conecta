@@ -36,6 +36,7 @@ from typing import Any
 from urllib.parse import quote, urljoin
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from avisos_admin import avisar_admins  # noqa: E402
 from comun import DIA_MS, ZONA_COL, a_ms, ahora_ms, de_ms, firestore_cliente, igual, registro, servidor  # noqa: E402
 
 log, memoria = registro("agenda")
@@ -578,6 +579,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         if e["inicio"] is not None and x.get("estado") in ("publicado", "pendiente"):
             guardados.append((d, {**e, "fin": a_ms(x.get("fecha_fin")) or e["inicio"]}))
     publicados = pendientes = duplicados = 0
+    titulos_pendientes: list[str] = []
     lote, imagenes = db.batch(), {}  # una descarga por noticia aunque traiga varias actividades
     for e in unir_parecidos(unicos):
         if clave(e) in ya or clave_lugar_hora(e) in ya_lh:
@@ -591,6 +593,8 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             continue
         est = decidir(e)
         publicados, pendientes = (publicados + 1, pendientes) if est == "publicado" else (publicados, pendientes + 1)
+        if est != "publicado":
+            titulos_pendientes.append(e["titulo"])
         # Las actividades de un programa no llevan imagen: serían decenas de copias del mismo afiche en la agenda
         if e.get("programa"):
             imagenes.setdefault(e["enlace"], "")
@@ -626,6 +630,13 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         )
         log.info("Nuevo [%s · %s] %s · %s", est, e["tipo"], e["titulo"], e["lugar_nombre"])
     lote.commit()
+    # v95: si quedaron eventos por aprobar, se avisa a los admin (campana y celular); un fallo no detiene la agenda
+    if titulos_pendientes:
+        try:
+            aviso = avisar_admins(db, titulos_pendientes, str(ahora))
+            log.info("Aviso a %d admin (%d celulares).", aviso["admins"], aviso["enviados"])
+        except Exception as e:  # noqa: BLE001
+            log.warning("No se pudo avisar a los admin: %s", e)
     reparados = reparar(db, cliente, existentes, imagenes)
     unidos = unir_guardados(existentes)
     return {

@@ -161,7 +161,7 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - Las reseñas solo pueden venir de usuarios con sesión.
    - Una reseña por usuario, con la regla en `firestore.rules`.
 5. **(PUBLICADO 18-nov, commit b904895, PWA v92) Mercado campesino.** Sección en Campo con eventos de la Agenda (`esMercadoCampesino`) y plazas c372, c465, c499. Fechas y lugar deben venir de una fuente oficial.
-6. **(HECHO 18-nov, PWA v93; ver git log si ya se publicó) Pedidos por WhatsApp desde un menú:** campo `menu` en comercios, `formMenu`, `menuFichaHTML`, `mensajePedido`. el comercio carga su menú y el cliente arma un mensaje de WhatsApp.
+6. **(PUBLICADO 20-nov, commit c54e549, PWA v93) Pedidos por WhatsApp desde un menú:** campo `menu` en comercios, `formMenu`, `menuFichaHTML`, `mensajePedido`. el comercio carga su menú y el cliente arma un mensaje de WhatsApp.
 7. **Mascotas y objetos perdidos:**
    - publicaciones con sesión iniciada;
    - que vencen solas;
@@ -170,7 +170,7 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 9. **Rutas turísticas, cajeros, parqueaderos y pico y placa.** El pico y placa debe salir de un decreto oficial de la
    Alcaldía.
 
-### 5.3b Pedido de Marcela (20-nov): avisos al celular para el admin
+### 5.3b (HECHO 20-nov, PWA v95 / API v1.5.0; ver git log si ya se publicó) Avisos al celular para el admin
 - Hoy NO existe push al admin cuando llega algo por aprobar (negocios, eventos, rutas, Premium): solo la campana con la
   app abierta. Propuesta: endpoint en la API que, cuando alguien envía algo «pendiente», avise a los dispositivos de
   los admin (verifica que el documento exista y esté pendiente). La agenda automática también puede llamarlo.
@@ -185,5 +185,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `b904895`, en producción como v92 (`fusa-v85`), API v1.4.0.
+- **Último commit publicado:** `b1c6e0c`, en producción como v94 (`fusa-v87`), API v1.4.0.
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

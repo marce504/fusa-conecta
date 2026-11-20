@@ -8,6 +8,14 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Agregado
+- **Avisos al celular para los administradores.** Cuando alguien registra un negocio (o lo reenvía), sugiere un
+  evento, propone una ruta, pide Premium, reclama un negocio o reporta un problema, los admin reciben la novedad en la
+  campana y en el celular, con un enlace que abre el panel. La API nueva `POST /v1/notificaciones/pendiente` (API
+  v1.5.0) comprueba que exista, siga pendiente y la haya enviado quien llama, y avisa una sola vez. La agenda
+  automática también avisa cuando deja eventos por aprobar (`automatizacion/avisos_admin.py`); si su cuenta no puede
+  usar FCM, la novedad queda igual en la campana. El push necesita `FIREBASE_SA_FCM` en Render. PWA v95 (`fusa-v88`).
+
 ### Corregido
 - **No se podían publicar eventos de la agenda automática.** Los eventos de un programa (por ejemplo el Festival
   Nacional de las Artes «Conexión Sumapaz») traen los campos `programa`, `sin_hora_fin` y `fuentes`, y precios de hasta

@@ -404,3 +404,75 @@ class _RefGrupo(_Ref):
                 padre = SimpleNamespace(id=p[-3], parent=SimpleNamespace(id=p[-4]))
                 docs.append(SimpleNamespace(id=p[-1], reference=SimpleNamespace(parent=SimpleNamespace(parent=padre))))
         return SimpleNamespace(stream=lambda: docs)
+
+
+# ---------- Avisos al admin: POST /v1/notificaciones/pendiente ----------
+class RepoPendientesFalso(RepoAvisosFalso):
+    def __init__(self) -> None:
+        super().__init__()
+        self.docs[("comercios", "nuevo")] = {
+            "nombre": "Taller Nuevo",
+            "estado_publicacion": "pendiente",
+            "propietario_uid": "duena",
+        }
+        self.docs[("solicitudes", "s3")] = {
+            "tipo": "premium",
+            "comercio_nombre": "MG Washers",
+            "estado": "pendiente",
+            "uid": "duena",
+        }
+        self.docs[("usuarios", "admin1")] = {"nombre": "Marcela", "rol": "admin"}
+        self.docs[("usuarios", "admin2")] = {"nombre": "Jhon", "rol": "admin", "notificaciones_push": False}
+        self.tokens.update({"admin1": ["tok-admin", "tok-viejo"], "admin2": ["tok-jhon"]})
+
+    def admins(self):
+        return ["admin1", "admin2"]
+
+
+@pytest.fixture
+def pendiente(cliente, como):
+    ra, fcm = RepoPendientesFalso(), AvisadorFalso()
+    main.app.dependency_overrides[main._repo_avisos] = lambda: ra
+    main.app.dependency_overrides[main._avisador] = lambda: fcm
+    como("duena")
+    return SimpleNamespace(
+        post=lambda tipo, id_: cliente.post("/v1/notificaciones/pendiente", json={"tipo": tipo, "id": id_}),
+        repo=ra,
+        fcm=fcm,
+        como=como,
+    )
+
+
+def test_pendiente_avisa_a_los_admin(pendiente):
+    j = pendiente.post("comercio", "nuevo").json()
+    # Los dos admin lo ven en la campana; el push solo le llega a quien no apagó los avisos
+    assert j == {"admins": 2, "nuevos": 2, "enviados": 1}
+    envio = pendiente.fcm.enviados[0]
+    assert envio["titulo"] == "Negocio por aprobar"
+    assert envio["texto"] == "Marcela registró el negocio «Taller Nuevo». Revísalo en el panel."
+    assert envio["enlace"] == "#/admin"
+    assert "admin2/pendiente-comercio-nuevo" in pendiente.repo.novedades
+    assert pendiente.repo.borrados == [("admin1", ["tok-viejo"])]
+
+
+def test_pendiente_no_se_repite(pendiente):
+    pendiente.post("premium", "s3")
+    j = pendiente.post("premium", "s3").json()
+    assert j["nuevos"] == 0 and len(pendiente.fcm.enviados) == 1
+
+
+def test_pendiente_solo_quien_lo_envio(pendiente):
+    pendiente.como("otro")
+    assert pendiente.post("comercio", "nuevo").status_code == 403
+    assert pendiente.repo.novedades == {}
+
+
+def test_pendiente_que_ya_se_reviso_o_no_existe(pendiente):
+    assert pendiente.post("comercio", "neg1").status_code == 409  # ya aprobado
+    assert pendiente.post("comercio", "nada").status_code == 404
+    assert pendiente.post("reclamo", "s3").status_code == 404  # es Premium, no reclamo
+    assert pendiente.post("cupon", "x").status_code == 422
+
+
+def test_pendiente_sin_token_401(cliente):
+    assert cliente.post("/v1/notificaciones/pendiente", json={"tipo": "comercio", "id": "x"}).status_code == 401
