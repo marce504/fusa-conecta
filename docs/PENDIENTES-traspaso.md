@@ -166,8 +166,8 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - publicaciones con sesión iniciada;
    - que vencen solas;
    - que el admin puede moderar.
-8. **(HECHO 20-nov, PWA v98 / API v1.6.0; ver git log si ya se publicó) Empleos locales:** colección `empleos`, Mi negocio → «Ofrecer empleo», Panel → Empleos. publicados por los comercios, con moderación y vencimiento.
-9. **Rutas turísticas, cajeros, parqueaderos y pico y placa.** El pico y placa debe salir de un decreto oficial de la
+8. **(PUBLICADO 20-nov, commit 8bcad48, PWA v98 / API v1.6.0) Empleos locales:** colección `empleos`, Mi negocio → «Ofrecer empleo», Panel → Empleos. publicados por los comercios, con moderación y vencimiento.
+9. **(HECHO 20-nov, PWA v99; ver git log si ya se publicó) Rutas turísticas, cajeros, parqueaderos y pico y placa.** `RUTAS_TURISTICAS` en app.js; pico y placa solo con decreto publicado por el admin (`config/pico_placa`); cajeros c590–c592 y parqueadero c593 de OpenStreetMap. El pico y placa debe salir de un decreto oficial de la
    Alcaldía.
 
 ### 5.3b (PUBLICADO 20-nov, commit 90e0a0d, PWA v95 / API v1.5.0) Avisos al celular para el admin
@@ -185,5 +185,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `a9ae1f1`, en producción como v97 (`fusa-v90`), API v1.5.0.
+- **Último commit publicado:** `8bcad48`, en producción como v98 (`fusa-v91`), API v1.6.0.
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.

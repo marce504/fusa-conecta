@@ -1650,7 +1650,7 @@ function rutaTransporteHTML(r,ahora=Date.now()){
     +'</div>';
 }
 function transporteEntradaHTML(){
-  return '<button class="tarjeta-opinion mb-16" id="irTransporte"><span class="to-ic">'+icon('bus',22)+'</span><span class="to-tx"><b>Cómo moverse</b><small>Terminal, paraderos y horarios de buses con su fuente</small></span>'+icon('chevron-right')+'</button>';
+  return '<button class="tarjeta-opinion mb-16" id="irTransporte"><span class="to-ic">'+icon('bus',22)+'</span><span class="to-tx"><b>Cómo moverse</b><small>Terminal, horarios, pico y placa, parqueaderos y cajeros</small></span>'+icon('chevron-right')+'</button>';
 }
 function renderTransporte(){
   const cuerpo=$('#cuerpo'),l=rutasTransporte(estado.transporte);
@@ -1661,6 +1661,9 @@ function renderTransporte(){
     +'<h3 class="sos-grupo">Horarios de buses</h3>'
     +(l.length?l.map(r=>rutaTransporteHTML(r)).join('')
       :'<p class="sos-nota">Aún no tenemos horarios verificados: las páginas de pasajes no coinciden entre ellas y no queremos darte un dato falso. Pregunta en la taquilla de la Terminal o llama a la empresa antes de viajar.</p>')
+    +picoPlacaHTML()
+    +lugaresMoverseHTML('Parqueaderos','circle-parking',database.filter(d=>esParqueadero(d)&&enMunicipio(d,municipioElegido())))
+    +lugaresMoverseHTML('Cajeros y bancos','banknote',database.filter(d=>esCajeroOBanco(d)&&enMunicipio(d,municipioElegido())).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')))
     +'</div>'+footerHTML();
   $$('[data-vertr]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vertr)));
   $$('[data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
@@ -1901,6 +1904,66 @@ function formEmpleo(d){
     }catch(e){console.error(e);b.disabled=false;toast('No se pudo enviar la oferta. Revisa tu conexión.');}
   };
 }
+/* ===== RUTAS TURÍSTICAS Y DATOS PARA MOVERSE (v99) =====
+   Las rutas son recorridos sugeridos por Fusa Conecta con lugares del directorio (cada uno con su fuente); no traen
+   horarios ni precios. Pico y placa: no hay un decreto vigente publicado por la Alcaldía, así que solo se muestra si
+   el admin lo publica con su enlace (config/pico_placa). Parqueaderos y cajeros salen del directorio (OpenStreetMap). */
+const RUTAS_TURISTICAS=[
+  {id:'centro',nombre:'Fusa a pie: centro y cultura',modo:'walking',municipio:'Fusagasugá',
+    desc:'Templo de Belén, el cine Los Ángeles, la Concha Acústica, la Quinta de Coburgo, la Casa de la Cultura y el monumento a Manuel Humberto Cárdenas.',
+    paradas:['c29','c460','c383','c480','c120','c360']},
+  {id:'sutagao',nombre:'Del Sutagao al café',modo:'driving',municipio:'Fusagasugá',
+    desc:'El monumento al Indio Sutagao, la Hacienda Coloma (Museo del Café), el Pueblito Fusagasugueño y el monumento a Lucho Herrera.',
+    paradas:['c456','c30','c24','c455']},
+  {id:'norte',nombre:'Naturaleza al norte de Fusa',modo:'driving',municipio:'Fusagasugá',
+    desc:'Cerro Fusacatán, el mirador de la Cuchilla de La Aguadita y el Parque Natural San Rafael. Lleva abrigo y consulta el estado de los caminos.',
+    paradas:['c21','c78','c589']},
+  {id:'pasca',nombre:'Pasca: plaza, museo y cultura',modo:'walking',municipio:'Pasca',
+    desc:'La parroquia de la plaza principal, el Museo Arqueológico y la Casa de la Cultura de Pasca, a pocas cuadras.',
+    paradas:['c75','c76','c73']},
+];
+function kmEntre(a,b){const R=6371,r=x=>x*Math.PI/180,dLa=r(b[0]-a[0]),dLo=r(b[1]-a[1]);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+// Paradas que existen y tienen coordenadas, distancia en línea recta y enlace a Google Maps con las paradas en orden
+function datosRutaTuristica(r){
+  const p=r.paradas.map(id=>buscar(id)).filter(d=>d&&d.lat&&d.lng);
+  let total=0;for(let i=1;i<p.length;i++)total+=kmEntre([p[i-1].lat,p[i-1].lng],[p[i].lat,p[i].lng]);
+  const c=d=>d.lat+','+d.lng;
+  const enlace=p.length>1?'https://www.google.com/maps/dir/?api=1&origin='+c(p[0])+'&destination='+c(p[p.length-1])
+    +(p.length>2?'&waypoints='+encodeURIComponent(p.slice(1,-1).map(c).join('|')):'')+'&travelmode='+r.modo:'';
+  return {paradas:p,km:Math.round(total*10)/10,enlace};
+}
+function rutasTuristicasHTML(){
+  const mun=municipioElegido();
+  return RUTAS_TURISTICAS.filter(r=>!mun||r.municipio===mun).map(r=>{
+    const x=datosRutaTuristica(r);if(x.paradas.length<2)return '';
+    return '<article class="ruta-tur"><div class="rt-cab">'+icon(r.modo==='walking'?'footprints':'car',18)+'<b>'+esc(r.nombre)+'</b></div>'
+      +'<small>'+x.paradas.length+' paradas · unos '+String(x.km).replace('.',',')+' km '+(r.modo==='walking'?'a pie':'en carro')+' · '+esc(r.municipio)+'</small>'
+      +'<p>'+esc(r.desc)+'</p><ol class="rt-paradas">'+x.paradas.map(d=>'<li><button class="tc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></li>').join('')+'</ol>'
+      +'<a class="btn btn-secundario btn-sm" href="'+esc(x.enlace)+'" target="_blank" rel="noopener">'+icon('map',16)+'Ver el recorrido en el mapa</a></article>';
+  }).join('');
+}
+function rutasEntradaHTML(){
+  return '<section class="seccion-inicio rutas-tur" aria-labelledby="tRutasTur"><div class="head-v"><h2 id="tRutasTur">Rutas turísticas sugeridas</h2></div>'
+    +'<p class="nota-c izq">Recorridos armados con lugares del directorio. Verifica horarios y precios en cada lugar.</p>'+rutasTuristicasHTML()+'</section>';
+}
+// Pico y placa: solo con decreto publicado (config/pico_placa: {fusagasuga|pasca: {texto, decreto, fuente_url}})
+estado.picoPlaca=ls.get('fc_pico_placa',{});
+db.collection('config').doc('pico_placa').onSnapshot(s=>{estado.picoPlaca=s.exists?s.data():{};ls.set('fc_pico_placa',estado.picoPlaca);
+  if(vistaActual().tipo==='transporte')render(true);},()=>{});
+function picoPlacaVigente(pp,mun){const x=pp&&pp[mun];return x&&x.texto&&x.decreto&&/^https:\/\//.test(x.fuente_url||'')?x:null;}
+function picoPlacaHTML(){
+  const l=[['fusagasuga','Fusagasugá'],['pasca','Pasca']].map(([k,t])=>[t,picoPlacaVigente(estado.picoPlaca,k)]);
+  return '<h3 class="sos-grupo">Pico y placa</h3>'+(l.some(x=>x[1])?l.filter(x=>x[1]).map(([t,x])=>'<div class="sos-turno">'+icon('car',18)+'<div><b>'+esc(t)+': '+esc(x.texto)+'</b>'
+      +'<small>'+esc(x.decreto)+' · <a href="'+esc(x.fuente_url)+'" target="_blank" rel="noopener">Ver el decreto</a></small></div></div>').join('')
+    :'<p class="sos-nota">No encontramos un decreto de pico y placa vigente publicado por la Alcaldía de Fusagasugá ni por la de Pasca, así que no mostramos horarios de otras páginas. Si viajas a Bogotá en un puente festivo, consulta el pico y placa regional de regreso en los canales de la Gobernación de Cundinamarca.</p>');
+}
+function lugaresMoverseHTML(titulo,ic,l){
+  return l.length?'<h3 class="sos-grupo">'+titulo+'</h3>'+l.map(d=>'<div class="sos-fila"><span class="sos-ic sos-ic-neutro">'+icon(ic)+'</span><div class="sos-info"><b>'+esc(d.nombre)+'</b><span>'+esc(d.direccion||municipioDe(d))+'</span>'
+    +estadoHTML(estadoApertura(d))+'</div><button class="sos-llamar sos-ver" data-vertr="'+esc(d.id)+'" aria-label="Ver la ficha de '+esc(d.nombre)+'">'+icon('chevron-right')+'</button></div>').join(''):'';
+}
+const esCajeroOBanco=d=>d.cat==='tramite'&&/\b(banco|cajero|bancolombia|davivienda|bbva|bancam|corresponsal|av villas|caja social)/i.test(d.nombre||'');
+const esParqueadero=d=>/parqueadero|parking/i.test(d.nombre||'')&&!/busetas|paradero/i.test(d.nombre||'');
 estado.turnoDrog=ls.get('fc_turno_drog',{});
 db.collection('config').doc('turno_droguerias').onSnapshot(s=>{
   estado.turnoDrog=s.exists?s.data():{};ls.set('fc_turno_drog',estado.turnoDrog);if(vistaActual().tipo==='sos')render(true);
@@ -2437,12 +2500,12 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+transporteEntradaHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML():'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
@@ -6219,9 +6282,28 @@ function perdidosAdminHTML(){
 function enlazarPerdidosAdmin(){
   $$('[data-pdocultar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('perdidos').doc(b.dataset.pdocultar).update({estado:'oculto'}),'Aviso ocultado')));
 }
+function picoPlacaAdminHTML(){
+  return '<p class="dash-section">Pico y placa</p><div class="adm-card"><p class="nota-c izq">Publícalo solo con el decreto de la Alcaldía y su enlace. Deja el texto vacío para quitarlo.</p>'
+    +[['fusagasuga','Fusagasugá'],['pasca','Pasca']].map(([k,t])=>{const x=(estado.picoPlaca||{})[k]||{};
+      return '<p class="lbl mt-16">'+t+'</p><input class="input" data-pp="'+k+'" data-k="texto" maxlength="160" placeholder="Ej.: Lun a vie, 6-9 a. m. y 5-7 p. m.; lunes placas 1 y 2…" value="'+esc(x.texto||'')+'">'
+        +'<input class="input mt-8" data-pp="'+k+'" data-k="decreto" maxlength="80" placeholder="Ej.: Decreto 123 de 2026" value="'+esc(x.decreto||'')+'">'
+        +'<input class="input mt-8" data-pp="'+k+'" data-k="fuente_url" type="url" placeholder="https://… (enlace al decreto)" value="'+esc(x.fuente_url||'')+'">';}).join('')
+    +'<button class="btn btn-primario btn-bloque mt-16" id="ppGuardar">Guardar pico y placa</button></div>';
+}
+function datosPicoPlaca(v){
+  const out={};
+  for(const k of ['fusagasuga','pasca']){
+    const x=v[k]||{},t=String(x.texto||'').trim();
+    if(!t){out[k]=null;continue;}
+    if(String(x.decreto||'').trim().length<5)return 'Escribe el número del decreto';
+    if(!/^https:\/\/\S+\.\S+$/.test(String(x.fuente_url||'').trim()))return 'Pega el enlace del decreto (empieza por https://)';
+    out[k]={texto:t.slice(0,160),decreto:String(x.decreto).trim().slice(0,80),fuente_url:String(x.fuente_url).trim().slice(0,500)};
+  }
+  return out;
+}
 function transporteAdminHTML(){
   const l=rutasTransporte(estado.transporte);
-  return '<p class="dash-section">Horarios de buses</p><div class="adm-card">'
+  return picoPlacaAdminHTML()+'<p class="dash-section">Horarios de buses</p><div class="adm-card">'
     +'<p class="nota-c izq">Publica solo horarios que verificaste: la página o la red oficial de la empresa, o una foto del tablero de la Terminal subida a una página del proyecto. Anota la fecha en que lo verificaste.</p>'
     +'<label class="lbl" for="trEmpresa">Empresa</label><input class="input" id="trEmpresa" maxlength="80" placeholder="Ej.: Cootransfusa">'
     +'<div class="fila-2"><div><label class="lbl" for="trOrigen">Desde</label><input class="input" id="trOrigen" maxlength="60" value="Fusagasugá"></div>'
@@ -6253,6 +6335,12 @@ function datosRutaTransporte(v,ahora=Date.now()){
     precio:t('precio').slice(0,40),tel,fuente:t('fuente').slice(0,120),fuente_url:t('fuente_url').slice(0,500),verificado:ver};
 }
 function enlazarTransporteAdmin(){
+  const pp=$('#ppGuardar');
+  if(pp)pp.onclick=()=>{
+    const v={fusagasuga:{},pasca:{}};$$('[data-pp]').forEach(i=>{v[i.dataset.pp][i.dataset.k]=i.value;});
+    const r=datosPicoPlaca(v);if(typeof r==='string'){toast(r);return;}
+    adminAccion(()=>db.collection('config').doc('pico_placa').set({fusagasuga:r.fusagasuga||FV.delete(),pasca:r.pasca||FV.delete(),actualizado:FV.serverTimestamp()},{merge:true}),'Pico y placa guardado');
+  };
   const g=$('#trGuardar');if(!g)return;
   g.onclick=()=>{
     const r=datosRutaTransporte({empresa:$('#trEmpresa').value,origen:$('#trOrigen').value,destino:$('#trDestino').value,salidas:$('#trSalidas').value,

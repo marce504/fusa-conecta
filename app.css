@@ -542,6 +542,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .em-cab small{display:block;font-size:var(--text-xs);color:var(--ink-2)}
 .em-datos{display:block;margin:0;font-size:var(--text-sm);color:var(--ink-2)}
 .em-desc{margin:0;font-size:var(--text-sm);color:var(--ink);overflow-wrap:anywhere;white-space:pre-line}
+.ruta-tur{padding:14px;margin-top:10px;border:1px solid var(--soft);border-radius:var(--radius-lg);background:var(--bg)}
+.ruta-tur small{display:block;font-size:var(--text-xs);color:var(--ink-2);margin-top:2px}
+.ruta-tur p{margin:6px 0;font-size:var(--text-sm);color:var(--ink)}
+.rt-paradas{margin:4px 0 10px;padding-left:20px;font-size:var(--text-sm)}
+.rt-paradas li{margin:2px 0}
+.rt-paradas .tc-link{background:none;border:0;padding:0;font:inherit;color:var(--primary-700);text-decoration:underline;cursor:pointer;text-align:left}
 .num-grande{font-size:var(--text-2xl);font-weight:600;color:var(--danger-600);margin:8px 0 16px}
 .hoja-acc{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 

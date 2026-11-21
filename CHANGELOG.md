@@ -9,6 +9,18 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Rutas turísticas sugeridas.** En Turismo, cuatro recorridos armados con lugares del directorio (cada uno con su
+  fuente): «Fusa a pie: centro y cultura» (unos 1,6 km), «Del Sutagao al café», «Naturaleza al norte de Fusa» y «Pasca:
+  plaza, museo y cultura». Cada ruta muestra sus paradas en orden, la distancia aproximada y un enlace para verla en
+  Google Maps con las paradas. No traen horarios ni precios: hay que verificarlos en cada lugar.
+- **Pico y placa, parqueaderos y cajeros en «Cómo moverse».** No hay un decreto de pico y placa vigente publicado por
+  la Alcaldía de Fusagasugá ni por la de Pasca (las páginas no oficiales se contradicen), así que la app lo dice y
+  solo muestra un horario si el admin lo publica en Panel → Transporte con el decreto y su enlace
+  (`config/pico_placa`). Se agregan desde OpenStreetMap los 3 cajeros automáticos que faltaban y el parqueadero del
+  Centro Comercial Manila (el único marcado como abierto al público); los 11 bancos ya estaban. «Cómo moverse» aparece
+  también en el inicio. PWA v99 (`fusa-v92`).
+
+### Agregado
 - **Empleos locales.** Los negocios aprobados publican vacantes desde Mi negocio → «Ofrecer empleo» (cargo,
   descripción, jornada y salario opcional). Un admin las revisa en Panel → Empleos antes de publicarlas: la app
   rechaza de entrada las que cobran al aspirante o piden edad, sexo o «buena presencia». Quien busca trabajo las ve

@@ -16004,6 +16004,119 @@
    ],
    "verificado": "2026-11-04",
    "tipo": "cultural"
+  },
+  {
+   "id": "c590",
+   "cat": "tramite",
+   "nombre": "Cajero Davivienda · cerca del C. C. Manila",
+   "desc": "Cajero automático Davivienda.",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "verificado": "2026-11-20",
+   "horario": "",
+   "direccion": "Fusagasugá",
+   "lat": 4.33276,
+   "lng": -74.37,
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Cajero Davivienda",
+     "url": "https://www.openstreetmap.org/node/1480230942"
+    }
+   ]
+  },
+  {
+   "id": "c591",
+   "cat": "tramite",
+   "nombre": "Cajero Davivienda · Centro",
+   "desc": "Cajero automático Davivienda.",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "verificado": "2026-11-20",
+   "horario": "",
+   "direccion": "Fusagasugá",
+   "lat": 4.34308,
+   "lng": -74.36076,
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Cajero Davivienda",
+     "url": "https://www.openstreetmap.org/node/12507696269"
+    }
+   ]
+  },
+  {
+   "id": "c592",
+   "cat": "tramite",
+   "nombre": "Cajero Bancolombia · cerca del C. C. Manila",
+   "desc": "Cajero automático Bancolombia.",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "verificado": "2026-11-20",
+   "horario": "",
+   "direccion": "Fusagasugá",
+   "lat": 4.33276,
+   "lng": -74.37002,
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Cajero Bancolombia",
+     "url": "https://www.openstreetmap.org/node/12681536723"
+    }
+   ]
+  },
+  {
+   "id": "c593",
+   "cat": "servicios",
+   "nombre": "Parqueadero del Centro Comercial Manila",
+   "desc": "Parqueadero abierto al público (según OpenStreetMap). Consulta tarifas en el lugar.",
+   "tel": "",
+   "whatsapp": "",
+   "imagen": "",
+   "ubicacion_aprox": false,
+   "esPremium": false,
+   "prioridadBusqueda": 0,
+   "redesSociales": {},
+   "sitioWeb": "",
+   "propietario_uid": null,
+   "propietario": "Fusa Conecta",
+   "municipio": "Fusagasugá",
+   "verificado": "2026-11-20",
+   "horario": "",
+   "direccion": "Fusagasugá",
+   "sub": "transporte",
+   "lat": 4.33256,
+   "lng": -74.37013,
+   "fuentes": [
+    {
+     "nombre": "OpenStreetMap: Centro Comercial Manila (parqueadero)",
+     "url": "https://www.openstreetmap.org/way/1364900312"
+    }
+   ]
   }
  ],
  "rutas": {

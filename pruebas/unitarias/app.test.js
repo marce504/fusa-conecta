@@ -1017,3 +1017,45 @@ describe('Empleos locales: validación de la oferta', () => {
     expect(datosEmpleo({ ...ok, jornada: 'noche' }, d)).toMatch(/jornada/);
   });
 });
+
+describe('Rutas turísticas, pico y placa, cajeros y parqueaderos', () => {
+  const lugares = {
+    a: { id: 'a', nombre: 'Uno', lat: 4.344, lng: -74.361 },
+    b: { id: 'b', nombre: 'Dos', lat: 4.3406, lng: -74.3609 },
+    c: { id: 'c', nombre: 'Tres', lat: 4.3386, lng: -74.3606 },
+  };
+  const { datosRutaTuristica, datosPicoPlaca, picoPlacaVigente, esCajeroOBanco, esParqueadero } = cargar(
+    ['kmEntre', 'datosRutaTuristica', 'datosPicoPlaca', 'picoPlacaVigente', 'esCajeroOBanco', 'esParqueadero'],
+    { buscar: id => lugares[id] },
+  );
+  it('la ruta usa solo paradas que existen, suma la distancia y arma el enlace con paradas intermedias', () => {
+    const r = datosRutaTuristica({ modo: 'walking', paradas: ['a', 'falta', 'b', 'c'] });
+    expect(r.paradas.map(p => p.id)).toEqual(['a', 'b', 'c']);
+    expect(r.km).toBeGreaterThan(0.5);
+    expect(r.km).toBeLessThan(0.7);
+    expect(r.enlace).toContain('origin=4.344,-74.361');
+    expect(r.enlace).toContain('waypoints=4.3406%2C-74.3609');
+    expect(r.enlace).toContain('travelmode=walking');
+  });
+  it('el pico y placa solo se publica con decreto y enlace https', () => {
+    expect(
+      datosPicoPlaca({
+        fusagasuga: { texto: 'Lun a vie 6-9 a. m.', decreto: 'Decreto 1 de 2026', fuente_url: 'https://x.gov.co/d' },
+        pasca: {},
+      }).fusagasuga.decreto,
+    ).toBe('Decreto 1 de 2026');
+    expect(datosPicoPlaca({ fusagasuga: { texto: 'Lun a vie', decreto: '', fuente_url: 'https://x.gov.co' } })).toMatch(
+      /decreto/,
+    );
+    expect(
+      datosPicoPlaca({ fusagasuga: { texto: 'Lun a vie', decreto: 'Decreto 1', fuente_url: 'x.gov.co' } }),
+    ).toMatch(/https/);
+    expect(picoPlacaVigente({ pasca: { texto: 'x', decreto: 'D', fuente_url: 'http://x' } }, 'pasca')).toBeNull();
+  });
+  it('reconoce cajeros, bancos y parqueaderos públicos', () => {
+    expect(esCajeroOBanco({ cat: 'tramite', nombre: 'Cajero Davivienda · Centro' })).toBe(true);
+    expect(esCajeroOBanco({ cat: 'tramite', nombre: 'Alcaldía de Fusagasugá' })).toBe(false);
+    expect(esParqueadero({ nombre: 'Parqueadero del Centro Comercial Manila' })).toBe(true);
+    expect(esParqueadero({ nombre: 'Parqueadero de busetas' })).toBe(false);
+  });
+});

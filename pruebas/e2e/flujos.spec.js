@@ -1079,3 +1079,33 @@ test('empleos: Rosa ofrece un empleo, el admin lo publica y se ve en Empleos', a
   const texto = decodeURIComponent((await page.evaluate(() => window.abiertosWa[0])).split('?text=')[1]);
   expect(texto).toContain('vi la oferta «Auxiliar de vivero de prueba E2E»');
 });
+
+// v99: rutas turísticas en Turismo; pico y placa, parqueaderos y cajeros en «Cómo moverse»
+test('moverse: rutas turísticas en Turismo y pico y placa, parqueaderos y cajeros en «Cómo moverse»', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'turismo' }));
+  const rutas = page.locator('#cuerpo .rutas-tur');
+  await expect(rutas).toContainText('Fusa a pie: centro y cultura');
+  await expect(rutas.locator('a[href*="google.com/maps/dir"]').first()).toBeVisible();
+  await page.screenshot({ path: info.outputPath('rutas-turisticas.png') });
+  await page.evaluate(() => window.navegar({ tipo: 'transporte' }));
+  const c = page.locator('#cuerpo');
+  await expect(c).toContainText('No encontramos un decreto de pico y placa vigente');
+  await expect(c).toContainText('Parqueadero del Centro Comercial Manila');
+  await expect(c).toContainText('Cajero Davivienda');
+  await expect(c).toContainText('Bancolombia');
+  // Con el decreto publicado por el admin (solo en el emulador), se muestra con su enlace
+  await poner('config/pico_placa', {
+    fusagasuga: {
+      texto: 'Lunes a viernes de prueba E2E',
+      decreto: 'Decreto de prueba',
+      fuente_url: 'https://ejemplo.test/decreto',
+    },
+  });
+  await expect(c).toContainText('Fusagasugá: Lunes a viernes de prueba E2E', { timeout: 15000 });
+  await page.screenshot({ path: info.outputPath('como-moverse.png') });
+});
