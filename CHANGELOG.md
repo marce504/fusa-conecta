@@ -9,6 +9,11 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 ## [Sin publicar]
 
 ### Agregado
+- **Video promocional: escena «Y ahora también».** Resume las 8 funciones nuevas (alertas del municipio, empleos,
+  mascotas perdidas, pedidos por WhatsApp, servicios a domicilio, mercado campesino, rutas turísticas y «Cómo
+  moverse») con la voz de Daniela. El video queda de 86 segundos.
+
+### Agregado
 - **Rutas turísticas sugeridas.** En Turismo, cuatro recorridos armados con lugares del directorio (cada uno con su
   fuente): «Fusa a pie: centro y cultura» (unos 1,6 km), «Del Sutagao al café», «Naturaleza al norte de Fusa» y «Pasca:
   plaza, museo y cultura». Cada ruta muestra sus paradas en orden, la distancia aproximada y un enlace para verla en

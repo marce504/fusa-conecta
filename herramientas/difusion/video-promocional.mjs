@@ -121,6 +121,18 @@ const CATS = [
   ['stethoscope', 'Salud', 'servicios'],
 ];
 
+// Funciones nuevas de noviembre de 2026 (escena «Y ahora también»)
+const NOVEDADES = [
+  ['triangle-alert', 'Alertas del municipio', '#FEE2E2', '#B91C1C'],
+  ['briefcase', 'Empleos locales', '#E0E7FF', '#4338CA'],
+  ['paw-print', 'Mascotas perdidas', '#FCE7F3', '#BE185D'],
+  ['send', 'Pedidos por WhatsApp', '#DCFCE7', '#15803D'],
+  ['bike', 'Servicios a domicilio', '#FFEDD5', '#C2410C'],
+  ['sprout', 'Mercado campesino', '#ECFCCB', '#4D7C0F'],
+  ['footprints', 'Rutas turísticas', '#E0F2FE', '#0369A1'],
+  ['bus', 'Cómo moverse', '#F1EEFF', '#4F35D8'],
+];
+
 // Escenas con celular: [id, fondo, etiqueta, título, captura, chips]
 const CEL = {
   busca: [
@@ -212,6 +224,9 @@ h2 em{font-style:normal;color:#6B4EFF}
 .foto .cred{position:absolute;left:36px;bottom:34px;font-size:20px;color:#fff;opacity:.9;text-shadow:0 2px 8px rgba(0,0,0,.7)}
 .eq{position:absolute;right:90px;top:1180px;display:flex;gap:12px;align-items:flex-end;height:130px;padding:18px 22px;background:#fff;border-radius:28px;box-shadow:0 18px 44px rgba(27,31,59,.2);box-sizing:content-box}
 .eq i{width:22px;border-radius:11px;background:#6B4EFF}
+.nov{position:absolute;left:70px;right:70px;top:600px;display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.nov b{display:flex;align-items:center;gap:20px;border-radius:34px;padding:30px 28px;font-size:36px;font-weight:700;line-height:1.15;box-shadow:0 16px 40px rgba(0,0,0,.25)}
+.nov b i{display:grid;place-items:center;flex:0 0 92px;height:92px;border-radius:26px;background:rgba(255,255,255,.8)}
 .sena h2{color:#fff;font-size:76px;margin:0 70px}.sena h2 em{color:#5EEAD4}
 .sena .sub{font-size:38px;font-weight:500;margin:26px 80px 0;opacity:.92}
 .metas{display:flex;flex-direction:column;gap:22px;margin-top:60px;align-items:center}
@@ -260,6 +275,9 @@ ${Object.entries(CEL)
   ${id === 'agenda' ? '<p class="nota">Agenda de ejemplo: FICFUSA, noviembre de 2026</p>' : ''}</section>`,
   )
   .join('')}
+<section class="esc lila" id="novedades">
+  <div class="cab"><span class="et">Nuevo</span><h2 style="color:#fff">Y ahora <em style="color:#5EEAD4">también</em></h2></div>
+  <div class="nov">${NOVEDADES.map(([i, t, fondo, col], k) => `<b data-k="${k}" style="background:${fondo};color:${col}"><i>${ic(i, 52)}</i>${t}</b>`).join('')}</div></section>
 <section class="esc oscuro" id="turismo">
   <div class="cab"><span class="et">Turismo</span><h2 style="color:#fff">Lo que no sabías <em style="color:#5EEAD4">que estaba aquí</em></h2></div>
   ${FOTOS.map((x, k) => `<div class="foto" data-k="${k}"><img src="${x.src}"><div class="tag">${x.nombre}</div><div class="cred">${x.cred}</div></div>`).join('')}
@@ -313,6 +331,8 @@ window.cuadro=function(t){
         f.style.zIndex=k;f.querySelector('img').style.transform='scale('+(1.12-.1*lin(lk/(tr+.5)))+') translateX('+((k%2?-1:1)*20*lin(lk/tr))+'px)';});
       const cab=s.querySelector('.cab');cab.style.opacity=ease(l/.7);
     }
+    if(e.id==='novedades'){const cab=s.querySelector('.cab');cab.style.opacity=ease(l/.7);
+      $$('.nov b',s).forEach(b=>{const k=+b.dataset.k,x=resorte((l-.5-k*.55)/.8);b.style.opacity=lin((l-.5-k*.55)/.2);b.style.transform='scale('+(.4+.6*x)+')';});}
     if(e.id==='sena')$$('.metas b',s).forEach(b=>{const k=+b.dataset.k,x=resorte((l-1.6-k*.5)/.8);b.style.opacity=lin((l-1.6-k*.5)/.25);b.style.transform='translateY('+(40*(1-x))+'px)';});
     if(e.id==='cierre'){const q=ease((l-.6)/.8);['.url','.qr','.pie','.camp'].forEach((c,k)=>{const x=ease((l-.6-k*.25)/.7);s.querySelector(c).style.opacity=x;s.querySelector(c).style.transform='translateY('+(40*(1-x))+'px)';});}
   }

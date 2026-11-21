@@ -26,6 +26,7 @@ lo que dure su frase.
 | `07-agenda.mp3` | Agenda | Entérate de los planes y eventos de la semana. |
 | `08-radio.mp3` | Emisora | Y escucha en vivo la emisora Vive Fusagasugá, ochenta y ocho punto uno. |
 | `09-sos.mp3` | Emergencias | En una emergencia, los números están ahí, incluso sin señal. |
+| `09b-novedades.mp3` | Y ahora también (8 funciones nuevas) | Y ahora también: alertas del municipio, empleos locales, mascotas perdidas, pedidos por WhatsApp, servicios a domicilio, mercado campesino y rutas turísticas. |
 | `10-negocios.mp3` | Para negocios | ¿Tienes un negocio o un emprendimiento? Súmalo gratis. Si te unes antes del treinta y uno de enero, tienes Premium gratis hasta el treinta de abril. |
 | `11-sena.mp3` | Quiénes somos | Fusa Conecta es un proyecto de estudiantes del SENA, con un propósito: que todo Fusa y Pasca se conecte. |
 | `12-cierre.mp3` | Cierre con QR | Ábrela hoy en fusa conecta punto web punto app. ¡Es gratis! |

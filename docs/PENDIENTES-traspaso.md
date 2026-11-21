@@ -109,7 +109,7 @@ Notas anteriores:
     - **No se pueden usar ni subir a git** sin el permiso de cada autor.
     - Sirven solo como referencia, por ejemplo para saber que existe la Cascada San Gabriel.
   - Cambia también la frase de turismo en el guion para que diga «cascadas». Eso exige regenerar `06-turismo.mp3`.
-- **Resumir las funciones nuevas en el video.** Hazlo cuando estén hechas las partes de 5.3: agrega una o dos escenas
+- **(HECHO 21-nov) Resumir las funciones nuevas en el video.** Escena `novedades` con la voz `09b-novedades.mp3`. Hazlo cuando estén hechas las partes de 5.3: agrega una o dos escenas
   con sus frases.
 - **Insumos en la carpeta temporal de la sesión anterior.** Puede que ya no exista; si es así, recréalos:
   - capturas de la app de 390 × 844 a 2x: 02-busqueda, 03-ficha-restaurante, 05-agenda, 06-asistente, 07-sos,
@@ -167,7 +167,7 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - que vencen solas;
    - que el admin puede moderar.
 8. **(PUBLICADO 20-nov, commit 8bcad48, PWA v98 / API v1.6.0) Empleos locales:** colección `empleos`, Mi negocio → «Ofrecer empleo», Panel → Empleos. publicados por los comercios, con moderación y vencimiento.
-9. **(HECHO 20-nov, PWA v99; ver git log si ya se publicó) Rutas turísticas, cajeros, parqueaderos y pico y placa.** `RUTAS_TURISTICAS` en app.js; pico y placa solo con decreto publicado por el admin (`config/pico_placa`); cajeros c590–c592 y parqueadero c593 de OpenStreetMap. El pico y placa debe salir de un decreto oficial de la
+9. **(PUBLICADO 21-nov, commit 80bbdaf, PWA v99) Rutas turísticas, cajeros, parqueaderos y pico y placa.** `RUTAS_TURISTICAS` en app.js; pico y placa solo con decreto publicado por el admin (`config/pico_placa`); cajeros c590–c592 y parqueadero c593 de OpenStreetMap. El pico y placa debe salir de un decreto oficial de la
    Alcaldía.
 
 ### 5.3b (PUBLICADO 20-nov, commit 90e0a0d, PWA v95 / API v1.5.0) Avisos al celular para el admin
@@ -185,5 +185,5 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 
 ## 6. Último estado de git
 
-- **Último commit publicado:** `8bcad48`, en producción como v98 (`fusa-v91`), API v1.6.0.
+- **Último commit publicado:** `80bbdaf`, en producción como v99 (`fusa-v92`), API v1.6.0.
 - Todo lo de la sección 5 está **sin hacer**, salvo los 9 audios descargados.
