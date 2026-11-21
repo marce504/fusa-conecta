@@ -154,7 +154,7 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
    - El turno de droguerías debe venir de una fuente oficial; si no la hay, no lo inventes.
 2. **(PUBLICADO 18-nov, commit 87c1a68, PWA v89 / API v1.4.0) Alertas municipales como notificación push.** `alertas/{id}` + `POST /v1/alertas/enviar`; el push necesita `FIREBASE_SA_FCM` en Render.
    - Usa FCM desde la API de Render, porque no se pueden usar Cloud Functions.
-   - Hace falta el secreto `FIREBASE_SA_FCM` en Render, y lo configura Marcela.
+   - `FIREBASE_SA_FCM` ya está en Render (configurado el 21-nov-2026; probado: el aviso llegó al celular).
    - Solo el admin puede crear alertas.
 3. **(PUBLICADO 18-nov, commit c4b5483, PWA v90) Horarios de transporte.** Pantalla «Cómo moverse» y Panel → Transporte; sin fuente oficial pública, solo horarios publicados por el admin con fuente y fecha. Solo con datos verificados de las empresas o de la terminal.
 4. **(PUBLICADO 18-nov, commit 6874035, PWA v91) Oficios y servicios a domicilio con calificaciones.** `a_domicilio` y `zona_cobertura` en comercios, filtro «A domicilio», regla contra autocalificarse.
@@ -174,12 +174,13 @@ Para todas: solo datos verificables, reglas en `firestore.rules` y nada de Cloud
 - Hoy NO existe push al admin cuando llega algo por aprobar (negocios, eventos, rutas, Premium): solo la campana con la
   app abierta. Propuesta: endpoint en la API que, cuando alguien envía algo «pendiente», avise a los dispositivos de
   los admin (verifica que el documento exista y esté pendiente). La agenda automática también puede llamarlo.
-  Necesita FIREBASE_SA_FCM en Render.
+  `FIREBASE_SA_FCM` configurado en Render el 21-nov-2026 y probado.
 
 ### 5.4 Cosas que debe hacer Marcela (no las hagas tú)
 
-- Agregar `GEMINI_API_KEY` en Render. Es la IA de respaldo; App Check se vuelve obligatorio el 21 de enero de 2027.
-- Agregar `FIREBASE_SA_FCM` en Render, para las alertas push.
+- ~~Agregar `GEMINI_API_KEY` en Render~~ HECHO el 21-nov-2026 (IA de respaldo; la API se reinició con la clave).
+- Documento técnico v4.2 (21-nov-2026) en `Documento Tecnico/Documento_Tecnico_FusaConecta_v4.2.docx` y `.pdf`: control de cambios de la versión 4.2, RF-37 a RF-47, 13 endpoints, 283 pruebas.
+- ~~Agregar `FIREBASE_SA_FCM` en Render~~ HECHO el 21-nov-2026 (cuenta `api-avisos`; probado con un reporte).
 - Generar los 4 audios que faltan (ver 5.1).
 - Opcional: publicar la app en Google Play.
 
