@@ -64,6 +64,23 @@ function aplicarTema(pref=temaElegido()){
 }
 function elegirTema(pref){try{localStorage.setItem('fc_tema',pref);}catch(e){}aplicarTema(pref);medir('tema',{tema:pref});}
 setInterval(()=>{if(temaElegido()==='automatico')aplicarTema('automatico');},60000);
+/* ===== TAMAÑO DE LETRA (Fase 3): Normal 100 %, Grande 118 %, Muy grande 135 % =====
+   Cambia el font-size de <html> (todo app.css está en rem). index.html lo pone antes del primer pintado.
+   Se guarda en el teléfono y, con sesión, en el perfil (tamano_letra) para llevarlo a otro celular. */
+const TAMANOS_LETRA=[['normal','Normal',1],['grande','Grande',1.18],['muy-grande','Muy grande',1.35]];
+function letraElegida(){try{return localStorage.getItem('fc_letra')||'';}catch(e){return '';}}
+function aplicarLetra(t){
+  const v=TAMANOS_LETRA.some(x=>x[0]===t)?t:'normal';
+  if(v==='normal')delete document.documentElement.dataset.letra;else document.documentElement.dataset.letra=v;
+}
+function elegirLetra(t,guardarEnPerfil=true){
+  try{localStorage.setItem('fc_letra',t);}catch(e){}
+  aplicarLetra(t);
+  if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({tamano_letra:t}).catch(()=>{});
+  medir('letra',{tamano:t});
+}
+// La elección de este teléfono manda; si aún no hay, se usa la del perfil
+function letraDelPerfil(p){if(!letraElegida()&&p&&p.tamano_letra){elegirLetra(p.tamano_letra,false);}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&temaElegido()==='automatico')aplicarTema('automatico');});
 if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
 // Teselas del mapa: siempre OpenStreetMap; en modo noche se oscurecen con un filtro solo en el panel de teselas (CSS)
@@ -2689,7 +2706,7 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+transporteEntradaHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    html=ofertaLetraHTML()+alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+transporteEntradaHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
         +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
@@ -2716,7 +2733,7 @@ function renderLista(v){
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
   enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
-  enlazarEventos();enlazarSeccionPasca();
+  enlazarEventos();enlazarSeccionPasca();enlazarOfertaLetra();
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
@@ -4631,6 +4648,35 @@ function confirmarLlamada(entidad,numero){
   $('#bSiLlamar').focus();
 }
 
+/* Selector de tamaño de letra con vista previa: cada opción muestra «Aa» en su tamaño y el cambio se ve al instante */
+function selectorLetraHTML(){
+  const actual=letraElegida()||'normal';
+  return '<h4 class="sub-tit" id="tLetra">Tamaño de letra</h4><div class="letra-ops" role="radiogroup" aria-labelledby="tLetra">'
+    +TAMANOS_LETRA.map(([k,t,f])=>'<button type="button" class="letra-op'+(actual===k?' on':'')+'" role="radio" aria-checked="'+(actual===k)+'" data-letra-op="'+k+'">'
+      +'<span class="letra-muestra" style="font-size:'+(1.25*f)+'rem" aria-hidden="true">Aa</span>'+t+'</button>').join('')+'</div>'
+    +'<p class="letra-previa">Vista previa: «Droguería abierta cerca del parque principal».</p>';
+}
+function enlazarSelectorLetra(){
+  $$('[data-letra-op]').forEach(b=>(b.onclick=()=>{
+    elegirLetra(b.dataset.letraOp);render(true);
+    const n=$('[data-letra-op="'+b.dataset.letraOp+'"]');if(n)n.focus();
+  }));
+}
+// Primer uso: una tarjeta en el Inicio pregunta si se quiere la letra más grande (una sola vez)
+function ofertaLetraHTML(){
+  if(letraElegida()||ls.get('fc_letra_preguntada',false))return '';
+  return '<section class="oferta-letra" aria-labelledby="tOfLetra"><h2 id="tOfLetra">¿Quieres la letra más grande?</h2>'
+    +'<p>Puedes cambiarla cuando quieras en Perfil → Apariencia.</p><div class="oferta-acc">'
+    +'<button class="btn btn-primario" data-oferta-letra="grande">Sí, más grande</button><button class="btn btn-secundario" data-oferta-letra="">No, gracias</button></div></section>';
+}
+function enlazarOfertaLetra(){
+  $$('[data-oferta-letra]').forEach(b=>(b.onclick=()=>{
+    ls.set('fc_letra_preguntada',true);
+    if(b.dataset.ofertaLetra){elegirLetra(b.dataset.ofertaLetra);toast('Listo: letra más grande. Puedes cambiarla en Perfil.',5000);}
+    render(true);
+  }));
+}
+
 /* ===== PERFIL (RF-04, RNF-05) ===== */
 function renderPerfil(){
   const cuerpo=$('#cuerpo');
@@ -4688,7 +4734,8 @@ function renderPerfil(){
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
       +[['automatico','clock','Automático'],['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
-      +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
+      +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p>'
+      +selectorLetraHTML()+'</div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
@@ -4703,6 +4750,7 @@ function renderPerfil(){
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
   const ps=$('#pfSplash');if(ps)ps.onclick=verAnimacionEntrada;
   $$('[data-tema-op]').forEach(b=>(b.onclick=()=>{elegirTema(b.dataset.temaOp);render(true);const n=$('[data-tema-op="'+b.dataset.temaOp+'"]');if(n)n.focus();}));
+  enlazarSelectorLetra();
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
@@ -5543,6 +5591,7 @@ async function _procesarUsuario(user){
   try{snap=await db.collection('usuarios').doc(user.uid).get();}catch(e){console.warn('Perfil sin conexión');}
   if(snap&&snap.exists){
     estado.perfil=snap.data();estado.perfilReal=true;
+    letraDelPerfil(estado.perfil);
     const nube=estado.perfil.favoritos||[];
     estado.favoritos=[...new Set([...nube,...estado.favoritos])];
     if(estado.favoritos.length!==nube.length)db.collection('usuarios').doc(user.uid).update({favoritos:estado.favoritos}).catch(()=>{});
