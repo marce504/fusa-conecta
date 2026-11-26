@@ -397,7 +397,7 @@ function renderAgenda(){
     +selectorMunicipioHTML()
     +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
       .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
-    +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'
+    +'<div class="lista-barra ag-filtros"><div class="lb-orden" role="group" aria-label="Categoría">'
       +'<button type="button" aria-pressed="'+avisos+'" class="chip-filtro chip-avisos'+(avisos?' on':'')+'" data-evcat="avisos">'+icon('megaphone',14)+'Avisos del municipio'+(nAvisos?' <span class="contador gris">'+nAvisos+'</span>':'')+'</button>'
       +CATS_EVENTO.filter(c=>c[0]!=='institucional').map(([k,t,ic])=>'<button type="button" aria-pressed="'+(A.cat===k)+'" class="chip-filtro'+(A.cat===k?' on':'')+'" data-evcat="'+k+'">'+icon(ic,14)+t+'</button>').join('')+'</div>'
     +'<div class="lb-vista" role="radiogroup" aria-label="Vista"><button type="button" role="radio" aria-checked="'+(A.vista!=='mapa')+'" class="'+(A.vista!=='mapa'?'on':'')+'" data-agvista="lista" aria-label="Lista">'+icon('calendar-days',20)+'</button>'

@@ -1667,6 +1667,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .aa-pedido{display:flex;gap:6px;align-items:center;color:var(--primary-700)}
 /* Agenda */
 .ag-rango{margin:-4px 0 12px}
+/* E7: en la Agenda los filtros pasan a la línea siguiente: ningún chip queda cortado */
+.ag-rango,.ag-filtros .lb-orden{flex-wrap:wrap;overflow:visible}
+.ag-filtros{align-items:flex-start}
 .ag-rango .chip-filtro,.lista-barra .chip-filtro{min-height:44px}
 .ev-lista{display:flex;flex-direction:column;gap:12px}
 .ev-fila{position:relative;display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg)}
