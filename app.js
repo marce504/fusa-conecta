@@ -530,7 +530,7 @@ async function mapaAgenda(l){
       .bindPopup('<b>'+esc(e.titulo)+'</b><br><small>'+esc(fechaEvento(e))+'</small><br><button class="pop-ver" data-evento="'+esc(e.id)+'">Ver evento</button>');});
   if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
   m.on('popupopen',ev=>{const b=ev.popup.getElement().querySelector('[data-evento]');if(b)b.onclick=()=>abrirEvento(b.dataset.evento);});
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 // Calendario suscribible (GET /v1/eventos.ics): el calendario del teléfono trae los eventos nuevos solo
@@ -3179,7 +3179,7 @@ async function mapaDeLista(items){
     .bindPopup('<b>'+esc(d.nombre)+'</b><br><small>'+esc(etiquetaDe(d))+'</small><br><button class="pop-ver" data-ver="'+esc(d.id)+'">Ver ficha</button>');});
   if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
   m.on('popupopen',e=>{const b=e.popup.getElement().querySelector('[data-ver]');if(b)b.onclick=()=>abrirDetalle(b.dataset.ver);});
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -4115,7 +4115,7 @@ async function renderMapa(){
       if(!p){toast('No pudimos ver tu ubicación. Permite el acceso en los ajustes del navegador.');return;}
       L.marker(p,{icon:pinUsuario(),title:'Estás aquí'}).addTo(m).bindPopup('Estás aquí');m.setView(p,15);b.remove();$('#mapaInfo').textContent=items.length+' lugares cerca de ti';};
   }
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 /* ===== NAVEGACIÓN GUIADA DE SENDEROS (RF-17) ===== */
@@ -4605,7 +4605,7 @@ async function renderRuta(id){
       r.puntosInteres.forEach(p=>L.marker(r.rutaWaypoints[p.wp],{icon:pinIcono('map-pin'),title:p.nombre}).addTo(m).bindPopup('<b>'+esc(p.nombre)+'</b><br><small>'+esc(p.descripcion)+'</small>'));
       L.marker(r.puntoLlegada,{icon:pinIcono('flag','pin-fc meta'),title:'Punto de llegada'}).addTo(m).bindPopup('Punto de llegada');
       m.fitBounds(linea.getBounds(),{padding:[24,24]});
-      setTimeout(()=>m.invalidateSize(),200);
+      setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
     }catch(e){}
   }
   if(vistaActual().tipo!=='ruta')return;
