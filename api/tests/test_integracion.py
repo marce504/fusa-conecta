@@ -250,3 +250,46 @@ def _uid(token: str) -> str:
 
     carga = token.split(".")[1]
     return json.loads(base64.urlsafe_b64decode(carga + "=" * (-len(carga) % 4)))["user_id"]
+
+
+def test_decision_de_reclamo_en_firestore(entorno):
+    """Fase 5: la API aprueba un reclamo en una transacción real: dueño del comercio (copia del directorio base),
+    rol comerciante y registro de quién lo revisó; no deja revisar dos veces ni aprobar el propio."""
+    c, token_duena, token_admin, _, _ = entorno
+    duena = cuenta("duena-api@fusa.test")[0]
+    admin = cuenta("admin-api@fusa.test")[0]
+    poner(f"usuarios/{duena}", {"rol": "usuario", "nombre": "Dueña API"})
+    httpx.delete(_fs("comercios/c354"), headers={"Authorization": "Bearer owner"})
+    datos = {"comercio_id": "c354", "comercio_nombre": "Droguería La Rebaja Plus 3", "usuario_uid": duena,
+             "nombre": "Dueña API", "estado": "pendiente"}  # fmt: skip
+    poner(f"reclamos_comercio/c354__{duena}", datos)
+    poner(f"reclamos_comercio/c355__{admin}", {**datos, "comercio_id": "c355", "usuario_uid": admin})
+    como_admin = {"Authorization": f"Bearer {token_admin}"}
+    # Quien no es admin no decide; el admin no decide su propio reclamo; rechazar exige el motivo
+    r = c.post(f"/v1/reclamos/c354__{duena}/decision", json={"resultado": "aprobado"},
+               headers={"Authorization": f"Bearer {token_duena}"})  # fmt: skip
+    assert r.status_code == 403
+    assert (
+        c.post(f"/v1/reclamos/c355__{admin}/decision", json={"resultado": "aprobado"}, headers=como_admin).status_code
+        == 403
+    )
+    assert (
+        c.post(f"/v1/reclamos/c354__{duena}/decision", json={"resultado": "rechazado"}, headers=como_admin).status_code
+        == 422
+    )
+    r = c.post(f"/v1/reclamos/c354__{duena}/decision", json={"resultado": "aprobado"}, headers=como_admin)
+    assert r.status_code == 200, r.text
+    assert (
+        c.post(f"/v1/reclamos/c354__{duena}/decision", json={"resultado": "aprobado"}, headers=como_admin).status_code
+        == 409
+    )
+    leer = lambda ruta: httpx.get(_fs(ruta), headers={"Authorization": "Bearer owner"}).json()["fields"]  # noqa: E731
+    comercio, usuario, reclamo = (
+        leer("comercios/c354"),
+        leer(f"usuarios/{duena}"),
+        leer(f"reclamos_comercio/c354__{duena}"),
+    )
+    assert comercio["propietario_uid"]["stringValue"] == duena
+    assert comercio["nombre"]["stringValue"] == "Droguería La Rebaja Plus 3"
+    assert usuario["rol"]["stringValue"] == "comerciante"
+    assert reclamo["estado"]["stringValue"] == "aprobado" and reclamo["revisado_por"]["stringValue"] == admin

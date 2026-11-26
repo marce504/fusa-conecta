@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 
-from . import avisos, formatos, ia, servicios
+from . import avisos, formatos, ia, reclamos, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
@@ -437,6 +437,86 @@ def avisar_decision(
         log.info("Tokens borrados por inválidos: %d", len(malos))
     respuesta.update(enviados=enviados, dispositivos=len(tokens) - len(malos))
     return respuesta
+
+
+class DecisionReclamo(BaseModel):
+    resultado: Literal["aprobado", "rechazado"]
+    motivo: str = Field(default="", max_length=200, description="Obligatorio al rechazar")
+
+
+def _repo_reclamos() -> reclamos.RepositorioReclamos:
+    try:
+        return reclamos.repositorio_reclamos()
+    except avisos.SinCredenciales as e:
+        raise HTTPException(
+            503, "La API aún no tiene la cuenta de servicio con permiso de escritura (FIREBASE_SA_FCM)"
+        ) from e
+
+
+RepoReclamos = Annotated[reclamos.RepositorioReclamos, Depends(_repo_reclamos)]
+IdReclamo = Annotated[str, Path(min_length=3, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")]
+ERRORES_RECLAMO = {
+    401: {"description": "Sin token o vencido"},
+    403: {"description": "No es admin, o es su propio reclamo"},
+    404: {"description": "No existe el reclamo o el comercio"},
+    409: {"description": "Ya fue revisado o el comercio ya tiene dueño"},
+    422: {"description": "Falta el motivo del rechazo"},
+    503: {"description": "Falta la cuenta de servicio con permiso de escritura"},
+}
+
+
+def _solo_admin(repo: Repositorio, usuario: dict) -> str:
+    uid = usuario.get("uid", "")
+    if repo.rol(uid) != "admin":
+        raise HTTPException(403, "Solo para administradores")
+    return uid
+
+
+@app.post(
+    "/v1/reclamos/{id_}/decision",
+    tags=["Admin"],
+    summary="Aprobar o rechazar un reclamo de comercio",
+    responses=ERRORES_RECLAMO,
+)
+@limiter.limit("30/minute")
+def decidir_reclamo(
+    request: Request,
+    repo: Repo,
+    usuario: Usuario,
+    repo_reclamos: RepoReclamos,
+    id_: IdReclamo,
+    decision: DecisionReclamo,
+) -> dict:
+    """Fase 5. La decisión la toma la API en una transacción (ver app/reclamos.py): el navegador del admin ya no
+    escribe el dueño del comercio. Después, la app llama a /v1/notificaciones/aprobacion para avisar a la persona."""
+    admin = _solo_admin(repo, usuario)
+    try:
+        r = repo_reclamos.decidir(id_, admin, decision.resultado, decision.motivo)
+    except reclamos.ErrorReclamo as e:
+        raise HTTPException(e.codigo, e.mensaje) from e
+    log.info("Reclamo %s %s por %s", id_, r.resultado, admin)
+    return {"id": id_, "comercio_id": r.comercio_id, "comercio_nombre": r.comercio_nombre, "resultado": r.resultado}
+
+
+@app.post(
+    "/v1/reclamos/anteriores/{id_}/aprobar",
+    tags=["Admin"],
+    summary="Aprobar un reclamo anterior (colección solicitudes)",
+    responses=ERRORES_RECLAMO,
+)
+@limiter.limit("30/minute")
+def aprobar_reclamo_anterior(
+    request: Request, repo: Repo, usuario: Usuario, repo_reclamos: RepoReclamos, id_: IdReclamo
+) -> dict:
+    """Los reclamos enviados antes de la Fase 5 (sin verificación) se aprueban aquí y quedan registrados en
+    reclamos_comercio con migrado_de."""
+    admin = _solo_admin(repo, usuario)
+    try:
+        r = repo_reclamos.migrar_solicitud(id_, admin)
+    except reclamos.ErrorReclamo as e:
+        raise HTTPException(e.codigo, e.mensaje) from e
+    log.info("Reclamo anterior %s aprobado por %s", id_, admin)
+    return {"id": id_, "comercio_id": r.comercio_id, "comercio_nombre": r.comercio_nombre, "resultado": r.resultado}
 
 
 class PedidoPendiente(BaseModel):

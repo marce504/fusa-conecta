@@ -323,21 +323,29 @@ def iniciar_app_avisos() -> Any:
     raise SinCredenciales("Falta FIREBASE_SA_FCM (cuenta de servicio de avisos). Ver api/LEEME.md.")
 
 
-def repositorio_avisos() -> RepositorioAvisos:
-    if "repo" not in _estado:
+def cliente_firestore() -> Any:
+    """Cliente de Firestore con permiso de escritura (cuenta de servicio FIREBASE_SA_FCM); con el emulador, sin
+    credenciales.
+    Lo usan los avisos y la decisión de los reclamos de comercios."""
+    if "cliente" not in _estado:
         app = iniciar_app_avisos()
         if os.environ.get("FIRESTORE_EMULATOR_HOST") and not os.environ.get("FIREBASE_SA_FCM"):
             from google.auth.credentials import AnonymousCredentials
             from google.cloud import firestore
 
-            cliente = firestore.Client(
+            _estado["cliente"] = firestore.Client(
                 project=os.environ.get("FIREBASE_PROJECT", "fusa-conecta"), credentials=AnonymousCredentials()
             )
         else:
             from firebase_admin import firestore as fs
 
-            cliente = fs.client(app)
-        _estado["repo"] = RepositorioAvisosFirestore(cliente)
+            _estado["cliente"] = fs.client(app)
+    return _estado["cliente"]
+
+
+def repositorio_avisos() -> RepositorioAvisos:
+    if "repo" not in _estado:
+        _estado["repo"] = RepositorioAvisosFirestore(cliente_firestore())
     return _estado["repo"]
 
 
