@@ -23,6 +23,7 @@ const PANTALLAS = [
   ['SOS', "navegar({tipo:'sos'})"],
   ['Perfil', "navegar({tipo:'perfil'})"],
   ['Cupones', "navegar({tipo:'cupones'})"],
+  ['Comunidad', "navegar({tipo:'comunidad'})"],
   ['Asistente', 'irAsistente()'],
   ['Ficha', "inicio();abrirDetalle('c354')"],
 ];
