@@ -40,6 +40,14 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   cuando el evento se acerca a la pantalla; antes la app bajaba 1,7 MB de fotos de la agenda al abrir. La agenda
   automática guarda así las nuevas y mueve las anteriores (`mover_fotos`); reglas nuevas para la foto. Las tarjetas
   usan miniaturas de 420 px (`img/mini`, `scripts/miniaturas.py`): 3,2 MB de fotos pasan a 744 KB.
+- **Afiches de eventos (PWA v103, `fusa-v96`):** los afiches verticales se ven completos sobre una copia difuminada, en
+  el Inicio, las tarjetas y la hoja del evento, que además tiene «Ver afiche completo». Al subir la foto se ve cómo
+  quedará en el Inicio y se elige «Afiche completo» o «Llenar el espacio» (arrastrando la foto o con Arriba, Abajo,
+  Izquierda y Derecha). Campo `foto_encuadre`.
+- **Aviso al celular de los eventos nuevos (API 1.7.0):** al publicarse un evento en Fusagasugá o Pasca llega un aviso a
+  quien tiene los avisos encendidos (`POST /v1/eventos/{id}/avisar`, una sola vez por evento); la agenda automática
+  manda uno solo por corrida. Interruptor «Eventos nuevos en Fusa y Pasca» en Perfil y «Avisarme de eventos nuevos» en
+  la Agenda.
 
 ### Agregado
 - **Video promocional: escena «Y ahora también».** Resume las 8 funciones nuevas (alertas del municipio, empleos,
