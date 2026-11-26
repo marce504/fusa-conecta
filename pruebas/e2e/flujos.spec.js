@@ -1213,7 +1213,51 @@ async function llenarReclamo(page) {
   await page.locator('#rcEnviar').click();
   await expect(page.locator('#toast')).toContainText('Solicitud enviada');
 }
+// La decisión de los reclamos la toma la API (api/app/reclamos.py, con su prueba de integración contra el emulador).
+// Aquí no corre la API de Python: se responde esa llamada haciendo lo mismo en el emulador con permisos de servidor.
+const FS_E2E = 'http://127.0.0.1:8099/v1/projects/fusa-conecta/databases/(default)/documents';
+async function actualizarComoServidor(ruta, campos) {
+  const mascara = Object.keys(campos)
+    .map(k => `updateMask.fieldPaths=${k}`)
+    .join('&');
+  const fields = Object.fromEntries(Object.entries(campos).map(([k, v]) => [k, { stringValue: String(v) }]));
+  const r = await fetch(`${FS_E2E}/${ruta}?${mascara}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!r.ok) throw new Error(`No se pudo actualizar ${ruta}: ${r.status}`);
+}
+async function simularAPIDeReclamos(page) {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+  await page.route(/\/v1\/reclamos\/[^/]+\/decision$/, async ruta => {
+    if (ruta.request().method() === 'OPTIONS') {
+      await ruta.fulfill({ status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST' } });
+      return;
+    }
+    const id = decodeURIComponent(ruta.request().url().split('/v1/reclamos/')[1].split('/')[0]);
+    const { resultado, motivo } = JSON.parse(ruta.request().postData() || '{}');
+    const [cid, uid] = id.split('__');
+    if (resultado === 'aprobado') {
+      const lugar = await page.evaluate(c => {
+        const d = window.buscar(c);
+        return { nombre: d.nombre, cat: d.cat, categoria: d.cat, sub: d.sub || '', direccion: d.direccion || '' };
+      }, cid);
+      await poner(`comercios/${cid}`, { ...lugar, municipio: 'Fusagasugá', propietario_uid: uid, propietario: 'Ana',
+        estado_publicacion: 'aprobado', imagen: '', fotos: [] }); // prettier-ignore
+    }
+    await actualizarComoServidor(`reclamos_comercio/${id}`, { estado: resultado, revisado_por: 'admin-e2e',
+      ...(motivo ? { motivo_rechazo: motivo } : {}) }); // prettier-ignore
+    await ruta.fulfill({
+      status: 200,
+      headers: cors,
+      contentType: 'application/json',
+      body: JSON.stringify({ id, resultado }),
+    });
+  });
+}
 async function panelReclamos(page) {
+  await simularAPIDeReclamos(page);
   await entrarComo(page, CUENTAS.admin);
   await page.evaluate(() => {
     estado.admin.datos = null;
@@ -1222,6 +1266,20 @@ async function panelReclamos(page) {
     window.navegar({ tipo: 'admin' });
   });
   await expect(page.locator('.dash-section', { hasText: 'Reclamos de comercios' })).toBeVisible();
+  // Ni siquiera el admin puede escribir el dueño ni la decisión desde el navegador: lo hace la API
+  const negadoAdmin = await page.evaluate(async () => {
+    const uid = auth.currentUser.uid;
+    const r = await Promise.allSettled([
+      db.collection('comercios').doc('e2e-pasca').update({ propietario_uid: uid }),
+      db
+        .collection('reclamos_comercio')
+        .where('estado', '==', 'pendiente')
+        .get()
+        .then(s => s.docs[0].ref.update({ estado: 'aprobado', revisado_por: uid })),
+    ]);
+    return r.map(x => x.status);
+  });
+  expect(negadoAdmin).toEqual(['rejected', 'rejected']);
 }
 
 test('reclamar un comercio: en revisión, aprobar, editar el horario; rechazar y volver a reclamar', async ({

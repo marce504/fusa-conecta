@@ -78,9 +78,10 @@ Emulator Suite (`/?emulador`) con cuentas y datos de prueba. La versión anterio
 
 | Prueba | Resultado |
 |---|---|
-| Vitest (unitarias, código real) | 156 pasan (24 nuevas: búsqueda, E1, E8, asistente, fechas) |
-| Playwright E2E contra el emulador | 24 pasan (2 nuevas: modo sencillo y reclamo de punta a punta; 5 actualizadas al nuevo Inicio y la nueva barra) |
-| API (pytest) | 91 pasan, 5 saltadas (3 nuevas de `reclamo_comercio`) |
+| Vitest (unitarias, código real) | 158 pasan (26 nuevas: búsqueda, E1, E8, asistente, fechas, fotos) |
+| Playwright E2E contra el emulador | 25 pasan (3 nuevas: modo sencillo, modo sencillo por defecto y reclamo de punta a punta; 5 actualizadas al nuevo Inicio y la nueva barra) |
+| API (pytest) | 103 pasan, 6 saltadas (3 de avisos de `reclamo_comercio` y 12 de la decisión de reclamos) |
+| API con el emulador (integración) | 6 pasan (1 nueva: aprobar y rechazar un reclamo en Firestore, con 403, 409 y 422) |
 | Automatización con emulador | 45 pasan (1 nueva: E1) |
 | ESLint y Prettier | Sin errores |
 | `scripts/areas-tactiles.mjs` | 0 elementos de menos de 48 px o a menos de 8 px, con letra Normal y Muy grande |
@@ -88,7 +89,7 @@ Emulator Suite (`/?emulador`) con cuentas y datos de prueba. La versión anterio
 | Contraste y nombres accesibles (script en la página) | 0 fallos en Inicio, Agenda, SOS, Comunidad, Perfil, Empleos y ficha, en claro y oscuro |
 | Sin conexión (modo avión) | SOS con sus 11 números, barra «Sin conexión», directorio de 546 lugares |
 | Desbordes con «Muy grande» a 360 px | Ninguno en Inicio, Comunidad, Empleos, Transporte, Cupones, Agenda, SOS y Perfil |
-| Reglas de Firestore (reclamos) | 7 escrituras indebidas negadas en el emulador; la propia prueba sí se lee |
+| Reglas de Firestore (reclamos) | 7 escrituras indebidas negadas en el emulador; la propia prueba sí se lee. Ni el admin puede escribir el dueño ni la decisión desde el navegador (E2E) |
 
 Cada fase se revisó a 360×800 y 412×915, en claro y oscuro, y la consola quedó sin errores nuevos.
 
@@ -115,10 +116,16 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
 ## 5. Lo que no se pudo hacer, y por qué
 
 ### 5.1 Reclamar este comercio (Fase 5)
-- **Sin Cloud Functions (plan Spark):** la aprobación la hace el panel del admin en un lote. **Riesgo:** si alguien roba
-  la cuenta de un admin, puede aprobar reclamos. Mitigación: las reglas exigen que el dueño solo cambie cuando el reclamo
-  de esa persona queda aprobado en el mismo lote, con `revisado_por`, y que nadie apruebe el suyo. **Alternativa:** mover
-  la aprobación a un endpoint de la API en Render (ya tiene cuenta de servicio) o pasar al plan Blaze con una función.
+- **Sin Cloud Functions (plan Spark): la decisión la toma la API** (Render), no el navegador. El panel llama a
+  `POST /v1/reclamos/{id}/decision`; la API revisa en una transacción que quien decide es admin y no es quien reclamó,
+  que el reclamo sigue pendiente y que el comercio no tiene otro dueño, y escribe el dueño, el Premium de la campaña y el
+  rol. Ningún navegador (ni el del admin) puede escribir `propietario_uid` ni la decisión: se quitaron `comercios` y
+  `reclamos_comercio` de la regla general «el admin puede todo», que lo permitía. **Riesgo que queda:** con la cuenta de
+  un admin robada se puede llamar a la API; queda registrado `revisado_por`.
+- **Requisito:** la API escribe con la cuenta `FIREBASE_SA_FCM` (la de los avisos, ver `api/LEEME.md`). Si no está
+  configurada en Render, el panel muestra «La API aún no tiene la cuenta de servicio con permiso de escritura» y el
+  reclamo sigue pendiente.
+  La primera aprobación del día puede tardar hasta un minuto mientras Render despierta.
 - **Sin Storage:** la foto de la prueba se guarda comprimida (≈ 200 KB) en `reclamos_comercio/{id}/prueba/foto`, como
   las fotos de los negocios. Por eso no hay reglas de Storage que actualizar.
 - **Código por WhatsApp:** lo envía el admin a mano (el panel muestra el teléfono de la ficha); queda listo para
@@ -167,7 +174,7 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
    precios antes de activarlo.
 4. ~~**Modo sencillo por defecto**~~ **Decidido (26-nov):** viene activado por defecto con letra Grande; se quita con
    «Ver el Inicio completo» o en Perfil → Apariencia.
-5. **Aprobación de reclamos en la API** en vez del panel (más segura; ver 5.1).
+5. ~~**Aprobación de reclamos en la API**~~ **Hecho (26-nov):** la decide la API (ver 5.1).
 6. **N5:** en modo emulador la app llama a la API de producción (Render) para los avisos; CORS lo bloquea y no pasa nada,
    pero convendría que en modo emulador no la llame.
 7. **Completar datos:** teléfonos y horarios de Salud y Trámites (`docs/comercios-incompletos.csv`).
@@ -177,7 +184,9 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
 
 1. Revisar la rama y fusionarla: `git push origin ux-accesibilidad` y abrir el Pull Request hacia `main` (la integración
    continua corre todas las pruebas). Después, `git branch -f develop main` y `git push origin develop`.
-2. La API se despliega sola en Render cuando `api/**` llega a `main` (trae el tipo `reclamo_comercio`).
+2. La API se despliega sola en Render cuando `api/**` llega a `main` (trae el tipo `reclamo_comercio` y la decisión de
+   los reclamos). Revisa que `FIREBASE_SA_FCM` esté en Render: sin ella no se pueden aprobar reclamos.
+   **Despliega la API antes que las reglas:** con las reglas nuevas, el panel ya no puede aprobar por su cuenta.
 3. Reglas e índices: `npx --yes firebase-tools@13.29.1 deploy --only firestore:rules --project fusa-conecta`
    (agregan `reclamos_comercio` y los campos de foto de los eventos). La consulta de reclamos por `estado` y por
    `usuario_uid` usa índices simples, que Firestore crea solo.

@@ -26,7 +26,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   pestaña nueva Comunidad; Cupones pasa a Perfil y a Comunidad. CLS del Inicio de 0,36 a 0,01. Modo sencillo, activado
   por defecto con letra Grande (se quita con «Ver el Inicio completo» o en Perfil).
 - **Reclamar este comercio** con verificación, colección `reclamos_comercio`, revisión del admin y reglas nuevas
-  (Fase 5). La API avisa los reclamos (`reclamo_comercio`).
+  (Fase 5). La API avisa los reclamos (`reclamo_comercio`) y **decide** la aprobación o el rechazo
+  (`POST /v1/reclamos/{id}/decision`): ningún navegador, ni el del admin, puede escribir el dueño de un comercio.
 - **Fotos:** crédito y fuente de la foto de los eventos, «Imagen de referencia», mejor diseño sin foto y
   `scripts/proponer-fotos.mjs` (Fase 6). Imágenes de referencia de Unsplash por subcategoría para los lugares sin
   foto (18, en `img/categorias/`).

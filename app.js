@@ -363,13 +363,14 @@ db.collection('banners').onSnapshot(s=>{
    Calendario ICS, GPX de las rutas, reporte del negocio y estado en Diagnóstico. En el plan gratuito de Render el servicio
    se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo. */
 const API_URL=new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
-async function pedirAPI(ruta,{token=false,segundos=70}={}){
-  const h={};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
+async function pedirAPI(ruta,{token=false,segundos=70,cuerpo=null}={}){
+  const h=cuerpo?{'Content-Type':'application/json'}:{};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
   // Render (plan gratis) duerme la API: al despertar puede cortar la conexión («Failed to fetch»). Se reintenta
   // cada 3 s mientras quede tiempo, en vez de rendirse al primer intento.
   const fin=Date.now()+segundos*1000;let r;
   for(;;){
-    try{r=await conTiempoLimite(fetch(API_URL+ruta,{headers:h}),Math.max(1000,fin-Date.now()),'La API no respondió');break;}
+    const op=cuerpo?{method:'POST',headers:h,body:JSON.stringify(cuerpo)}:{headers:h};
+    try{r=await conTiempoLimite(fetch(API_URL+ruta,op),Math.max(1000,fin-Date.now()),'La API no respondió');break;}
     catch(e){if(e instanceof TypeError&&navigator.onLine&&Date.now()+3000<fin){await new Promise(ok=>{setTimeout(ok,3000);});continue;}throw e;}
   }
   if(!r.ok){let d='';try{d=(await r.json()).error;}catch(e){}throw Object.assign(new Error(d||('HTTP '+r.status)),{code:'api-'+r.status});}
@@ -6175,9 +6176,9 @@ function irAlPanelAdmin(){
 /* ===== RECLAMAR ESTE COMERCIO (Fase 5) =====
    Colección reclamos_comercio con id <comercio>__<uid>: un solo reclamo por comercio y persona (dos personas pueden
    reclamar el mismo comercio y el admin ve las dos). La prueba (foto del RUT, de la Cámara de Comercio o en la fachada)
-   va comprimida en reclamos_comercio/{id}/prueba/foto: el plan Spark no tiene Storage. Solo un admin aprueba o rechaza,
-   nunca su propio reclamo, y propietario_uid solo cambia si el reclamo de esa persona queda aprobado en el mismo lote
-   (firestore.rules). Sin Cloud Functions, la aprobación la hace el panel del admin. */
+   va comprimida en reclamos_comercio/{id}/prueba/foto: el plan Spark no tiene Storage. La decisión (aprobar o rechazar)
+   la toma la API con su cuenta de servicio: solo un admin, nunca sobre su propio reclamo, y ningún navegador puede
+   escribir propietario_uid (firestore.rules). */
 const idReclamo=(cid,uid)=>String(cid)+'__'+uid;
 function miReclamo(cid){return logueado()?(estado.misReclamos||[]).find(r=>r.comercio_id===String(cid)):null;}
 function tarjetaReclamoHTML(d,natural){
@@ -7074,29 +7075,18 @@ function mostrarNegocio(c){
 // aviso = [tipo, id, resultado]: después de guardar, la API le avisa a la persona (en segundo plano)
 async function adminAccion(fn,msg,aviso){
   try{await fn();toast(msg);}
-  catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');return;}
+  catch(e){reportarError('admin',e);toast(String(e.code||'').startsWith('api-')?e.message:'No se pudo completar. Revisa tu conexión y tus permisos.',7000);return;}
   if(aviso)avisarDecision(...aviso);
   await cargarAdmin().catch(()=>{});
 }
-// Aprobar un reclamo anterior (colección solicitudes, sin verificación): el negocio queda con dueño (si era de muestra,
-// se crea en la nube con el mismo id)
+// Aprobar un reclamo anterior (colección solicitudes, sin verificación): lo hace la API y lo registra en reclamos_comercio
 async function aprobarReclamo(s){
   if(!s)return;
   if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.'
     +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
-  adminAccion(async()=>{
-    const ref=db.collection('comercios').doc(s.comercio_id);const snap=await ref.get();
-    const bt=db.batch();
-    if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),...premiumCampana(snap.data())});
-    else{
-      const b=COMERCIOS_BASE.find(c=>c.id===s.comercio_id);if(!b)throw new Error('sin-datos');
-      bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',...premiumCampana(null)}));
-    }
-    bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
-    // Fase 5: el dueño solo cambia con un reclamo aprobado en reclamos_comercio; el anterior queda registrado ahí
-    bt.set(db.collection('reclamos_comercio').doc(idReclamo(s.comercio_id,s.uid)),{comercio_id:String(s.comercio_id),comercio_nombre:s.comercio_nombre||'',
-      usuario_uid:s.uid,nombre:s.usuario_nombre||'',estado:'aprobado',migrado_de:s.id,fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid});
-    await bt.commit();
+  adminAccion(()=>{
+    toast('Guardando la decisión… la primera vez del día puede tardar un minuto.',8000);
+    return pedirAPI('/v1/reclamos/anteriores/'+encodeURIComponent(s.id)+'/aprobar',{token:true,cuerpo:{}});
   },'Reclamo aprobado: la persona ya ve el negocio en su perfil',['reclamo',s.id,'aprobado']);
 }
 /* ---------- Reclamos de comercios (Fase 5) en el panel ---------- */
@@ -7121,8 +7111,8 @@ function enlazarReclamosAdmin(){
   const rc=id=>(estado.adminPend.reclamos||[]).find(x=>x.id===id);
   $$('[data-verprueba]').forEach(b=>(b.onclick=()=>verPruebaReclamo(b.dataset.verprueba)));
   $$('[data-okrc]').forEach(b=>(b.onclick=()=>aprobarReclamoComercio(rc(b.dataset.okrc))));
-  $$('[data-norc]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('reclamos_comercio').doc(b.dataset.norc)
-    .update({estado:'rechazado',motivo_rechazo:m,fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid}),'Reclamo rechazado',['reclamo_comercio',b.dataset.norc,'rechazado']),MOTIVOS_RECLAMO)));
+  $$('[data-norc]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>decidirReclamoEnAPI(b.dataset.norc,'rechazado',m),
+    'Reclamo rechazado',['reclamo_comercio',b.dataset.norc,'rechazado']),MOTIVOS_RECLAMO)));
 }
 async function verPruebaReclamo(id){
   try{
@@ -7131,20 +7121,18 @@ async function verPruebaReclamo(id){
     abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Prueba enviada</h2><img class="prueba-foto" src="'+esc(imgSegura(f.data().data))+'" alt="Foto que envió quien reclama el comercio"></div>');
   }catch(e){toast('No se pudo abrir la foto');}
 }
-// Aprobar: el reclamo, el dueño del comercio (si era del directorio base se crea en la nube con el mismo id) y el rol, en un lote
+/* La decisión la toma la API en una transacción (api/app/reclamos.py): el reclamo, el dueño del comercio (si era del
+   directorio base se crea en la nube con el mismo id), el Premium de la campaña y el rol. Ningún navegador puede escribir
+   propietario_uid (firestore.rules). Render puede tardar hasta un minuto en despertar. */
+function decidirReclamoEnAPI(id,resultado,motivo=''){
+  toast('Guardando la decisión… la primera vez del día puede tardar un minuto.',8000);
+  return pedirAPI('/v1/reclamos/'+encodeURIComponent(id)+'/decision',{token:true,cuerpo:{resultado,motivo}});
+}
 async function aprobarReclamoComercio(r){
   if(!r)return;
   if(!await confirmar('Aprobar reclamo','«'+r.comercio_nombre+'» pasará a ser administrado por '+r.nombre+'.'
     +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
-  adminAccion(async()=>{
-    const ref=db.collection('comercios').doc(r.comercio_id),snap=await ref.get(),perfil=await db.collection('usuarios').doc(r.usuario_uid).get();
-    const lote=db.batch(),dueno={propietario_uid:r.usuario_uid,propietario:r.nombre};
-    lote.update(db.collection('reclamos_comercio').doc(r.id),{estado:'aprobado',fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid});
-    if(snap.exists)lote.update(ref,{...dueno,estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),...premiumCampana(snap.data())});
-    else{const b=COMERCIOS_BASE.find(c=>c.id===r.comercio_id);if(!b)throw new Error('sin-datos');lote.set(ref,datosSemilla(b,{...dueno,...premiumCampana(null)}));}
-    if(perfil.exists&&perfil.data().rol==='usuario')lote.update(perfil.ref,{rol:'comerciante'});
-    await lote.commit();
-  },'Reclamo aprobado: la persona ya puede editar el comercio',['reclamo_comercio',r.id,'aprobado']);
+  adminAccion(()=>decidirReclamoEnAPI(r.id,'aprobado'),'Reclamo aprobado: la persona ya puede editar el comercio',['reclamo_comercio',r.id,'aprobado']);
 }
 // Activar Premium desde una solicitud (sin fecha de fin por defecto durante la fase de pruebas)
 function activarPremiumAdmin(s){
