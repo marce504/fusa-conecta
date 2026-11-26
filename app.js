@@ -2211,7 +2211,15 @@ let saliendo=false;
 function vistaActual(){return stack[stack.length-1]||{tipo:'lista',cat:'todas'};}
 function navegar(v){stack.push(v);try{window.history.pushState({n:stack.length},'');}catch(e){}render();}
 function volver(){if(stack.length>1)window.history.back();}
-function inicio(){stack.length=0;navegar({tipo:'lista',cat:'todas'});}
+// E4: Inicio deja la portada limpia: sin texto en el buscador, sin filtros y arriba del todo (render vuelve arriba)
+function inicio(){
+  limpiarBusqueda();
+  estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};
+  stack.length=0;navegar({tipo:'lista',cat:'todas'});
+}
+function limpiarBusqueda(){estado.q='';$('#busqueda').value='';$('#sugerencias').classList.remove('ver');pintarBorrar();}
+// La X del buscador solo aparece cuando hay algo escrito
+function pintarBorrar(){const hay=!!$('#busqueda').value;$('#bBorrar').hidden=!hay;$('.buscador').classList.toggle('con-texto',hay);}
 window.addEventListener('popstate',()=>{
   if(saliendo){window.history.back();return;}
   const ab=$('.overlay.abierto');
@@ -2292,6 +2300,7 @@ function renderHeader(){
   $('#plegBanner').hidden=!conBanner;
   if(conBanner)montarBanner();
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
+  pintarBorrar();
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
@@ -2462,7 +2471,7 @@ function quisisteDecirHTML(q){
   return p?'<p class="quisiste">¿Quisiste decir <button type="button" class="enlace" data-quisiste="'+esc(p)+'">'+esc(p)+'</button>?</p>':'';
 }
 function buscarTexto(q){
-  $('#busqueda').value=q;estado.q=q;$('#sugerencias').classList.remove('ver');
+  $('#busqueda').value=q;estado.q=q;$('#sugerencias').classList.remove('ver');pintarBorrar();
   if(vistaActual().tipo==='lista')render();else navegar({tipo:'lista',cat:'todas'});
 }
 function enlazarQuisisteDecir(caja=document){
@@ -7064,6 +7073,7 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 
 let _deb;
 $('#busqueda').addEventListener('input',e=>{
+  pintarBorrar();
   clearTimeout(_deb);
   _deb=setTimeout(()=>{
     renderSugerencias();
@@ -7074,6 +7084,7 @@ $('#busqueda').addEventListener('input',e=>{
   },300);
 });
 $('#busqueda').addEventListener('focus',renderSugerencias);
+$('#bBorrar').onclick=()=>{clearTimeout(_deb);limpiarBusqueda();if(vistaActual().tipo==='lista')render();$('#busqueda').focus();};
 $('#busqueda').addEventListener('blur',()=>setTimeout(()=>$('#sugerencias').classList.remove('ver'),150));
 $('#busqueda').addEventListener('keydown',e=>{if(e.key==='Enter'){$('#sugerencias').classList.remove('ver');e.target.blur();}});
 

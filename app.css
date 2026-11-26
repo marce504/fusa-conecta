@@ -173,6 +173,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .buscador>.ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ink-2);pointer-events:none}
 .buscador input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:var(--radius-full);padding:0 52px 0 48px;background:var(--bg);box-shadow:var(--sombra-buscador);outline:none;transition:border-color var(--t),box-shadow var(--t)}
 .buscador input::placeholder{color:var(--ink-2)}
+/* E4: X propia para borrar (44×44) a la izquierda de Filtros; se oculta la del navegador */
+.buscador input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.buscador.con-texto input{padding-right:96px}
+.btn-borrar{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);background:var(--soft)}
+.btn-borrar[hidden]{display:none}
+.btn-borrar:hover{color:var(--ink)}
 .buscador input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--primary-100)}
 .sugerencias{position:absolute;left:0;right:0;top:calc(100% + 8px);background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:40;overflow:hidden;display:none}
 .sugerencias.ver{display:block}
