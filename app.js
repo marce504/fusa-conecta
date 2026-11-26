@@ -5618,7 +5618,7 @@ let modoLogin='ingresar',registroPendiente=null,creandoPerfil=null,correoAbierto
 function abrirLogin(modo='ingresar',productor=false,aviso=''){
   modoLogin=modo;correoAbierto=modo!=='registro';
   $('#loginAviso').innerHTML=aviso?icon('lock',18)+'<span>'+esc(aviso)+'</span>':'';$('#loginAviso').style.display=aviso?'flex':'none';
-  pintarModoLogin();abrir('ovLogin');
+  errorLogin('');pintarModoLogin();abrir('ovLogin');
 }
 function pedirLogin(msg,productor=false){abrirLogin('ingresar',productor,msg);}
 function pintarModoLogin(){
@@ -5643,21 +5643,29 @@ function mensajeAuth(e){
     'auth/invalid-login-credentials':'Correo o contraseña incorrectos.','auth/too-many-requests':'Demasiados intentos. Espera unos minutos.',
     'auth/network-request-failed':'Sin conexión a internet. Intenta de nuevo.','auth/popup-closed-by-user':'Cerraste la ventana de Google.',
     'auth/cancelled-popup-request':'Ventana de Google cancelada.','auth/unauthorized-domain':'Este dominio no está autorizado para iniciar sesión con Google.',
-    'auth/operation-not-allowed':'Este método de ingreso no está habilitado.','auth/requires-recent-login':'Por seguridad, vuelve a iniciar sesión.'};
+    'auth/operation-not-allowed':'Este método de ingreso no está habilitado.','auth/requires-recent-login':'Por seguridad, vuelve a iniciar sesión.',
+    'auth/missing-password':'Escribe tu contraseña.','auth/user-disabled':'Esta cuenta está desactivada. Escríbenos desde «Ayúdanos a mejorar».',
+    'auth/credential-already-in-use':'Ese correo ya tiene una cuenta. Ingresa con tu contraseña.','auth/popup-blocked':'El celular bloqueó la ventana de Google. Intenta de nuevo.'};
   return m[e&&e.code]||'No se pudo completar. Intenta de nuevo.';
+}
+// N2: el error queda escrito en el formulario (no solo en un aviso que se va), se anuncia y lleva al campo que hay que corregir
+function errorLogin(msg,campo){
+  const p=$('#loginError');p.textContent=msg||'';p.hidden=!msg;
+  if(msg&&campo){const c=$(campo);if(c)c.focus();}
 }
 function bloquearLogin(on){$$('#ovLogin button').forEach(b=>(b.disabled=on));$('#lMail').textContent=on?'Un momento...':(modoLogin==='registro'?'Crear mi cuenta':'Ingresar');}
 async function enviarLogin(e){
   e.preventDefault();
   const email=$('#mail').value.trim(),clave=$('#clave').value,nombre=$('#lNombre').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Ingresa un correo válido');return;}
-  if(clave.length<8){toast('La contraseña debe tener mínimo 8 caracteres');return;}
+  errorLogin('');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errorLogin('Escribe un correo válido, por ejemplo nombre@gmail.com.','#mail');return;}
+  if(clave.length<8){errorLogin('La contraseña debe tener al menos 8 caracteres.','#clave');return;}
   const rol='usuario';
   bloquearLogin(true);
   try{
     if(modoLogin==='registro'){
-      if(nombre.length<2){toast('Escribe tu nombre');return;}
-      if(!$('#lConsent').checked){toast('Debes aceptar el tratamiento de datos (Ley 1581)');return;}
+      if(nombre.length<2){errorLogin('Escribe tu nombre.','#lNombre');return;}
+      if(!$('#lConsent').checked){errorLogin('Para crear la cuenta, acepta el tratamiento de datos (Ley 1581).','#lConsent');return;}
       registroPendiente={consent:true,nombre,rol};
       const actual=auth.currentUser;let cred;
       if(actual&&actual.isAnonymous){
@@ -5675,7 +5683,7 @@ async function enviarLogin(e){
       toast('Bienvenida/o de nuevo');
     }
     $('#clave').value='';
-  }catch(err){console.warn(err.code);toast(mensajeAuth(err));}
+  }catch(err){errorLogin(mensajeAuth(err),/password|credential/.test(err.code||'')?'#clave':'#mail');}
   finally{bloquearLogin(false);}
 }
 async function ingresarGoogle(){
@@ -5707,9 +5715,9 @@ async function ingresarGoogle(){
 }
 async function olvideClave(){
   const email=$('#mail').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?»');return;}
-  try{await auth.sendPasswordResetEmail(email);toast('Te enviamos un correo para restablecer tu contraseña');}
-  catch(e){toast(mensajeAuth(e));}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errorLogin('Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?».','#mail');return;}
+  try{await auth.sendPasswordResetEmail(email);errorLogin('');toast('Te enviamos un correo para restablecer tu contraseña. Revisa también la carpeta de spam.',8000);}
+  catch(e){errorLogin(mensajeAuth(e),'#mail');}
 }
 // Factory: todas las cuentas nacen como "usuario" (el panel de negocio se habilita al aprobarse un negocio)
 function crearPerfil(user,datos){

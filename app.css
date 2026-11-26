@@ -1906,3 +1906,6 @@ html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
 .tc-foto.sin-foto .fallback-ic .ic,.det-hero.sin-foto .fallback-ic .ic{width:56px;height:56px;opacity:.9}
 /* La foto genérica de una categoría no es la del local: se dice */
 .foto-referencia{position:absolute;right:12px;bottom:12px;z-index:3;padding:4px 10px;border-radius:var(--radius-full);background:var(--blanco-92);color:var(--tinta-fija);font-size:var(--text-sm);font-weight:600}
+/* N2: error del ingreso escrito en el formulario */
+.login-error{margin:4px 0 12px;padding:12px;border-radius:var(--radius-md);background:var(--danger-50);color:var(--danger-700);font-size:var(--text-base);font-weight:500}
+.login-error[hidden]{display:none}
