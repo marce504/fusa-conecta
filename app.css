@@ -470,7 +470,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .sos-head.tr-head{background:var(--primary-50)}
 .sos-head.tr-head h2{color:var(--primary-700)}
 .sos-nota{font-size:var(--text-sm);color:var(--ink-2);margin-top:12px}
-.sos-grupo{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);margin:24px 0 4px}
+.sos-grupo{font-size:var(--text-base);font-weight:600;color:var(--ink);margin:24px 0 4px}
 .sos-fila{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--soft)}
 .sos-ic{width:40px;height:40px;border-radius:var(--radius-full);background:var(--danger-50);color:var(--danger-600);display:grid;place-items:center;flex-shrink:0}
 .sos-info{flex:1;min-width:0}
@@ -481,6 +481,15 @@ button:disabled{opacity:.6;pointer-events:none}
 .sos-llamar:hover{background:var(--bg);border-color:var(--danger-600)}
 .sos-llamar.sos-ver{border-color:var(--soft);background:var(--bg);color:var(--ink-2)}
 .sos-llamar.sos-ver:hover{border-color:var(--primary-500);color:var(--primary-600)}
+/* SOS más claro: «Llamar» con palabra y «Copiar número» debajo de los datos, en una fila que se acomoda a la letra grande */
+.sos-contacto{flex-wrap:wrap}
+.sos-acc{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding-left:52px}
+.sos-acc .btn{flex:1 1 auto;min-height:48px;padding:0 14px}
+.sos-btn-llamar{background:var(--danger-600);color:var(--blanco)}
+.sos-btn-llamar:hover{background:var(--danger-700)}
+/* Confirmación de llamada: «Sí, llamar» en verde y grande (pedido expreso; el verde de la marca da 5,48:1 con blanco) */
+.btn-llamar-si{min-height:60px;font-size:var(--text-lg);background:var(--menta-fija);color:var(--blanco)}
+.btn-llamar-si:hover{filter:brightness(1.08)}
 .sos-fila .sos-info .estado{display:inline-flex;margin-top:4px}
 .sos-fila .sos-info .estado span{display:inline-block}
 .sos-turno{display:flex;gap:12px;align-items:flex-start;padding:12px;margin-top:8px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700)}

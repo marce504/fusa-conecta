@@ -4547,15 +4547,34 @@ function renderSOS(){
     +'<div class="seg" role="tablist" aria-label="Municipio"><button data-mun="fusagasuga" role="tab" aria-selected="'+(mun==='fusagasuga')+'" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-mun="pasca" role="tab" aria-selected="'+(mun==='pasca')+'" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
     +(mun==='pasca'?'<p class="sos-nota">Líneas nacionales que operan en Pasca, Cundinamarca.</p>':'')
     +alertasVigentes(estado.alertas,mun==='pasca'?'Pasca':'Fusagasugá').map(a=>alertaHTML(a,false)).join('')
-    +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(e=>
-      '<div class="sos-fila"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(e.numero)+'</span></div>'
-      +'<button class="sos-llamar" data-llamar="'+esc(e.numero)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(e.numero)+'">'+icon('phone')+'</button></div>').join('')).join('')
+    +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(filaEmergenciaHTML).join('')).join('')
     +drogueriasHTML(mun)
     +'</div>'+footerHTML();
   $$('[data-verdrog]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.verdrog)));
   $$('.seg [data-mun]').forEach(b=>(b.onclick=()=>{estado.sosMunicipio=b.dataset.mun;render();}));
   $$('[data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
+  $$('[data-copiar]').forEach(b=>(b.onclick=()=>copiarNumero(b.dataset.copiar,b)));
   enlazarFooter();
+}
+/* SOS más claro: la palabra «Llamar» junto al teléfono, «Copiar número» al lado y el número escrito en grupos
+   (601 886 8181) para leerlo mejor; se marca sin espacios. Todo sale de datos.js: funciona sin conexión (RF-16). */
+function numeroLegible(n){
+  const d=telLimpio(n);
+  if(d.length===10)return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6);
+  if(d.length===7)return d.slice(0,3)+' '+d.slice(3);
+  return d||String(n||'');
+}
+function filaEmergenciaHTML(e){
+  const num=telLimpio(e.numero),leg=numeroLegible(e.numero);
+  return '<div class="sos-fila sos-contacto"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(leg)+'</span></div>'
+    +'<div class="sos-acc"><button class="btn sos-btn-llamar" data-llamar="'+esc(num)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(leg)+'">'+icon('phone',20)+'Llamar</button>'
+    +'<button class="btn btn-secundario sos-btn-copiar" data-copiar="'+esc(num)+'" aria-label="Copiar el número de '+esc(e.entidad)+'">'+icon('copy',18)+'Copiar número</button></div></div>';
+}
+async function copiarNumero(numero,boton){
+  try{await navigator.clipboard.writeText(numero);toast('Número copiado',5000);}catch(e){toast('Número: '+numeroLegible(numero),8000);return;}
+  if(!boton)return;
+  const antes=boton.innerHTML;boton.innerHTML=icon('check',18)+'Número copiado';
+  setTimeout(()=>{if(boton.isConnected)boton.innerHTML=antes;},3000);
 }
 /* ===== DROGUERÍAS Y TURNO (v87) =====
    Solo se muestra «De turno» si el admin lo publicó con su fuente oficial (enlace https) y la fecha de hoy está en
@@ -4585,13 +4604,16 @@ function drogueriasHTML(mun){
     +'<p class="sos-nota">'+(t?'':'Aún no tenemos el turno oficial de las droguerías. ')+'Llama o pregunta antes de ir: los horarios pueden cambiar.</p>'
     +l.filter(d=>!t||d.id!==t.comercio_id).sort((a,b)=>ab(a)-ab(b)||a.nombre.localeCompare(b.nombre,'es')).map(d=>fila(d)).join('');
 }
+// Hoja grande de confirmación: evita llamar a una línea de emergencia por un toque accidental
 function confirmarLlamada(entidad,numero){
-  abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic peligro">'+icon('phone',28)+'</div><h2>'+esc(entidad)+'</h2><div class="num-grande">'+esc(numero)+'</div>'
-    +'<div class="hoja-acc"><a class="btn btn-peligro btn-bloque" href="tel:'+esc(numero)+'">'+icon('phone')+'Llamar ahora</a>'
-    +'<button class="btn btn-secundario btn-bloque" id="bCopiar">'+icon('copy')+'Copiar número</button></div>'
-    +'<p class="nota">Esta información está guardada en tu teléfono y no requiere internet.</p>'
-    +'<div class="mapa-off atenuado">'+icon('map',24)+'Mapa desactivado en modo emergencia</div></div>');
-  $('#bCopiar').onclick=async()=>{try{await navigator.clipboard.writeText(numero);toast('Número copiado');}catch(e){toast('Número: '+numero);}};
+  const num=telLimpio(numero),leg=numeroLegible(numero);
+  abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic peligro">'+icon('phone',28)+'</div><h2 id="tLlamar">¿Llamar a '+esc(entidad)+' ('+esc(leg)+')?</h2>'
+    +'<div class="hoja-acc"><a class="btn btn-llamar-si btn-bloque" id="bSiLlamar" href="tel:'+esc(num)+'">'+icon('phone',22)+'Sí, llamar</a>'
+    +'<button class="btn btn-secundario btn-bloque" id="bNoLlamar">Cancelar</button></div>'
+    +'<p class="nota">Este número está guardado en tu teléfono y no necesita internet.</p></div>');
+  $('#sheetGen').setAttribute('aria-label','¿Llamar a '+entidad+'?');
+  $('#bNoLlamar').onclick=()=>cerrar('ovGen');
+  $('#bSiLlamar').focus();
 }
 
 /* ===== PERFIL (RF-04, RNF-05) ===== */
