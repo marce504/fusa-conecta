@@ -49,7 +49,7 @@ Emulator Suite (`/?emulador`) con cuentas y datos de prueba. La versión anterio
 | CLS | La pantalla salta al cargar | Corregido (0,36 → 0,01) | `e849ec0` |
 | Sencillo | Modo sencillo | Hecho (opcional) | `ba6d637` |
 | Fase 5 | Reclamar este comercio | Hecho, probado de punta a punta | `49e4f0a`, `ef30ad3` |
-| Fase 6 | Fotos en eventos y comercios | Parcial (ver 5.2) | `1b958d3` |
+| Fase 6 | Fotos en eventos y comercios | Parcial: 64 % de las tarjetas del Inicio con imagen (ver 5.2) | `1b958d3` y el commit de las imágenes de referencia |
 | N1 | Enlaces de paradas de rutas turísticas tapaban la pantalla | Corregido | `d20f57f` |
 | N2 | Errores de ingreso solo en un aviso que se va | Corregido | `ea765fb` |
 | N3 | Error de Leaflet `_leaflet_pos` al cambiar de pestaña | Corregido | `f4f0945` |
@@ -127,14 +127,15 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
   asistente de edición ya lo cubren otras pruebas.
 
 ### 5.2 Fotos (Fase 6) — parcial
-- **No descargué imágenes de Unsplash, Pexels ni Google:** elegir una foto por categoría exige verla y revisar su
-  licencia una por una; prefiero que lo decidas tú (sección 6). Dejé listo: `foto_fuente` y la etiqueta «Imagen de
-  referencia», el diseño sin foto mejorado (degradado e ícono grande), el crédito en eventos y `CREDITOS_IMAGENES.md`.
+- **Imágenes de referencia (decidido el 26-nov: «las eliges tú»):** 18 fotos gratuitas de Unsplash (no «Unsplash+»),
+  una por subcategoría, revisadas una por una, en `img/categorias/` en WebP de 11 a 77 KB, con autor y enlace en
+  `CREDITOS_IMAGENES.md` y en la ficha («Imagen de referencia. No es la foto de este lugar»). Se muestran solo si el
+  lugar no tiene foto propia y nunca se guardan en sus datos. Trámites y Turismo no tienen imagen genérica a propósito.
 - **Google Places:** `scripts/proponer-fotos.mjs` lo usa solo si existe `GOOGLE_PLACES_KEY`; no hay clave configurada.
 - **Wikimedia Commons:** la primera corrida propuso 4 fotos de 40 lugares (`docs/propuestas-fotos.csv`); algunas **no
   corresponden** al lugar (por ejemplo «American Park»), así que hay que revisarlas antes de aplicar nada.
-- Por eso **no se cumple** la aceptación del 80 % de tarjetas con imagen: hoy la tienen alrededor del 10 % de los lugares
-  (504 de 542 no tienen foto).
+- Con ellas, el **64 %** de las tarjetas del Inicio muestra una imagen (antes, cerca del 10 %). El 80 % pedido exige fotos
+  propias o de Wikimedia de los lugares de Turismo y Trámites.
 
 ### 5.3 Pruebas a fondo (Fase 7) — lo que quedó sin revisar a fondo
 | Área | Resultado |
@@ -158,8 +159,7 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
 ## 6. Decisiones que necesitas tomar
 
 1. **Fusionar y desplegar** la rama (sección 7). Al fusionar, la agenda automática unirá los 3 eventos duplicados.
-2. **Fotos genéricas por categoría:** ¿las elijo yo en Unsplash/Pexels (unas 15, con autor y licencia en
-   `CREDITOS_IMAGENES.md`), las eliges tú, o solo fotos reales de los dueños?
+2. ~~**Fotos genéricas por categoría**~~ **Decidido (26-nov):** las elegí en Unsplash (18, ver `CREDITOS_IMAGENES.md`).
 3. **Google Places:** necesita una clave restringida por dominio (en la consola de Google Cloud, nunca en el código).
    Costo: Place Photos tiene 1 000 solicitudes gratis al mes y luego unos USD 7 por cada 1 000; como la foto se pide en
    vivo cada vez que se ve, con 300 vistas de fichas al día serían unas 9 000 al mes ≈ USD 56/mes. La búsqueda de los

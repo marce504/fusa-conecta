@@ -2659,8 +2659,19 @@ function renderSugerencias(){
 }
 
 /* ===== TARJETA DE LUGAR ===== */
+/* Fase 6: la foto que se ve es la propia del lugar o, si no tiene ninguna, la de referencia de su categoría (las droguerías
+   tienen la suya). La de referencia nunca se guarda en el lugar: así el dueño no la toma por suya al editar la ficha. */
+function referenciaDe(d){
+  if(d.cat==='servicios'&&d.sub==='salud'&&/drog|farmac/i.test(d.nombre||''))return IMAGENES_REFERENCIA.drogueria;
+  return IMAGENES_REFERENCIA[subDe(d)]||IMAGENES_REFERENCIA[d.cat]||null;
+}
+function fotoVisible(d){
+  const propia=imgSegura(d.imagen);if(propia)return {src:propia,referencia:null};
+  const r=(d.fotos||[]).length?null:referenciaDe(d);
+  return {src:r?r.archivo:'',referencia:r};
+}
 function fotoHTML(d,cls){
-  const img=imgSegura(d.imagen);
+  const img=fotoVisible(d).src;
   return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
     +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'');
 }
@@ -2937,7 +2948,7 @@ function llevaDestacado(d){
   if(destacadosInicio.has(d.id))return true;if(destacadosInicio.size>=6)return false;destacadosInicio.add(d.id);return true;
 }
 function tarjetaHTML(d){
-  const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=imgSegura(d.imagen);
+  const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=fotoVisible(d).src;
   const insignia=cuponesDe(d).length?'<span class="tc-ins cupon">'+icon('ticket',12)+'Cupón</span>'
     :llevaDestacado(d)?'<span class="tc-ins dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'';
   // Abierto o "Cierra pronto" cuando aplica; si no, la categoría y la distancia
@@ -3204,8 +3215,10 @@ function cuponesDe(d){
 }
 // v1.4.0: autor y licencia de las fotos libres (Wikimedia Commons). CC BY y CC BY-SA exigen dar el crédito.
 // Fase 6: foto_fuente = propia | google_places | wikimedia | generica. La genérica dice que es de referencia
-const esImagenReferencia=d=>d.foto_fuente==='generica'&&!!imgSegura(d.imagen);
+const esImagenReferencia=d=>!!fotoVisible(d).referencia||(d.foto_fuente==='generica'&&!!imgSegura(d.imagen));
 function creditoFotoHTML(d){
+  const r=fotoVisible(d).referencia;
+  if(r)return filaDato('camera','Imagen de referencia','No es la foto de este lugar. Foto de <a href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.autor)+'</a> en Unsplash');
   const c=d.foto_credito;if(!c||!c.autor||!imgSegura(d.imagen))return '';
   const enlace=(u,t)=>/^https:\/\//.test(u||'')?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':esc(t);
   return filaDato('camera','Foto',enlace(c.url,c.autor)+(c.licencia?' · '+enlace(c.licencia_url,c.licencia):'')+(c.fuente?(c.licencia?', ':' · ')+esc(c.fuente):''));

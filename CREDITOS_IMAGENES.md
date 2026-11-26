@@ -17,9 +17,30 @@ se revisan una por una (lugar correcto, licencia y autor) antes de aplicarlas.
 
 ## Imágenes genéricas por categoría (`img/categorias/`)
 
+Elegidas el 26-nov-2026 entre las fotos gratuitas de Unsplash (no «Unsplash+»). La [Licencia de Unsplash](https://unsplash.com/license)
+permite el uso comercial sin pedir permiso; igual se da el crédito en la ficha. Trámites y Turismo no tienen imagen de referencia:
+son lugares oficiales o naturales, y una foto genérica confundiría.
+
 | Archivo | Categoría | Autor | Fuente | Licencia |
 |---|---|---|---|---|
-| (ninguna todavía: pendiente de elegir; ver docs/INFORME_ARREGLOS_UX.md) | | | | |
+| `img/categorias/drogueria.webp` | drogueria (Estante con medicamentos) | David Trinks | [Unsplash](https://unsplash.com/photos/FLntgQJNjD0) | Licencia de Unsplash |
+| `img/categorias/salud.webp` | salud (Estetoscopio sobre fondo azul) | Etactics Inc | [Unsplash](https://unsplash.com/photos/g3PsF4_y7ZY) | Licencia de Unsplash |
+| `img/categorias/comidas.webp` | comidas (Plato con pollo, papas y verduras) | Alfredo Burgos | [Unsplash](https://unsplash.com/photos/LAhQ2YdD-T8) | Licencia de Unsplash |
+| `img/categorias/panaderias.webp` | panaderias (Panes en una estantería) | Yeh Xintong | [Unsplash](https://unsplash.com/photos/go3DT3PpIw4) | Licencia de Unsplash |
+| `img/categorias/tiendas.webp` | tiendas (Artículos variados en una tienda) | Eduardo Soares | [Unsplash](https://unsplash.com/photos/e4EmPx91Aj4) | Licencia de Unsplash |
+| `img/categorias/ferreterias.webp` | ferreterias (Pared con herramientas de ferretería) | Darien Attridge | [Unsplash](https://unsplash.com/photos/ciY4tc7539I) | Licencia de Unsplash |
+| `img/categorias/hogar.webp` | hogar (Herramientas sobre una mesa) | Bermix Studio | [Unsplash](https://unsplash.com/photos/iwz5tmhjl7o) | Licencia de Unsplash |
+| `img/categorias/belleza.webp` | belleza (Peluquero secando el pelo) | Adam Winger | [Unsplash](https://unsplash.com/photos/FkAZqQJTbXM) | Licencia de Unsplash |
+| `img/categorias/lavanderia.webp` | lavanderia (Fila de lavadoras) | Chris Weiher | [Unsplash](https://unsplash.com/photos/GcB7eqnXnwI) | Licencia de Unsplash |
+| `img/categorias/mecanica.webp` | mecanica (Mecánico en un taller) | Dextar Studio | [Unsplash](https://unsplash.com/photos/XP8o9_Arwqg) | Licencia de Unsplash |
+| `img/categorias/tecnologia.webp` | tecnologia (Reparación de un celular) | Clint Bustrillos | [Unsplash](https://unsplash.com/photos/K7OUs6y_cm8) | Licencia de Unsplash |
+| `img/categorias/transporte.webp` | transporte (Bus con montañas al fondo) | PJH | [Unsplash](https://unsplash.com/photos/PBc3bTUGFb4) | Licencia de Unsplash |
+| `img/categorias/profesionales.webp` | profesionales (Mesa con papeles y bolígrafo) | 2H Media | [Unsplash](https://unsplash.com/photos/VnK5iT01HYQ) | Licencia de Unsplash |
+| `img/categorias/mascotas.webp` | mascotas (Persona sosteniendo un perro) | Anya Prygunova | [Unsplash](https://unsplash.com/photos/u2H8mUzoF2Q) | Licencia de Unsplash |
+| `img/categorias/educacion.webp` | educacion (Aula con pupitres y tablero) | Ivan Aleksic | [Unsplash](https://unsplash.com/photos/PDRFeeDniCk) | Licencia de Unsplash |
+| `img/categorias/campo.webp` | campo (Verduras frescas en un puesto de mercado) | Shelley Pauls | [Unsplash](https://unsplash.com/photos/Zaiuy5dKeCk) | Licencia de Unsplash |
+| `img/categorias/hospedaje.webp` | hospedaje (Cama con sábanas blancas) | Lisha Riabinina | [Unsplash](https://unsplash.com/photos/qifUgNsrWmU) | Licencia de Unsplash |
+| `img/categorias/bares.webp` | bares (Copa de coctel) | M.S. Meeuwesen | [Unsplash](https://unsplash.com/photos/QYWYnzvPTAQ) | Licencia de Unsplash |
 
 ## Fotos del directorio base con crédito (datos.js)
 

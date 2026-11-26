@@ -28,7 +28,8 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 - **Reclamar este comercio** con verificación, colección `reclamos_comercio`, revisión del admin y reglas nuevas
   (Fase 5). La API avisa los reclamos (`reclamo_comercio`).
 - **Fotos:** crédito y fuente de la foto de los eventos, «Imagen de referencia», mejor diseño sin foto y
-  `scripts/proponer-fotos.mjs` (Fase 6).
+  `scripts/proponer-fotos.mjs` (Fase 6). Imágenes de referencia de Unsplash por subcategoría para los lugares sin
+  foto (18, en `img/categorias/`).
 - **Arreglos encontrados en las pruebas:** enlaces de las paradas de las rutas turísticas que tapaban la pantalla (N1),
   errores del ingreso escritos en el formulario (N2), error de Leaflet al cambiar de pestaña (N3) y etiquetas de la foto
   tapadas con letra grande (N4). PWA v100 (`fusa-v93`).

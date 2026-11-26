@@ -423,7 +423,11 @@ describe('destinoDe: mapa y «Cómo llegar»', () => {
 });
 
 describe('creditoFotoHTML: autor y licencia de la foto', () => {
-  const { creditoFotoHTML } = cargar(['esc', 'imgSegura', 'filaDato', 'creditoFotoHTML'], { icon: () => '' });
+  const { creditoFotoHTML } = cargar(
+    ['esc', 'imgSegura', 'filaDato', 'GRUPOS_SUB', 'subDe', 'referenciaDe', 'fotoVisible', 'creditoFotoHTML'],
+    { icon: () => '' },
+    ['IMAGENES_REFERENCIA'],
+  );
   const credito = {
     autor: 'Petruss',
     licencia: 'CC BY-SA 4.0',
@@ -1280,5 +1284,27 @@ describe('fechaEvento larga para el detalle (Fase 3)', () => {
       fin: new Date('2026-11-28T18:00:00-05:00').getTime(),
     };
     expect(fechaEvento(e, true)).toBe('martes 24 de noviembre · 2:00 p. m. al sábado 28 de noviembre');
+  });
+});
+
+describe('Imagen de referencia por categoría (Fase 6)', () => {
+  const r = cargar(['imgSegura', 'GRUPOS_SUB', 'subDe', 'referenciaDe', 'fotoVisible'], {}, ['IMAGENES_REFERENCIA']);
+  it('sin foto propia, la droguería usa la suya y el restaurante la de comidas', () => {
+    expect(r.fotoVisible({ cat: 'servicios', sub: 'salud', nombre: 'Droguería Alemana' }).src).toBe(
+      'img/categorias/drogueria.webp',
+    );
+    expect(r.fotoVisible({ cat: 'servicios', sub: 'salud', nombre: 'Clínica Belén' }).src).toBe(
+      'img/categorias/salud.webp',
+    );
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', nombre: 'El Brasero' }).referencia.autor).toBeTruthy();
+  });
+  it('la foto propia siempre gana y los lugares oficiales o naturales no tienen referencia', () => {
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', imagen: 'img/comercios/x.jpg' })).toEqual({
+      src: 'img/comercios/x.jpg',
+      referencia: null,
+    });
+    expect(r.fotoVisible({ cat: 'tramite', nombre: 'Alcaldía' }).src).toBe('');
+    expect(r.fotoVisible({ cat: 'turismo', tipo: 'sendero', nombre: 'Cerro' }).src).toBe('');
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', fotos: ['f1'] }).src).toBe('');
   });
 });
