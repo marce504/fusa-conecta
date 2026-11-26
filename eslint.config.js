@@ -120,7 +120,7 @@ export default [
   },
   {
     // Playwright: el código dentro de page.evaluate() corre en la PWA (navegador y sus variables globales)
-    files: ['pruebas/e2e/**/*.js', 'scripts/areas-tactiles.mjs'],
+    files: ['pruebas/e2e/**/*.js', 'scripts/areas-tactiles.mjs', 'scripts/medir-cls.mjs'],
     languageOptions: {
       globals: {
         ...globals.browser,

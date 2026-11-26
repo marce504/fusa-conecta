@@ -4,6 +4,19 @@ import { CLAVE, CUENTAS, CUPON, NEGOCIO, NEGOCIO_PASCA, poner } from './semilla.
 
 const APP = '/?emulador';
 
+// La ayuda del primer uso (letra grande y globos que explican etiquetas) se da por vista: estas pruebas no son de ella
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    [
+      'fc_letra_preguntada',
+      'fc_explicado_avisos',
+      'fc_explicado_destacado',
+      'fc_explicado_abierto',
+      'fc_explicado_oficial',
+    ].forEach(k => localStorage.setItem(k, 'true'));
+  });
+});
+
 // El aviso del emulador tapa la barra inferior en las capturas
 async function sinAvisoEmulador(page) {
   await page.evaluate(() => document.querySelectorAll('.firebase-emulator-warning').forEach(e => e.remove()));
@@ -76,13 +89,14 @@ test('cupón: Ana lo obtiene → lo muestra con QR → la comerciante valida el 
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('1-ficha-con-cupon.png') });
   await obtener.click();
-  // Queda en la billetera: la ficha ofrece «Ver en mi billetera» y el botón Cupones de la barra muestra el globo
+  // Queda en la billetera: la ficha ofrece «Ver en mi billetera» y la pestaña Perfil muestra el globo
   await expect(page.locator('#sheetDetalle [data-cupon]').first()).toContainText('Ver en mi billetera');
   await expect(page.locator('#bnBadge')).toHaveText('1');
-  // Se entra a la billetera por la barra inferior (Cupones ya no es el botón central)
+  // Fase 4: la billetera está en Perfil → «Mis cupones» (Cupones ya no es una pestaña de la barra)
   await page.locator('#cerrarDet').click();
-  await page.locator('[data-bn="cupones"]').click();
-  await expect(page.locator('[data-bn="cupones"]')).toHaveAttribute('aria-current', 'page');
+  await page.locator('[data-bn="perfil"]').click();
+  await page.locator('#pfBilletera').click();
+  await expect(page.locator('[data-bn="perfil"]')).toHaveAttribute('aria-current', 'page');
   // «Mostrar en caja» lo muestra en pantalla completa con el QR y el código
   await page.locator('.cupon-bill [data-mostrar]').first().click();
   const qr = page.locator('#pcQR');
@@ -280,18 +294,18 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await sinAvisoEmulador(page);
   const barra = page.locator('#bottomNav .bn-btn');
   await expect(page.locator('#bottomNav .bn-btn > span:last-child')).toHaveText([
-    'Mapa',
-    'Cupones',
     'Inicio',
     'Agenda',
+    'Mapa',
+    'Comunidad',
     'Perfil',
   ]);
-  // Inicio es el botón central grande
-  await expect(page.locator('.bn-centro')).toHaveAttribute('data-bn', 'inicio');
+  // Fase 4: los cinco botones son iguales (ya no hay un botón central flotante)
+  await expect(page.locator('#bottomNav .bn-centro')).toHaveCount(0);
   // Cada botón abre su pantalla y queda marcado (aria-current) como el único activo
   const pantallas = [
     ['mapa', 'mapa'],
-    ['cupones', 'billetera'],
+    ['comunidad', 'comunidad'],
     ['inicio', 'lista'],
     ['agenda', 'agenda'],
     ['perfil', 'perfil'],
@@ -300,9 +314,9 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
     await page.locator(`[data-bn="${boton}"]`).click();
     await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe(tipo);
     await expect(page.locator('.bn-btn[aria-current="page"]')).toHaveAttribute('data-bn', boton);
-    // Todos los botones tienen al menos 44×44 px de área táctil (WCAG 2.5.5)
+    // Todos los botones tienen al menos 48×48 px de área táctil (RNF-03, U6)
     const cajas = await barra.evaluateAll(bs => bs.map(b => b.getBoundingClientRect()));
-    for (const c of cajas) expect(Math.min(c.width, c.height)).toBeGreaterThanOrEqual(44);
+    for (const c of cajas) expect(Math.min(c.width, c.height)).toBeGreaterThanOrEqual(48);
   }
   await expect(page.locator('#cuerpo h2').first()).toBeVisible();
   // La Agenda es la misma vista de «Ver agenda»
@@ -452,22 +466,26 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   const selector = page.locator('#selMunicipio [data-selmun]');
   await expect(selector).toHaveText(['Fusa y Pasca', 'Fusagasugá', 'Pasca']);
   await expect(page.locator('#selMunicipio [data-selmun=""]')).toHaveAttribute('aria-checked', 'true');
-  // Fusa y Pasca: la sección de Pasca y lugares de los dos municipios
+  // Fusa y Pasca: lugares de los dos municipios; «Pasca, puerta del Sumapaz» está en Turismo (U1)
+  const turismo = () => page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'turismo' }));
   const seccion = page.locator('.seccion-pasca');
+  await turismo();
   await expect(seccion.locator('h2')).toHaveText('Pasca, puerta del Sumapaz');
   await expect(seccion).toContainText(NEGOCIO_PASCA.nombre);
+  await page.evaluate(() => window.inicio());
   const municipios = () =>
     page.evaluate(() => [...new Set(window.itemsVisibles('todas', '', true).map(d => window.municipioDe(d)))].sort());
   expect(await municipios()).toEqual(['Fusagasugá', 'Pasca']);
-  await expect(page.locator('#tEventos')).toHaveText('Qué hacer en Fusa y Pasca');
+  await expect(page.locator('#tQueHacer')).toHaveText('Qué hacer en Fusa');
   // Pasca: solo lugares de Pasca y, como son pocos, «¿Tienes un negocio en Pasca?»
   await page.locator('#selMunicipio [data-selmun="Pasca"]').click();
   await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
   expect(await municipios()).toEqual(['Pasca']);
   await expect(page.locator('#todoFusa h2')).toHaveText('Todo Pasca');
-  // v1.4.0: Pasca tiene más lugares oficiales; el negocio con dueña va primero en el carrusel de Pasca
-  await expect(seccion.locator('.tarjeta').first()).toContainText(NEGOCIO_PASCA.nombre);
   await expect(page.locator('.grid-tc')).not.toContainText('Hacienda Coloma');
+  // v1.4.0: Pasca tiene más lugares oficiales; el negocio con dueña va primero en el carrusel de Pasca
+  await turismo();
+  await expect(seccion.locator('.tarjeta').first()).toContainText(NEGOCIO_PASCA.nombre);
   await expect(seccion.locator('.tarjeta-publica')).toContainText('¿Tienes un negocio en Pasca?');
   // Lugares verificados de Pasca (parte 2) y el aviso de senderos
   await expect(seccion).toContainText('Alcaldía Municipal de Pasca');
@@ -497,6 +515,7 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   await sinAvisoEmulador(page);
   await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
   // «Publicar» abre el registro (pide cuenta a un invitado)
+  await turismo();
   await page.locator('[data-pasca-negocio]').click();
   await expect(page.locator('#ovLogin')).toHaveClass(/abierto/);
   await page.locator('#ovLogin [data-cerrar], #ovLogin .cerrar').first().click();
@@ -827,7 +846,7 @@ test('a domicilio: la dueña lo marca, aparece en el filtro y no puede calificar
 });
 
 // v92: mercado campesino. Las fechas salen de la Agenda; las plazas son lugares reales del directorio
-test('mercado campesino: plazas del directorio y el próximo mercado de la agenda en Campo y en el inicio', async ({
+test('mercado campesino: plazas del directorio y el próximo mercado de la agenda en Campo y en la Agenda', async ({
   page,
 }, info) => {
   await page.goto(APP);
@@ -854,8 +873,9 @@ test('mercado campesino: plazas del directorio y el próximo mercado de la agend
   await page.evaluate(() => window.render(true));
   await expect(sec).toContainText('Mercado Campesino de prueba E2E');
   await page.screenshot({ path: info.outputPath('mercado-campo.png') });
-  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
-  await expect(page.locator('#cuerpo')).toContainText('Mercado campesino:');
+  // U1: el Inicio ya no repite el aviso del mercado; el mercado está en la Agenda
+  await page.evaluate(() => window.irAgenda('30'));
+  await expect(page.locator('#cuerpo')).toContainText('Mercado Campesino de prueba E2E');
 });
 
 // v93: menú y pedidos por WhatsApp. La dueña arma el menú; el cliente elige y se abre WhatsApp con el pedido
@@ -970,7 +990,7 @@ test('agenda automática: el admin publica un evento de un programa con sus fuen
 });
 
 // v97: perdidos y encontrados. Se publica sin revisión, la autora lo marca resuelto y nadie más lo puede cambiar
-test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca resuelta', async ({ page }, info) => {
+test('perdidos: Ana publica una mascota perdida, se ve en Comunidad y la marca resuelta', async ({ page }, info) => {
   await page.goto(APP);
   await page.locator('#sInvitado').click();
   await expect(page.locator('#splash')).toHaveClass(/oculto/);
@@ -991,9 +1011,10 @@ test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca r
   const aviso = page.locator('#cuerpo .perdido').first();
   await expect(aviso).toContainText('Perrita criolla de prueba E2E');
   await page.screenshot({ path: info.outputPath('perdidos.png') });
-  // En el inicio
-  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
-  await expect(page.locator('#cuerpo')).toContainText('Ayúdalos a volver a casa');
+  // Desde la pestaña Comunidad (Fase 4)
+  await page.locator('[data-bn="comunidad"]').click();
+  await page.locator('.comunidad-card', { hasText: 'Perdidos y encontrados' }).click();
+  await expect(page.locator('#cuerpo')).toContainText('Perrita criolla de prueba E2E');
   // Rosa no puede cambiarlo ni borrarlo
   const id = await page.evaluate(() => estado.perdidos[0].id);
   await entrarComo(page, CUENTAS.rosa);

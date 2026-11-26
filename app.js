@@ -304,7 +304,7 @@ db.collection('config').doc('directorio').onSnapshot(s=>{
 estado.banners=[];
 db.collection('banners').onSnapshot(s=>{
   estado.banners=s.docs.map(d=>({id:d.id,...d.data()}));
-  if(!$('#plegBanner').hidden)montarBanner();
+  if(vistaActual().tipo==='lista')render(true);
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
 /* ===== API REST (Python · FastAPI, carpeta api/) =====
@@ -343,7 +343,6 @@ function sinRepetidos(eventos){const vistos=new Set();return eventos.filter(e=>{
 db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
   estado.eventos=sinRepetidos(s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};}));
   if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
-  if(!$('#plegBanner').hidden)montarBanner();
   if(esAdmin())borrarDemosVencidos();
   refrescarVista();actualizarCampana();
 },()=>{});
@@ -385,12 +384,6 @@ function mercadoCampesinoHTML(){
     +'</section>';
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-verplaza]');if(b)abrirDetalle(b.dataset.verplaza);});
-// En el inicio, solo si hay un mercado campesino en los próximos 14 días
-function avisoMercadoInicioHTML(){
-  const e=mercadosCampesinos(municipioElegido()).find(x=>x.ini<=Date.now()+14*24*3600e3);
-  if(!e)return '';
-  return '<button class="tarjeta-opinion mb-16" data-evento="'+esc(e.id)+'"><span class="to-ic">'+icon('sprout',22)+'</span><span class="to-tx"><b>Mercado campesino: '+esc(fechaEvento(e))+'</b><small>'+esc(e.titulo)+' · '+esc(e.lugar_nombre||'')+'</small></span>'+icon('chevron-right')+'</button>';
-}
 function finDelDomingo(){const d=new Date();d.setHours(23,59,59,999);d.setDate(d.getDate()+((7-d.getDay())%7));return d.getTime();}
 function inicioDelViernes(){const d=new Date();if([0,5,6].includes(d.getDay()))return Date.now();d.setHours(0,0,0,0);d.setDate(d.getDate()+(5-d.getDay()));return d.getTime();}
 function eventosEn(rango,cat){
@@ -440,23 +433,9 @@ function sugerirEvento(){if(!logueado()){pedirLogin('Inicia sesión para sugerir
 const ILU_EVENTOS='<svg class="ev-vacio-ilu" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   +'<rect x="16" y="22" width="56" height="54" rx="10"/><path d="M16 38h56M30 14v14M58 14v14"/><path d="M30 52h6M44 52h6M30 64h6M44 64h6"/>'
   +'<path d="M80 50v12M74 56h12M76 24l4 4M84 20v6"/></svg>';
-function seccionEventosHTML(){
-  const l=planesVigentes().filter(e=>enMunicipio(e,municipioElegido())).slice(0,10);
-  return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en '+nombreZona()+'</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
-    +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
-      :'<div class="ev-vacio">'+ILU_EVENTOS+'<div class="ev-vacio-tx"><p>Aún no hay eventos esta semana. ¿Sabes de uno?</p>'
-        +'<button class="btn btn-primario btn-sm" data-sugerir>'+icon('calendar-plus',16)+textoSugerir()+'</button></div></div>')
-    +'</section>';
-}
-// Primera diapositiva del banner si hay eventos entre hoy y el domingo
-function slideFinDeSemana(){
-  const e=planesVigentes().find(x=>x.ini<=finDelDomingo()&&enMunicipio(x,municipioElegido()));if(!e)return null;
-  return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en '+(municipioDe(e)==='Pasca'?'Pasca':'Fusa'),tit:e.titulo,
-    sub:fechaEvento(e)+' · '+e.lugar_nombre,accion:'agenda',textoBoton:'Ver agenda',ilu:'<span class="ilu-circulo">'+icon('calendar-days',30)+'</span>'};
-}
 function enlazarEventos(){
   $$('#cuerpo [data-evento]').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
-  $$('#cuerpo [data-agenda]').forEach(b=>(b.onclick=()=>irAgenda()));
+  $$('#cuerpo [data-agenda]').forEach(b=>(b.onclick=()=>irAgenda(b.dataset.agenda||'')));
   $$('#cuerpo [data-sugerir]').forEach(b=>(b.onclick=sugerirEvento));
 }
 function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agenda'});}
@@ -1174,9 +1153,9 @@ function renderAsistente(){
   pintarAsis();leerCupoAsis();
 }
 function irAsistente(pregunta){navegar({tipo:'asistente'});if(pregunta)preguntarFusa(pregunta);}
+// U1: «Pregúntale a Fusa» es una línea pequeña bajo el buscador (ya no una tarjeta grande)
 function asisEntradaHTML(){
-  return '<button class="asis-entrada" id="asisEntrada"><span class="asis-logo" aria-hidden="true">'+icon('sparkles',22)+'</span>'
-    +'<span class="asis-entrada-tx"><b>Pregúntale a Fusa</b><small>¿Dónde almorzar? ¿Qué hacer el sábado?</small></span>'+icon('chevron-right',20)+'</button>';
+  return '<button class="asis-linea" id="asisEntrada">'+icon('sparkles',18)+'<span>Pregúntale a Fusa</span>'+icon('chevron-right',18)+'</button>';
 }
 
 /* ===== RUTAS DE LA COMUNIDAD (v7 · Fase 4) =====
@@ -1889,12 +1868,6 @@ db.collection('perdidos').where('estado','in',['activo','resuelto']).onSnapshot(
   ls.set('fc_perdidos',estado.perdidos.map(p=>({...p,foto:''})));
   const v=vistaActual();if(v.tipo==='perdidos'||(v.tipo==='lista'&&v.cat==='todas'))render(true);
 },()=>{});
-function seccionPerdidosHTML(){
-  const l=perdidosVisibles(estado.perdidos,{mun:municipioElegido()}).filter(p=>p.estado==='activo').slice(0,8);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tPerdidos"><div class="head-v"><h2 id="tPerdidos">Ayúdalos a volver a casa</h2><button class="btn-ghost" data-irperdidos>Ver todos</button></div>'
-    +'<div class="carrusel carrusel-pd">'+l.map(p=>tarjetaPerdidoHTML(p,false)).join('')+'</div></section>';
-}
 function renderPerdidos(){
   const cuerpo=$('#cuerpo'),f=estado.pd,uid=logueado()&&estado.usuario.uid;
   const l=perdidosVisibles(estado.perdidos,{tipo:f.tipo,situacion:f.situacion,mun:municipioElegido()});
@@ -2014,20 +1987,24 @@ function escucharMisEmpleos(){
     estado.misEmpleos=s.docs.map(d=>empleoDeDoc(d.id,d.data()));if(['dashboard','empleos'].includes(vistaActual().tipo))render(true);
   },()=>{});
 }
-function seccionEmpleosHTML(){
-  const l=empleosVisibles(estado.empleos,municipioElegido()).slice(0,6);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tEmpleos"><div class="head-v"><h2 id="tEmpleos">Empleos en '+nombreZona()+'</h2><button class="btn-ghost" data-irempleos>Ver todos</button></div>'
-    +'<div class="carrusel carrusel-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div></section>';
-}
 function renderEmpleos(){
   const cuerpo=$('#cuerpo'),l=empleosVisibles(estado.empleos,municipioElegido());
   cuerpo.innerHTML='<div class="vista"><div class="sos-head tr-head"><h2>'+icon('briefcase',24)+'Empleos locales</h2><p>'+icon('circle-check',16)+'Ofertas de negocios de Fusa y Pasca, revisadas antes de publicarse. Nadie debe cobrarte por postularte.</p></div>'
     +(l.length?'<div class="lista-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div>'
-      :'<div class="vacio">'+icon('briefcase',48)+'<b>Aún no hay ofertas publicadas</b><p>Los negocios publican sus vacantes desde «Mi negocio». Vuelve pronto.</p></div>')
+      :'<div class="vacio">'+icon('briefcase',48)+'<b>Pronto habrá ofertas de trabajo aquí</b><p>¿Tienes una vacante? Publícala gratis.</p>'
+        +'<button class="btn btn-primario mt-16" id="emPublicar">'+icon('plus',18)+'Publicar una vacante</button></div>')
     +'<p class="nota-c izq mt-16">¿Tienes un negocio en la app? Publica tu vacante desde Mi negocio → «Ofrecer empleo».</p>'
     +'</div>'+footerHTML();
+  const pv=$('#emPublicar');if(pv)pv.onclick=publicarVacante;
   enlazarFooter();
+}
+// Publicar una vacante: la publica un negocio aprobado; sin negocio, primero se registra uno
+function publicarVacante(){
+  if(!logueado()){pedirLogin('Inicia sesión para publicar una vacante.');return;}
+  const propio=comerciosPropios.find(c=>c.estado_publicacion==='aprobado');
+  if(propio){formEmpleo(propio);return;}
+  toast('Primero registra tu negocio; después publicas la vacante desde «Mi negocio».',6000);
+  registrarMiNegocio();
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest&&e.target.closest('[data-emwa],[data-emcerrar],[data-emborrar],[data-irempleos]');if(!t)return;
@@ -2364,11 +2341,12 @@ const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de e
 function saludoDeHora(h=new Date(Date.now()-5*36e5).getUTCHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
   const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
-  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en '+(municipioElegido()==='Pasca'?'Pasca':municipioElegido()?'Fusa':'Fusa y Pasca')+'?</span></div>'+pildoraRadioHTML();
+  // U1: una sola línea (saludo y radio en vivo) para que los eventos se vean sin deslizar
+  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b></div>'+pildoraRadioHTML();
   $('#pRadio').onclick=radioAlternar;
 }
 // E6: las pestañas de la barra inferior muestran su nombre arriba a la izquierda (sin «Volver», la barra se veía vacía)
-const TITULO_PESTANA={mapa:'Mapa',billetera:'Mis cupones',cupones:'Cupones',agenda:'Agenda',perfil:'Mi perfil'};
+const TITULO_PESTANA={mapa:'Mapa',comunidad:'Comunidad',agenda:'Agenda',perfil:'Mi perfil'};
 function pintarTituloBarra(v,enLista){
   const t=$('#navTitulo'),texto=!enLista&&$('#bVolver').classList.contains('invisible')?TITULO_PESTANA[v.tipo]||'':'';
   t.textContent=texto;t.hidden=!texto;
@@ -2379,17 +2357,15 @@ function renderHeader(){
   const enLista=v.tipo==='lista'&&v.cat!=='favoritos';
   // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
   // Las pestañas de la barra inferior (Mapa, Cupones, Inicio, Agenda, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
-  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','agenda','perfil'].includes(v.tipo));
+  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','comunidad','agenda','perfil'].includes(v.tipo));
   pintarTituloBarra(v,enLista);
   $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
   pintarSaludo();
   $('#selMunicipio').innerHTML=selectorMunicipioHTML();enlazarSelectorMunicipio();
-  const conBanner=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
-  $('#cats').closest('.fila-chips').hidden=conBanner;
-  $('#plegBanner').hidden=!conBanner;
-  if(conBanner)montarBanner();
+  // En la portada las categorías van en la cuadrícula del cuerpo
+  $('#cats').closest('.fila-chips').hidden=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
   pintarBorrar();
   const ses=$('#sesion');
@@ -2736,7 +2712,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard','billetera','cupones','planes','agenda'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera','cupones','planes','agenda','comunidad'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -2758,6 +2734,7 @@ function render(conservarScroll){
   else if(v.tipo==='cupones')renderCuponesDisponibles();
   else if(v.tipo==='planes')renderPlanes();
   else if(v.tipo==='agenda')renderAgenda();
+  else if(v.tipo==='comunidad')renderComunidad();
   else if(v.tipo==='recorridos')renderRecorridos();
   else if(v.tipo==='recorrido')renderRecorrido(v.id);
   else if(v.tipo==='asistente')renderAsistente();
@@ -2780,12 +2757,17 @@ function renderLista(v){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=ofertaLetraHTML()+alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+transporteEntradaHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    /* U1: buscador y municipio (cabecera) → Qué hacer en Fusa (eventos) → Lo que necesitas → categorías de comercios →
+       Abierto ahora → Rutas y turismo → Ofertas y cupones → Todo Fusa Conecta; al pie, «Dar mi opinión» e «Instalar».
+       Las alertas del municipio, si hay, van arriba de todo. */
+    html=alertasInicioHTML()+asisEntradaHTML()+seccionQueHacerHTML()+seccionNecesitasHTML()+tilesHTML()+seccionAbiertosHTML()
+      +seccionTurismoHTML()+seccionOfertasHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
-        +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
+        +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'')
+      +pieInicioHTML();
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML():'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='tramite'&&!v.sub&&!estado.q?avisosMunicipioEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML()+seccionesCategoriaHTML(seccionCampoHTML):'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML()+seccionesCategoriaHTML(seccionRutasHTML,seccionPascaHTML):'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
       +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
@@ -2808,8 +2790,9 @@ function renderLista(v){
     estado.q='';estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
-  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
-  enlazarEventos();enlazarSeccionPasca();enlazarOfertaLetra();
+  enlazarTarjetas();enlazarSecciones();enlazarInicio();enlazarFooter();
+  enlazarEventos();enlazarSeccionPasca();
+  if(enInicio)ofrecerLetraUnaVez();
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
@@ -2818,33 +2801,10 @@ function renderLista(v){
   else if(items.length)enlazarListado(items);
 }
 
-/* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
-   Primero el "Negocio destacado" (un solo espacio) y los banners con foto que publica el admin (colección banners);
-   después las 4 diapositivas propias de la app. Cambia sola cada 5 s; se pausa al tocarla o arrastrarla y
-   se reanuda a los 8 s. Se desliza con el dedo (scroll-snap) o con el mouse (pointer events).
-   Con prefers-reduced-motion no avanza sola. */
+/* ===== ANUNCIOS DEL INICIO (en «Ofertas y cupones») =====
+   El "Negocio destacado" (un solo espacio) y los banners con foto que publica el admin (colección banners).
+   Van en un carrusel que se desliza con el dedo; no avanzan solos (U1). */
 const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
-function cuponesActivosTotal(){let n=0;database.forEach(d=>(n+=cuponesDe(d).length));return n;}
-function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
-// Banners propios de la app: todos con foto real de Fusa (WebP 800 px) y el velo de su color;
-// si una foto no carga queda el fondo de color con la ilustración
-function slidesBase(){
-  return [
-    {id:'bienvenida',foto:'img/banners/bienvenida.webp',velo:'violeta',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
-      sub:'Comercios, rutas y emergencias de la región.',accion:'explorar',textoBoton:'Explorar',
-      ilu:'<span class="ilu-logo">'+logo('iso','lila',{alto:56,decorativo:true})+'</span>'},
-    {id:'cupones',foto:'img/banners/cupones.webp',velo:'sol',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',
-      sub:'Toma un descuento, muéstralo en caja y ahorra.',accion:'cupones',textoBoton:'Ver cupones',
-      ilu:'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',iluSiempre:true,
-      extra:'<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>'},
-    {id:'negocio',foto:'img/banners/negocio.webp',velo:'menta',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',
-      sub:'Llega a más vecinos y turistas de la región.',accion:'negocio',textoBoton:'Registrar mi negocio',
-      ilu:'<span class="ilu-circulo">'+icon('store',30)+'</span>'},
-    {id:'opinion',foto:'img/banners/opinion.webp',velo:'noche',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',
-      sub:'Cuéntanos qué te gustó y qué cambiarías.',accion:'opinion',textoBoton:'Dar mi opinión',
-      ilu:'<span class="ilu-circulo">'+icon('message-circle-heart',30)+'</span>'}
-  ];
-}
 const porOrden=(a,b)=>(a.orden||0)-(b.orden||0);
 // Fechas del banner como texto AAAA-MM-DD (fecha local): sin fechas se muestra mientras esté activo
 function hoyISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -2854,16 +2814,25 @@ function accionBanner(b){
   if(t==='negocio'||t==='categoria')return b.enlace_valor?t+':'+b.enlace_valor:'';
   return t==='cupones'?'cupones':t==='registrar'?'negocio':'';
 }
-function slidesBanner(){
+function anunciosInicio(){
   const l=[],bs=estado.banners||[];
-  const finde=slideFinDeSemana();if(finde)l.push(finde);
   const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
   if(dc&&premiumVigente(dc))l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
     tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio',
     ilu:'<span class="ilu-circulo">'+icon(iconoDe(dc),30)+'</span>'});
   bs.filter(b=>b.tipo==='foto'&&b.imagen&&bannerVigente(b)).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:b.etiqueta||'',tit:b.titulo||'',sub:b.texto||'',
     accion:accionBanner(b),textoBoton:b.boton||(b.enlace_tipo==='negocio'?'Ver negocio':'Ver más')}));
-  return l.concat(slidesBase());
+  return l;
+}
+// El destacado se ve de una vez con la portada liviana y luego cambia a su primera foto en buena calidad
+function mejorarFotoDestacado(){
+  const a=anunciosInicio().find(x=>x.fotoNube),caja=a&&$('#cuerpo [data-sid="'+a.id+'"]');if(!caja)return;
+  db.collection('comercios').doc(String(a.comercio)).collection('fotos').doc(a.fotoNube).get().then(f=>{
+    if(!f.exists||!caja.isConnected)return;
+    let img=caja.querySelector('.slide-foto');
+    if(!img){img=document.createElement('img');img.className='slide-foto';img.alt='';caja.prepend(img);}
+    img.src=f.data().data;
+  }).catch(()=>{});
 }
 function slideHTML(s,i,n){
   const aria=' role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(s.tit)+'" data-sid="'+esc(s.id)+'"';
@@ -2880,76 +2849,12 @@ function slideHTML(s,i,n){
     +'<h2 class="slide-tit">'+esc(s.tit)+'</h2>'+(s.sub?'<p class="slide-sub">'+esc(s.sub)+'</p>':'')
     +(s.accion?'<div class="slide-pie"><button class="slide-btn" data-slide="'+esc(s.accion)+'">'+esc(s.textoBoton)+icon('arrow-right',16)+'</button>'+(s.extra||'')+'</div>':'')+'</div>';
 }
-function bannerHTML(sl){
-  return '<div class="banner-pista" id="bannerPista">'+sl.map((s,i)=>slideHTML(s,i,sl.length)).join('')+'</div>'
-    +'<div class="banner-ctrl"><div class="banner-puntos" aria-hidden="true">'+sl.map((s,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>'
-    +(sinMovimiento()?'':botonPausaBannerHTML())+'</div>';
-}
-// WCAG 2.2.2: el carrusel que avanza solo se puede detener; tocarlo también lo detiene
-function botonPausaBannerHTML(){
-  const d=banner.detenido;
-  return '<button type="button" class="banner-pausa" id="bannerPausa" aria-pressed="'+d+'">'+icon(d?'play':'pause',16)+(d?'Reanudar':'Pausar')+'</button>';
-}
-function detenerBanner(detener=true){
-  banner.detenido=detener;
-  const b=$('#bannerPausa');if(!b)return;
-  b.setAttribute('aria-pressed',detener);b.innerHTML=icon(detener?'play':'pause',16)+(detener?'Reanudar':'Pausar');
-}
-const banner={actual:0,n:0,timer:null,pausaHasta:0,firma:'',arr:null,ventana:false,detenido:false};
-const pasoBanner=p=>p.firstElementChild.offsetWidth+8;
-function montarBanner(){
-  const caja=$('#banner'),sl=slidesBanner();
-  // Solo se regenera si cambió lo que muestra (nuevo banner, destacado distinto...): así no parpadea al navegar
-  const firma=sl.map(s=>s.id+'|'+s.tit+'|'+(s.foto?s.foto.length:0)+'|'+(s.accion||'')).join(';');
-  if(banner.firma!==firma){
-    banner.firma=firma;banner.n=sl.length;banner.actual=0;
-    caja.innerHTML=bannerHTML(sl);
-    const pista=$('#bannerPista');
-    const pausar=()=>detenerBanner(true);
-    ['pointerdown','touchstart','wheel','focusin'].forEach(ev=>pista.addEventListener(ev,pausar,{passive:true}));
-    const bp=$('#bannerPausa');if(bp)bp.onclick=()=>detenerBanner(!banner.detenido);
-    pista.addEventListener('scroll',()=>{
-      const i=Math.round(pista.scrollLeft/pasoBanner(pista));
-      if(i!==banner.actual){banner.actual=i;$$('.banner-puntos span').forEach((p,k)=>p.classList.toggle('on',k===i));}
-    },{passive:true});
-    // Arrastre con el mouse en computador (en el celular el dedo usa el desplazamiento nativo)
-    pista.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;banner.arr={x:e.clientX,s:pista.scrollLeft};pista.classList.add('arrastrando');});
-    $$('[data-slide]',caja).forEach(b=>(b.onclick=()=>accionSlide(b.dataset.slide)));
-    // El destacado se ve de una vez con la portada liviana y luego cambia a su primera foto en buena calidad
-    const d=sl.find(s=>s.fotoNube);
-    if(d)db.collection('comercios').doc(String(d.comercio)).collection('fotos').doc(d.fotoNube).get().then(s=>{
-      const sl2=caja.querySelector('[data-sid="'+d.id+'"]');if(!s.exists||!sl2)return;
-      let img=sl2.querySelector('.slide-foto');
-      if(!img){img=document.createElement('img');img.className='slide-foto';img.alt='';sl2.prepend(img);}
-      img.src=s.data().data;
-    }).catch(()=>{});
-  }
-  if(!banner.ventana){
-    banner.ventana=true;
-    window.addEventListener('pointermove',e=>{const p=$('#bannerPista');if(banner.arr&&p)p.scrollLeft=banner.arr.s-(e.clientX-banner.arr.x);});
-    window.addEventListener('pointerup',()=>{const p=$('#bannerPista');if(!banner.arr||!p)return;banner.arr=null;p.classList.remove('arrastrando');irASlide(Math.round(p.scrollLeft/pasoBanner(p)));});
-    if(!sinMovimiento())banner.timer=setInterval(avanzarBanner,5000);
-  }
-  const c=$('#bannerCupones');if(c)c.textContent=textoCuponesBanner();
-}
-function irASlide(i){
-  const pista=$('#bannerPista');if(!pista||!banner.n)return;
-  i=(i+banner.n)%banner.n;pista.scrollTo({left:i*pasoBanner(pista),behavior:sinMovimiento()?'auto':'smooth'});
-}
-function avanzarBanner(){
-  const caja=$('#banner');
-  // Solo avanza si se ve: en el inicio, sin la cabecera plegada y con la app en primer plano
-  if(banner.detenido||Date.now()<banner.pausaHasta||document.hidden||!caja.offsetParent||$('#topbar').classList.contains('arriba')||$('.overlay.abierto'))return;
-  irASlide(banner.actual+1);
-}
 function accionSlide(k){
-  banner.pausaHasta=Date.now()+8000;
   if(k==='agenda'){irAgenda('finde');return;}
   const [tipo,valor]=k.split(':');
   if(tipo==='negocio'&&valor){abrirDetalle(valor);return;}
   if(tipo==='categoria'&&valor&&CAT[valor]){valor==='bares'?irABares():navegar({tipo:'lista',cat:valor});return;}
-  if(k==='explorar'){const t=$('#todoFusa');if(t)t.scrollIntoView({behavior:sinMovimiento()?'auto':'smooth',block:'start'});}
-  else if(k==='cupones'){estado.filtros.cupon=true;render();}
+  if(k==='cupones'){navegar({tipo:'cupones'});}
   else if(k==='negocio')registrarMiNegocio();
   else if(k==='opinion')abrirOpinion('banner');
 }
@@ -2993,33 +2898,32 @@ function carruselHTML(id,titulo,items,ir,cargando){
     +'<div class="carrusel carrusel-tc"'+(cargando?' aria-busy="true"':'')+'>'+(cargando?tarjetaEsqueletoHTML().repeat(3):items.map(tarjetaHTML).join(''))+'</div></section>';
 }
 
-/* ===== CATEGORÍAS EN TILES (inicio) =====
-   v6 · Fase 3: siempre 8 mosaicos. U4: lo más buscado va primero (Comida, Salud, Tiendas y Trámites); Hospedaje, Bares y
-   Eventos van en «Más» (Eventos también tiene su pestaña Agenda). */
+/* ===== CATEGORÍAS DE COMERCIOS EN TILES (inicio) =====
+   v6 · Fase 3: siempre 8 mosaicos. U1/U4: Comida, Tiendas, Servicios, Campo, Turismo, Hospedaje, Bares y Más. Salud y Trámites
+   están arriba, en «Lo que necesitas». Eventos ya no es una categoría: tiene su sección arriba y la pestaña Agenda. */
 // Grupos de subcategorías que abre un mosaico (Comida = Comidas + Panaderías; Tiendas = Tiendas + Ferreterías)
 const GRUPOS_SUB={'g-comida':{t:'Comida',subs:['comidas','panaderias']},'g-tiendas':{t:'Tiendas',subs:['tiendas','ferreterias']}};
 const TILES=[
   {t:'Comida',ic:'utensils',cat:'comercio',sub:'g-comida',c:'comer'},
-  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios'},
   {t:'Tiendas',ic:'shopping-bag',cat:'comercio',sub:'g-tiendas',c:'comer'},
-  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites'},
   {t:'Servicios',ic:'hand-helping',cat:'servicios',c:'servicios'},
   {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
   {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
-  // En la hoja "Más"
-  {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje',mas:true},
-  {t:'Bares',ic:'wine',cat:'bares',c:'bares',mas:true},
-  {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos',mas:true}
+  {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
+  {t:'Bares',ic:'wine',cat:'bares',c:'bares'},
+  // En la hoja "Más" (Salud y Trámites también están en «Lo que necesitas»)
+  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true},
+  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites',mas:true}
 ];
 // Solo los mosaicos con lugares; "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
-function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return x.agenda||database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
+function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
 function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
 function tilesHTML(){
   const l=TILES.filter(x=>!x.mas&&tileConLugares(x)),mas=TILES.some(x=>x.mas&&tileConLugares(x));
   return '<nav class="tiles-cat" aria-label="Categorías">'+l.map(x=>tileHTML(x,TILES.indexOf(x))).join('')
     +(mas?'<button class="tile-cat" id="tileMas"><span class="tile-ic c-mas" aria-hidden="true">'+icon('layout-grid',28)+'</span><span class="tile-tx">Más</span></button>':'')+'</nav>';
 }
-function irATile(x){if(x.agenda){irAgenda();return;}if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
+function irATile(x){if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
 function enlazarTiles(){
   $$('#cuerpo [data-tile]').forEach(b=>(b.onclick=()=>irATile(TILES[+b.dataset.tile])));
   const m=$('#tileMas');if(m)m.onclick=()=>{
@@ -3042,12 +2946,7 @@ function seccionAbiertosHTML(){
   const l=paraCarrusel(itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}));
   return carruselHTML('Abiertos','Abierto ahora',l,'abierto');
 }
-function seccionCercaHTML(){
-  if(!estado.pos)return '';
-  const l=itemsVisibles('todas','',false).filter(d=>{const k=distanciaA(d);return k!=null&&k<=3;}).sort((a,b)=>distanciaA(a)-distanciaA(b)).slice(0,10);
-  return carruselHTML('Cerca','Cerca de ti',l,'cercanos');
-}
-function seccionCampoHTML(){return avisoMercadoInicioHTML()+carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
+function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
   const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&enMunicipio(d,municipioElegido())).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
@@ -3058,11 +2957,6 @@ function seccionRutasHTML(){
 function senderosPascaVacioHTML(){
   return '<div class="ev-vacio">'+icon('footprints',40)+'<div class="ev-vacio-tx"><p>Aún no hay senderos de Pasca con trazado real. ¿Conoces uno? Grábalo con «Grabar mi recorrido» y propónlo.</p>'
     +'<button class="btn btn-primario btn-sm" data-grabar-ruta>'+icon('footprints',16)+'Grabar mi recorrido</button></div></div>';
-}
-// Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
-function seccionRecientesHTML(){
-  const l=paraCarrusel(database.filter(d=>d.creado&&enMunicipio(d,municipioElegido())).sort((a,b)=>b.creado-a.creado));
-  return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
 }
 // «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras haya pocos negocios, la invitación a publicar el suyo
 function seccionPascaHTML(){
@@ -3092,6 +2986,116 @@ function enlazarSecciones(){
     else if(k==='senderos')navegar({tipo:'lista',cat:'turismo',sub:'sendero'});
     else navegar({tipo:'lista',cat:k});}));
 }
+
+// Carruseles que se mudaron del Inicio a su categoría (U1): cada lugar sale una sola vez entre ellos
+function seccionesCategoriaHTML(...secciones){vistosInicio=new Set();return secciones.map(s=>s()).join('');}
+/* ===== QUÉ HACER EN FUSA (U1): los eventos, protagonistas del Inicio =====
+   Un evento por diapositiva, todas del mismo alto (aspect-ratio), con flechas de 48 px, puntos y deslizamiento.
+   No avanza solo. Primero los de hoy, luego los del fin de semana y luego los próximos 30 días; máximo 6, sin repetidos. */
+const MAX_EVENTOS_INICIO=6;
+function eventosInicio(){
+  const vistos=new Set(),l=[];
+  ['hoy','finde','30'].forEach(r=>eventosEn(r).forEach(e=>{if(!vistos.has(e.id)){vistos.add(e.id);l.push(e);}}));
+  return l.slice(0,MAX_EVENTOS_INICIO);
+}
+// «Hoy · 3:00 p. m.», «Mañana · …», «Sábado 28 de noviembre · …»; si ya empezó, «En curso · hasta …»
+function cuandoEvento(e,ahora=Date.now()){
+  if(enCurso(e,ahora))return fechaEvento(e);
+  const medianoche=ms=>new Date(ms).setHours(0,0,0,0),d=new Date(e.ini);
+  const dias=Math.round((medianoche(e.ini)-medianoche(ahora))/864e5);
+  const dia=dias===0?'Hoy':dias===1?'Mañana':DIAS_LARGO[d.getDay()].replace(/^./,c=>c.toUpperCase())+' '+d.getDate()+' de '+MESES_LARGO[d.getMonth()];
+  return dia+' · '+horaEv(e.ini);
+}
+function diapositivaEventoHTML(e,i,n){
+  return '<article class="ev-diapo" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(e.titulo)+'">'
+    +'<button type="button" class="ev-diapo-btn" data-evento="'+esc(e.id)+'"><span class="ev-diapo-foto">'+iluEvento(e,56,'ev-diapo-ilu')
+    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" decoding="async"'+(i?' loading="lazy"':' fetchpriority="high"')+' onerror="this.remove()">':'')+'</span>'
+    +'<span class="ev-diapo-tx"><span class="ev-diapo-cuando">'+esc(cuandoEvento(e))+'</span><b>'+esc(e.titulo)+'</b>'
+    +'<span class="ev-diapo-lugar">'+icon('map-pin',16)+lugarEv(e)+'</span><span class="ev-diapo-precio'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></span>'
+    +'</button></article>';
+}
+// Flechas de 48 px a los lados de la foto (si hay más de un evento); debajo, los puntos y «Ver toda la agenda»
+function flechasEventosHTML(n){
+  return n<2?'':'<button type="button" class="ev-flecha ant" data-ev-paso="-1" aria-label="Evento anterior">'+icon('chevron-left',24)+'</button>'
+    +'<button type="button" class="ev-flecha sig" data-ev-paso="1" aria-label="Evento siguiente">'+icon('chevron-right',24)+'</button>';
+}
+function controlesEventosHTML(n){
+  return '<div class="ev-ctrl">'+(n<2?'<span></span>':'<div class="banner-puntos" aria-hidden="true">'+Array.from({length:n},(_,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>')
+    +'<button class="btn-ghost" data-agenda="30">Ver toda la agenda</button></div>';
+}
+function seccionQueHacerHTML(){
+  const l=eventosInicio();
+  const zona=municipioElegido()==='Pasca'?'Pasca':'Fusa';
+  return '<section class="seccion-inicio que-hacer" aria-labelledby="tQueHacer"><div class="head-v"><h2 id="tQueHacer">Qué hacer en '+zona+'</h2></div>'
+    +(l.length?'<div class="ev-banner" role="region" aria-roledescription="carrusel" aria-label="Eventos de '+zona+'">'
+      +'<div class="ev-marco"><div class="ev-pista" id="evPista">'+l.map((e,i)=>diapositivaEventoHTML(e,i,l.length)).join('')+'</div>'+flechasEventosHTML(l.length)+'</div>'
+      +controlesEventosHTML(l.length)+'</div>'
+      :'<div class="ev-banner-vacio">'+ILU_EVENTOS+'<div><p>Esta semana no hay eventos publicados.</p>'
+        +'<button class="btn btn-secundario btn-sm mt-8" data-agenda="30">'+icon('calendar-days',18)+'Ver la agenda del mes</button></div></div>')
+    +'</section>';
+}
+function enlazarQueHacer(){
+  const pista=$('#evPista');if(!pista)return;
+  const paso=()=>pista.firstElementChild.offsetWidth+12,actual=()=>Math.round(pista.scrollLeft/paso());
+  pista.addEventListener('scroll',()=>{const i=actual();$$('.ev-banner .banner-puntos span').forEach((x,k)=>x.classList.toggle('on',k===i));},{passive:true});
+  $$('[data-ev-paso]').forEach(b=>(b.onclick=()=>{
+    const n=pista.children.length,i=(actual()+Number(b.dataset.evPaso)+n)%n;
+    pista.scrollTo({left:i*paso(),behavior:sinMovimiento()?'auto':'smooth'});
+  }));
+}
+/* ===== LO QUE NECESITAS (U1, U4): Transporte, Empleos, Salud y Trámites a un toque ===== */
+const NECESITAS=[
+  {t:'Transporte',ic:'bus',vista:{tipo:'transporte'}},
+  {t:'Empleos',ic:'briefcase',vista:{tipo:'empleos'}},
+  {t:'Salud',ic:'stethoscope',vista:{tipo:'lista',cat:'servicios',sub:'salud'}},
+  {t:'Trámites',ic:'landmark',vista:{tipo:'lista',cat:'tramite'}}
+];
+function seccionNecesitasHTML(){
+  return '<section class="seccion-inicio" aria-labelledby="tNecesitas"><div class="head-v"><h2 id="tNecesitas">Lo que necesitas</h2></div><div class="necesitas">'
+    +NECESITAS.map((x,i)=>'<button type="button" class="necesita" data-necesita="'+i+'"><span class="necesita-ic" aria-hidden="true">'+icon(x.ic,28)+'</span>'+x.t+'</button>').join('')
+    +'</div></section>';
+}
+/* ===== RUTAS Y TURISMO (U1): senderos con recorrido guiado primero; «Ver todos» abre Turismo (con Pasca y las rutas) ===== */
+function seccionTurismoHTML(){
+  const mun=municipioElegido();
+  const l=database.filter(d=>d.cat==='turismo'&&enMunicipio(d,mun)).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom));
+  return carruselHTML('Turismo','Rutas y turismo',paraCarrusel(l),'turismo');
+}
+/* ===== OFERTAS Y CUPONES (U1) =====
+   El negocio destacado y los anuncios del admin; después los cupones activos o, si no hay, una sola invitación a registrar
+   un negocio (reemplaza los banners «Ahorra en Fusa» y «¿Tienes un negocio? Súmalo gratis»). */
+function cuponesActivosLista(){const l=[];database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));return l.sort((a,b)=>(aMs(a.c.vigencia)||0)-(aMs(b.c.vigencia)||0));}
+function seccionOfertasHTML(){
+  const cupones=cuponesActivosLista(),anuncios=anunciosInicio();
+  return '<section class="seccion-inicio" aria-labelledby="tOfertas"><div class="head-v"><h2 id="tOfertas">Ofertas y cupones</h2>'
+    +(cupones.length?'<button class="btn-ghost" data-ir-cupones>Ver todos</button>':'')+'</div>'
+    +(anuncios.length?'<div class="carrusel carrusel-anuncios">'+anuncios.map((a,i)=>slideHTML(a,i,anuncios.length)).join('')+'</div>':'')
+    +(cupones.length?'<div class="carrusel carrusel-cupones">'+cupones.slice(0,10).map(({d,c})=>ticketHTML({clase:'ticket-oferta',icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,
+        titulo:c.descripcion,detalle:esc(detalleCupon(c)),accion:'<button class="btn btn-tonal btn-sm" data-vercom="'+esc(d.id)+'">Ver cupón</button>'})).join('')+'</div>'
+      :'<div class="oferta-vacia"><span class="oferta-vacia-ic" aria-hidden="true">'+icon('ticket',28)+'</span><p>Los comercios pueden ofrecer cupones de descuento aquí. ¿Tienes un negocio? Regístralo gratis.</p>'
+        +'<button class="btn btn-primario" data-registrar-negocio>'+icon('store',18)+'Registrar mi negocio</button></div>')
+    +'</section>';
+}
+// Al pie, discretos: opinión e instalar (ya no son tarjetas que aparecen de pronto y empujan el contenido)
+function pieInicioHTML(){
+  return '<div class="pie-inicio"><button type="button" class="enlace-discreto" data-pie-opinion>'+icon('message-circle-heart',16)+'Dar mi opinión</button>'
+    +(mostrarInstalar()?'<button type="button" class="enlace-discreto" data-pie-instalar>'+icon(esIOS?'square-plus':'download',16)+'Instalar la app</button>':'')+'</div>';
+}
+function enlazarInicio(){
+  enlazarQueHacer();
+  $$('#cuerpo [data-necesita]').forEach(b=>(b.onclick=()=>navegar({...NECESITAS[+b.dataset.necesita].vista})));
+  $$('#cuerpo [data-ir-cupones]').forEach(b=>(b.onclick=()=>navegar({tipo:'cupones'})));
+  $$('#cuerpo [data-registrar-negocio]').forEach(b=>(b.onclick=()=>registrarMiNegocio()));
+  $$('#cuerpo [data-vercom]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vercom)));
+  $$('#cuerpo [data-slide]').forEach(b=>(b.onclick=()=>accionSlide(b.dataset.slide)));
+  $$('#cuerpo [data-pie-opinion]').forEach(b=>(b.onclick=()=>abrirOpinion('inicio')));
+  $$('#cuerpo [data-pie-instalar]').forEach(b=>(b.onclick=instalarApp));
+  mejorarFotoDestacado();
+}
+function avisosMunicipioEntradaHTML(){
+  return '<button class="tarjeta-opinion mb-16" data-avisos-municipio><span class="to-ic">'+icon('megaphone',22)+'</span><span class="to-tx"><b>Avisos del municipio</b><small>Jornadas de salud, vacunación y cortes de servicio</small></span>'+icon('chevron-right')+'</button>';
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-avisos-municipio]')){estado.agenda.cat='avisos';irAgenda('30');}});
 
 /* ===== LISTADOS EN CUADRÍCULA DE 2 COLUMNAS (o mapa) ===== */
 const POR_PAGINA=24;
@@ -3507,7 +3511,7 @@ async function generarCupon(d,cupon,boton){
 // Animación: el ticket se desliza desde el botón hasta la billetera de la cabecera
 function volarABilletera(desde){
   if(sinMovimiento()||!desde.animate)return;
-  const destino=$('[data-bn="cupones"] .bn-ic');
+  const destino=$('[data-bn="perfil"] .bn-ic');
   if(!destino)return;
   const a=desde.getBoundingClientRect(),b=destino.getBoundingClientRect();
   const v=document.createElement('div');v.className='ticket-vuelo';v.innerHTML=icon('ticket',22);
@@ -3558,10 +3562,11 @@ function irABilletera(){
   if(!logueado()){pedirLogin('Inicia sesión para ver tus cupones.');return;}
   if(vistaActual().tipo!=='billetera')navegar({tipo:'billetera'});
 }
+// Los cupones guardados viven en Perfil → Mis cupones: el globo con cuántos hay va en la pestaña Perfil
 function pintarGloboCupones(){
   const n=cuponesActivos(),b=$('#bnBadge');
   b.hidden=!n;b.textContent=n>9?'9+':n;
-  $('[data-bn="cupones"]').setAttribute('aria-label','Cupones'+(n?': '+n+(n===1?' activo':' activos'):''));
+  $('[data-bn="perfil"]').setAttribute('aria-label','Perfil'+(n?': '+n+(n===1?' cupón activo':' cupones activos'):''));
 }
 function actualizarBilletera(){
   pintarGloboCupones();
@@ -3627,26 +3632,6 @@ function renderCuponesDisponibles(){
   $$('[data-obtener]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.com);generarCupon(d,cuponesDe(d).find(c=>c.id===b.dataset.obtener),b);}));
   $$('[data-vercom]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vercom)));
   enlazarFooter();
-}
-
-/* ---------- "Cupones de la semana" en el inicio ---------- */
-function cuponesDeLaSemana(){
-  const l=[];
-  database.filter(d=>enMunicipio(d,municipioElegido())).forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
-  return l.sort((a,b)=>(aMs(b.c.fecha_creacion)||0)-(aMs(a.c.fecha_creacion)||0)).slice(0,10);
-}
-function seccionCuponesHTML(){
-  const l=cuponesDeLaSemana();if(!l.length)return '';
-  return '<section class="cupones-semana" aria-labelledby="tCupSem"><div class="head-v"><h2 id="tCupSem">Cupones de la semana</h2><button class="btn-ghost" id="bConCupon">Ver todos</button></div>'
-    +'<div class="carrusel">'+l.map(({d,c})=>ticketHTML({clase:'ticket-mini',attrs:' role="button" tabindex="0" data-ver-cupon="'+esc(d.id)+'"',
-      icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c))})).join('')+'</div></section>';
-}
-function enlazarCuponesSemana(){
-  $$('[data-ver-cupon]').forEach(t=>{
-    const ir=()=>abrirDetalle(t.dataset.verCupon);
-    t.onclick=ir;t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ir();}};
-  });
-  const b=$('#bConCupon');if(b)b.onclick=()=>{estado.filtros.cupon=true;render();};
 }
 
 /* ---------- El comerciante CREA el cupón: asistente de 3 pasos ---------- */
@@ -4748,19 +4733,45 @@ function enlazarSelectorLetra(){
     const n=$('[data-letra-op="'+b.dataset.letraOp+'"]');if(n)n.focus();
   }));
 }
-// Primer uso: una tarjeta en el Inicio pregunta si se quiere la letra más grande (una sola vez)
-function ofertaLetraHTML(){
-  if(letraElegida()||ls.get('fc_letra_preguntada',false))return '';
-  return '<section class="oferta-letra" aria-labelledby="tOfLetra"><h2 id="tOfLetra">¿Quieres la letra más grande?</h2>'
-    +'<p>Puedes cambiarla cuando quieras en Perfil → Apariencia.</p><div class="oferta-acc">'
-    +'<button class="btn btn-primario" data-oferta-letra="grande">Sí, más grande</button><button class="btn btn-secundario" data-oferta-letra="">No, gracias</button></div></section>';
-}
-function enlazarOfertaLetra(){
-  $$('[data-oferta-letra]').forEach(b=>(b.onclick=()=>{
-    ls.set('fc_letra_preguntada',true);
-    if(b.dataset.ofertaLetra){elegirLetra(b.dataset.ofertaLetra);toast('Listo: letra más grande. Puedes cambiarla en Perfil.',5000);}
-    render(true);
+// Primer uso: una hoja (no empuja el Inicio) pregunta si se quiere la letra más grande, una sola vez
+function ofrecerLetraUnaVez(){
+  if(letraElegida()||ls.get('fc_letra_preguntada',false)||$('.overlay.abierto')||$('#splash:not(.oculto)'))return;
+  ls.set('fc_letra_preguntada',true);
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">¿Quieres la letra más grande?</h2><p class="nota">Puedes cambiarla cuando quieras en Perfil → Apariencia.</p>'
+    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" data-oferta-letra="grande">Sí, más grande</button>'
+    +'<button class="btn btn-secundario btn-bloque" data-oferta-letra="">No, gracias</button></div></div>');
+  $('#sheetGen').setAttribute('aria-label','Tamaño de letra');
+  $$('#sheetGen [data-oferta-letra]').forEach(b=>(b.onclick=()=>{
+    cerrar('ovGen');
+    if(b.dataset.ofertaLetra){elegirLetra(b.dataset.ofertaLetra);render(true);toast('Listo: letra más grande. Puedes cambiarla en Perfil.',5000);}
   }));
+}
+
+/* ===== COMUNIDAD (Fase 4): servicios para la comunidad a un toque, en tarjetas grandes con su para qué ===== */
+const COMUNIDAD=[
+  {ic:'bus',t:'Transporte',d:'Rutas, horarios y cómo llegar a la terminal',vista:{tipo:'transporte'}},
+  {ic:'briefcase',t:'Empleos',d:'Ofertas de trabajo en Fusa y Pasca',vista:{tipo:'empleos'}},
+  {ic:'heart-handshake',t:'Perdidos y encontrados',d:'Si perdiste o encontraste algo',vista:{tipo:'perdidos'}},
+  {ic:'landmark',t:'Trámites y avisos del municipio',d:'Alcaldía, notarías, bancos y avisos oficiales',vista:{tipo:'lista',cat:'tramite'}},
+  {ic:'ticket',t:'Cupones y ofertas',d:'Descuentos de los comercios',vista:{tipo:'cupones'}},
+  {ic:'radio',t:'Radio en vivo',d:'',radio:true}
+];
+function tarjetaComunidadHTML(x,i){
+  const sonando=['sonando','conectando'].includes(radio.estado);
+  const detalle=x.radio?(sonando?'Sonando ahora. Toca para pausar':'Toca para escuchar '+EMISORA.nombre):x.d;
+  return '<button type="button" class="comunidad-card'+(x.radio&&sonando?' on':'')+'" data-comunidad="'+i+'"'+(x.radio?' aria-pressed="'+sonando+'"':'')+'>'
+    +'<span class="comunidad-ic" aria-hidden="true">'+icon(x.radio&&sonando?'pause':x.ic,28)+'</span><span class="comunidad-tx"><b>'+esc(x.radio?x.t+' '+EMISORA.frecuencia:x.t)+'</b><small>'+esc(detalle)+'</small></span>'
+    +icon('chevron-right',20)+'</button>';
+}
+function renderComunidad(){
+  $('#cuerpo').innerHTML='<div class="vista"><h1 class="sr-only">Comunidad</h1><p class="comunidad-intro">Servicios para la gente de Fusagasugá y Pasca.</p>'
+    +'<div class="comunidad">'+COMUNIDAD.map(tarjetaComunidadHTML).join('')+'</div></div>'+footerHTML();
+  $$('[data-comunidad]').forEach(b=>(b.onclick=()=>{
+    const x=COMUNIDAD[+b.dataset.comunidad];
+    if(!x.radio){navegar({...x.vista});return;}
+    radioAlternar();setTimeout(()=>{if(vistaActual().tipo==='comunidad')render(true);},400);
+  }));
+  enlazarFooter();
 }
 
 /* ===== PERFIL (RF-04, RNF-05) ===== */
@@ -4772,9 +4783,6 @@ function renderPerfil(){
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
       +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+icon('chevron-right')+'</button>'
-      +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon(esIOS?'square-plus':'download')+(esIOS?'Agregar la app a mi inicio':'Instalar la app en mi celular')+'</button>':'')
@@ -4784,7 +4792,6 @@ function renderPerfil(){
     $('#pfProductor').onclick=registrarMiNegocio;$('#pfLegal').onclick=()=>abrir('ovLegal');
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
-  $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfFavoritos').onclick=irAFavoritos;
     enlazarFooter();return;
   }
@@ -4810,9 +4817,6 @@ function renderPerfil(){
       +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
-    +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
@@ -4842,7 +4846,6 @@ function renderPerfil(){
   $('#pfBilletera').onclick=irABilletera;
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
-  $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfFavoritos').onclick=irAFavoritos;
   $('#pfNotif').onchange=async e=>{
     const sw=e.target,on=sw.checked;
@@ -7017,17 +7020,6 @@ function mostrarInstalar(){
   if(Date.now()-ls.get('fc_instalar_cerrado',0)<3*86400000)return false;
   return ls.get('fc_visitas',1)>=2||Date.now()-INICIO_SESION>=30000;
 }
-function tarjetaInstalarHTML(){
-  if(!mostrarInstalar())return '';
-  return '<div class="tarjeta-instalar" id="tarjetaInstalar"><img src="img/icons/icon-192.png" alt="" width="44" height="44"><div><b>'+(esIOS?'Agrégala a tu inicio':'Instala Fusa Conecta')+'</b><span>'+(esIOS?'Sin App Store: ícono propio y avisos':'Úsala como app, sin navegador y sin conexión')+'</span></div>'
-    +'<button class="btn btn-tonal btn-sm" id="tiSi">'+icon(esIOS?'square-plus':'download',18)+(esIOS?'Cómo':'Instalar')+'</button><button class="btn-redondo ti-no" id="tiNo" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button></div>';
-}
-function enlazarInstalar(){
-  const si=$('#tiSi');if(!si)return;
-  si.onclick=instalarApp;
-  $('#tiNo').onclick=()=>{ls.set('fc_instalar_cerrado',Date.now());$('#tarjetaInstalar').remove();};
-}
-setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrarInstalar())render(true);},30500);
 
 /* ===== Estado abierto/cerrado: una sola función (estadoApertura), refrescada cada 60 s ===== */
 let diaVisto=new Date().toDateString();
@@ -7128,8 +7120,9 @@ function renderBottomNav(){
     const bn=b.dataset.bn;
     // Mis favoritos vive en Perfil: su lista marca la pestaña Perfil
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='agenda'&&v.tipo==='agenda')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))
-      ||(bn==='perfil'&&(['perfil','dashboard','admin','planes'].includes(v.tipo)||(v.tipo==='lista'&&v.cat==='favoritos')));
+      ||(bn==='comunidad'&&['comunidad','transporte','empleos','perdidos','cupones'].includes(v.tipo))
+      ||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))
+      ||(bn==='perfil'&&(['perfil','dashboard','admin','planes','billetera'].includes(v.tipo)||(v.tipo==='lista'&&v.cat==='favoritos')));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
@@ -7139,7 +7132,7 @@ $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     if(bn==='inicio'){inicio();return;}
     if(bn==='agenda'){if(vistaActual().tipo!=='agenda')irAgenda();return;}
-    if(bn==='cupones'){const t=logueado()?'billetera':'cupones';if(vistaActual().tipo!==t)navegar({tipo:t});return;}
+    if(bn==='comunidad'){if(vistaActual().tipo!=='comunidad')navegar({tipo:'comunidad'});return;}
     if(bn==='mapa'){navegar({tipo:'mapa'});return;}
     if(bn==='perfil'){navegar({tipo:'perfil'});}
   };
