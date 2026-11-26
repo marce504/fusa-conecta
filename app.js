@@ -2886,21 +2886,22 @@ function carruselHTML(id,titulo,items,ir,cargando){
 }
 
 /* ===== CATEGORÍAS EN TILES (inicio) =====
-   v6 · Fase 3: siempre 8 mosaicos. "Más" abre solo categorías principales (Bares, Trámites, Salud). */
+   v6 · Fase 3: siempre 8 mosaicos. U4: lo más buscado va primero (Comida, Salud, Tiendas y Trámites); Hospedaje, Bares y
+   Eventos van en «Más» (Eventos también tiene su pestaña Agenda). */
 // Grupos de subcategorías que abre un mosaico (Comida = Comidas + Panaderías; Tiendas = Tiendas + Ferreterías)
 const GRUPOS_SUB={'g-comida':{t:'Comida',subs:['comidas','panaderias']},'g-tiendas':{t:'Tiendas',subs:['tiendas','ferreterias']}};
 const TILES=[
   {t:'Comida',ic:'utensils',cat:'comercio',sub:'g-comida',c:'comer'},
+  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios'},
   {t:'Tiendas',ic:'shopping-bag',cat:'comercio',sub:'g-tiendas',c:'comer'},
+  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites'},
   {t:'Servicios',ic:'hand-helping',cat:'servicios',c:'servicios'},
   {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
   {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
-  {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
-  {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos'},
   // En la hoja "Más"
+  {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje',mas:true},
   {t:'Bares',ic:'wine',cat:'bares',c:'bares',mas:true},
-  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites',mas:true},
-  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true}
+  {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos',mas:true}
 ];
 // Solo los mosaicos con lugares; "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
 function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return x.agenda||database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
