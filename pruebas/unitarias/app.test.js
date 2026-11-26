@@ -1208,3 +1208,60 @@ describe('Buscador tolerante: sinónimos, errores de escritura y orden (E2)', ()
     expect(b.quisisteDecir('xyzqw')).toBe('');
   });
 });
+
+describe('Pregúntale a Fusa: tarjetas del directorio y salida a SOS (E3)', () => {
+  const { COMERCIOS_BASE } = cargar([], {}, ['COMERCIOS_BASE']);
+  const a = cargar(
+    [
+      'norm',
+      'raiz',
+      'tokens',
+      'NIVEL',
+      'toleranciaDe',
+      'distanciaEdicion',
+      'gruposSinonimos',
+      'sinonimosDe',
+      'GRUPOS_SUB',
+      'subDe',
+      'nombreSub',
+      'camposBusqueda',
+      'camposDe',
+      'nivelPalabra',
+      'nivelCoincidencia',
+      'coincide',
+      'VACIAS_ASIS',
+      'RE_URGENCIA',
+      'esUrgenciaAsis',
+      'palabrasAsis',
+      'busquedaDeAsis',
+      'rangoApertura',
+      'lugaresAsis',
+    ],
+    {
+      database: COMERCIOS_BASE,
+      estado: { mayorEdad: false, pos: null },
+      ASIS: { maxTarjetas: 5 },
+      municipioElegido: () => '',
+      enMunicipio: () => true,
+      ordenar: l => l,
+      estadoApertura: () => null,
+    },
+    ['CAT', 'SUBCATS', 'SINONIMOS'],
+  );
+  it('«necesito una drogeria abierta cerca» muestra droguerías del directorio', () => {
+    const l = a.lugaresAsis('necesito una drogeria abierta cerca');
+    expect(l.length).toBe(5);
+    expect(l.every(d => d.sub === 'salud')).toBe(true);
+  });
+  it.each(['necesito una drogeria abierta', 'me duele el pecho', 'urgencias del hospital', 'ambulancia'])(
+    '«%s» es de salud o urgencia: lleva el botón de emergencias',
+    q => expect(a.esUrgenciaAsis(q)).toBe(true),
+  );
+  it('una pregunta de comida no es urgencia', () => {
+    expect(a.esUrgenciaAsis('¿dónde almuerzo?')).toBe(false);
+  });
+  it('propone buscar con las palabras útiles tal como se escribieron', () => {
+    expect(a.palabrasAsis('¿Dónde venden xilófonos cerca?')).toEqual(['xilofono']);
+    expect(a.busquedaDeAsis('¿Dónde venden xilófonos cerca?')).toBe('xilófonos');
+  });
+});

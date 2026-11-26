@@ -762,8 +762,8 @@ function enlazarIAEvento(alLlenar){
    datos de la app (directorio, agenda, rutas, trámites y emergencias). La conversación vive solo en esta pantalla: no se
    guarda en el servidor. Límite por día (hora de Colombia): 30 preguntas con cuenta y 10 como invitado (la cuenta anónima
    del dispositivo); el contador lo validan las reglas. La ubicación se pide solo si la pregunta es "cerca de mí". */
-const ASIS={limiteCuenta:30,limiteInvitado:10,rondas:4,recordar:6,maxTarjetas:5,segundos:30};
-estado.asis={msgs:[],historial:[],quedan:null,ocupado:false,parcial:null};
+const ASIS={limiteCuenta:30,limiteInvitado:10,rondas:4,recordar:6,maxTarjetas:5,segundos:30,lentoSeg:20};
+estado.asis={msgs:[],historial:[],quedan:null,ocupado:false,parcial:null,locales:null,urgencia:false,lento:false,turno:0};
 const diaCol=()=>Math.floor((Date.now()-5*36e5)/864e5);
 const limiteAsis=()=>logueado()?ASIS.limiteCuenta:ASIS.limiteInvitado;
 const CHIPS_ASIS=['¿Qué está abierto ahora?','¿Qué hay para hacer este fin de semana?','Recomiéndame una ruta para caminar',
@@ -900,9 +900,7 @@ function tarjetasAsis(resultados,texto){
   const agregar=(clave,html)=>{if(fuera.has(clave)||filas.length>=ASIS.maxTarjetas)return;fuera.add(clave);filas.push(html);};
   const elegir=l=>{const n=l.filter(x=>nombrado(x.nombre||x.titulo||x.entidad));return n.length?n:l;};
   for(const {r} of resultados){
-    if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(!d)return;
-      agregar('l'+x.id,'<button class="asis-item" data-ver="'+esc(x.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
-        +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(x.ahora!=='Sin horario publicado'?x.ahora:x.tipo)+(x.distancia_km!=null?' · '+fmtDist(x.distancia_km):'')+'</small></span>'+icon('chevron-right',18)+'</button>');});
+    if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(d)agregar('l'+x.id,tarjetaLugarAsisHTML(d));});
     // Eventos de la agenda automática: con el enlace a la publicación oficial
     if(r.eventos)elegir(r.eventos).forEach(x=>{const e=estado.eventos.find(y=>y.id===x.id);if(!e)return;
       const fuente=e.origen==='automatico'&&/^https:\/\//.test(e.enlace_fuente||'');
@@ -916,6 +914,7 @@ function tarjetasAsis(resultados,texto){
   }
   // La nota «confirma horarios y precios» solo cuando se recomiendan lugares, eventos o rutas
   filas.recomienda=[...fuera].some(k=>/^[ler]/.test(k));
+  filas.conLugares=[...fuera].some(k=>k[0]==='l');
   return filas;
 }
 async function modeloAsistente(){
@@ -924,64 +923,133 @@ async function modeloAsistente(){
   return modeloDoble({uso:'asistente',tools,systemInstruction,generationConfig,
     sdk:()=>m.getGenerativeModel(m.ai,{model:IA.modelos[0],tools,systemInstruction,generationConfig})});
 }
+/* ---------- E3: respuesta inmediata con el directorio y nunca sin salida ----------
+   Antes de que conteste la IA (Gemini tarda de 5 a 20 s) se muestran los lugares del directorio que coinciden, con su
+   estado y el botón Llamar. Las preguntas de salud o urgencia llevan siempre el acceso a los números de emergencia. */
+const VACIAS_ASIS=new Set(['necesito','quiero','busco','buscar','donde','hay','una','uno','unos','unas','que','para','por','favor',
+  'cerca','aqui','mi','me','de','del','la','las','el','los','en','con','algo','abierta','abierto','ahora','hoy','ya','urgente','esta',
+  'estan','queda','puedo','encontrar','un','al','como','cual','mas','muy','sitio','lugar','alguna','alguno','tienen','venden'].map(raiz));
+const RE_URGENCIA=/drog|farmac|hospital|clinic|ambulanc|urgenc|emergenc|dolor|duele|herid|accident|sangr|fiebre|infart|desmay|respir|quemad|medic|salud/;
+const esUrgenciaAsis=texto=>RE_URGENCIA.test(norm(texto));
+const palabrasAsis=texto=>tokens(texto).filter(t=>t.length>2&&!VACIAS_ASIS.has(t));
+// Lo que se propone buscar en el directorio, con las palabras tal como las escribió la persona
+const busquedaDeAsis=texto=>texto.replace(/[¿?¡!.,;:]/g,' ').split(/\s+/).filter(w=>palabrasAsis(w).length).join(' ');
+// Abiertos primero, luego los que no tienen horario y al final los cerrados
+const rangoApertura=d=>{const a=estadoApertura(d);return a?(a.abierto?2:0):1;};
+function lugaresAsis(texto){
+  const ps=palabrasAsis(texto);if(!ps.length)return [];
+  const mun=municipioElegido(),n=norm(texto);
+  let l=database.filter(d=>(d.cat!=='bares'||estado.mayorEdad)&&(!mun||enMunicipio(d,mun)));
+  const conTodas=l.filter(d=>ps.every(t=>coincide(d,t)));
+  l=conTodas.length?conTodas:l.filter(d=>ps.some(t=>coincide(d,t)));
+  l=ordenar(l,/cerca|aqui/.test(n)&&estado.pos?'cercanos':'recomendados');
+  if(/abiert/.test(n))l.sort((a,b)=>rangoApertura(b)-rangoApertura(a));
+  return l.slice(0,ASIS.maxTarjetas);
+}
+function tarjetaLugarAsisHTML(d){
+  const ap=estadoApertura(d),km=distanciaA(d),tel=telLimpio(d.tel);
+  const estadoTx=ap?estadoHTML(ap):esc(esNatural(d)?etiquetaDe(d):'Horario sin confirmar');
+  return '<div class="asis-lugar"><button class="asis-item" data-ver="'+esc(d.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
+    +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+estadoTx+(km!=null?' · '+fmtDist(km):'')+'</small></span>'+icon('chevron-right',18)+'</button>'
+    +(tel?'<a class="btn btn-tonal asis-llamar" href="tel:'+tel+'" data-tel="'+esc(d.id)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone',18)+'Llamar</a>':'')+'</div>';
+}
+// Una vuelta completa con la IA: funciones del directorio y la frase final
+async function consultarIA(texto){
+  const A=estado.asis;
+  A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
+  // Cada vuelta tiene su límite. En cuanto las funciones devuelven datos, las tarjetas aparecen; si la frase final
+  // no llega a tiempo, se responde solo con ellas.
+  const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),segIA(ASIS.segundos)*1000,'La IA tardó demasiado');A.parcial=resultados;
+  const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
+  let x=await enviar(chat,texto),resp='';
+  try{
+    for(let i=0;i<ASIS.rondas;i++){
+      const ll=x.response.functionCalls();if(!ll||!ll.length)break;
+      const partes=[];
+      for(const c of ll){
+        const f=FUNCIONES_ASIS[c.name];let res;
+        try{res=f?await f(c.args||{}):{error:'Esa función no existe'};}catch(e){res={error:'No se pudo consultar'};reportarError('asistente, '+c.name,e);}
+        resultados.push({f:c.name,r:res});usadas.push(c.name);partes.push({functionResponse:{name:c.name,response:res}});
+      }
+      pintarAsis();
+      x=await enviar(chat,partes);
+    }
+    try{resp=x.response.text().trim();}catch(e){}
+  }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
+  return {resp,resultados,usadas};
+}
+// Las tarjetas de la IA; si no nombró lugares, las del directorio. Sin tarjetas, botones para seguir buscando
+function respuestaFusa({resp,resultados},texto,locales,urgencia){
+  resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length||locales.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
+  const tarjetas=tarjetasAsis(resultados,resp),propias=tarjetas.conLugares?[]:locales.map(tarjetaLugarAsisHTML);
+  const todas=propias.concat(tarjetas).slice(0,ASIS.maxTarjetas+propias.length);
+  return {rol:'fusa',texto:resp,tarjetas:todas,recomienda:!!tarjetas.recomienda||propias.length>0,sos:urgencia,salidas:!todas.length,buscar:busquedaDeAsis(texto)};
+}
+function errorFusa(e,texto,locales,urgencia){
+  const cod=reportarError('asistente',e);
+  return {rol:'fusa',error:true,reintentar:e.code!=='limite',pregunta:texto,sos:urgencia,tarjetas:locales.map(tarjetaLugarAsisHTML),salidas:!locales.length,buscar:busquedaDeAsis(texto),
+    texto:(locales.length?'Te muestro lo que hay en el directorio. ':'')+(e.code==='limite'?'Ya hiciste las '+limiteAsis()+' preguntas de hoy. Vuelve mañana'+(logueado()?'.':', o inicia sesión para tener '+ASIS.limiteCuenta+' preguntas al día.')
+      :e.code==='tiempo'?'Me demoré demasiado en responder. Intenta de nuevo en un momento. (Error '+cod+')'
+      :cod==='E-CUPO'?'Hay muchas preguntas en este momento. Intenta de nuevo en un minuto. (Error '+cod+')'
+      :'No pude responder ahora. Intenta de nuevo en un momento. (Error '+cod+')')};
+}
 async function preguntarFusa(texto){
   const A=estado.asis;texto=String(texto||'').trim().slice(0,300);
   if(!texto||A.ocupado)return;
   A.msgs.push({rol:'yo',texto});
-  if(!estado.online){A.msgs.push({rol:'fusa',error:true,texto:'Necesito conexión a internet para responder. Los números de emergencia sí funcionan sin conexión.',sos:true});pintarAsis();return;}
-  A.ocupado=true;pintarAsis();
+  const locales=lugaresAsis(texto),urgencia=esUrgenciaAsis(texto);
+  if(!estado.online){A.msgs.push({rol:'fusa',error:true,texto:'Necesito conexión a internet para responder. Los números de emergencia sí funcionan sin conexión.',sos:true,tarjetas:locales.map(tarjetaLugarAsisHTML)});pintarAsis();return;}
+  const turno=++A.turno;
+  Object.assign(A,{ocupado:true,locales,urgencia,lento:false});pintarAsis();
+  const lento=setTimeout(()=>{if(A.turno===turno&&A.ocupado){A.lento=true;pintarAsis();}},ASIS.lentoSeg*1000);
   try{
-    A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
-    // Cada vuelta con la IA tiene su límite. Gemini tarda entre 5 y 20 s por vuelta: en cuanto las funciones
-    // devuelven datos, las tarjetas aparecen; si la frase final no llega a tiempo, se responde solo con ellas.
-    const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),segIA(ASIS.segundos)*1000,'La IA tardó demasiado');A.parcial=resultados;
-    const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
-    let x=await enviar(chat,texto),resp='';
-    try{
-      for(let i=0;i<ASIS.rondas;i++){
-        const ll=x.response.functionCalls();if(!ll||!ll.length)break;
-        const partes=[];
-        for(const c of ll){
-          const f=FUNCIONES_ASIS[c.name];let res;
-          try{res=f?await f(c.args||{}):{error:'Esa función no existe'};}catch(e){res={error:'No se pudo consultar'};console.warn('Asistente',c.name,e);}
-          resultados.push({f:c.name,r:res});usadas.push(c.name);partes.push({functionResponse:{name:c.name,response:res}});
-        }
-        pintarAsis();
-        x=await enviar(chat,partes);
-      }
-      try{resp=x.response.text().trim();}catch(e){}
-    }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
-    resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
-    const tarjetas=tarjetasAsis(resultados,resp);
-    A.msgs.push({rol:'fusa',texto:resp,tarjetas,recomienda:!!tarjetas.recomienda});
-    A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:resp}]});
+    const r=await consultarIA(texto);
+    if(A.turno!==turno)return;   // la persona pidió reintentar: esta respuesta ya no cuenta
+    const m=respuestaFusa(r,texto,locales,urgencia);A.msgs.push(m);
+    A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:m.texto}]});
     A.historial=A.historial.slice(-ASIS.recordar*2);
-    medir('asistente',{funciones:[...new Set(usadas)].join(',')||'ninguna'});
+    medir('asistente',{funciones:[...new Set(r.usadas)].join(',')||'ninguna'});
   }catch(e){
-    const cod=reportarError('asistente',e);
-    A.msgs.push({rol:'fusa',error:true,reintentar:e.code!=='limite',pregunta:texto,
-      texto:e.code==='limite'?'Ya hiciste las '+limiteAsis()+' preguntas de hoy. Vuelve mañana'+(logueado()?'.':', o inicia sesión para tener '+ASIS.limiteCuenta+' preguntas al día.')
-        :e.code==='tiempo'?'Me demoré demasiado en responder. Intenta de nuevo en un momento. (Error '+cod+')'
-        :cod==='E-CUPO'?'Hay muchas preguntas en este momento. Intenta de nuevo en un minuto. (Error '+cod+')'
-        :'No pude responder ahora. Intenta de nuevo en un momento. (Error '+cod+')'});
+    if(A.turno!==turno)return;
+    A.msgs.push(errorFusa(e,texto,locales,urgencia));
     if(e.code==='limite')A.quedan=0;
-  }finally{A.ocupado=false;A.parcial=null;pintarAsis();}
+  }finally{
+    clearTimeout(lento);
+    if(A.turno===turno){Object.assign(A,{ocupado:false,parcial:null,locales:null,lento:false});pintarAsis();}
+  }
+}
+// Pasados 20 s: se deja de esperar esa respuesta y se pregunta otra vez
+function reintentarLento(){
+  const A=estado.asis,ultima=[...A.msgs].reverse().find(m=>m.rol==='yo');if(!ultima)return;
+  A.turno++;A.msgs.splice(A.msgs.lastIndexOf(ultima),1);
+  Object.assign(A,{ocupado:false,parcial:null,locales:null,lento:false});
+  preguntarFusa(ultima.texto);
+}
+const botonSOSAsis='<button class="btn btn-peligro btn-bloque asis-sos" data-asis-sos>'+icon('siren',20)+'Ver números de emergencia</button>';
+function salidasAsisHTML(m){
+  return '<div class="asis-salidas"><button class="btn btn-secundario" data-asis-mapa>'+icon('map',18)+'Ver el mapa</button>'
+    +(m.buscar?'<button class="btn btn-secundario" data-asis-buscar="'+esc(m.buscar)+'">'+icon('search',18)+'Buscar «'+esc(m.buscar)+'»</button>':'')+'</div>';
 }
 function burbujaAsis(m,i){
   if(m.rol==='yo')return '<div class="asis-msg yo"><p>'+esc(m.texto)+'</p></div>';
   return '<div class="asis-msg fusa'+(m.error?' error':'')+'"><span class="asis-ava" aria-hidden="true">'+icon(m.error?'circle-alert':'sparkles',18)+'</span><div class="asis-cont">'
     +String(m.texto).split(/\n+/).map(p=>'<p>'+esc(p)+'</p>').join('')
     +(m.tarjetas&&m.tarjetas.length?'<div class="asis-items">'+m.tarjetas.join('')+'</div>':'')
-    +(m.sos?'<button class="btn btn-secundario btn-sm" data-asis-sos>'+icon('siren',16)+'Ver números de emergencia</button>':'')
+    +(m.salidas&&!m.bienvenida?salidasAsisHTML(m):'')
+    +(m.sos?botonSOSAsis:'')
     +(m.reintentar?'<button class="btn btn-secundario btn-sm" data-reintentar="'+i+'">'+icon('refresh-cw',16)+'Intentar de nuevo</button>':'')
     +(m.rol==='fusa'&&!m.error&&m.recomienda?'<p class="asis-ia">Respuesta con IA: confirma horarios y precios antes de ir.</p>':'')+'</div></div>';
 }
-// Mientras la IA trabaja: primero "Buscando", y cuando las funciones devuelven datos, las tarjetas
-function pensandoAsis(parcial){
-  const t=parcial&&parcial.length?tarjetasAsis(parcial,''):[];
+// Mientras la IA trabaja: el mensaje de espera, los lugares del directorio y, cuando las funciones devuelven datos, sus tarjetas
+function pensandoAsis(A){
+  const ia=A.parcial&&A.parcial.length?tarjetasAsis(A.parcial,''):[];
+  const t=(ia.conLugares?[]:(A.locales||[]).map(tarjetaLugarAsisHTML)).concat(ia);
   return '<div class="asis-msg fusa"><span class="asis-ava" aria-hidden="true">'+icon('sparkles',18)+'</span><div class="asis-cont">'
-    +'<p class="asis-pensando">'+(t.length?'Encontré esto. Estoy escribiendo la respuesta':'Buscando en Fusa Conecta')+'<span aria-hidden="true"><i></i><i></i><i></i></span></p>'
-    +(t.length?'<div class="asis-items">'+t.join('')+'</div>':'')+'</div></div>';
+    +'<p class="asis-pensando">'+(ia.length?'Encontré esto. Estoy escribiendo la respuesta':'Estoy buscando… esto puede tardar unos segundos')+'<span aria-hidden="true"><i></i><i></i><i></i></span></p>'
+    +(t.length?'<div class="asis-items">'+t.join('')+'</div>':'')
+    +(A.urgencia?botonSOSAsis:'')
+    +(A.lento?'<p class="asis-lento">Está tardando más de lo normal.</p><button class="btn btn-secundario" data-asis-lento>'+icon('refresh-cw',18)+'Intentar de nuevo</button>':'')
+    +'</div></div>';
 }
 function pintarNotaAsis(){
   const n=$('#asisCupo');if(!n)return;const q=estado.asis.quedan;
@@ -992,13 +1060,16 @@ function pintarAsis(){
   const bienvenida={rol:'fusa',bienvenida:true,texto:'Hola, soy Fusa. Te ayudo a encontrar lugares, planes, rutas, trámites y números de emergencia en Fusagasugá y Pasca.'};
   log.innerHTML=[bienvenida,...A.msgs].map((m,i)=>burbujaAsis(m,i-1)).join('')
     +(A.msgs.length?'':'<div class="asis-chips" role="group" aria-label="Preguntas de ejemplo">'+CHIPS_ASIS.map(c=>'<button class="chip-filtro" data-chip>'+esc(c)+'</button>').join('')+'</div>')
-    +(A.ocupado?pensandoAsis(A.parcial):'');
+    +(A.ocupado?pensandoAsis(A):'');
   $$('#asisLog [data-chip]').forEach(b=>(b.onclick=()=>preguntarFusa(b.textContent)));
   $$('#asisLog [data-ver]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.ver)));
   $$('#asisLog [data-evento]').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
   $$('#asisLog [data-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'ruta',id:b.dataset.ruta})));
   $$('#asisLog [data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
   $$('#asisLog [data-asis-sos]').forEach(b=>(b.onclick=()=>navegar({tipo:'sos'})));
+  $$('#asisLog [data-asis-mapa]').forEach(b=>(b.onclick=()=>navegar({tipo:'mapa'})));
+  $$('#asisLog [data-asis-buscar]').forEach(b=>(b.onclick=()=>buscarTexto(b.dataset.asisBuscar)));
+  $$('#asisLog [data-asis-lento]').forEach(b=>(b.onclick=reintentarLento));
   $$('#asisLog [data-reintentar]').forEach(b=>(b.onclick=()=>{const m=A.msgs[+b.dataset.reintentar];A.msgs.splice(+b.dataset.reintentar-1,2);preguntarFusa(m.pregunta);}));
   const env=$('#asisEnviar');if(env){env.disabled=A.ocupado;env.setAttribute('aria-busy',A.ocupado);}
   pintarNotaAsis();
