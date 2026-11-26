@@ -493,7 +493,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
           'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar',
-          'foto_credito', 'foto_fuente'])
+          'foto_credito', 'foto_fuente', 'con_foto'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 60) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -514,6 +514,9 @@ service cloud.firestore {
         // Fase 6: de quién es la foto y de dónde salió
         && campoTexto(d, 'foto_credito', 120)
         && d.get('foto_fuente', '') in ['', 'propia', 'oficial', 'generica']
+        // La foto va en eventos/{id}/fotos/0 (con_foto: true). «imagen» es de los eventos anteriores: la agenda
+        // automática la mueve a la subcolección; una foto dentro de cada evento hacía bajar 1,7 MB al abrir la app
+        && d.get('con_foto', false) is bool
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']
@@ -524,6 +527,8 @@ service cloud.firestore {
       allow read: if resource.data.estado == 'publicado' || esAdmin()
         || (cuentaReal() && resource.data.creado_por == request.auth.uid);
       allow create: if eventoValido(request.resource.data)
+        // Los eventos nuevos llevan la foto aparte (fotos/0), nunca dentro del documento
+        && request.resource.data.get('imagen', '') == ''
         // Solo el admin crea eventos de ejemplo (demo)
         && (esAdmin()
           || (tienePerfil() && request.resource.data.estado == 'pendiente'
@@ -542,6 +547,26 @@ service cloud.firestore {
         || (soloCambia(['estado', 'motivo']) && request.resource.data.estado in ['pendiente', 'publicado', 'rechazado']
             && campoTexto(request.resource.data, 'motivo', 200)));
       allow delete: if esAdmin();
+
+      // La foto del evento (máx. 200 KB en WebP o JPEG), aparte: la app la pide solo cuando el evento se ve en pantalla.
+      // Quien sugiere un evento la sube en el mismo lote en que lo crea; después, solo el admin la cambia o la borra.
+      match /fotos/{n} {
+        function evento() { return get(/databases/$(database)/documents/eventos/$(id)).data; }
+        function fotoValida() {
+          return n == '0'
+            && request.resource.data.keys().hasOnly(['data', 'ancho', 'alto', 'bytes'])
+            && request.resource.data.data is string && request.resource.data.data.size() <= 280000
+            && request.resource.data.data.matches('data:image/(webp|jpeg);base64,.*');
+        }
+        allow read: if evento().estado == 'publicado' || esAdmin()
+          || (cuentaReal() && evento().creado_por == request.auth.uid);
+        allow create: if fotoValida() && (esAdmin()
+          || (cuentaReal() && !exists(/databases/$(database)/documents/eventos/$(id))
+            && getAfter(/databases/$(database)/documents/eventos/$(id)).data.creado_por == request.auth.uid
+            && getAfter(/databases/$(database)/documents/eventos/$(id)).data.get('con_foto', false) == true));
+        allow update: if esAdmin() && fotoValida();
+        allow delete: if esAdmin();
+      }
     }
 
     /* ---------- Trazados oficiales (v8): el admin graba un sendero del directorio con la app y lo publica ----------
