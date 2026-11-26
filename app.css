@@ -152,6 +152,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .nav-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm);font-weight:500;transition:background var(--t)}
 .nav-btn:hover{background:var(--line)}
 .nav-btn.invisible{display:none}
+/* E6: nombre de la pestaña a la izquierda de la barra superior */
+.nav-titulo{font-size:var(--text-xl);font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-titulo[hidden]{display:none}
 .descubre{padding:12px 16px}
 .sesion{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;margin-bottom:8px}
 .sesion-acciones{display:flex;align-items:center;gap:6px}

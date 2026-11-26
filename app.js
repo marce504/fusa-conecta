@@ -2283,6 +2283,12 @@ function pintarSaludo(){
   $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en '+(municipioElegido()==='Pasca'?'Pasca':municipioElegido()?'Fusa':'Fusa y Pasca')+'?</span></div>'+pildoraRadioHTML();
   $('#pRadio').onclick=radioAlternar;
 }
+// E6: las pestañas de la barra inferior muestran su nombre arriba a la izquierda (sin «Volver», la barra se veía vacía)
+const TITULO_PESTANA={mapa:'Mapa',billetera:'Mis cupones',cupones:'Cupones',agenda:'Agenda',perfil:'Mi perfil'};
+function pintarTituloBarra(v,enLista){
+  const t=$('#navTitulo'),texto=!enLista&&$('#bVolver').classList.contains('invisible')?TITULO_PESTANA[v.tipo]||'':'';
+  t.textContent=texto;t.hidden=!texto;
+}
 function renderHeader(){
   const v=vistaActual();
   // Mis favoritos se abre desde Perfil: es una pantalla de segundo nivel (con «Volver»), sin el saludo ni el buscador del inicio
@@ -2290,6 +2296,7 @@ function renderHeader(){
   // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
   // Las pestañas de la barra inferior (Mapa, Cupones, Inicio, Agenda, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
   $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','agenda','perfil'].includes(v.tipo));
+  pintarTituloBarra(v,enLista);
   $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
