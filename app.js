@@ -322,14 +322,19 @@ function eventosEn(rango,cat){
   return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&enMunicipio(e,municipioElegido())&&(cat==='avisos'?esAviso(e):!esAviso(e)&&(!cat||e.categoria===cat)));
 }
 function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
+// E8: ya empezó y no ha terminado
+const enCurso=(e,ahora=Date.now())=>e.ini<=ahora&&e.fin>=ahora;
 function fechaEvento(e){
   const a=new Date(e.ini),b=new Date(e.fin),mismoDia=a.toDateString()===b.toDateString();
   const dia=d=>DIAS_EV[d.getDay()]+' '+d.getDate()+' de '+MESES3[d.getMonth()];
+  if(enCurso(e))return 'En curso · hasta '+(mismoDia?'las '+horaEv(e.fin):'el '+dia(b));
   // v1.4.2: la fuente no dijo a qué hora termina (la agenda lo deja vigente todo el día)
   if(e.sin_hora_fin&&mismoDia)return dia(a)+' · desde las '+horaEv(e.ini);
   return dia(a)+' · '+horaEv(e.ini)+(mismoDia?' – '+horaEv(e.fin):' al '+dia(b));
 }
-const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};
+// Bloque de calendario: el día del evento o, si ya está en curso, «HOY» con la fecha de hoy
+const calBloque=e=>{const hoy=enCurso(e),d=new Date(hoy?Date.now():e.ini);
+  return '<span class="cal-bloque'+(hoy?' en-curso':'')+'" aria-hidden="true"><small>'+(hoy?'HOY':DIAS3[d.getDay()])+'</small><b>'+d.getDate()+'</b></span>';};
 const precioEv=e=>e.gratis?'Gratis':(e.precio||'Con costo');
 // v1.3.0: los eventos de Pasca dicen «Pasca» en la tarjeta, para no confundirlos con los de Fusagasugá
 const lugarEv=e=>esc(e.lugar_nombre)+(municipioDe(e)==='Pasca'&&!/pasca/i.test(e.lugar_nombre||'')?' · Pasca':'');
@@ -341,11 +346,11 @@ const iluEvento=(e,tam,clase)=>{const c=catEvento(e.categoria);return '<span cla
 // Tarjeta de evento para el carrusel del inicio (mismo tamaño que la tarjeta compacta)
 function tarjetaEventoHTML(e){
   return '<article class="tarjeta tarjeta-ev"><div class="tc-foto">'+iluEvento(e,32,'tc-ilu')
-    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
+    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e)+'</div>'
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +(e.fuente_oficial?'<p class="tc-linea ev-oficial">'+icon('badge-check',12)+'Fuente oficial</p>':'')
-    +'<p class="tc-linea">'+icon('map-pin',12)+lugarEv(e)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
+    +'<p class="tc-linea">'+icon('map-pin',12)+lugarEv(e)+'</p><p class="tc-linea">'+(enCurso(e)?'En curso':horaEv(e.ini))+' · '+esc(precioEv(e))+'</p></article>';
 }
 // Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
 const puedePublicarEventos=()=>esAdmin()||esComerciante()||esOrganizador();
@@ -379,7 +384,7 @@ function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agend
 /* ---------- Pantalla Agenda: Hoy · Este fin de semana · Próximos 30 días · categoría; lista o mapa ---------- */
 function filaEventoHTML(e){
   const c=catEvento(e.categoria);
-  return '<article class="ev-fila">'+calBloque(e.ini)
+  return '<article class="ev-fila">'+calBloque(e)
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+lugarEv(e)+'</p>'
     +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
@@ -456,7 +461,7 @@ function abrirEvento(id){
   enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
-  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e.ini)+'</div>'
+  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e)+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
     +(e.fuente_oficial?' <span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
@@ -901,7 +906,7 @@ function tarjetasAsis(resultados,texto){
     // Eventos de la agenda automática: con el enlace a la publicación oficial
     if(r.eventos)elegir(r.eventos).forEach(x=>{const e=estado.eventos.find(y=>y.id===x.id);if(!e)return;
       const fuente=e.origen==='automatico'&&/^https:\/\//.test(e.enlace_fuente||'');
-      agregar('e'+x.id,(fuente?'<div class="asis-ev">':'')+'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e.ini)
+      agregar('e'+x.id,(fuente?'<div class="asis-ev">':'')+'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e)
         +'<span class="asis-item-tx"><b>'+esc(e.titulo)+'</b><small>'+esc(horaEv(e.ini)+' · '+e.lugar_nombre)+'</small></span>'+icon('chevron-right',18)+'</button>'
         +(fuente?'<a class="asis-fuente" href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">'+icon('external-link',14)+'Ver fuente oficial</a></div>':''));});
     if(r.rutas)elegir(r.rutas).forEach(x=>agregar('r'+x.id,'<button class="asis-item" data-ruta="'+esc(x.id)+'"><span class="asis-item-ic c-turismo">'+icon('route',20)+'</span>'
@@ -1522,7 +1527,7 @@ function enlazarAgendaAutoAdmin(){
 }
 function eventosAdminHTML(){
   const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
-  const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e.ini)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
+  const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
     +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA',automatico:'agenda automática'+(e.fuente_oficial?' (fuente oficial)':'')}[e.origen]||e.origen)+'</p>'
     +(e.hora_por_confirmar||e.lugar_por_confirmar?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p><b>Revisa antes de publicar:</b> '
       +[e.hora_por_confirmar?'la noticia no dice la hora (la agenda puso 9:00 a. m.)':'',e.lugar_por_confirmar?'el lugar no está claro':''].filter(Boolean).join(' y ')

@@ -480,7 +480,7 @@ describe('pistaDiagnostico: errores de la IA con arreglo conocido', () => {
 });
 
 describe('fechaEvento: eventos sin hora de cierre', () => {
-  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'fechaEvento'], {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'fechaEvento'], {
     DIAS_EV: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
     MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
   });
@@ -1073,5 +1073,35 @@ describe('Agenda: cada evento una sola vez (E1)', () => {
       { id: 'e', ...expo, ini: ini + 864e5 },
     ];
     expect(sinRepetidos(l).map(e => e.id)).toEqual(['a', 'd', 'e']);
+  });
+});
+
+describe('fechaEvento: eventos en curso (E8)', () => {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'fechaEvento'], {
+    DIAS_EV: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+    MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  });
+  const expo = {
+    ini: new Date('2026-11-24T14:00:00-05:00').getTime(),
+    fin: new Date('2026-11-28T18:00:00-05:00').getTime(),
+  };
+  it('el 26 dice «En curso · hasta el sáb 28 de nov» y no «mar 24»', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-26T10:00');
+    expect(fechaEvento(expo)).toBe('En curso · hasta el sáb 28 de nov');
+  });
+  it('antes de empezar muestra la fecha de inicio', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-23T10:00');
+    expect(fechaEvento(expo)).toBe('mar 24 de nov · 2:00 p. m. al sáb 28 de nov');
+  });
+  it('un evento de un solo día en curso dice hasta qué hora', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-26T16:00');
+    const taller = {
+      ini: new Date('2026-11-26T15:00:00-05:00').getTime(),
+      fin: new Date('2026-11-26T17:00:00-05:00').getTime(),
+    };
+    expect(fechaEvento(taller)).toBe('En curso · hasta las 5:00 p. m.');
   });
 });
