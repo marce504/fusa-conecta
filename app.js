@@ -3160,7 +3160,8 @@ function abrirDetalle(id){
       +(c.comentario?'<p class="op-text">'+esc(c.comentario)+'</p>':'')
       +'<span class="op-fecha">'+fechaCorta(aMs(c.fecha))+(c.fueEditada?' · editada':'')+' · <button class="enlace-discreto" data-rep="'+esc(c._id)+'">Reportar</button></span></div>').join('');
   const formCalif=logueado()
-    ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella':' estrellas')+'">'+icon('star',28)+'</button>').join('')+'</div>'
+    ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella: ':' estrellas: ')+PALABRA_ESTRELLAS[n]+'">'+icon('star',30)+'</button>').join('')+'</div>'
+      +'<p class="star-ayuda" id="starAyuda" aria-live="polite">'+textoEstrellas(miCalif?miCalif.estrellas:0)+'</p>'
       +'<div class="campo"><label for="ratingTxt">Tu opinión (opcional)</label><textarea id="ratingTxt" maxlength="500" placeholder="Cuéntanos tu experiencia...">'+esc(miCalif?miCalif.comentario:'')+'</textarea></div>'
       +'<button class="btn btn-tonal btn-bloque" id="bCalificar">'+(miCalif?'Actualizar mi calificación':'Enviar calificación')+'</button>'
     :'<button class="btn btn-secundario btn-bloque" id="bLoginCalif">Inicia sesión para calificar</button>';
@@ -3290,7 +3291,7 @@ function abrirDetalle(id){
   if(!logueado()){$('#bLoginCalif').onclick=()=>pedirLogin('Inicia sesión para calificar y comentar.');return;}
   let val=miCalif?miCalif.estrellas:0;
   const stars=$$('#starSel button');
-  const pintar=n=>stars.forEach((s,i)=>{s.classList.toggle('on',i<n);s.setAttribute('aria-checked',i+1===val);});
+  const pintar=n=>{stars.forEach((s,i)=>{s.classList.toggle('on',i<n);s.setAttribute('aria-checked',i+1===val);});$('#starAyuda').textContent=textoEstrellas(n);};
   pintar(val);
   stars.forEach(s=>{
     s.onclick=()=>{val=+s.dataset.n;pintar(val);};
@@ -3307,7 +3308,10 @@ function guardarDesdeFicha(d){
   if(g){g.classList.toggle('on',on);g.setAttribute('aria-pressed',on);g.innerHTML=icon('heart')+(on?'Guardado':'Guardar');}
 }
 
-/* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar ===== */
+/* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar =====
+   U5: estrellas vacías con borde oscuro (contraste 3:1 o más), amarillas al elegir y una palabra que explica la nota. */
+const PALABRA_ESTRELLAS=['','Malo','Regular','Bueno','Muy bueno','Excelente'];
+function textoEstrellas(n){return n?n+(n===1?' estrella: ':' estrellas: ')+PALABRA_ESTRELLAS[n]:'Toca una estrella para calificar';}
 async function enviarCalificacion(d,estrellasSel,comentario,editada){
   if(!estrellasSel){toast('Selecciona de 1 a 5 estrellas');return;}
   if(!estado.online){toast('Necesitas conexión a internet para calificar');return;}

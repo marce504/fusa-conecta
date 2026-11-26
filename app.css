@@ -363,11 +363,14 @@ button:disabled{opacity:.6;pointer-events:none}
 .det-acc-fija .btn{flex:1;padding:0 8px;font-size:var(--text-sm)}
 .seccion-det{margin-top:24px}
 .seccion-det h3{font-size:var(--text-lg);margin-bottom:12px}
-.star-sel{display:flex;gap:4px;margin-bottom:12px}
-.star-sel button{width:44px;height:44px;display:grid;place-items:center;color:var(--line);transition:color var(--t),transform var(--t)}
-.star-sel button.on{color:var(--sun-400)}
+/* U5: vacías = solo el borde en tinta 2 (6:1 sobre blanco); elegidas = relleno sol con borde ámbar */
+.star-sel{display:flex;gap:4px}
+.star-sel button{width:48px;height:48px;display:grid;place-items:center;color:var(--ink-2);transition:color var(--t),transform var(--t)}
+.star-sel .ic{fill:none;stroke-width:2}
+.star-sel button.on{color:var(--sun-800)}
+.star-sel button.on .ic{fill:var(--sun-400)}
 .star-sel button:active{transform:scale(1.15)}
-.star-sel .ic{fill:currentColor}
+.star-ayuda{margin:4px 0 12px;font-size:var(--text-base);font-weight:600;color:var(--ink)}
 .opiniones{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .opinion{background:var(--soft);border-radius:var(--radius-md);padding:12px}
 .op-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
