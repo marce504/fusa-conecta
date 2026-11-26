@@ -16,7 +16,7 @@ from . import avisos, formatos, ia, reclamos, servicios
 from .repositorio import Repositorio, repositorio
 from .utilidades import dia_col, mes_valido, nombre_archivo, norm, paginar
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 INICIO = time.time()
 API_URL = os.environ.get("API_URL", "https://fusa-conecta-api.onrender.com").rstrip("/")
 ORIGENES = [o.strip() for o in os.environ.get("ORIGENES", "https://fusa-conecta.web.app").split(",") if o.strip()]
@@ -642,31 +642,60 @@ def enviar_alerta(
     vence = _ms(doc.get("vence"))
     if doc.get("estado") != "publicada" or vence is None or vence <= time.time() * 1000:
         raise HTTPException(409, "La alerta está retirada o ya venció")
-    if not repo_avisos.registrar_envio_alerta(pedido.id, {"por": uid_admin}):
+    if not repo_avisos.registrar_envio("alertas", pedido.id, {"por": uid_admin}):
         return {"repetido": True, "dispositivos": 0, "enviados": 0}
     titulo, texto, enlace = avisos.mensaje_alerta(doc, pedido.id)
-    duenos: dict[str, str] = {}
-    for uid, tokens in repo_avisos.todos_los_dispositivos().items():
-        perfil = repo_avisos.documento("usuarios", uid) or {}
-        if perfil.get("notificaciones_push") is False:
-            continue
-        for t in tokens:
-            duenos[t] = uid
-    todos = list(duenos)
-    enviados, malos = 0, []
-    for i in range(0, len(todos), avisos.LOTE_FCM):
-        e, m = avisador.enviar(todos[i : i + avisos.LOTE_FCM], titulo, texto, enlace, f"alerta-{pedido.id}")
-        enviados += e
-        malos += m
-    por_uid: dict[str, list[str]] = {}
-    for t in malos:
-        por_uid.setdefault(duenos[t], []).append(t)
-    for uid, tokens in por_uid.items():
-        repo_avisos.borrar_dispositivos(uid, tokens)
-    respuesta = {"repetido": False, "dispositivos": len(todos) - len(malos), "enviados": enviados}
-    repo_avisos.completar_envio_alerta(pedido.id, {"dispositivos": respuesta["dispositivos"], "enviados": enviados})
-    log.info("Alerta %s enviada a %d celulares", pedido.id, enviados)
-    return respuesta
+    r = avisos.enviar_a_todos(repo_avisos, avisador, titulo, texto, enlace, f"alerta-{pedido.id}")
+    repo_avisos.completar_envio("alertas", pedido.id, r)
+    log.info("Alerta %s enviada a %d celulares", pedido.id, r["enviados"])
+    return {"repetido": False, **r}
+
+
+@app.post(
+    "/v1/eventos/{id_}/avisar",
+    tags=["Avisos"],
+    summary="Avisar al celular de todos un evento recién publicado",
+    responses={
+        401: {"description": "Sin token o vencido"},
+        403: {"description": "No es admin ni quien publicó el evento"},
+        404: {"description": "No existe el evento"},
+        409: {"description": "El evento no está publicado, es de ejemplo o ya terminó"},
+        503: {"description": "Falta la cuenta de servicio de avisos"},
+    },
+)
+@limiter.limit("10/minute")
+def avisar_evento(
+    request: Request,
+    repo: Repo,
+    usuario: Usuario,
+    id_: Annotated[str, Path(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$")],
+    repo_avisos: Annotated[avisos.RepositorioAvisos, Depends(_repo_avisos)],
+    avisador: Annotated[avisos.Avisador, Depends(_avisador)],
+) -> dict:
+    """La app lo llama **después** de publicar un evento (el admin, o un organizador confiable que publica directo).
+
+    1. Solo el admin o quien publicó el evento, y solo si está publicado, no es de ejemplo y no ha terminado.
+    2. Registra el envío con un id fijo (`eventos/{id}/envios/push`): editarlo o reintentar no repite el aviso.
+    3. Manda el push a quienes no apagaron los avisos ni «Eventos nuevos» (`avisos_eventos` en su perfil).
+    """
+    uid = usuario.get("uid", "")
+    doc = repo_avisos.documento("eventos", id_)
+    if doc is None:
+        raise HTTPException(404, "No existe ese evento")
+    if repo.rol(uid) != "admin" and doc.get("creado_por") != uid:
+        raise HTTPException(403, "Solo el admin o quien publicó el evento")
+    fin = _ms(doc.get("fecha_fin"))
+    if doc.get("estado") != "publicado" or doc.get("demo") or fin is None or fin <= time.time() * 1000:
+        raise HTTPException(409, "El evento no está publicado, es de ejemplo o ya terminó")
+    if not repo_avisos.registrar_envio("eventos", id_, {"por": uid}):
+        return {"repetido": True, "dispositivos": 0, "enviados": 0}
+    titulo, texto, enlace = avisos.mensaje_evento(doc, id_, _ms(doc.get("fecha_inicio")))
+    r = avisos.enviar_a_todos(
+        repo_avisos, avisador, titulo, texto, enlace, f"evento-{id_}", lambda p: p.get("avisos_eventos") is not False
+    )
+    repo_avisos.completar_envio("eventos", id_, r)
+    log.info("Evento %s avisado a %d celulares", id_, r["enviados"])
+    return {"repetido": False, **r}
 
 
 # ---------- IA de respaldo (v1.3.0) ----------

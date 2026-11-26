@@ -11,13 +11,18 @@ en alertas/{id}/envios (lo comprueban las pruebas).
 
 Alertas municipales (API v1.4.0): el admin publica alertas/{id} desde el panel y llama a POST /v1/alertas/enviar. La
 API manda el push a todos los dispositivos de quienes no apagaron los avisos, una sola vez por alerta.
+
+Eventos nuevos (API v1.7.0): al publicarse un evento, la app llama a POST /v1/eventos/{id}/avisar y la API avisa a todos
+los que no apagaron los avisos ni «Eventos nuevos», una sola vez por evento (eventos/{id}/envios/push).
 """
 
 from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Protocol
 
 Tipo = Literal["comercio", "evento", "ruta", "premium", "reclamo", "reclamo_comercio", "empleo"]
@@ -191,6 +196,33 @@ def mensaje_alerta(doc: dict, id_: str) -> tuple[str, str, str]:
     return titulo, texto, f"#/alerta/{id_}"
 
 
+ZONA_COL = timezone(timedelta(hours=-5))
+DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+MESES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)  # fmt: skip
+
+
+def fecha_evento(ms: float) -> str:
+    """«sábado 28 de noviembre, 4:00 p. m.» en la hora de Colombia."""
+    d = datetime.fromtimestamp(ms / 1000, ZONA_COL)
+    hora = f"{d.hour % 12 or 12}:{d.minute:02d} {'a. m.' if d.hour < 12 else 'p. m.'}"
+    return f"{DIAS[d.weekday()]} {d.day} de {MESES[d.month - 1]}, {hora}"
+
+
+def mensaje_evento(doc: dict, id_: str, inicio_ms: float | None) -> tuple[str, str, str]:
+    """(título, texto, enlace) del push de un evento recién publicado."""
+    mun = doc.get("municipio") or "Fusagasugá"
+    titulo = f"{'Aviso del municipio' if doc.get('tipo') == 'aviso' else 'Nuevo evento'} en {mun}"
+    partes = [
+        f"«{(doc.get('titulo') or '').strip()}»",
+        fecha_evento(inicio_ms) if inicio_ms else "",
+        (doc.get("lugar_nombre") or "").strip(),
+    ]
+    return titulo, " · ".join(p for p in partes if p)[:300], f"#/evento/{id_}"
+
+
 # ---------- Acceso a Firestore con la cuenta de avisos ----------
 class RepositorioAvisos(Protocol):
     def documento(self, coleccion: str, id_: str) -> dict | None: ...
@@ -199,8 +231,8 @@ class RepositorioAvisos(Protocol):
     def borrar_dispositivos(self, uid: str, tokens: list[str]) -> None: ...
     def todos_los_dispositivos(self) -> dict[str, list[str]]: ...
     def admins(self) -> list[str]: ...
-    def registrar_envio_alerta(self, id_: str, datos: dict) -> bool: ...
-    def completar_envio_alerta(self, id_: str, datos: dict) -> None: ...
+    def registrar_envio(self, coleccion: str, id_: str, datos: dict) -> bool: ...
+    def completar_envio(self, coleccion: str, id_: str, datos: dict) -> None: ...
 
 
 class Avisador(Protocol):
@@ -252,20 +284,25 @@ class RepositorioAvisosFirestore:
                 out.setdefault(padre.id, []).append(d.id)
         return out
 
-    def registrar_envio_alerta(self, id_: str, datos: dict) -> bool:
-        """Marca la alerta como enviada con un id fijo: si el admin reintenta, no se repite (False si ya estaba)."""
+    def registrar_envio(self, coleccion: str, id_: str, datos: dict) -> bool:
+        """Marca la alerta o el evento como avisado (alertas|eventos/{id}/envios/push) con un id fijo: si se reintenta,
+        no se repite (False si ya estaba)."""
         from google.api_core.exceptions import AlreadyExists
         from google.cloud.firestore_v1 import SERVER_TIMESTAMP
 
+        if coleccion not in ("alertas", "eventos"):
+            raise ValueError(coleccion)
         try:
-            ref = self.db.collection("alertas").document(id_).collection("envios").document("push")
+            ref = self.db.collection(coleccion).document(id_).collection("envios").document("push")
             ref.create({**datos, "fecha": SERVER_TIMESTAMP})
             return True
         except AlreadyExists:
             return False
 
-    def completar_envio_alerta(self, id_: str, datos: dict) -> None:
-        self.db.collection("alertas").document(id_).collection("envios").document("push").set(datos, merge=True)
+    def completar_envio(self, coleccion: str, id_: str, datos: dict) -> None:
+        if coleccion not in ("alertas", "eventos"):
+            raise ValueError(coleccion)
+        self.db.collection(coleccion).document(id_).collection("envios").document("push").set(datos, merge=True)
 
 
 class AvisadorFCM:
@@ -294,6 +331,38 @@ class AvisadorFCM:
             ):
                 malos.append(t)
         return r.success_count, malos
+
+
+def enviar_a_todos(
+    repo: RepositorioAvisos,
+    avisador: Avisador,
+    titulo: str,
+    texto: str,
+    enlace: str,
+    etiqueta: str,
+    quiere: Callable[[dict], bool] = lambda perfil: True,
+) -> dict:
+    """Push a los celulares de quienes no apagaron los avisos (y «quiere» su perfil), en lotes de 500. Borra los tokens
+    que ya no sirven. Devuelve {"dispositivos": n, "enviados": n}."""
+    duenos: dict[str, str] = {}
+    for uid, tokens in repo.todos_los_dispositivos().items():
+        perfil = repo.documento("usuarios", uid) or {}
+        if perfil.get("notificaciones_push") is False or not quiere(perfil):
+            continue
+        for t in tokens:
+            duenos[t] = uid
+    todos = list(duenos)
+    enviados, malos = 0, []
+    for i in range(0, len(todos), LOTE_FCM):
+        e, m = avisador.enviar(todos[i : i + LOTE_FCM], titulo, texto, enlace, etiqueta)
+        enviados += e
+        malos += m
+    por_uid: dict[str, list[str]] = {}
+    for t in malos:
+        por_uid.setdefault(duenos[t], []).append(t)
+    for uid, tokens in por_uid.items():
+        repo.borrar_dispositivos(uid, tokens)
+    return {"dispositivos": len(todos) - len(malos), "enviados": enviados}
 
 
 _estado: dict[str, Any] = {}

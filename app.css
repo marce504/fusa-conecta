@@ -1916,3 +1916,17 @@ html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
 .det-hero .pill-cat{top:auto;bottom:12px;left:12px;max-width:calc(100% - 24px)}
 .det-hero .badge-dest{top:auto;bottom:56px;left:12px}
 .det-hero .foto-referencia{right:12px;bottom:12px}
+
+/* v103: afiches de eventos. Los verticales se ven completos sobre una copia difuminada (nada queda cortado);
+   en el formulario, la vista previa con el marco del Inicio y los controles para acomodar el encuadre */
+.ev-foto-editor{display:flex;flex-direction:column;gap:10px;margin:12px 0 16px}
+.ev-foto-tit{font-size:var(--text-base);font-weight:600;color:var(--ink)}
+.ev-foto-marco{position:relative;aspect-ratio:16/10;border-radius:var(--radius-lg);overflow:hidden;background:var(--soft);display:grid;place-items:center;color:var(--ink-2);text-align:center;padding:16px}
+.ev-foto-marco img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ev-foto-marco.arrastrable{cursor:grab;touch-action:none}
+.ev-foto-marco.arrastrable:active{cursor:grabbing}
+.ev-foto-modo .chip-filtro,.ev-foto-flechas .btn{min-height:48px}
+.ev-foto-flechas{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ev-ver-afiche{position:absolute;right:12px;bottom:12px;z-index:1;display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 16px;border-radius:var(--radius-full);background:color-mix(in srgb,var(--tinta-fija) 72%,transparent);color:var(--blanco);font-size:var(--text-sm);font-weight:600}
+img.foto-completa{object-fit:contain}
+img.foto-fondo{object-fit:cover;filter:blur(16px) brightness(.7);transform:scale(1.15)}

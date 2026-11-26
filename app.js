@@ -488,11 +488,30 @@ function fotoEvento(id){
     .then(s=>(s.exists&&s.data().data)||'').catch(()=>''));
   return fotosEv.get(id);
 }
+/* Encuadre de la foto (v103). Los afiches suelen ser verticales y los espacios de la app, horizontales:
+   - «completa»: el afiche entero, centrado sobre una copia difuminada de sí mismo (nada queda cortado);
+   - «X% Y%»: llena el espacio y ese punto de la foto queda al centro (quien la sube la acomoda arrastrándola);
+   - sin elegir (eventos anteriores y de la agenda automática): las verticales completas y las horizontales al centro.
+   En la miniatura cuadrada de la agenda (.ev-img) siempre llena el espacio: un afiche entero a 72 px no se lee. */
+const ENCUADRE_POS=/^\d{1,3}% \d{1,3}%$/;
+const fotoVertical=img=>img.naturalHeight>img.naturalWidth*1.05;
+function encuadrarFoto(img){
+  if(!img||!img.naturalWidth)return;
+  const enc=img.dataset.encuadre||'',fondo=img.previousElementSibling&&img.previousElementSibling.classList.contains('foto-fondo')?img.previousElementSibling:null;
+  const completa=!img.classList.contains('ev-img')&&(enc==='completa'||(!enc&&fotoVertical(img)));
+  img.classList.toggle('foto-completa',completa);
+  img.style.objectPosition=completa?'':ENCUADRE_POS.test(enc)?enc:fotoVertical(img)?'50% 20%':'';
+  if(completa&&!fondo){
+    const f=document.createElement('img');f.className='foto-fondo';f.alt='';f.setAttribute('aria-hidden','true');f.src=img.src;img.before(f);
+  }else if(completa)fondo.src=img.src;
+  else if(fondo)fondo.remove();
+}
 // <img> del evento; si la foto no llega, queda la ilustración de su categoría (ilu: [tamaño, clase]) o nada
 function imgEvento(e,attrs,ilu){
-  if(e.imagen)return '<img src="'+esc(e.imagen)+'" '+attrs+'>';
+  const enc=' data-encuadre="'+esc(e.foto_encuadre||'')+'" onload="encuadrarFoto(this)"';
+  if(e.imagen)return '<img src="'+esc(e.imagen)+'"'+enc+' '+attrs+'>';
   if(!e.con_foto)return ilu?iluEvento(e,ilu[0],ilu[1]):'';
-  return '<img data-foto-ev="'+esc(e.id)+'" data-cat="'+esc(e.categoria||'')+'"'+(ilu?' data-ilu="'+ilu.join(' ')+'"':'')+' '+attrs+'>';
+  return '<img data-foto-ev="'+esc(e.id)+'" data-cat="'+esc(e.categoria||'')+'"'+(ilu?' data-ilu="'+ilu.join(' ')+'"':'')+enc+' '+attrs+'>';
 }
 let obsFotosEv=null;
 function ponerFotoEvento(img){
@@ -564,6 +583,7 @@ function renderAgenda(){
       :'<div class="vacio">'+icon('calendar-days',48)+'<b>No hay eventos '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+(A.cat?' de '+catEvento(A.cat)[1].toLowerCase():'')+'</b><p>¿Sabes de alguno? Cuéntanos y lo publicamos después de revisarlo.</p></div>')
     +'<button class="btn btn-secundario btn-bloque mt-16" id="agSugerir">'+icon('calendar-plus',18)+quien+'</button>'
     +'<button class="btn btn-ghost btn-bloque" id="agSuscribir">'+icon('calendar-sync',18)+'Suscribirme a la agenda</button>'
+    +(recibeAvisosEventos()?'':'<button class="btn btn-ghost btn-bloque" id="agAvisos">'+icon('bell',18)+'Avisarme de eventos nuevos</button>')
     +'</div>'+footerHTML();
   $$('#cuerpo [data-rango]').forEach(b=>(b.onclick=()=>{A.rango=b.dataset.rango;render(true);}));
   $$('#cuerpo [data-evcat]').forEach(b=>(b.onclick=()=>{A.cat=A.cat===b.dataset.evcat?'':b.dataset.evcat;render(true);}));
@@ -571,6 +591,7 @@ function renderAgenda(){
   $$('#cuerpo .ev-link').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
   $('#agSugerir').onclick=sugerirEvento;
   $('#agSuscribir').onclick=suscribirAgenda;
+  if($('#agAvisos'))$('#agAvisos').onclick=quieroAvisosDeEventos;
   // Botón flotante "+" (dentro de la app, encima de la barra inferior; se quita al salir de la Agenda)
   const fab=document.createElement('button');fab.className='fab-agenda';fab.id='agFab';fab.setAttribute('aria-label',textoSugerir());
   fab.innerHTML=icon('plus',28);fab.onclick=sugerirEvento;$('#shell').appendChild(fab);
@@ -617,7 +638,8 @@ function abrirEvento(id){
   enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
-  abrirHoja('<div class="ev-hero">'+imgEvento(e,'alt=""',[44,'hero-ilu'])+calBloque(e)+'</div>'
+  abrirHoja('<div class="ev-hero">'+imgEvento(e,'alt=""',[44,'hero-ilu'])+calBloque(e)
+    +(tieneFotoEv(e)?'<button type="button" class="ev-ver-afiche" id="evVerAfiche">'+icon('maximize-2',16)+'Ver afiche completo</button>':'')+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
     +(e.fuente_oficial?' <button type="button" class="ev-chip ev-chip-oficial" data-explica="oficial">'+icon('badge-check',12)+'Fuente oficial</button>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e,true)))
@@ -638,6 +660,8 @@ function abrirEvento(id){
   $('#evInteresa').onclick=()=>{if(!toggleFavorito(fav))return;const ya=estado.favoritos.includes(fav),b=$('#evInteresa');
     b.classList.toggle('on',ya);b.setAttribute('aria-pressed',ya);b.innerHTML=icon('heart',18)+(ya?'Te interesa':'Me interesa');};
   $('#evCompartir').onclick=()=>compartir(e.titulo,'/evento/'+e.id);
+  const va=$('#evVerAfiche');
+  if(va)va.onclick=async()=>{const src=e.imagen||await fotoEvento(e.id);if(src)abrirVisor({fotos:['afiche'],nombre:e.titulo},0,{afiche:src});};
 }
 // Favoritos: los eventos que te interesan (vigentes) arriba de los lugares
 function eventosFavoritosHTML(){
@@ -646,18 +670,32 @@ function eventosFavoritosHTML(){
 }
 
 /* ---------- Publicar (admin, directo), publicar como organizador o sugerir (quedan pendientes) ---------- */
+const fotoVaciaHTML=()=>'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Sin foto: se verá la ilustración de la categoría</b></span>';
+function ajusteFotoHTML(){
+  const flecha=(dx,dy,ic,t)=>'<button type="button" class="btn btn-secundario btn-sm" data-mover="'+dx+','+dy+'">'+icon(ic,16)+t+'</button>';
+  return '<div class="lb-orden ev-foto-modo" role="radiogroup" aria-label="Cómo se ve la foto">'
+    +'<button type="button" role="radio" class="chip-filtro" data-modo="completa">'+icon('image',16)+'Afiche completo</button>'
+    +'<button type="button" role="radio" class="chip-filtro" data-modo="llenar">'+icon('crop',16)+'Llenar el espacio</button></div>'
+    +'<div id="evfMover" hidden><p class="ayuda">Arrastra la foto dentro del marco, o usa los botones, para que se vea lo importante.</p>'
+    +'<div class="ev-foto-flechas">'+flecha(0,-10,'arrow-up','Arriba')+flecha(0,10,'arrow-down','Abajo')+flecha(-10,0,'arrow-left','Izquierda')+flecha(10,0,'arrow-right','Derecha')+'</div></div>'
+    +'<p class="ayuda">Así se verá en el Inicio. Al abrir el evento, cualquiera puede ver el afiche completo.</p>';
+}
 const aLocal=ms=>{if(!ms)return '';const d=new Date(ms),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());};
 function formEvento(e,opc={}){
   const admin=esAdmin(),v=k=>esc(e&&e[k]!=null?e[k]:'');
   // Un evento anterior con la foto adentro la pasa a fotos/0 al guardarse (fotoCambiada)
   let foto=e&&e.imagen?{src:e.imagen}:null,fotoCambiada=!!foto,lat=e?e.lat:null,lng=e?e.lng:null;
+  let encuadre=e&&e.foto_encuadre||'';
   const lugares=[...database].filter(d=>d.lat&&d.lng).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   const directo=admin||organizadorConfiable();let porIA=false;
   abrirHoja('<div class="hoja-pad"><h2>'+(e?'Editar evento':admin?'Nuevo evento':puedePublicarEventos()?'Publicar un evento':'Sugerir un evento')+'</h2>'
     +(directo?'':'<p class="nota-c izq">Lo revisamos antes de publicarlo en la agenda.</p>')
     +(puedeUsarIA()?iaCajaHTML():'')
-    +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
-    +(tieneFotoEv(e)?imgEvento(e,'alt="Foto del evento. Toca para cambiarla"'):'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
+    +'<div class="ev-foto-editor"><p class="ev-foto-tit">Foto o afiche (opcional)</p>'
+    +'<div class="ev-foto-marco" id="evfCaja">'+(tieneFotoEv(e)?imgEvento(e,'alt="Foto del evento"'):fotoVaciaHTML())+'</div>'
+    +'<input type="file" accept="image/*" id="evfFoto" class="sr-only">'
+    +'<label for="evfFoto" class="btn btn-secundario btn-bloque" id="evfElegir">'+icon('image-plus',18)+'<span>'+(tieneFotoEv(e)?'Cambiar la foto':'Elegir foto o afiche')+'</span></label>'
+    +'<div id="evfAjuste"'+(tieneFotoEv(e)?'':' hidden')+'>'+ajusteFotoHTML()+'</div></div>'
     +'<div class="campo"><label for="evfCredito">¿De quién es la foto? (si subiste una)</label><input class="input" id="evfCredito" maxlength="120" placeholder="Ej.: Alcaldía de Fusagasugá, o tu nombre si la tomaste tú" value="'+v('foto_credito')+'"></div>'
     +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
     +'<div class="campo"><label for="evfCat">Categoría <span class="req">*</span></label><select class="input" id="evfCat">'+CATS_EVENTO.map(([k,t])=>'<option value="'+k+'"'+(e&&e.categoria===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
@@ -676,11 +714,40 @@ function formEvento(e,opc={}){
     +'<button class="btn btn-primario btn-bloque mt-16" id="evfGuardar">'+(admin?(e&&e.estado!=='publicado'?'Guardar y publicar':e?'Guardar cambios':'Publicar evento'):directo?'Publicar evento':'Enviar para revisión')+'</button></div>');
   $('#sheetGen').setAttribute('aria-label','Formulario de evento');
   if(e&&e.con_foto&&!foto)fotoEvento(e.id).then(src=>{if(src&&!foto)foto={src};});
+  // La foto guardada o la elegida se ve en el marco del Inicio (16:10) con su encuadre; aquí se acomoda
+  const pintarFoto=()=>{
+    $('#evfCaja').innerHTML=foto?'<img src="'+foto.src+'" alt="Vista previa de la foto del evento" data-encuadre="'+esc(encuadre)+'" onload="encuadrarFoto(this)">':fotoVaciaHTML();
+    $('#evfElegir span').textContent=foto?'Cambiar la foto':'Elegir foto o afiche';
+    $('#evfAjuste').hidden=!foto;
+  };
+  const nuevaFoto=f=>{foto=f;fotoCambiada=true;encuadre=f.alto>f.ancho*1.05?'completa':'50% 50%';pintarFoto();marcarAjuste();};
+  const imgMarco=()=>$('#evfCaja img:not(.foto-fondo)');
+  // Sin encuadre guardado se decide como en la app (vertical: completa) cuando la foto termina de cargar
+  const encuadreActual=()=>encuadre||(imgMarco()&&imgMarco().classList.contains('foto-completa')?'completa':'50% 50%');
+  const marcarAjuste=()=>{
+    const completa=encuadreActual()==='completa';
+    $$('#evfAjuste [data-modo]').forEach(b=>{const on=(b.dataset.modo==='completa')===completa;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);});
+    $('#evfMover').hidden=completa;
+    $('#evfCaja').classList.toggle('arrastrable',!completa);
+  };
+  const ponerEncuadre=nuevo=>{encuadre=nuevo;const img=imgMarco();if(img){img.dataset.encuadre=nuevo;encuadrarFoto(img);}marcarAjuste();};
+  const pos=()=>{const m=(ENCUADRE_POS.test(encuadre)?encuadre:'50% 50%').match(/\d+/g).map(Number);return {x:m[0],y:m[1]};};
+  const mover=(dx,dy)=>{const p=pos(),c=n=>Math.max(0,Math.min(100,Math.round(n)));ponerEncuadre(c(p.x+dx)+'% '+c(p.y+dy)+'%');};
+  $$('#evfAjuste [data-modo]').forEach(b=>(b.onclick=()=>ponerEncuadre(b.dataset.modo==='completa'?'completa':(ENCUADRE_POS.test(encuadre)?encuadre:'50% 50%'))));
+  $$('#evfAjuste [data-mover]').forEach(b=>(b.onclick=()=>{const [dx,dy]=b.dataset.mover.split(',').map(Number);mover(dx,dy);}));
+  // Arrastrar la foto dentro del marco (dedo o mouse): mover la foto hacia abajo muestra la parte de arriba
+  let arrastre=null;
+  $('#evfCaja').onpointerdown=ev=>{if(!imgMarco()||encuadreActual()==='completa')return;arrastre={x:ev.clientX,y:ev.clientY,p:pos()};$('#evfCaja').setPointerCapture(ev.pointerId);};
+  $('#evfCaja').onpointermove=ev=>{if(!arrastre)return;const r=$('#evfCaja').getBoundingClientRect(),c=n=>Math.max(0,Math.min(100,Math.round(n)));
+    ponerEncuadre(c(arrastre.p.x-(ev.clientX-arrastre.x)/r.width*150)+'% '+c(arrastre.p.y-(ev.clientY-arrastre.y)/r.height*150)+'%');};
+  $('#evfCaja').onpointerup=$('#evfCaja').onpointercancel=()=>{arrastre=null;};
+  if(imgMarco())imgMarco().addEventListener('load',marcarAjuste);
+  if(foto||tieneFotoEv(e))marcarAjuste();
   $('#evfGratis').onchange=()=>{$('#evfPrecioCaja').hidden=$('#evfGratis').checked;};
   $('#evfEn').onchange=()=>{const d=buscar($('#evfEn').value);if(!d)return;lat=d.lat;lng=d.lng;if(!$('#evfLugar').value.trim())$('#evfLugar').value=d.nombre;$('#evfPos').textContent='Ubicación de «'+d.nombre+'» guardada';};
   $('#evfAqui').onclick=async()=>{const p=await pedirUbicacion();if(!p){toast('No pudimos ver tu ubicación');return;}[lat,lng]=p;$('#evfPos').textContent='Tu ubicación actual quedó guardada';};
   $('#evfFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#evfCaja').classList.add('cargando');
-    try{foto=await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado');fotoCambiada=true;$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}
+    try{nuevaFoto(await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado'));}
     catch(err){toast('No pudimos usar esa foto. Prueba con otra. (Error '+reportarError('foto evento',err)+')');}
     $('#evfCaja').classList.remove('cargando');};
   // La IA llena el formulario; la persona revisa, corrige y envía
@@ -698,7 +765,7 @@ function formEvento(e,opc={}){
     $('#evfGratis').checked=d.gratis!==false;$('#evfPrecioCaja').hidden=$('#evfGratis').checked;
     if(d.gratis===false)pon('#evfPrecio',String(d.precio||'').slice(0,40));
     // El afiche también sirve como foto del evento si aún no tiene una
-    if(afiche&&!foto){conTiempoLimite(comprimirFoto(afiche.src,1280,200000,.8),10000,'La foto tardó demasiado').then(f=>{foto=f;fotoCambiada=true;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
+    if(afiche&&!foto){conTiempoLimite(comprimirFoto(afiche.src,1280,200000,.8),10000,'La foto tardó demasiado').then(f=>{if($('#evfCaja'))nuevaFoto(f);}).catch(()=>{});}
   });
   $('#evfGuardar').onclick=async()=>{
     const tit=$('#evfTit').value.trim(),ini=$('#evfIni').value?new Date($('#evfIni').value).getTime():0,fin=$('#evfFin').value?new Date($('#evfFin').value).getTime():0;
@@ -713,7 +780,8 @@ function formEvento(e,opc={}){
       lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:'',con_foto:!!foto,organizador:$('#evfOrg').value.trim(),
       enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim(),
       // Fase 6: la foto del evento (imagen) lleva su crédito; si no se sube, se muestra la ilustración de su tipo
-      foto_credito:foto?$('#evfCredito').value.trim().slice(0,120):'',foto_fuente:foto?(fuente?'oficial':'propia'):''};
+      foto_credito:foto?$('#evfCredito').value.trim().slice(0,120):'',foto_fuente:foto?(fuente?'oficial':'propia'):'',
+      foto_encuadre:foto||(e&&e.con_foto)?encuadreActual():''};
     const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
     // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor.
     // El evento y su foto van en el mismo lote (las reglas exigen que quien sugiere suba la foto al crear el evento).
@@ -732,6 +800,8 @@ function formEvento(e,opc={}){
     try{
       const refEv=await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
       if(!directo&&!(admin&&e)&&refEv&&refEv.id)avisarAdmins('evento',refEv.id);
+      // Recién publicado (no la edición de uno que ya estaba en la agenda): aviso al celular de todos
+      if(refEv&&refEv.id&&(directo||editar)&&!(e&&e.estado==='publicado'))avisarEventoPublicado(refEv.id);
       cerrar('ovGen');medir(directo?'evento_publicado':'evento_sugerido');
       toast(directo?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
       if(vistaActual().tipo==='admin')cargarAdmin();
@@ -1801,7 +1871,8 @@ function enlazarEventosAdmin(){
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const bBorrarDemos=$('#admEvDemoBorrar');if(bBorrarDemos)bBorrarDemos.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
     adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>borrarEventoEnLote(b,d.ref));await b.commit();},'Eventos de ejemplo borrados');};
-  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
+  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}).then(()=>avisarEventoPublicado(b.dataset.evpub)),
+    'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
   $$('[data-eveditp]').forEach(b=>(b.onclick=()=>formEvento(pend(b.dataset.eveditp))));
   $$('[data-evedit]').forEach(b=>(b.onclick=()=>formEvento(pub(b.dataset.evedit))));
   $$('[data-evdesc]').forEach(b=>(b.onclick=()=>pedirMotivo('Descartar el evento',m=>adminAccion(()=>col.doc(b.dataset.evdesc).update({estado:'rechazado',motivo:m}),'Evento descartado',['evento',b.dataset.evdesc,'rechazado']),
@@ -4976,6 +5047,7 @@ function renderPerfil(){
       +'<label class="switch-row mt-16"><span>Modo sencillo<small class="sw-det">Inicio con 6 botones grandes, sin carruseles ni radio, y «Llamar» en cada lugar</small></span>'
       +'<input type="checkbox" id="pfSencillo" '+(modoSencillo()?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
+    +(avisosOn?'<label class="switch-row"><span>Eventos nuevos en Fusa y Pasca<small class="sw-det">Un aviso cuando se publique un evento o un aviso del municipio</small></span><input type="checkbox" id="pfNotifEventos" '+(p.avisos_eventos!==false?'checked':'')+'></label>':'')
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
@@ -5008,6 +5080,10 @@ function renderPerfil(){
       await desactivarAvisos();marcarPreferenciaAvisos(false);toast('Avisos desactivados en este celular');
     }
     sw.disabled=false;
+  };
+  if($('#pfNotifEventos'))$('#pfNotifEventos').onchange=e=>{
+    ponerAvisosEventos(e.target.checked);
+    toast(e.target.checked?'Listo: te avisaremos de los eventos nuevos':'Ya no te avisaremos de los eventos nuevos');
   };
   $('#pfLegal').onclick=()=>abrir('ovLegal');
   const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
@@ -6089,6 +6165,25 @@ function ofrecerAvisoAprobacion(nombre){
     cerrar('ovGen');
     if(await activarAvisos()){toast('Listo: te avisaremos en este celular');marcarPreferenciaAvisos(true);}
   };
+}
+/* Avisos de eventos nuevos (v103): al publicarse un evento, la API lo avisa al celular de quien tiene los avisos
+   encendidos y no apagó «Eventos nuevos» (avisos_eventos en su perfil). La API no lo repite si se edita o reintenta. */
+const recibeAvisosEventos=()=>logueado()&&!!estado.perfil&&estado.perfil.notificaciones_push!==false
+  &&estado.perfil.avisos_eventos!==false&&estadoAvisos()==='granted';
+function avisarEventoPublicado(id){
+  pedirAPI('/v1/eventos/'+encodeURIComponent(id)+'/avisar',{token:true,cuerpo:{}}).catch(e=>console.warn('Aviso del evento:',e.code||e.message));
+}
+function ponerAvisosEventos(on){
+  if(!logueado()||!estado.perfil)return;
+  db.collection('usuarios').doc(estado.usuario.uid).update({avisos_eventos:on}).catch(()=>{});
+  estado.perfil.avisos_eventos=on;ls.set('fc_perfil_'+estado.usuario.uid,estado.perfil);
+}
+async function quieroAvisosDeEventos(){
+  if(!logueado()){pedirLogin('Crea tu cuenta gratis para recibir un aviso cuando haya eventos nuevos en Fusa y Pasca.');return;}
+  if(!await activarAvisos())return;
+  marcarPreferenciaAvisos(true);ponerAvisosEventos(true);
+  toast('Listo: te avisaremos cuando haya eventos nuevos en Fusa y Pasca',5000);
+  render(true);
 }
 function marcarPreferenciaAvisos(on){
   if(!logueado()||!estado.perfil)return;

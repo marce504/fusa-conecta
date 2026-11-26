@@ -30,6 +30,7 @@ Servicios web REST de Fusa Conecta, en **Python 3.12** con **FastAPI**.
 | `GET /v1/admin/estadisticas` | Totales de negocios, usuarios, cupones, canjes, eventos y rutas. **Solo admin** | — |
 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó lo que envió: novedad en su campana y push (FCM) a sus celulares. **Solo admin** | Panel admin → al aprobar o rechazar |
 | `POST /v1/alertas/enviar` | Manda al celular una alerta municipal ya publicada en `alertas/{id}` (con fuente oficial y vigente) a todos los que no apagaron los avisos, una sola vez por alerta (`alertas/{id}/envios/push`). **Solo admin** | Panel admin → Emergencias → Alertas municipales |
+| `POST /v1/eventos/{id}/avisar` | Manda al celular un evento recién publicado (no de ejemplo y sin terminar) a todos los que no apagaron los avisos ni «Eventos nuevos» (`avisos_eventos` en el perfil), una sola vez por evento (`eventos/{id}/envios/push`). 403 si no es admin ni quien lo publicó, 409 si no está publicado o ya terminó. **Admin o quien lo publicó** | Panel admin → Eventos → Publicar, y el formulario al publicar |
 | `POST /v1/notificaciones/pendiente` | Avisa a los admin que alguien envió algo a revisión (negocio, evento, ruta, Premium, reclamo, reporte u oferta de empleo): novedad en su campana y push. Solo lo puede pedir quien lo envió y solo si sigue pendiente | La app, después de enviar a revisión |
 | `POST /v1/reclamos/{id}/decision` | Aprueba o rechaza un reclamo de comercio (`{"resultado": "aprobado"\|"rechazado", "motivo": "…"}`) en una transacción: dueño del comercio (o su copia en la nube si es del directorio base), Premium de la campaña y rol «comerciante». 403 si no es admin o es su propio reclamo, 409 si ya fue revisado o el comercio tiene otro dueño, 422 si falta el motivo. **Solo admin** | Panel admin → Reclamos de comercios |
 | `POST /v1/reclamos/anteriores/{id}/aprobar` | Aprueba un reclamo anterior (colección `solicitudes`) y lo registra en `reclamos_comercio`. **Solo admin** | Panel admin → Solicitudes |
@@ -146,6 +147,7 @@ sirven y envía el push con Firebase Cloud Messaging. Por eso necesita una cuent
 Sin ella, el endpoint responde 503 y el panel admin sigue funcionando igual, solo que sin avisos.
 `POST /v1/alertas/enviar` usa la misma cuenta: lee los dispositivos de todos (`collection_group('dispositivos')`) y
 solo escribe el registro del envío en `alertas/{id}/envios/push`. Sin la cuenta, la alerta igual se ve en la app.
+`POST /v1/eventos/{id}/avisar` hace lo mismo con los eventos recién publicados y escribe en `eventos/{id}/envios/push`.
 
 Pasos (los hace la dueña del proyecto; unos 10 minutos):
 

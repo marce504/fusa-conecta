@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -317,14 +318,14 @@ class RepoAlertasFalso(RepoAvisosFalso):
     def todos_los_dispositivos(self):
         return {u: list(t) for u, t in self.tokens.items() if t}
 
-    def registrar_envio_alerta(self, id_, datos):
-        if id_ in self.envios:
+    def registrar_envio(self, coleccion, id_, datos):
+        if f"{coleccion}/{id_}" in self.envios:
             return False
-        self.envios[id_] = dict(datos)
+        self.envios[f"{coleccion}/{id_}"] = dict(datos)
         return True
 
-    def completar_envio_alerta(self, id_, datos):
-        self.envios[id_].update(datos)
+    def completar_envio(self, coleccion, id_, datos):
+        self.envios[f"{coleccion}/{id_}"].update(datos)
 
 
 @pytest.fixture
@@ -347,7 +348,7 @@ def test_alerta_llega_a_todos_menos_a_quien_apago_los_avisos(alertar):
     assert envio["titulo"] == "Corte de agua en Fusagasugá: Corte de agua en Pekín"
     assert envio["enlace"] == "#/alerta/a1"
     assert alertar.repo.borrados == [("duena", ["tok-viejo"])]
-    assert alertar.repo.envios["a1"] == {"por": "admin1", "dispositivos": 1, "enviados": 1}
+    assert alertar.repo.envios["alertas/a1"] == {"por": "admin1", "dispositivos": 1, "enviados": 1}
 
 
 def test_alerta_no_se_repite(alertar):
@@ -390,11 +391,15 @@ def test_repositorio_firestore_alerta_solo_escribe_su_envio():
     repo = avisos.RepositorioAvisosFirestore(cliente)
     antes = set(base)
     assert repo.todos_los_dispositivos() == {"u1": ["tA"], "u2": ["tB"]}
-    assert repo.registrar_envio_alerta("a1", {"por": "admin"}) is True
-    assert repo.registrar_envio_alerta("a1", {"por": "admin"}) is False
-    repo.completar_envio_alerta("a1", {"enviados": 2})
-    assert set(base) ^ antes == {"alertas/a1/envios/push"}
+    assert repo.registrar_envio("alertas", "a1", {"por": "admin"}) is True
+    assert repo.registrar_envio("alertas", "a1", {"por": "admin"}) is False
+    repo.completar_envio("alertas", "a1", {"enviados": 2})
+    assert repo.registrar_envio("eventos", "e1", {"por": "admin"}) is True
+    assert set(base) ^ antes == {"alertas/a1/envios/push", "eventos/e1/envios/push"}
     assert base["alertas/a1/envios/push"]["enviados"] == 2
+    # Solo escribe el envío de alertas y eventos
+    with pytest.raises(ValueError):
+        repo.registrar_envio("usuarios", "u1", {})
 
 
 class _RefGrupo(_Ref):
@@ -514,3 +519,63 @@ def test_reclamo_comercio_rechazado_avisa_con_el_motivo(avisar):
     assert "La foto no se ve" in nov["mensaje"] and nov["enlace"] == "#/perfil"
     # Aún no está aprobado: no se puede avisar como aprobado
     assert avisar.post("reclamo_comercio", "c354__otro", "aprobado").status_code == 409
+
+
+# ---------- Eventos nuevos: POST /v1/eventos/{id}/avisar ----------
+@pytest.fixture
+def avisar_evento(cliente, como):
+    ra, fcm = RepoAlertasFalso(), AvisadorFalso()
+    ahora = time.time() * 1000
+    ini, fin = ahora + 2 * 86_400_000, ahora + 2 * 86_400_000 + 3 * 3_600_000
+    base = {"estado": "publicado", "municipio": "Pasca", "lugar_nombre": "Parque principal", "creado_por": "organiza"}
+    ra.docs[("eventos", "e1")] = {**base, "titulo": "Festival de la Arveja", "fecha_inicio": ini, "fecha_fin": fin}
+    ra.docs[("eventos", "pend")] = {**base, "titulo": "Por revisar", "estado": "pendiente", "fecha_fin": fin}
+    ra.docs[("eventos", "demo")] = {**base, "titulo": "Ejemplo", "demo": True, "fecha_fin": fin}
+    ra.docs[("eventos", "paso")] = {**base, "titulo": "Ya pasó", "fecha_fin": ahora - 60_000}
+    # «otro» tiene avisos pero apagó «Eventos nuevos»; «vecina» los tiene encendidos
+    ra.docs[("usuarios", "otro")] = {"nombre": "Luz", "avisos_eventos": False}
+    ra.docs[("usuarios", "vecina")] = {"nombre": "Rosa"}
+    ra.tokens.update({"otro": ["tok-luz"], "vecina": ["tok-rosa"]})
+    main.app.dependency_overrides[main._repo_avisos] = lambda: ra
+    main.app.dependency_overrides[main._avisador] = lambda: fcm
+    como("admin1")
+    return SimpleNamespace(post=lambda id_: cliente.post(f"/v1/eventos/{id_}/avisar"), repo=ra, fcm=fcm, como=como)
+
+
+def test_evento_nuevo_llega_a_quien_no_apago_los_avisos(avisar_evento):
+    j = avisar_evento.post("e1").json()
+    # duena (un token viejo) y vecina; organiza apagó todos los avisos y Luz apagó «Eventos nuevos»
+    assert j == {"repetido": False, "dispositivos": 2, "enviados": 2}
+    envio = avisar_evento.fcm.enviados[0]
+    assert sorted(envio["tokens"]) == ["tok-bueno", "tok-rosa", "tok-viejo"]
+    assert envio["titulo"] == "Nuevo evento en Pasca"
+    assert envio["texto"].startswith("«Festival de la Arveja» · ") and envio["texto"].endswith(" · Parque principal")
+    assert envio["enlace"] == "#/evento/e1"
+    assert avisar_evento.repo.envios["eventos/e1"] == {"por": "admin1", "dispositivos": 2, "enviados": 2}
+
+
+def test_evento_nuevo_no_se_repite_y_lo_puede_pedir_quien_lo_publico(avisar_evento):
+    avisar_evento.como("organiza")
+    assert avisar_evento.post("e1").status_code == 200
+    assert avisar_evento.post("e1").json()["repetido"] is True
+    assert len(avisar_evento.fcm.enviados) == 1
+
+
+def test_evento_sin_publicar_de_ejemplo_terminado_o_ajeno(avisar_evento):
+    assert avisar_evento.post("pend").status_code == 409
+    assert avisar_evento.post("demo").status_code == 409
+    assert avisar_evento.post("paso").status_code == 409
+    assert avisar_evento.post("nada").status_code == 404
+    avisar_evento.como("duena")
+    assert avisar_evento.post("e1").status_code == 403
+    assert avisar_evento.fcm.enviados == [] and avisar_evento.repo.envios == {}
+
+
+def test_mensaje_de_un_aviso_del_municipio():
+    ms = datetime(2026, 11, 28, 16, 0, tzinfo=avisos.ZONA_COL).timestamp() * 1000
+    t, x, e = avisos.mensaje_evento(
+        {"titulo": "Jornada de vacunación", "tipo": "aviso", "lugar_nombre": "Hospital San Rafael"}, "v1", ms
+    )
+    assert t == "Aviso del municipio en Fusagasugá"
+    assert x == "«Jornada de vacunación» · sábado 28 de noviembre, 4:00 p. m. · Hospital San Rafael"
+    assert e == "#/evento/v1"

@@ -75,3 +75,25 @@ def test_sin_permiso_de_fcm_la_novedad_queda_igual():
 
 def test_sin_pendientes_no_hace_nada():
     assert avisos_admin.avisar_admins(_db(), [], "1") == {"admins": 0, "enviados": 0}
+
+
+def test_texto_de_los_eventos_nuevos():
+    uno = [{"id": "e1", "titulo": "Festival de la Arveja", "municipio": "Pasca", "lugar_nombre": "Parque principal"}]
+    assert avisos_admin.texto_eventos(uno) == (
+        "Nuevo evento en Pasca",
+        "«Festival de la Arveja» · Parque principal",
+        "#/evento/e1",
+    )
+    varios = uno + [
+        {"id": "e2", "titulo": "Noches de Teatro", "municipio": "Fusagasugá", "lugar_nombre": ""},
+        {"id": "e3", "titulo": "Cine al parque", "municipio": "Fusagasugá", "lugar_nombre": ""},
+    ]
+    assert avisos_admin.texto_eventos(varios) == (
+        "3 eventos nuevos en Fusagasugá y Pasca",
+        "«Festival de la Arveja», «Noches de Teatro» y 1 más",
+        "#/agenda",
+    )
+
+
+def test_sin_eventos_nuevos_no_avisa():
+    assert avisos_admin.avisar_eventos_nuevos(_db(), [], "1") == {"dispositivos": 0, "enviados": 0}
