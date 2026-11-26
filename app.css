@@ -1865,3 +1865,16 @@ html:not([data-letra]) .saludo-hora .sh-tx b{white-space:nowrap;overflow:hidden;
 .topbar.en-lista .sesion{min-height:48px}
 .topbar.en-lista .saludo-hora{min-height:48px}
 .topbar.en-lista .sel-mun-fila{min-height:58px}
+/* Modo sencillo: 6 botones grandes en dos columnas; sin radio en la cabecera */
+html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
+.sencillo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.sencillo-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:128px;padding:16px 8px;border-radius:var(--radius-lg);background:var(--primary-50);color:var(--ink);font-size:var(--text-lg);font-weight:600;line-height:1.2;text-align:center}
+.sencillo-ic{color:var(--primary-700)}
+.sencillo-btn.sos{background:var(--danger-50)}
+.sencillo-btn.sos .sencillo-ic{color:var(--danger-700)}
+.lista-sencilla{display:flex;flex-direction:column;gap:8px}
+.fila-sencilla{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--bg)}
+.fs-ver{flex:1 1 12rem;min-width:0;min-height:48px;text-align:left;color:var(--ink)}
+.fs-ver b{display:block;font-size:var(--text-base)}
+.fs-ver small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
+.fs-llamar{flex:0 0 auto}

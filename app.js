@@ -80,7 +80,47 @@ function elegirLetra(t,guardarEnPerfil=true){
   medir('letra',{tamano:t});
 }
 // La elección de este teléfono manda; si aún no hay, se usa la del perfil
-function letraDelPerfil(p){if(!letraElegida()&&p&&p.tamano_letra){elegirLetra(p.tamano_letra,false);}}
+function letraDelPerfil(p){
+  if(!letraElegida()&&p&&p.tamano_letra)elegirLetra(p.tamano_letra,false);
+  if(ls.get('fc_sencillo',null)===null&&p&&typeof p.modo_sencillo==='boolean')elegirSencillo(p.modo_sencillo,false);
+}
+/* ===== MODO SENCILLO (Fase 4) =====
+   Inicio con 6 botones grandes (Buscar, Salud, Comida, Trámites, Emergencias, Mis favoritos), sin carruseles, banners ni
+   radio; las listas muestran «Llamar» en cada fila. Al activarlo sube la letra a «Grande». index.html lo aplica antes del
+   primer pintado (data-sencillo en <html>). */
+const modoSencillo=()=>ls.get('fc_sencillo',false)===true;
+function elegirSencillo(activo,guardarEnPerfil=true){
+  ls.set('fc_sencillo',!!activo);
+  if(activo)document.documentElement.dataset.sencillo='';else delete document.documentElement.dataset.sencillo;
+  if(activo&&(letraElegida()||'normal')==='normal')elegirLetra('grande',guardarEnPerfil);
+  if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({modo_sencillo:!!activo}).catch(()=>{});
+  medir('modo_sencillo',{activo:!!activo});
+}
+const BOTONES_SENCILLO=[
+  {t:'Buscar',ic:'search',hacer:()=>{$('#busqueda').focus();}},
+  {t:'Salud',ic:'stethoscope',hacer:()=>navegar({tipo:'lista',cat:'servicios',sub:'salud'})},
+  {t:'Comida',ic:'utensils',hacer:()=>navegar({tipo:'lista',cat:'comercio',sub:'g-comida'})},
+  {t:'Trámites',ic:'landmark',hacer:()=>navegar({tipo:'lista',cat:'tramite'})},
+  {t:'Emergencias',ic:'siren',hacer:()=>navegar({tipo:'sos'}),clase:'sos'},
+  {t:'Mis favoritos',ic:'heart',hacer:()=>irAFavoritos()}
+];
+function inicioSencilloHTML(){
+  return '<div class="sencillo">'+BOTONES_SENCILLO.map((b,i)=>'<button type="button" class="sencillo-btn'+(b.clase?' '+b.clase:'')+'" data-sencillo="'+i+'">'
+    +'<span class="sencillo-ic" aria-hidden="true">'+icon(b.ic,36)+'</span>'+b.t+'</button>').join('')+'</div>';
+}
+// En modo sencillo cada lugar es una fila con su estado y el botón «Llamar» (los que tienen teléfono van primero)
+function listaSencillaHTML(items,limite){
+  const l=[...items].sort((a,b)=>!a.tel-!b.tel).slice(0,limite);
+  return '<div class="lista-sencilla">'+l.map(d=>'<div class="fila-sencilla"><button type="button" class="fs-ver" data-ver="'+esc(d.id)+'"><b>'+esc(d.nombre)+'</b>'
+    +'<small>'+(estadoLugar(d)?estadoHTML(estadoLugar(d)):esc(etiquetaDe(d)))+'</small></button>'
+    +(d.tel?'<a class="btn btn-primario fs-llamar" href="tel:'+esc(telLimpio(d.tel))+'" data-tel="'+esc(d.id)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone',20)+'Llamar</a>':'')
+    +'</div>').join('')+'</div>'
+    +(items.length>l.length?'<button class="btn btn-secundario btn-bloque mt-16" id="verMas">Ver más ('+(items.length-l.length)+')</button>':'');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-sencillo],.fs-ver');if(!b)return;
+  if(b.dataset.ver)abrirDetalle(b.dataset.ver);else BOTONES_SENCILLO[+b.dataset.sencillo].hacer();
+});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&temaElegido()==='automatico')aplicarTema('automatico');});
 if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
 // Teselas del mapa: siempre OpenStreetMap; en modo noche se oscurecen con un filtro solo en el panel de teselas (CSS)
@@ -2754,7 +2794,9 @@ function renderLista(v){
   let html;
   const enInicio=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q&&!hayFiltros();
   if(estado.listaClave!==JSON.stringify([v.cat,v.sub,v.todo,estado.q])){estado.listaClave=JSON.stringify([v.cat,v.sub,v.todo,estado.q]);estado.limiteLista=POR_PAGINA;}
-  if(enInicio){
+  if(enInicio&&modoSencillo()){
+    html=alertasInicioHTML()+inicioSencilloHTML();
+  }else if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
@@ -2770,7 +2812,8 @@ function renderLista(v){
   }else if(items.length){
     html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='tramite'&&!v.sub&&!estado.q?avisosMunicipioEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML()+seccionesCategoriaHTML(seccionCampoHTML):'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML()+seccionesCategoriaHTML(seccionRutasHTML,seccionPascaHTML):'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
-      +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
+      +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>'
+        :modoSencillo()?listaSencillaHTML(items,estado.limiteLista||POR_PAGINA):cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html=eventosFavoritosHTML()+'<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else if(v.sub==='sendero'&&municipioElegido()==='Pasca'&&!estado.q){
@@ -2793,12 +2836,12 @@ function renderLista(v){
   }));
   enlazarTarjetas();enlazarSecciones();enlazarInicio();enlazarFooter();
   enlazarEventos();enlazarSeccionPasca();
-  if(enInicio)ofrecerLetraUnaVez();
+  if(enInicio&&!modoSencillo())ofrecerLetraUnaVez();
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
   enlazarQuisisteDecir();
-  if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
+  if(enInicio&&!modoSencillo()){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
   else if(items.length)enlazarListado(items);
 }
 
@@ -4742,11 +4785,14 @@ function ofrecerLetraUnaVez(){
   ls.set('fc_letra_preguntada',true);
   abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">¿Quieres la letra más grande?</h2><p class="nota">Puedes cambiarla cuando quieras en Perfil → Apariencia.</p>'
     +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" data-oferta-letra="grande">Sí, más grande</button>'
-    +'<button class="btn btn-secundario btn-bloque" data-oferta-letra="">No, gracias</button></div></div>');
+    +'<button class="btn btn-secundario btn-bloque" data-oferta-letra="sencillo">Modo sencillo: botones grandes</button>'
+    +'<button class="btn btn-ghost btn-bloque" data-oferta-letra="">No, gracias</button></div></div>');
   $('#sheetGen').setAttribute('aria-label','Tamaño de letra');
   $$('#sheetGen [data-oferta-letra]').forEach(b=>(b.onclick=()=>{
     cerrar('ovGen');
-    if(b.dataset.ofertaLetra){elegirLetra(b.dataset.ofertaLetra);render(true);toast('Listo: letra más grande. Puedes cambiarla en Perfil.',5000);}
+    const o=b.dataset.ofertaLetra;if(!o)return;
+    if(o==='sencillo')elegirSencillo(true);else elegirLetra(o);
+    render(true);toast(o==='sencillo'?'Listo: modo sencillo. Puedes quitarlo en Perfil.':'Listo: letra más grande. Puedes cambiarla en Perfil.',5000);
   }));
 }
 
@@ -4828,7 +4874,9 @@ function renderPerfil(){
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
       +[['sistema','smartphone','Sistema'],['automatico','clock','Automático'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
       +'</div><p class="nota-c izq">«Sistema» sigue el modo claro u oscuro de tu celular. «Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia).</p>'
-      +selectorLetraHTML()+'</div>'
+      +selectorLetraHTML()
+      +'<label class="switch-row mt-16"><span>Modo sencillo<small class="sw-det">Inicio con 6 botones grandes, sin carruseles ni radio, y «Llamar» en cada lugar</small></span>'
+      +'<input type="checkbox" id="pfSencillo" '+(modoSencillo()?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
@@ -4844,6 +4892,7 @@ function renderPerfil(){
   const ps=$('#pfSplash');if(ps)ps.onclick=verAnimacionEntrada;
   $$('[data-tema-op]').forEach(b=>(b.onclick=()=>{elegirTema(b.dataset.temaOp);render(true);const n=$('[data-tema-op="'+b.dataset.temaOp+'"]');if(n)n.focus();}));
   enlazarSelectorLetra();
+  $('#pfSencillo').onchange=e=>{elegirSencillo(e.target.checked);toast(e.target.checked?'Modo sencillo activado':'Modo sencillo desactivado');render(true);};
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;

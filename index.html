@@ -16,7 +16,9 @@ var o=t==='oscuro'||(t==='automatico'&&(h>=18||h<6))||(t==='sistema'&&window.mat
 document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');
 /* Tamaño de letra elegido en Perfil → Apariencia (Grande o Muy grande) */
 var l='';try{l=localStorage.getItem('fc_letra')||'';}catch(e){}
-if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-letra',l);})();</script>
+if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-letra',l);
+/* Modo sencillo (Perfil → Apariencia) */
+try{if(localStorage.getItem('fc_sencillo')==='true')document.documentElement.setAttribute('data-sencillo','');}catch(e){}})();</script>
 <link rel="stylesheet" href="app.css?v=99">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">

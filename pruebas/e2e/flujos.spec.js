@@ -1130,3 +1130,62 @@ test('moverse: rutas turísticas en Turismo y pico y placa, parqueaderos y cajer
   await expect(c).toContainText('Fusagasugá: Lunes a viernes de prueba E2E', { timeout: 15000 });
   await page.screenshot({ path: info.outputPath('como-moverse.png') });
 });
+
+// Fase 4: modo sencillo. Desde Perfil se activa; el Inicio muestra 6 botones grandes y una droguería se llama en 2 toques
+test('modo sencillo: 6 botones, letra grande y «Llamar» a dos toques desde el Inicio', async ({ page }, info) => {
+  await poner('comercios/e2e-drogueria', {
+    nombre: 'Droguería de Prueba E2E',
+    cat: 'servicios',
+    categoria: 'servicios',
+    sub: 'salud',
+    desc: 'Droguería. Negocio de prueba.',
+    direccion: 'Calle 6 # 7-10',
+    tel: '3007654321',
+    whatsapp: '',
+    lat: 4.341,
+    lng: -74.363,
+    municipio: 'Fusagasugá',
+    propietario_uid: 'duena-drogueria-prueba',
+    estado_publicacion: 'aprobado',
+    esPremium: false,
+    prioridadBusqueda: 0,
+    dias: [0, 1, 2, 3, 4, 5, 6],
+    abre: '00:00',
+    cierra: '23:59',
+    imagen: '',
+    fotos: [],
+  });
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.waitForFunction(() => database.some(d => d.id === 'e2e-drogueria'));
+  await sinAvisoEmulador(page);
+  await page.locator('[data-bn="perfil"]').click();
+  await entrarComo(page, CUENTAS.ana);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await page.locator('#pfSencillo').check();
+  await expect(page.locator('html')).toHaveAttribute('data-letra', 'grande');
+  await page.locator('[data-bn="inicio"]').click();
+  await expect(page.locator('.sencillo-btn')).toHaveText([
+    'Buscar',
+    'Salud',
+    'Comida',
+    'Trámites',
+    'Emergencias',
+    'Mis favoritos',
+  ]);
+  await expect(page.locator('#cuerpo .ev-banner, #cuerpo .carrusel')).toHaveCount(0);
+  await expect(page.locator('#pRadio')).toBeHidden();
+  await sinAvisoEmulador(page);
+  await page.screenshot({ path: info.outputPath('modo-sencillo.png') });
+  // Toque 1: Salud. Toque 2: «Llamar» en la fila de la droguería (los que tienen teléfono van primero)
+  await page.locator('.sencillo-btn', { hasText: 'Salud' }).click();
+  const fila = page.locator('.fila-sencilla').first();
+  await expect(fila).toContainText('Droguería de Prueba E2E');
+  await expect(fila.locator('.fs-llamar')).toHaveAttribute('href', 'tel:3007654321');
+  // Se desactiva y vuelve el Inicio normal
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await page.locator('#pfSencillo').uncheck();
+  await page.locator('[data-bn="inicio"]').click();
+  await expect(page.locator('#tQueHacer')).toBeVisible();
+});
