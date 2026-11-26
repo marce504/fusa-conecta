@@ -94,11 +94,52 @@ const ls={
   del(k){try{localStorage.removeItem(k);}catch(e){}}
 };
 // Aviso arriba, justo bajo la fila del logo (no tapa títulos ni tarjetas)
-function toast(msg,ms=2500){const t=$('#toast'),ref=vistaActual().tipo==='lista'?$('#sesion'):$('#topbar');t.style.top=Math.max(8,(ref?ref.getBoundingClientRect().bottom:0)+6)+'px';t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),ms);}
+// Fase 3: se queda al menos 5 s (8 s si trae una acción como «Deshacer») y se anuncia por aria-live (#toast es role=status)
+function toast(msg,ms=5000,accion=null){
+  const t=$('#toast'),ref=vistaActual().tipo==='lista'?$('#sesion'):$('#topbar');
+  t.style.top=Math.max(8,(ref?ref.getBoundingClientRect().bottom:0)+6)+'px';
+  t.textContent=msg;t.classList.toggle('con-accion',!!accion);
+  if(accion){
+    const b=document.createElement('button');b.type='button';b.className='toast-accion';b.textContent=accion.texto;
+    b.onclick=()=>{t.classList.remove('ver');accion.hacer();};t.appendChild(b);
+  }
+  t.classList.add('ver');if(t._t)clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('ver'),Math.max(ms,accion?8000:5000));
+}
 function abrir(id){$('#'+id).classList.add('abierto');}
 // Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
 const alCerrar={};
-function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');if(alCerrar[id])alCerrar[id]();}
+function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');cerrarExplicacion();if(alCerrar[id])alCerrar[id]();}
+/* ===== EXPLICACIONES CORTAS (Fase 3) =====
+   Un toque en «Destacado», el punto verde de «Abierto» o «Fuente oficial» abre una frase que lo explica; la primera
+   vez que aparecen se abre sola. La campana explica los avisos la primera vez. */
+const EXPLICACIONES={
+  destacado:'«Destacado» es un negocio con plan Premium: sale primero en las búsquedas. No quiere decir que sea mejor que los demás.',
+  abierto:'El punto verde quiere decir que está abierto ahora, según el horario publicado. Si vas a ir, llama antes.',
+  oficial:'«Fuente oficial» quiere decir que la información viene de la Alcaldía, la Casa de la Cultura u otra entidad pública.',
+  avisos:'En la campana están los avisos del municipio y las novedades de los comercios.'
+};
+function explicar(ancla,clave){
+  cerrarExplicacion();
+  const g=document.createElement('div');g.className='globo-ayuda';g.id='globoAyuda';g.setAttribute('role','status');
+  g.innerHTML='<p>'+esc(EXPLICACIONES[clave])+'</p><button type="button" class="btn btn-tonal btn-sm">Entendido</button>';
+  document.body.appendChild(g);
+  const r=ancla.getBoundingClientRect(),ancho=Math.min(320,window.innerWidth-24);
+  g.style.width=ancho+'px';g.style.left=Math.max(12,Math.min(r.left,window.innerWidth-ancho-12))+'px';
+  const alto=g.offsetHeight;g.style.top=(r.bottom+8+alto<window.innerHeight-72?r.bottom+8:Math.max(8,r.top-alto-8))+'px';
+  g.querySelector('button').onclick=cerrarExplicacion;
+  ls.set('fc_explicado_'+clave,true);
+}
+function cerrarExplicacion(){const g=$('#globoAyuda');if(g)g.remove();}
+function explicarPrimeraVez(raiz,selector='[data-explica]'){
+  const el=[...$$(selector,raiz)].find(x=>x.offsetParent&&!ls.get('fc_explicado_'+(x.dataset.explica||x.dataset.explicaAuto),false));
+  if(el)explicar(el,el.dataset.explica||el.dataset.explicaAuto);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-explica]');
+  if(b){e.preventDefault();explicar(b,b.dataset.explica);}else if(!(e.target.closest&&e.target.closest('#globoAyuda')))cerrarExplicacion();
+});
+document.addEventListener('scroll',cerrarExplicacion,true);
 function aMs(v){
   if(!v)return null;if(typeof v==='number')return v;if(v.toMillis)return v.toMillis();
   // Fechas "AAAA-MM-DD" valen hasta el final de ese día en hora local
@@ -480,7 +521,7 @@ function abrirEvento(id){
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
   abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e)+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
-    +(e.fuente_oficial?' <span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
+    +(e.fuente_oficial?' <button type="button" class="ev-chip ev-chip-oficial" data-explica="oficial">'+icon('badge-check',12)+'Fuente oficial</button>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
@@ -493,6 +534,7 @@ function abrirEvento(id){
     +'<div class="ev-acc2"><button class="btn btn-secundario'+(on?' on':'')+'" id="evInteresa" aria-pressed="'+on+'">'+icon('heart',18)+(on?'Te interesa':'Me interesa')+'</button>'
     +'<button class="btn btn-secundario" id="evCompartir">'+icon('share-2',18)+'Compartir</button></div></div></div>');
   $('#sheetGen').setAttribute('aria-label','Evento: '+e.titulo);
+  setTimeout(()=>explicarPrimeraVez($('#sheetGen')),350);
   $('#evCal').onclick=()=>{medir('evento_calendario');entregarArchivo(new File([icsEvento(e)],'evento-fusa-conecta.ics',{type:'text/calendar'}),e.titulo);};
   $('#evInteresa').onclick=()=>{if(!toggleFavorito(fav))return;const ya=estado.favoritos.includes(fav),b=$('#evInteresa');
     b.classList.toggle('on',ya);b.setAttribute('aria-pressed',ya);b.innerHTML=icon('heart',18)+(ya?'Te interesa':'Me interesa');};
@@ -2338,6 +2380,8 @@ function renderHeader(){
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
   $('#bNovedades').onclick=abrirNovedades;
+  // La campana se explica la primera vez, después de la pregunta de la letra grande (no dos avisos a la vez)
+  if(letraElegida()||ls.get('fc_letra_preguntada',false))setTimeout(()=>explicarPrimeraVez($('#sesion'),'[data-explica-auto]'),800);
   const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comida y tiendas'},{k:'servicios',t:'Servicios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'" role="tab" aria-selected="'+(v.cat===c.k)+'">'+icon(ICONO_CAT[c.k],18)+c.t+'</button>').join('');
@@ -2564,7 +2608,7 @@ function fotoHTML(d,cls){
   return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
     +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'');
 }
-function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
+function badgeDestacado(d){return premiumVigente(d)?'<button type="button" class="badge-dest" data-explica="destacado">'+icon('star',14,'ic-fill')+'Destacado</button>':'';}
 function enlazarTarjetas(){
   $$('#cuerpo .tc-link').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.ver)));
   $$('#cuerpo .tc-fav').forEach(b=>(b.onclick=e=>{
@@ -2649,8 +2693,16 @@ function toggleFavorito(rawId){
   if(i===-1)estado.favoritos.push(id);else estado.favoritos.splice(i,1);
   ls.set(claveFav(),estado.favoritos);
   db.collection('usuarios').doc(estado.usuario.uid).update({favoritos:i===-1?FV.arrayUnion(id):FV.arrayRemove(id)}).catch(()=>{});
-  toast(i===-1?'Agregado a favoritos':'Quitado de favoritos');
+  pintarFavorito(id);
+  toast(i===-1?'Guardado en tus favoritos':'Quitado de tus favoritos',5000,{texto:'Deshacer',hacer:()=>toggleFavorito(id)});
   return true;
+}
+// El corazón de las tarjetas y el «Guardar» de la ficha muestran lo mismo (también al deshacer)
+function pintarFavorito(id){
+  const on=estado.favoritos.includes(String(id));
+  $$('.tc-fav[data-fav="'+id+'"]').forEach(b=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  if($('#sheetDetalle').dataset.id!==String(id))return;
+  [$('#detFav'),$('#detGuardar')].filter(Boolean).forEach(b=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.innerHTML=icon('heart',b.id==='detFav'?18:20)+(on?'Guardado':'Guardar');});
 }
 
 /* ===== RENDER PRINCIPAL ===== */
@@ -3201,7 +3253,7 @@ function abrirDetalle(id){
   const html='<div class="grab"></div>'
     +'<div class="det-top-acc">'
     +'<button class="btn-redondo" id="detShare" aria-label="Compartir '+esc(d.nombre)+'">'+icon('share-2')+'</button>'
-    +'<button class="btn-redondo'+(esFav?' on':'')+'" id="detFav" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos':'Guardar en favoritos')+'">'+icon('heart')+'</button>'
+    +'<button class="btn-redondo btn-con-texto'+(esFav?' on':'')+'" id="detFav" aria-pressed="'+esFav+'">'+icon('heart',18)+(esFav?'Guardado':'Guardar')+'</button>'
     +'<button class="btn-redondo" id="cerrarDet" aria-label="Cerrar ficha">'+icon('x')+'</button>'
     +'</div>'
     +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
@@ -3210,7 +3262,7 @@ function abrirDetalle(id){
     +'</div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
-    +'<div class="meta">'+[califHTML(cal),estadoHTML(estadoLugar(d),d.id)].filter(Boolean).join(PTO)+'</div>'
+    +'<div class="meta">'+[califHTML(cal),ap&&ap.abierto?'<button type="button" class="explica" data-explica="abierto">'+estadoHTML(ap,d.id)+'</button>':estadoHTML(estadoLugar(d),d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
     +(d.aviso?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p>'+esc(d.aviso)
@@ -3257,10 +3309,12 @@ function abrirDetalle(id){
     +'</div>';
 
   $('#sheetDetalle').innerHTML=html;
+  $('#sheetDetalle').dataset.id=String(d.id);
   $('#sheetDetalle').setAttribute('aria-label','Ficha de '+d.nombre);
   $('#sheetDetalle').scrollTop=0;
   abrir('ovDetalle');
   enlazarGaleriaFicha(d);
+  setTimeout(()=>explicarPrimeraVez($('#sheetDetalle')),350);
   $('#cerrarDet').onclick=()=>{quitarPreviaRelieve();cerrar('ovDetalle');};
   const dw=$('#detWa');if(dw)dw.onclick=()=>abrirWhatsApp(d);
   enlazarMenuFicha(d);
@@ -3280,8 +3334,8 @@ function abrirDetalle(id){
     });
   }
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
-  $('#detFav').onclick=()=>guardarDesdeFicha(d);
-  const dg=$('#detGuardar');if(dg)dg.onclick=()=>guardarDesdeFicha(d);
+  $('#detFav').onclick=()=>toggleFavorito(d.id);
+  const dg=$('#detGuardar');if(dg)dg.onclick=()=>toggleFavorito(d.id);
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
   $$('#sheetDetalle [data-cupon]').forEach(b=>(b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b)));
   const be=$('#btnEditar');if(be)be.onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
@@ -3298,14 +3352,6 @@ function abrirDetalle(id){
     s.onmouseenter=()=>pintar(+s.dataset.n);s.onmouseleave=()=>pintar(val);
   });
   $('#bCalificar').onclick=()=>enviarCalificacion(d,val,$('#ratingTxt').value.trim(),!!miCalif);
-}
-
-// El corazón de arriba y «Guardar» de la barra de abajo muestran lo mismo
-function guardarDesdeFicha(d){
-  if(!toggleFavorito(d.id))return;
-  const on=estado.favoritos.includes(String(d.id)),f=$('#detFav'),g=$('#detGuardar');
-  f.classList.toggle('on',on);f.setAttribute('aria-pressed',on);f.setAttribute('aria-label',on?'Quitar de favoritos':'Guardar en favoritos');
-  if(g){g.classList.toggle('on',on);g.setAttribute('aria-pressed',on);g.innerHTML=icon('heart')+(on?'Guardado':'Guardar');}
 }
 
 /* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar =====
@@ -5714,7 +5760,7 @@ function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedad
 function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
 function campanaHTML(){
   const n=noLeidas(),p=pendientesAdmin();
-  return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
+  return '<button class="btn-redondo campana" id="bNovedades" data-explica-auto="avisos" aria-label="Avisos y novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
 }
 function actualizarCampana(){const b=$('#bNovedades');if(b)b.outerHTML=campanaHTML();const nb=$('#bNovedades');if(nb)nb.onclick=abrirNovedades;}
 function abrirNovedades(){

@@ -666,6 +666,17 @@ button:disabled{opacity:.6;pointer-events:none}
 /* ---------- Avisos ---------- */
 .toast{position:fixed;left:50%;top:calc(72px + var(--safe-t));transform:translate(-50%,-12px);z-index:90;max-width:calc(100vw - 32px);width:max-content;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:var(--radius-md);font-size:var(--text-base);text-align:center;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .18s ease-out,transform .18s ease-out}
 .toast.ver{opacity:1;transform:translate(-50%,0)}
+/* Con «Deshacer»: el aviso se puede tocar y la acción va subrayada en negrita (mismo color del texto en ambos temas) */
+.toast.con-accion{display:flex;align-items:center;gap:12px;text-align:left}
+.toast.con-accion.ver{pointer-events:auto}
+.toast-accion{flex-shrink:0;min-height:44px;padding:0 8px;font-weight:700;text-decoration:underline;color:inherit}
+/* Explicación corta de una etiqueta («Destacado», «Abierto», «Fuente oficial», la campana) */
+.globo-ayuda{position:fixed;z-index:120;padding:12px 14px;border-radius:var(--radius-md);background:var(--ink);color:var(--bg);box-shadow:var(--shadow-md)}
+.globo-ayuda p{font-size:var(--text-base);line-height:1.45}
+.globo-ayuda .btn{margin-top:10px}
+.explica{display:inline-flex;align-items:center;min-height:44px;padding:0;color:inherit;text-align:left}
+/* Corazón de la ficha con palabra: «Guardar» o «Guardado» */
+.btn-redondo.btn-con-texto{width:auto;display:inline-flex;gap:6px;padding:0 14px;font-size:var(--text-sm);font-weight:600}
 .offline-bar{display:none;align-items:center;justify-content:center;gap:8px;background:var(--ink);color:var(--bg);font-size:var(--text-xs);padding:6px 12px;flex-shrink:0;z-index:30}
 .offline-bar.ver{display:flex}
 .promo-banner{position:absolute;left:16px;right:16px;top:12px;z-index:60;display:flex;gap:12px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow-md);cursor:pointer;transform:translateY(calc(-100% - 60px));visibility:hidden;transition:transform .2s ease-out,visibility 0s linear .2s}
