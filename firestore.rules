@@ -493,7 +493,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
           'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar',
-          'foto_credito', 'foto_fuente', 'con_foto'])
+          'foto_credito', 'foto_fuente', 'con_foto', 'foto_encuadre'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 60) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -517,6 +517,8 @@ service cloud.firestore {
         // La foto va en eventos/{id}/fotos/0 (con_foto: true). «imagen» es de los eventos anteriores: la agenda
         // automática la mueve a la subcolección; una foto dentro de cada evento hacía bajar 1,7 MB al abrir la app
         && d.get('con_foto', false) is bool
+        // v103: cómo se ve la foto en la app: el afiche completo o un punto al centro («50% 20%»); vacío = automático
+        && d.get('foto_encuadre', '') is string && d.get('foto_encuadre', '').matches('^(completa|[0-9]{1,3}% [0-9]{1,3}%)?$')
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']

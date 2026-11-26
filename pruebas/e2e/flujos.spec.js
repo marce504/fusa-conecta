@@ -1463,3 +1463,63 @@ test('fotos de eventos: van aparte, se ven en el Inicio y Ana sugiere un evento 
     /^data:image\/(webp|jpeg);base64,/,
   );
 });
+
+// v103: los afiches suelen ser verticales y el Inicio es horizontal. Al subir uno se ve completo (sobre una copia
+// difuminada) y quien lo sube puede elegir «Llenar el espacio» y acomodarlo; el evento abierto muestra el afiche entero.
+test('afiche vertical: se ve completo, se puede acomodar y se abre entero', async ({ page }, info) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await entrarComo(page, CUENTAS.admin);
+  const afiche = await page.evaluate(() => {
+    const cv = document.createElement('canvas');
+    cv.width = 600;
+    cv.height = 900;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#7a3e9d';
+    g.fillRect(0, 0, 600, 900);
+    g.fillStyle = '#f5c03c';
+    g.fillRect(30, 30, 540, 160);
+    return cv.toDataURL('image/jpeg', 0.85);
+  });
+  await page.evaluate(() => window.formEvento(null));
+  await page.locator('#evfFoto').setInputFiles({
+    name: 'afiche.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from(afiche.split(',')[1], 'base64'),
+  });
+  const marco = page.locator('#evfCaja');
+  await expect(marco.locator('img.foto-completa')).toBeVisible();
+  await expect(marco.locator('img.foto-fondo')).toHaveCount(1);
+  await expect(page.locator('[data-modo="completa"]')).toHaveAttribute('aria-checked', 'true');
+  await page.screenshot({ path: info.outputPath('afiche-completo.png') });
+  // «Llenar el espacio» y subir la foto: queda ese encuadre
+  await page.locator('[data-modo="llenar"]').click();
+  await expect(marco.locator('img.foto-fondo')).toHaveCount(0);
+  await page.locator('[data-mover="0,-10"]').click();
+  await expect(marco.locator('img[data-encuadre]')).toHaveAttribute('data-encuadre', '50% 40%');
+  await page.screenshot({ path: info.outputPath('afiche-llenar.png') });
+  // Y de nuevo completo para publicarlo
+  await page.locator('[data-modo="completa"]').click();
+  const d = new Date(Date.now() + 2 * 864e5);
+  const f = h =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${h}:00`;
+  await page.locator('#evfTit').fill('Festival del afiche E2E');
+  await page.locator('#evfIni').fill(f('15'));
+  await page.locator('#evfFin').fill(f('18'));
+  await page.locator('#evfLugar').fill('Parque principal');
+  await sinAvisoEmulador(page);
+  await page.locator('#evfGuardar').click();
+  await expect(page.locator('#toast')).toContainText('publicado');
+  const id = await page.evaluate(async () => {
+    const s = await db.collection('eventos').where('titulo', '==', 'Festival del afiche E2E').get();
+    return s.docs[0].id;
+  });
+  expect((await leerComoServidor(`eventos/${id}`)).foto_encuadre.stringValue).toBe('completa');
+  // La hoja del evento: el afiche completo y el botón para verlo en grande
+  await page.evaluate(i => window.abrirEvento(i), id);
+  await expect(page.locator('.ev-hero img.foto-completa')).toBeVisible();
+  await page.locator('#evVerAfiche').click();
+  await expect(page.locator('#visorFotos img')).toHaveAttribute('src', /^data:image\//);
+  await page.screenshot({ path: info.outputPath('afiche-visor.png') });
+});
