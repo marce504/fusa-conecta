@@ -65,7 +65,10 @@ async function main() {
     hasTouch: true,
     deviceScaleFactor: 2,
   });
-  await contexto.addInitScript(() => localStorage.setItem('fc_letra_preguntada', 'true'));
+  await contexto.addInitScript(() => {
+    localStorage.setItem('fc_letra_preguntada', 'true');
+    localStorage.setItem('fc_sencillo', 'false'); // se mide el Inicio completo
+  });
   const pagina = await contexto.newPage();
   const cdp = await contexto.newCDPSession(pagina);
   if (RED === 'lenta') {

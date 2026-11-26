@@ -165,7 +165,8 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
    vivo cada vez que se ve, con 300 vistas de fichas al día serían unas 9 000 al mes ≈ USD 56/mes. La búsqueda de los
    `place_id` (unas 540, una sola vez) entra en el cupo gratis de búsqueda. Verifica las cifras en la lista oficial de
    precios antes de activarlo.
-4. **Modo sencillo por defecto:** hoy es opcional (se ofrece en el primer uso y en Perfil). ¿Lo activo por defecto?
+4. ~~**Modo sencillo por defecto**~~ **Decidido (26-nov):** viene activado por defecto con letra Grande; se quita con
+   «Ver el Inicio completo» o en Perfil → Apariencia.
 5. **Aprobación de reclamos en la API** en vez del panel (más segura; ver 5.1).
 6. **N5:** en modo emulador la app llama a la API de producción (Render) para los avisos; CORS lo bloquea y no pasa nada,
    pero convendría que en modo emulador no la llame.

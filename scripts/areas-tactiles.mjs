@@ -102,6 +102,7 @@ async function main() {
   await pagina.evaluate(letra => {
     window.ocultarSplash();
     document.querySelectorAll('.firebase-emulator-warning').forEach(e => e.remove());
+    window.elegirSencillo(false, false);
     window.elegirLetra(letra, false);
   }, LETRA);
   let total = 0;

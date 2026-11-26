@@ -86,13 +86,19 @@ function letraDelPerfil(p){
 }
 /* ===== MODO SENCILLO (Fase 4) =====
    Inicio con 6 botones grandes (Buscar, Salud, Comida, Trámites, Emergencias, Mis favoritos), sin carruseles, banners ni
-   radio; las listas muestran «Llamar» en cada fila. Al activarlo sube la letra a «Grande». index.html lo aplica antes del
-   primer pintado (data-sencillo en <html>). */
-const modoSencillo=()=>ls.get('fc_sencillo',false)===true;
+   radio; las listas muestran «Llamar» en cada fila. Viene activado por defecto (decisión del proyecto, 26-nov-2026) y
+   con letra «Grande» mientras la persona no elija otra; se quita desde el mismo Inicio o en Perfil → Apariencia.
+   index.html lo aplica antes del primer pintado (data-sencillo y data-letra en <html>). */
+const modoSencillo=()=>ls.get('fc_sencillo',true)===true;
+// Letra que se ve: la elegida o, sin elección, «Grande» en modo sencillo
+const letraActual=()=>letraElegida()||(modoSencillo()?'grande':'normal');
 function elegirSencillo(activo,guardarEnPerfil=true){
   ls.set('fc_sencillo',!!activo);
   if(activo)document.documentElement.dataset.sencillo='';else delete document.documentElement.dataset.sencillo;
-  if(activo&&(letraElegida()||'normal')==='normal')elegirLetra('grande',guardarEnPerfil);
+  // Activarlo sube la letra a «Grande» (sin guardarla como elección si la persona nunca eligió); quitarlo la devuelve
+  if(activo&&!letraElegida())aplicarLetra('grande');
+  else if(activo&&letraElegida()==='normal')elegirLetra('grande',guardarEnPerfil);
+  if(!activo)aplicarLetra(letraElegida()||'normal');
   if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({modo_sencillo:!!activo}).catch(()=>{});
   medir('modo_sencillo',{activo:!!activo});
 }
@@ -106,8 +112,14 @@ const BOTONES_SENCILLO=[
 ];
 function inicioSencilloHTML(){
   return '<div class="sencillo">'+BOTONES_SENCILLO.map((b,i)=>'<button type="button" class="sencillo-btn'+(b.clase?' '+b.clase:'')+'" data-sencillo="'+i+'">'
-    +'<span class="sencillo-ic" aria-hidden="true">'+icon(b.ic,36)+'</span>'+b.t+'</button>').join('')+'</div>';
+    +'<span class="sencillo-ic" aria-hidden="true">'+icon(b.ic,36)+'</span>'+b.t+'</button>').join('')+'</div>'
+    +'<button type="button" class="btn btn-secundario btn-bloque mt-16" id="verInicioCompleto">'+icon('layout-grid',18)+'Ver el Inicio completo (eventos, categorías y más)</button>'
+    +'<p class="nota-c">Puedes volver al modo sencillo cuando quieras en Perfil → Apariencia.</p>';
 }
+document.addEventListener('click',e=>{
+  if(!(e.target.closest&&e.target.closest('#verInicioCompleto')))return;
+  elegirSencillo(false);render();toast('Listo: Inicio completo. El modo sencillo está en Perfil → Apariencia.',6000);
+});
 // En modo sencillo cada lugar es una fila con su estado y el botón «Llamar» (los que tienen teléfono van primero)
 function listaSencillaHTML(items,limite){
   const l=[...items].sort((a,b)=>!a.tel-!b.tel).slice(0,limite);
@@ -4775,7 +4787,7 @@ function confirmarLlamada(entidad,numero){
 
 /* Selector de tamaño de letra con vista previa: cada opción muestra «Aa» en su tamaño y el cambio se ve al instante */
 function selectorLetraHTML(){
-  const actual=letraElegida()||'normal';
+  const actual=letraActual();
   return '<h4 class="sub-tit" id="tLetra">Tamaño de letra</h4><div class="letra-ops" role="radiogroup" aria-labelledby="tLetra">'
     +TAMANOS_LETRA.map(([k,t,f])=>'<button type="button" class="letra-op'+(actual===k?' on':'')+'" role="radio" aria-checked="'+(actual===k)+'" data-letra-op="'+k+'">'
       +'<span class="letra-muestra" style="font-size:'+(1.25*f)+'rem" aria-hidden="true">Aa</span>'+t+'</button>').join('')+'</div>'
