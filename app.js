@@ -948,7 +948,7 @@ function lugaresAsis(texto){
 }
 function tarjetaLugarAsisHTML(d){
   const ap=estadoApertura(d),km=distanciaA(d),tel=telLimpio(d.tel);
-  const estadoTx=ap?estadoHTML(ap):esc(esNatural(d)?etiquetaDe(d):'Horario sin confirmar');
+  const estadoTx=ap?estadoHTML(ap):esNatural(d)?esc(etiquetaDe(d)):estadoHTML(SIN_HORARIO);
   return '<div class="asis-lugar"><button class="asis-item" data-ver="'+esc(d.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
     +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+estadoTx+(km!=null?' · '+fmtDist(km):'')+'</small></span>'+icon('chevron-right',18)+'</button>'
     +(tel?'<a class="btn btn-tonal asis-llamar" href="tel:'+tel+'" data-tel="'+esc(d.id)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone',18)+'Llamar</a>':'')+'</div>';
@@ -2140,6 +2140,9 @@ function estadoApertura(d){
   const cuando=prox.o===0?'Abre a las '+horaTexto(prox.ini):prox.o===1?'Abre mañana '+horaTexto(prox.ini):'Abre el '+DIAS_LARGO[prox.di]+' '+horaTexto(prox.ini);
   return {tipo:'cerr',abierto:false,texto:cuando};
 }
+// U2: sin horario publicado no se dice «Abierto» ni «Cerrado» (los sitios naturales no tienen horario)
+const SIN_HORARIO={tipo:'sin',abierto:false,texto:'Horario sin confirmar'};
+function estadoLugar(d){return estadoApertura(d)||(esNatural(d)?null:SIN_HORARIO);}
 function estadoHTML(ap,id){return ap?'<span class="estado '+ap.tipo+'"'+(id!=null?' data-estado="'+esc(id)+'"':'')+'><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
 function horarioTexto(d){
   if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra);
@@ -3169,6 +3172,7 @@ function abrirDetalle(id){
   const destinoMapa=destinoDe(d);
   // Lugares verificados de Pasca (v1.3.0): sin teléfono no hay «Llamar» ni «WhatsApp»; con aviso no hay «Cómo llegar»
   const sinContacto=!d.tel&&!d.whatsapp;
+  const sinHorario=!natural&&!ap&&!d.horario&&!(d.dias&&d.dias.length);
   const embed='https://maps.google.com/maps?q='+encodeURIComponent(destinoMapa)+'&z='+(d.ubicacion_aprox?14:16)+'&output=embed';
   const llegar='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destinoMapa);
   const mapaHTML=estado.online
@@ -3188,7 +3192,7 @@ function abrirDetalle(id){
     +'</div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
-    +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
+    +'<div class="meta">'+[califHTML(cal),estadoHTML(estadoLugar(d),d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
     +(d.aviso?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p>'+esc(d.aviso)
@@ -3199,8 +3203,10 @@ function abrirDetalle(id){
     +(aDomicilio(d)&&d.zona_cobertura?filaDato('bike','Zonas que cubre',esc(d.zona_cobertura)):'')
     +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
     +(d.horario_nota?filaDato('clock','Horario',esc(d.horario_nota))
+      :sinHorario?filaDato('clock','Horario','Horario sin confirmar')
       :d.fuentes&&!d.horario?'':filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d))))
-    +(natural||!d.tel?'':filaDato('phone','Contacto',esc(d.tel)))
+    +(natural?'':d.tel?filaDato('phone','Contacto',esc(d.tel))
+      :filaDato('phone','Contacto','Aún no tenemos el teléfono de este lugar<br><button class="btn btn-tonal btn-sm mt-8" id="detEnviarTel">'+icon('send',16)+'¿Lo conoces? Envíanoslo</button>'))
     +(d.correo?filaDato('mail','Correo','<a href="mailto:'+esc(d.correo)+'">'+esc(d.correo)+'</a>'):'')
     +(d.sitioWeb&&/^https:\/\//.test(d.sitioWeb)?filaDato('globe','Sitio web','<a href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+esc(d.sitioWeb.replace(/^https:\/\/(www\.)?/,''))+'</a>'):'')
     +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>/^https:\/\//.test(f.url||'')?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>':esc(f.nombre)).join('<br>')
@@ -3226,7 +3232,7 @@ function abrirDetalle(id){
     +'<div class="det-acc-fija">'
     +(natural||sinContacto
       ?(d.aviso?'':'<a class="btn btn-primario" id="detLlegar" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+(natural?'Cómo llegar al inicio':'Cómo llegar')+'</a>')
-        +'<button class="btn btn-secundario" id="detCompartir">'+icon('share-2')+'Compartir</button>'
+        +'<button class="btn btn-secundario'+(esFav?' on':'')+'" id="detGuardar" aria-pressed="'+esFav+'">'+icon('heart')+(esFav?'Guardado':'Guardar')+'</button>'
       :'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
         +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
         +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>')
@@ -3240,7 +3246,7 @@ function abrirDetalle(id){
   $('#cerrarDet').onclick=()=>{quitarPreviaRelieve();cerrar('ovDetalle');};
   const dw=$('#detWa');if(dw)dw.onclick=()=>abrirWhatsApp(d);
   enlazarMenuFicha(d);
-  const dc=$('#detCompartir');if(dc)dc.onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
+  const et=$('#detEnviarTel');if(et)et.onclick=()=>{cerrar('ovDetalle');reportar(d,null,DATO_FALTANTE);};
   if(natural){
     // Trazado real: "Ver ruta en 3D" (y "Cómo llegar al inicio" va al primer punto del trazado); sin él, "Trazado en preparación"
     trazadoReal(d.id).then(coords=>{
@@ -3256,7 +3262,8 @@ function abrirDetalle(id){
     });
   }
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
-  $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
+  $('#detFav').onclick=()=>guardarDesdeFicha(d);
+  const dg=$('#detGuardar');if(dg)dg.onclick=()=>guardarDesdeFicha(d);
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
   $$('#sheetDetalle [data-cupon]').forEach(b=>(b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b)));
   const be=$('#btnEditar');if(be)be.onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
@@ -3273,6 +3280,14 @@ function abrirDetalle(id){
     s.onmouseenter=()=>pintar(+s.dataset.n);s.onmouseleave=()=>pintar(val);
   });
   $('#bCalificar').onclick=()=>enviarCalificacion(d,val,$('#ratingTxt').value.trim(),!!miCalif);
+}
+
+// El corazón de arriba y «Guardar» de la barra de abajo muestran lo mismo
+function guardarDesdeFicha(d){
+  if(!toggleFavorito(d.id))return;
+  const on=estado.favoritos.includes(String(d.id)),f=$('#detFav'),g=$('#detGuardar');
+  f.classList.toggle('on',on);f.setAttribute('aria-pressed',on);f.setAttribute('aria-label',on?'Quitar de favoritos':'Guardar en favoritos');
+  if(g){g.classList.toggle('on',on);g.setAttribute('aria-pressed',on);g.innerHTML=icon('heart')+(on?'Guardado':'Guardar');}
 }
 
 /* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar ===== */
@@ -4594,7 +4609,7 @@ function drogueriasHTML(mun){
   if(!l.length&&!t)return '';
   const ab=d=>{const a=estadoApertura(d);return a&&a.abierto?0:a?1:2;};
   const fila=(d,extra)=>'<div class="sos-fila"><span class="sos-ic">'+icon('pill')+'</span><div class="sos-info"><b>'+esc(d.nombre)+'</b>'
-    +'<span>'+esc(extra||d.direccion||'')+'</span>'+estadoHTML(estadoApertura(d))+'</div>'
+    +'<span>'+esc(extra||d.direccion||'')+'</span>'+estadoHTML(estadoLugar(d))+'</div>'
     +'<button class="sos-llamar sos-ver" data-verdrog="'+esc(d.id)+'" aria-label="Ver la ficha de '+esc(d.nombre)+'">'+icon('chevron-right')+'</button></div>';
   const dt=t&&buscar(t.comercio_id);
   return '<h3 class="sos-grupo">Droguerías</h3>'
@@ -5941,15 +5956,18 @@ async function reclamarNegocio(d){
 }
 
 /* ===== REPORTAR UN PROBLEMA (ficha o reseña) ===== */
-function reportar(d,resena){
+// U2: «¿Lo conoces? Envíanoslo» abre el mismo reporte con el motivo ya elegido
+const DATO_FALTANTE={titulo:'Envíanos el teléfono',motivo:'Falta el teléfono o el horario',etiqueta:'Teléfono y, si lo sabes, el horario',
+  ayuda:'Ej: 3101234567, abre de lunes a sábado de 8 a. m. a 7 p. m.',boton:'Enviar'};
+function reportar(d,resena,previo={}){
   if(!logueado()){pedirLogin('Inicia sesión para reportar un problema.');return;}
   const motivos=resena?['Contenido ofensivo','Información falsa','No es una experiencia real','Otro']
-    :['Información incorrecta','Cerró definitivamente','Fotos inapropiadas','Otro'];
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reportar '+(resena?'una reseña':'un problema')+'</h2><p class="nota">'+esc(d.nombre)+'</p>'
-    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+motivos.map(m=>'<button type="button" class="chip-filtro" data-mot="'+esc(m)+'" role="radio" aria-checked="false">'+esc(m)+'</button>').join('')+'</div>'
-    +'<div class="campo mt-16"><label for="repTxt">Detalles (opcional)</label><textarea id="repTxt" maxlength="300" placeholder="Cuéntanos qué está mal..."></textarea></div>'
-    +'<button class="btn btn-primario btn-bloque" id="repEnviar">Enviar reporte</button></div>');
-  let motivo='';
+    :['Información incorrecta','Falta el teléfono o el horario','Cerró definitivamente','Fotos inapropiadas','Otro'];
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">'+esc(previo.titulo||'Reportar '+(resena?'una reseña':'un problema'))+'</h2><p class="nota">'+esc(d.nombre)+'</p>'
+    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+motivos.map(m=>'<button type="button" class="chip-filtro'+(m===previo.motivo?' on':'')+'" data-mot="'+esc(m)+'" role="radio" aria-checked="'+(m===previo.motivo)+'">'+esc(m)+'</button>').join('')+'</div>'
+    +'<div class="campo mt-16"><label for="repTxt">'+esc(previo.etiqueta||'Detalles (opcional)')+'</label><textarea id="repTxt" maxlength="300" placeholder="'+esc(previo.ayuda||'Cuéntanos qué está mal...')+'"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="repEnviar">'+esc(previo.boton||'Enviar reporte')+'</button></div>');
+  let motivo=previo.motivo||'';
   $$('#sheetGen [data-mot]').forEach(b=>(b.onclick=()=>{motivo=b.dataset.mot;$$('#sheetGen [data-mot]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});}));
   $('#repEnviar').onclick=async()=>{
     if(!motivo){toast('Elige un motivo');return;}

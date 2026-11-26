@@ -255,6 +255,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .estado.ab{color:var(--mint-700)}
 .estado.ab .punto{background:var(--mint-600)}
 .estado.cerr{color:var(--ink-2)}
+/* U2: sin horario publicado: neutro, con un anillo en vez del punto lleno */
+.estado.sin{color:var(--ink-2)}
+.estado.sin .punto{background:none;border:2px solid var(--ink-3)}
 .estado.pronto{color:var(--warning-700)}
 .estado.pronto .punto{background:var(--warning-600)}
 

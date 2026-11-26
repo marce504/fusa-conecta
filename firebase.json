@@ -26,6 +26,7 @@
       "logo whatsapp.jpg",
       "nuevo logo Fusa conecta.svg",
       "herramientas/**",
+      "scripts/**",
       "docs/**",
       "package.json",
       "package-lock.json",
