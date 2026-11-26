@@ -1366,3 +1366,100 @@ test('Inicio normal por defecto: «Aa» activa el modo sencillo y lo quita', asy
   await expect(page.locator('html')).not.toHaveAttribute('data-letra', /.+/);
   expect(await page.evaluate(() => localStorage.getItem('fc_sencillo'))).toBe('false');
 });
+
+// v102: la foto de un evento va aparte (eventos/{id}/fotos/0) y se pide solo al verla; dentro de cada evento hacía
+// bajar 1,7 MB al abrir la app. Quien sugiere un evento sube su foto en el mismo lote; nadie más puede ponerle una.
+async function jpegDePrueba(page) {
+  return page.evaluate(() => {
+    const cv = document.createElement('canvas');
+    cv.width = 320;
+    cv.height = 200;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#7a3e9d';
+    g.fillRect(0, 0, 320, 200);
+    return cv.toDataURL('image/jpeg', 0.8);
+  });
+}
+async function leerComoServidor(ruta) {
+  const r = await fetch(`${FS_E2E}/${ruta}`, { headers: { Authorization: 'Bearer owner' } });
+  return r.ok ? (await r.json()).fields : null;
+}
+test('fotos de eventos: van aparte, se ven en el Inicio y Ana sugiere un evento con foto', async ({ page }, info) => {
+  await page.goto(APP);
+  const foto = await jpegDePrueba(page);
+  const ini = Date.now() + 24 * 3600e3;
+  await poner('eventos/e2e-con-foto', {
+    titulo: 'Concierto con foto E2E',
+    descripcion: 'Evento de prueba con la foto aparte.',
+    estado: 'publicado',
+    categoria: 'musica',
+    tipo: 'plan',
+    municipio: 'Fusagasugá',
+    lugar_nombre: 'Concha acústica',
+    fecha_inicio: new Date(ini),
+    fecha_fin: new Date(ini + 2 * 3600e3),
+    imagen: '',
+    con_foto: true,
+  });
+  await poner('eventos/e2e-con-foto/fotos/0', { data: foto, ancho: 320, alto: 200, bytes: 1000 });
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  // El evento llega sin la foto; la diapositiva la pide al aparecer en pantalla
+  const img = page.locator('img[data-foto-ev="e2e-con-foto"]').first();
+  await expect(img).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+  expect(await page.evaluate(() => estado.eventos.find(e => e.id === 'e2e-con-foto').imagen)).toBe('');
+  await page.screenshot({ path: info.outputPath('evento-con-foto.png') });
+
+  await entrarComo(page, CUENTAS.ana);
+  // Nadie le pone ni le cambia la foto a un evento que ya existe, ni guarda la foto dentro de un evento nuevo
+  const negado = await page.evaluate(async f => {
+    const col = db.collection('eventos');
+    const uid = auth.currentUser.uid;
+    const base = {
+      titulo: 'Intento de prueba',
+      categoria: 'otro',
+      fecha_inicio: window.firebase.firestore.Timestamp.fromMillis(Date.now() + 864e5),
+      fecha_fin: window.firebase.firestore.Timestamp.fromMillis(Date.now() + 9e7),
+      lugar_nombre: 'Parque',
+      estado: 'pendiente',
+      origen: 'usuario',
+      creado_por: uid,
+    };
+    const r = await Promise.allSettled([
+      col.doc('e2e-con-foto').collection('fotos').doc('0').set({ data: f, ancho: 1, alto: 1, bytes: 1 }),
+      col.add({ ...base, imagen: f }),
+    ]);
+    return r.map(x => x.status);
+  }, foto);
+  expect(negado).toEqual(['rejected', 'rejected']);
+  // Ana sugiere un evento con foto desde el formulario
+  await page.evaluate(() => window.sugerirEvento());
+  const p = (d, h) => {
+    const x = new Date(Date.now() + d * 864e5);
+    x.setHours(h, 0, 0, 0);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}T${String(h).padStart(2, '0')}:00`;
+  };
+  await page.locator('#evfFoto').setInputFiles({
+    name: 'afiche.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from(foto.split(',')[1], 'base64'),
+  });
+  await expect(page.locator('#evfCaja img')).toHaveAttribute('src', /^data:image\//);
+  await page.locator('#evfTit').fill('Taller de fotografía E2E');
+  await page.locator('#evfIni').fill(p(3, 9));
+  await page.locator('#evfFin').fill(p(3, 12));
+  await page.locator('#evfLugar').fill('Casa de la Cultura');
+  await sinAvisoEmulador(page);
+  await page.locator('#evfGuardar').click();
+  await expect(page.locator('#toast')).toContainText('Lo revisamos');
+  const id = await page.evaluate(async () => {
+    const s = await db.collection('eventos').where('creado_por', '==', auth.currentUser.uid).get();
+    return s.docs.find(d => d.data().titulo === 'Taller de fotografía E2E').id;
+  });
+  const ev = await leerComoServidor(`eventos/${id}`);
+  expect(ev.con_foto.booleanValue).toBe(true);
+  expect(ev.imagen.stringValue).toBe('');
+  expect((await leerComoServidor(`eventos/${id}/fotos/0`)).data.stringValue).toMatch(
+    /^data:image\/(webp|jpeg);base64,/,
+  );
+});

@@ -113,6 +113,24 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
 2. Cargar `datos.js` como JSON y guardarlo en IndexedDB, para no bloquear el primer pintado.
 3. Minificar en un paso de compilación (esbuild) y precargar solo el núcleo en el service worker.
 
+### 4.1 Rendimiento en producción (rama `rendimiento-carga`, PWA v102)
+
+Medido en `fusa-conecta.web.app` (con compresión) antes del cambio: **rendimiento 67**, LCP 15,2 s, 2,6 MB en total.
+El elemento LCP era la diapositiva del evento y lo que la frenaba no era el código sino **los datos**:
+
+- La colección `eventos` traía la foto dentro de cada evento: 61 eventos, **1,7 MB** (`imagen` en base64) que se bajaban
+  completos antes de mostrar el Inicio. Ahora la foto va en `eventos/{id}/fotos/0` y se pide solo cuando el evento se
+  acerca a la pantalla. La agenda automática mueve las anteriores en su siguiente corrida.
+- Las tarjetas bajaban la foto de 800 px para mostrarla a 170 px: **~770 KB** al abrir. Ahora usan miniaturas de
+  420 × 315 (`img/mini`).
+- Con la descarga de Firestore bloqueada, Lighthouse da 70 y LCP 6,2 s: ese es el techo sin dividir el código.
+- Probado y descartado: minificar `app.js` ahorra solo 27 KB con brotli (el código ya es compacto), y el iframe de inicio
+  de sesión de Google lo carga el SDK de Firebase en todos los celulares, no `getRedirectResult`.
+
+Para llegar a 80 falta lo de la propuesta anterior: que el Inicio se pinte antes de que carguen los SDK de Firebase
+(cargarlos después del primer pintado) y dividir `app.js` en módulos. Es un cambio grande (unas 7 500 líneas) y va en su
+propia rama.
+
 ## 5. Lo que no se pudo hacer, y por qué
 
 ### 5.1 Reclamar este comercio (Fase 5)

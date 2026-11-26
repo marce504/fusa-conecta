@@ -413,9 +413,10 @@ db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
 const DEMO_HORAS=24;
 const demoVencido=e=>!!e.demo&&(aMs(e.fecha_creacion)||0)<Date.now()-DEMO_HORAS*36e5;
 let borrandoDemos=false;
+const borrarEventoEnLote=(b,ref)=>{b.delete(ref.collection('fotos').doc('0'));b.delete(ref);};
 function borrarDemosVencidos(){
   const l=estado.eventos.filter(demoVencido);if(!l.length||borrandoDemos)return;
-  borrandoDemos=true;const b=db.batch();l.forEach(e=>b.delete(db.collection('eventos').doc(e.id)));
+  borrandoDemos=true;const b=db.batch();l.forEach(e=>borrarEventoEnLote(b,db.collection('eventos').doc(e.id)));
   b.commit().catch(e=>reportarError('borrar eventos de ejemplo',e)).finally(()=>{borrandoDemos=false;});
 }
 /* v8: avisos del municipio (jornadas de salud, vacunación, lavado de tanques, cortes de servicio). Van en el filtro
@@ -477,10 +478,45 @@ const DECO_EV='<svg class="ev-ilu-deco" viewBox="0 0 160 100" preserveAspectRati
   +'<circle cx="22" cy="20" r="6"/><path d="M132 14l6 6m0-6l-6 6M40 44h8M44 40v8M118 46h6M121 43v6"/><circle cx="142" cy="72" r="3"/>'
   +'<path d="M-4 86c20-14 36-14 52 0s32 14 52 0 32-14 64 0"/></svg>';
 const iluEvento=(e,tam,clase)=>{const c=catEvento(e.categoria);return '<span class="ev-ilu ev-c-'+c[0]+(clase?' '+clase:'')+'" aria-hidden="true">'+DECO_EV+icon(c[2],tam)+'</span>';};
+/* Fotos de los eventos (v102): van aparte, en eventos/{id}/fotos/0, y se piden solo cuando el evento se acerca a la
+   pantalla. Dentro de cada evento hacían bajar 1,7 MB al abrir la app (61 eventos) antes de mostrar el Inicio.
+   Los eventos anteriores aún pueden traerla en «imagen» hasta que la agenda automática la mueva. */
+const tieneFotoEv=e=>!!(e&&(e.imagen||e.con_foto));
+const fotosEv=new Map();
+function fotoEvento(id){
+  if(!fotosEv.has(id))fotosEv.set(id,db.collection('eventos').doc(id).collection('fotos').doc('0').get()
+    .then(s=>(s.exists&&s.data().data)||'').catch(()=>''));
+  return fotosEv.get(id);
+}
+// <img> del evento; si la foto no llega, queda la ilustración de su categoría (ilu: [tamaño, clase]) o nada
+function imgEvento(e,attrs,ilu){
+  if(e.imagen)return '<img src="'+esc(e.imagen)+'" '+attrs+'>';
+  if(!e.con_foto)return ilu?iluEvento(e,ilu[0],ilu[1]):'';
+  return '<img data-foto-ev="'+esc(e.id)+'" data-cat="'+esc(e.categoria||'')+'"'+(ilu?' data-ilu="'+ilu.join(' ')+'"':'')+' '+attrs+'>';
+}
+let obsFotosEv=null;
+function ponerFotoEvento(img){
+  fotoEvento(img.dataset.fotoEv).then(src=>{
+    if(src){img.src=src;return;}
+    const ilu=(img.dataset.ilu||'').split(' ');
+    if(ilu[0])img.outerHTML=iluEvento({categoria:img.dataset.cat},Number(ilu[0]),ilu[1]);else img.remove();
+  });
+}
+function cargarFotosEventos(){
+  const l=document.querySelectorAll('img[data-foto-ev]:not([src]):not([data-pedida])');
+  if(!l.length)return;
+  if(!('IntersectionObserver' in window)){l.forEach(ponerFotoEvento);return;}
+  obsFotosEv=obsFotosEv||new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){obsFotosEv.unobserve(x.target);ponerFotoEvento(x.target);}}),{rootMargin:'300px'});
+  l.forEach(img=>{img.dataset.pedida='1';obsFotosEv.observe(img);});
+}
+// Un solo punto para todas las vistas (Inicio, agenda, favoritos, la hoja del evento): cada vez que se pinta algo nuevo
+let fotosEvPendientes=false;
+new MutationObserver(()=>{if(fotosEvPendientes)return;fotosEvPendientes=true;requestAnimationFrame(()=>{fotosEvPendientes=false;cargarFotosEventos();});})
+  .observe(document.body,{childList:true,subtree:true});
 // Tarjeta de evento para el carrusel del inicio (mismo tamaño que la tarjeta compacta)
 function tarjetaEventoHTML(e){
   return '<article class="tarjeta tarjeta-ev"><div class="tc-foto">'+iluEvento(e,32,'tc-ilu')
-    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e)+'</div>'
+    +imgEvento(e,'alt="" loading="lazy" decoding="async" onerror="this.remove()"')+calBloque(e)+'</div>'
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +(e.fuente_oficial?'<p class="tc-linea ev-oficial">'+icon('badge-check',12)+'Fuente oficial</p>':'')
@@ -508,7 +544,7 @@ function filaEventoHTML(e){
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+lugarEv(e)+'</p>'
     +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
-    +(e.imagen?'<img class="ev-img" src="'+esc(e.imagen)+'" alt="" loading="lazy">':iluEvento(e,28,'ev-img'))+'</article>';
+    +imgEvento(e,'class="ev-img" alt="" loading="lazy"',[28,'ev-img'])+'</article>';
 }
 function renderAgenda(){
   const A=estado.agenda,l=eventosEn(A.rango,A.cat),avisos=A.cat==='avisos',nAvisos=eventosEn(A.rango,'avisos').length;
@@ -581,13 +617,13 @@ function abrirEvento(id){
   enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
-  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e)+'</div>'
+  abrirHoja('<div class="ev-hero">'+imgEvento(e,'alt=""',[44,'hero-ilu'])+calBloque(e)+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
     +(e.fuente_oficial?' <button type="button" class="ev-chip ev-chip-oficial" data-explica="oficial">'+icon('badge-check',12)+'Fuente oficial</button>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e,true)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
-    +(e.imagen&&e.foto_credito?filaDato('camera','Foto',esc(e.foto_credito)):'')
+    +(tieneFotoEv(e)&&e.foto_credito?filaDato('camera','Foto',esc(e.foto_credito)):'')
     +filaDato('ticket','Entrada',esc(precioEv(e)))
     +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'
       // Eventos unidos por la agenda automática (v1.2.0): las demás noticias que hablan del mismo evento
@@ -613,14 +649,15 @@ function eventosFavoritosHTML(){
 const aLocal=ms=>{if(!ms)return '';const d=new Date(ms),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());};
 function formEvento(e,opc={}){
   const admin=esAdmin(),v=k=>esc(e&&e[k]!=null?e[k]:'');
-  let foto=e&&e.imagen?{src:e.imagen}:null,lat=e?e.lat:null,lng=e?e.lng:null;
+  // Un evento anterior con la foto adentro la pasa a fotos/0 al guardarse (fotoCambiada)
+  let foto=e&&e.imagen?{src:e.imagen}:null,fotoCambiada=!!foto,lat=e?e.lat:null,lng=e?e.lng:null;
   const lugares=[...database].filter(d=>d.lat&&d.lng).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
   const directo=admin||organizadorConfiable();let porIA=false;
   abrirHoja('<div class="hoja-pad"><h2>'+(e?'Editar evento':admin?'Nuevo evento':puedePublicarEventos()?'Publicar un evento':'Sugerir un evento')+'</h2>'
     +(directo?'':'<p class="nota-c izq">Lo revisamos antes de publicarlo en la agenda.</p>')
     +(puedeUsarIA()?iaCajaHTML():'')
     +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
-    +(foto?'<img src="'+esc(foto.src)+'" alt="Foto del evento. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
+    +(tieneFotoEv(e)?imgEvento(e,'alt="Foto del evento. Toca para cambiarla"'):'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
     +'<div class="campo"><label for="evfCredito">¿De quién es la foto? (si subiste una)</label><input class="input" id="evfCredito" maxlength="120" placeholder="Ej.: Alcaldía de Fusagasugá, o tu nombre si la tomaste tú" value="'+v('foto_credito')+'"></div>'
     +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
     +'<div class="campo"><label for="evfCat">Categoría <span class="req">*</span></label><select class="input" id="evfCat">'+CATS_EVENTO.map(([k,t])=>'<option value="'+k+'"'+(e&&e.categoria===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
@@ -638,11 +675,12 @@ function formEvento(e,opc={}){
     +'<div class="campo"><label for="evfDesc">Descripción</label><textarea id="evfDesc" maxlength="1000">'+v('descripcion')+'</textarea></div>'
     +'<button class="btn btn-primario btn-bloque mt-16" id="evfGuardar">'+(admin?(e&&e.estado!=='publicado'?'Guardar y publicar':e?'Guardar cambios':'Publicar evento'):directo?'Publicar evento':'Enviar para revisión')+'</button></div>');
   $('#sheetGen').setAttribute('aria-label','Formulario de evento');
+  if(e&&e.con_foto&&!foto)fotoEvento(e.id).then(src=>{if(src&&!foto)foto={src};});
   $('#evfGratis').onchange=()=>{$('#evfPrecioCaja').hidden=$('#evfGratis').checked;};
   $('#evfEn').onchange=()=>{const d=buscar($('#evfEn').value);if(!d)return;lat=d.lat;lng=d.lng;if(!$('#evfLugar').value.trim())$('#evfLugar').value=d.nombre;$('#evfPos').textContent='Ubicación de «'+d.nombre+'» guardada';};
   $('#evfAqui').onclick=async()=>{const p=await pedirUbicacion();if(!p){toast('No pudimos ver tu ubicación');return;}[lat,lng]=p;$('#evfPos').textContent='Tu ubicación actual quedó guardada';};
   $('#evfFoto').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#evfCaja').classList.add('cargando');
-    try{foto=await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado');$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}
+    try{foto=await conTiempoLimite(comprimirFoto(f,1280,200000,.8),10000,'La foto tardó demasiado');fotoCambiada=true;$('#evfCaja').querySelector('img,.fb-vacio').outerHTML='<img src="'+foto.src+'" alt="Foto elegida para el evento">';}
     catch(err){toast('No pudimos usar esa foto. Prueba con otra. (Error '+reportarError('foto evento',err)+')');}
     $('#evfCaja').classList.remove('cargando');};
   // La IA llena el formulario; la persona revisa, corrige y envía
@@ -660,7 +698,7 @@ function formEvento(e,opc={}){
     $('#evfGratis').checked=d.gratis!==false;$('#evfPrecioCaja').hidden=$('#evfGratis').checked;
     if(d.gratis===false)pon('#evfPrecio',String(d.precio||'').slice(0,40));
     // El afiche también sirve como foto del evento si aún no tiene una
-    if(afiche&&!foto){conTiempoLimite(comprimirFoto(afiche.src,1280,200000,.8),10000,'La foto tardó demasiado').then(f=>{foto=f;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
+    if(afiche&&!foto){conTiempoLimite(comprimirFoto(afiche.src,1280,200000,.8),10000,'La foto tardó demasiado').then(f=>{foto=f;fotoCambiada=true;const caja=$('#evfCaja');if(caja)caja.querySelector('img,.fb-vacio').outerHTML='<img src="'+f.src+'" alt="Afiche del evento">';}).catch(()=>{});}
   });
   $('#evfGuardar').onclick=async()=>{
     const tit=$('#evfTit').value.trim(),ini=$('#evfIni').value?new Date($('#evfIni').value).getTime():0,fin=$('#evfFin').value?new Date($('#evfFin').value).getTime():0;
@@ -672,18 +710,25 @@ function formEvento(e,opc={}){
     if(!lugar){toast('Escribe dónde es');$('#evfLugar').focus();return;}
     if(fuente&&!/^https:\/\/\S+$/.test(fuente)){toast('El enlace debe comenzar con https://');$('#evfFuente').focus();return;}
     const datos={titulo:tit,descripcion:$('#evfDesc').value.trim(),categoria:$('#evfCat').value,fecha_inicio:TS.fromMillis(ini),fecha_fin:TS.fromMillis(fin),
-      lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:foto?foto.src:'',organizador:$('#evfOrg').value.trim(),
+      lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:'',con_foto:!!foto,organizador:$('#evfOrg').value.trim(),
       enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim(),
       // Fase 6: la foto del evento (imagen) lleva su crédito; si no se sube, se muestra la ilustración de su tipo
       foto_credito:foto?$('#evfCredito').value.trim().slice(0,120):'',foto_fuente:foto?(fuente?'oficial':'propia'):''};
     const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
-    // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor
-    const escritura=admin&&e
-      ?db.collection('eventos').doc(e.id).set({...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp(),
-        ...(e.fuente_oficial?{fuente_oficial:true}:{})})
-      :db.collection('eventos').add({...datos,estado:directo?'publicado':'pendiente',
+    // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor.
+    // El evento y su foto van en el mismo lote (las reglas exigen que quien sugiere suba la foto al crear el evento).
+    const editar=admin&&e,ref=editar?db.collection('eventos').doc(e.id):db.collection('eventos').doc(),lote=db.batch();
+    lote.set(ref,editar
+      ?{...datos,estado:'publicado',origen:porIA?'ia':(e.origen||'admin'),creado_por:e.creado_por||estado.usuario.uid,fecha_creacion:e.fecha_creacion||FV.serverTimestamp(),
+        ...(e.fuente_oficial?{fuente_oficial:true}:{})}
+      :{...datos,estado:directo?'publicado':'pendiente',
         origen:porIA?'ia':admin?'admin':(esOrganizador()||esComerciante())?'organizador':'usuario',
         creado_por:estado.usuario.uid,fecha_creacion:FV.serverTimestamp()});
+    if(foto&&(fotoCambiada||!editar)){
+      lote.set(ref.collection('fotos').doc('0'),{data:foto.src,ancho:foto.ancho||0,alto:foto.alto||0,bytes:foto.bytes||bytesDataURL(foto.src)});
+      fotosEv.set(ref.id,Promise.resolve(foto.src));
+    }
+    const escritura=lote.commit().then(()=>ref);
     try{
       const refEv=await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
       if(!directo&&!(admin&&e)&&refEv&&refEv.id)avisarAdmins('evento',refEv.id);
@@ -1653,8 +1698,10 @@ async function cargarEventosDemo(){
   const b=db.batch();
   for(const e of l){
     const imagen=await fotoComoDataURL(e.foto).catch(()=>'');
-    b.set(db.collection('eventos').doc(),{...base,titulo:e.titulo,descripcion:e.descripcion,categoria:e.categoria,fecha_inicio:TS.fromMillis(e.ini),fecha_fin:TS.fromMillis(e.fin),
-      lugar_nombre:e.lugar_nombre,lat:e.lat||null,lng:e.lng||null,organizador:e.organizador,gratis:e.gratis,precio:e.precio,imagen:/^data:image\/(webp|jpeg);/.test(imagen)?imagen:'',fecha_creacion:FV.serverTimestamp()});
+    const ref=db.collection('eventos').doc(),conFoto=/^data:image\/(webp|jpeg);/.test(imagen);
+    b.set(ref,{...base,titulo:e.titulo,descripcion:e.descripcion,categoria:e.categoria,fecha_inicio:TS.fromMillis(e.ini),fecha_fin:TS.fromMillis(e.fin),
+      lugar_nombre:e.lugar_nombre,lat:e.lat||null,lng:e.lng||null,organizador:e.organizador,gratis:e.gratis,precio:e.precio,imagen:'',con_foto:conFoto,fecha_creacion:FV.serverTimestamp()});
+    if(conFoto)b.set(ref.collection('fotos').doc('0'),{data:imagen,ancho:0,alto:0,bytes:bytesDataURL(imagen)});
   }
   await b.commit();
 }
@@ -1753,7 +1800,7 @@ function enlazarEventosAdmin(){
   enlazarOrganizadoresAdmin();enlazarAgendaAutoAdmin();
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const bBorrarDemos=$('#admEvDemoBorrar');if(bBorrarDemos)bBorrarDemos.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
-    adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>b.delete(d.ref));await b.commit();},'Eventos de ejemplo borrados');};
+    adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>borrarEventoEnLote(b,d.ref));await b.commit();},'Eventos de ejemplo borrados');};
   $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
   $$('[data-eveditp]').forEach(b=>(b.onclick=()=>formEvento(pend(b.dataset.eveditp))));
   $$('[data-evedit]').forEach(b=>(b.onclick=()=>formEvento(pub(b.dataset.evedit))));
@@ -1761,7 +1808,7 @@ function enlazarEventosAdmin(){
     ['Ya pasó','Información incompleta','No es en Fusagasugá o Pasca','Duplicado','No es un evento público'])));
   $$('[data-evborrar]').forEach(b=>(b.onclick=async()=>{const e=pub(b.dataset.evborrar);
     if(!await confirmar('Eliminar evento','«'+e.titulo+'» sale de la agenda. Esta acción no se puede deshacer.','Eliminar','Cancelar','trash-2',true))return;
-    adminAccion(()=>col.doc(e.id).delete(),'Evento eliminado');}));
+    adminAccion(()=>{const lote=db.batch();borrarEventoEnLote(lote,col.doc(e.id));return lote.commit();},'Evento eliminado');}));
 }
 
 
@@ -2682,6 +2729,9 @@ function fotoVisible(d){
   const r=(d.fotos||[]).length?null:referenciaDe(d);
   return {src:r?r.archivo:'',referencia:r};
 }
+// Tarjetas: la miniatura de 420 px (img/mini, scripts/miniaturas.py) en vez de la foto de 800 px; si no existe, la original
+const miniDe=src=>/^img\/(categorias|comercios|turismo)\//.test(src||'')?'img/mini/'+src.slice(4).replace(/\.(jpe?g|png|webp)$/i,'.webp'):src;
+const FALLO_FOTO_TARJETA="if(this.dataset.orig){this.src=this.dataset.orig;this.removeAttribute('data-orig')}else{this.parentNode.classList.add('sin-foto');this.remove()}";
 function fotoHTML(d,cls){
   const img=fotoVisible(d).src;
   return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
@@ -2967,7 +3017,7 @@ function tarjetaHTML(d){
   return '<article class="tarjeta">'
     +'<div class="tc-foto c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),44)+'</span>'
       +'<span class="tc-sf-nombre" aria-hidden="true">'+esc(d.nombre)+'</span>'
-      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'')+insignia
+      +(img?'<img src="'+esc(miniDe(img))+'"'+(miniDe(img)!==img?' data-orig="'+esc(img)+'"':'')+' alt="" loading="lazy" decoding="async" onerror="'+FALLO_FOTO_TARJETA+'">':'')+insignia
       +'<button class="tc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',18)+'</button></div>'
     +'<h3 class="tc-nombre"><button class="tc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
     +(cal.total?'<p class="tc-calif">'+icon('star',14,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' <span>('+cal.total+')</span></p>':'')
@@ -3092,7 +3142,7 @@ function cuandoEvento(e,ahora=Date.now()){
 function diapositivaEventoHTML(e,i,n){
   return '<div class="ev-diapo" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(e.titulo)+'">'
     +'<button type="button" class="ev-diapo-btn" data-evento="'+esc(e.id)+'"><span class="ev-diapo-foto">'+iluEvento(e,56,'ev-diapo-ilu')
-    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" decoding="async"'+(i?' loading="lazy"':' fetchpriority="high"')+' onerror="this.remove()">':'')+'</span>'
+    +imgEvento(e,'alt="" decoding="async"'+(i?' loading="lazy"':' fetchpriority="high"')+' onerror="this.remove()"')+'</span>'
     +'<span class="ev-diapo-tx"><span class="ev-diapo-cuando">'+esc(cuandoEvento(e))+'</span><b>'+esc(e.titulo)+'</b>'
     +'<span class="ev-diapo-lugar">'+icon('map-pin',16)+lugarEv(e)+'</span><span class="ev-diapo-precio'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></span>'
     +'</button></div>';

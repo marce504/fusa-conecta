@@ -36,6 +36,10 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 - **Arreglos encontrados en las pruebas:** enlaces de las paradas de las rutas turísticas que tapaban la pantalla (N1),
   errores del ingreso escritos en el formulario (N2), error de Leaflet al cambiar de pestaña (N3) y etiquetas de la foto
   tapadas con letra grande (N4). PWA v100 (`fusa-v93`).
+- **Rendimiento (PWA v102, `fusa-v95`):** la foto de cada evento va aparte, en `eventos/{id}/fotos/0`, y se pide solo
+  cuando el evento se acerca a la pantalla; antes la app bajaba 1,7 MB de fotos de la agenda al abrir. La agenda
+  automática guarda así las nuevas y mueve las anteriores (`mover_fotos`); reglas nuevas para la foto. Las tarjetas
+  usan miniaturas de 420 px (`img/mini`, `scripts/miniaturas.py`): 3,2 MB de fotos pasan a 744 KB.
 
 ### Agregado
 - **Video promocional: escena «Y ahora también».** Resume las 8 funciones nuevas (alertas del municipio, empleos,

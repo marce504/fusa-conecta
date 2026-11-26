@@ -354,6 +354,45 @@ def a_webp(datos: bytes) -> str:
     return ""
 
 
+# ---------- Foto del evento, aparte ----------
+# La foto va en eventos/{id}/fotos/0 y el evento solo dice con_foto: true. Dentro de cada evento («imagen»), la app
+# bajaba todas las fotos de la agenda (1,7 MB con 61 eventos) antes de mostrar el Inicio.
+def foto_doc(img: str) -> dict:
+    return {"data": img, "ancho": 0, "alto": 0, "bytes": len(img.split(",", 1)[-1]) * 3 // 4}
+
+
+def ref_foto(ref: Any) -> Any:
+    return ref.collection("fotos").document("0")
+
+
+def tiene_foto(x: dict) -> bool:
+    return bool(x.get("imagen") or x.get("con_foto"))
+
+
+def leer_foto(ref: Any) -> str:
+    d = ref_foto(ref).get()
+    return ((d.to_dict() or {}).get("data") or "") if d.exists else ""
+
+
+def mover_fotos(db: Any) -> int:
+    """Eventos anteriores con la foto dentro del documento: la pasa a fotos/0 y deja «imagen» vacío."""
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    movidas = 0
+    for d in db.collection("eventos").where(filter=FieldFilter("imagen", ">", "")).stream():
+        img = (d.to_dict() or {}).get("imagen") or ""
+        if not img.startswith("data:image/"):
+            continue
+        lote = db.batch()  # uno por evento: cada foto pesa hasta 200 KB
+        lote.set(ref_foto(d.reference), foto_doc(img))
+        lote.update(d.reference, {"imagen": "", "con_foto": True})
+        lote.commit()
+        movidas += 1
+    if movidas:
+        log.info("%d fotos de eventos pasadas a su propio documento (fotos/0).", movidas)
+    return movidas
+
+
 # ---------- Extracción ----------
 def de_evento(x: dict, f: Fuente) -> dict | None:
     """Eventos con datos estructurados en el sitio (fecha, lugar y organizador): no necesitan IA."""
@@ -561,6 +600,7 @@ def borrar_ejemplos(db: Any, ahora: int) -> int:
     if vencidos:
         lote = db.batch()
         for d in vencidos:
+            lote.delete(ref_foto(d.reference))
             lote.delete(d.reference)
         lote.commit()
         log.info("%d eventos de ejemplo borrados (más de 24 horas).", len(vencidos))
@@ -610,8 +650,11 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             imagenes.setdefault(e["enlace"], "")
         if e["enlace"] not in imagenes:
             imagenes[e["enlace"]] = imagen_de(cliente, e["x"], e["enlace"]) if cliente else ""
+        ref, img = db.collection("eventos").document(), imagenes[e["enlace"]]
+        if img:
+            lote.set(ref_foto(ref), foto_doc(img))
         lote.set(
-            db.collection("eventos").document(),
+            ref,
             {
                 **({"programa": e["programa"]} if e.get("programa") else {}),
                 **({"sin_hora_fin": True} if e.get("sin_hora_fin") else {}),
@@ -627,7 +670,8 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
                 "lat": None,
                 "lng": None,
                 "municipio": e["municipio"],
-                "imagen": imagenes[e["enlace"]],
+                "imagen": "",
+                "con_foto": bool(img),
                 "organizador": e["organizador"],
                 "enlace_fuente": recortar(e["enlace"], 500),
                 "fuentes": [recortar(u, 500) for u in fuentes_de(e)][:5],
@@ -657,6 +701,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         "duplicados": duplicados,
         "reparados": reparados,
         "unidos": unidos,
+        "fotos_movidas": mover_fotos(db),
     }
 
 
@@ -697,7 +742,6 @@ def unir_guardados(existentes: list) -> int:
                 "descripcion": x.get("descripcion") or "",
                 "enlace_fuente": x.get("enlace_fuente") or "",
                 "fuentes": x.get("fuentes") or [],
-                "imagen": x.get("imagen") or "",
             }
         )
     borrados: set[str] = set()
@@ -727,9 +771,14 @@ def unir_guardados(existentes: list) -> int:
                 "descripcion": u["descripcion"],
                 "fuentes": [recortar(f, 500) for f in u["fuentes"]][:5],
             }
-            if u.get("imagen") and not queda["imagen"]:
-                cambios["imagen"] = u["imagen"]
+            if not tiene_foto(queda["x"]) and tiene_foto(sale["x"]):
+                img = sale["x"].get("imagen") or leer_foto(sale["d"].reference)
+                if img:
+                    ref_foto(queda["d"].reference).set(foto_doc(img))
+                    cambios["con_foto"] = True
+                    queda["x"]["con_foto"] = True
             queda["d"].reference.update(cambios)
+            ref_foto(sale["d"].reference).delete()
             sale["d"].reference.delete()
             borrados.add(sale["d"].id)
             queda.update(u)
@@ -744,14 +793,14 @@ def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:
     for d in existentes:
         x = d.to_dict() or {}
         # Los de un programa verificado ya vienen con su título definitivo («Charla: …») y sin imagen a propósito
-        if x.get("origen") != "automatico" or x.get("programa") or (x.get("tipo") and x.get("imagen")):
+        if x.get("origen") != "automatico" or x.get("programa") or (x.get("tipo") and tiene_foto(x)):
             continue
         cambios: dict[str, Any] = {"tipo": x.get("tipo") or tipo_de(x.get("titulo", ""), x.get("categoria", ""))}
         if len(x.get("titulo", "")) > 60 or SEPARADOR.search(x.get("titulo", "")):
             cambios["titulo"] = titulo_corto(x["titulo"])
             cambios["descripcion"] = con_campana(x.get("descripcion"), campana_de(x["titulo"]))
         enlace = x.get("enlace_fuente") or ""
-        if not x.get("imagen") and enlace and cliente:
+        if not tiene_foto(x) and enlace and cliente:
             m = re.match(r"^(https://[^/]+)/(?:noticias|eventos)/([^/?#]+)", enlace)
             det = None
             if m:
@@ -763,7 +812,8 @@ def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:
             if enlace not in imagenes:
                 imagenes[enlace] = imagen_de(cliente, det, enlace)
             if imagenes[enlace]:
-                cambios["imagen"] = imagenes[enlace]
+                ref_foto(d.reference).set(foto_doc(imagenes[enlace]))
+                cambios["con_foto"] = True
         if x.get("tipo") and len(cambios) == 1:
             continue  # nada nuevo (la imagen sigue sin llegar)
         d.reference.update(cambios)
@@ -772,7 +822,7 @@ def reparar(db: Any, cliente: Any, existentes: list, imagenes: dict) -> int:
             "Reparado: %s · %s%s",
             cambios.get("titulo", x.get("titulo")),
             cambios["tipo"],
-            " · con imagen" if "imagen" in cambios else "",
+            " · con imagen" if "con_foto" in cambios else "",
         )
     return reparados
 
