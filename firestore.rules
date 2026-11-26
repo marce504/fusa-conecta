@@ -520,7 +520,8 @@ service cloud.firestore {
     function eventoValido(d) {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
-          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar'])
+          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar',
+          'foto_credito', 'foto_fuente'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 60) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -538,6 +539,9 @@ service cloud.firestore {
         && d.get('fuentes', []) is list && d.get('fuentes', []).size() <= 5
         // v8: plan para la gente o aviso del municipio (jornadas de salud, vacunación, cortes de servicio)
         && d.get('tipo', 'plan') in ['plan', 'aviso']
+        // Fase 6: de quién es la foto y de dónde salió
+        && campoTexto(d, 'foto_credito', 120)
+        && d.get('foto_fuente', '') in ['', 'propia', 'oficial', 'generica']
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']

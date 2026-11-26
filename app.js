@@ -567,6 +567,7 @@ function abrirEvento(id){
     +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e,true)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
+    +(e.imagen&&e.foto_credito?filaDato('camera','Foto',esc(e.foto_credito)):'')
     +filaDato('ticket','Entrada',esc(precioEv(e)))
     +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'
       // Eventos unidos por la agenda automática (v1.2.0): las demás noticias que hablan del mismo evento
@@ -600,6 +601,7 @@ function formEvento(e,opc={}){
     +(puedeUsarIA()?iaCajaHTML():'')
     +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
     +(foto?'<img src="'+esc(foto.src)+'" alt="Foto del evento. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
+    +'<div class="campo"><label for="evfCredito">¿De quién es la foto? (si subiste una)</label><input class="input" id="evfCredito" maxlength="120" placeholder="Ej.: Alcaldía de Fusagasugá, o tu nombre si la tomaste tú" value="'+v('foto_credito')+'"></div>'
     +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
     +'<div class="campo"><label for="evfCat">Categoría <span class="req">*</span></label><select class="input" id="evfCat">'+CATS_EVENTO.map(([k,t])=>'<option value="'+k+'"'+(e&&e.categoria===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +'<div class="fb-fechas"><div class="campo"><label for="evfIni">Empieza <span class="req">*</span></label><input class="input" type="datetime-local" id="evfIni" value="'+aLocal(e&&e.ini)+'"></div>'
@@ -651,7 +653,9 @@ function formEvento(e,opc={}){
     if(fuente&&!/^https:\/\/\S+$/.test(fuente)){toast('El enlace debe comenzar con https://');$('#evfFuente').focus();return;}
     const datos={titulo:tit,descripcion:$('#evfDesc').value.trim(),categoria:$('#evfCat').value,fecha_inicio:TS.fromMillis(ini),fecha_fin:TS.fromMillis(fin),
       lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:foto?foto.src:'',organizador:$('#evfOrg').value.trim(),
-      enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim()};
+      enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim(),
+      // Fase 6: la foto del evento (imagen) lleva su crédito; si no se sube, se muestra la ilustración de su tipo
+      foto_credito:foto?$('#evfCredito').value.trim().slice(0,120):'',foto_fuente:foto?(fuente?'oficial':'propia'):''};
     const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
     // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor
     const escritura=admin&&e
@@ -3187,6 +3191,8 @@ function cuponesDe(d){
     .filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
 }
 // v1.4.0: autor y licencia de las fotos libres (Wikimedia Commons). CC BY y CC BY-SA exigen dar el crédito.
+// Fase 6: foto_fuente = propia | google_places | wikimedia | generica. La genérica dice que es de referencia
+const esImagenReferencia=d=>d.foto_fuente==='generica'&&!!imgSegura(d.imagen);
 function creditoFotoHTML(d){
   const c=d.foto_credito;if(!c||!c.autor||!imgSegura(d.imagen))return '';
   const enlace=(u,t)=>/^https:\/\//.test(u||'')?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':esc(t);
@@ -3345,6 +3351,7 @@ function abrirDetalle(id){
     +'</div>'
     +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
     +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
+    +(esImagenReferencia(d)?'<span class="foto-referencia">Imagen de referencia</span>':'')
     +badgeDestacado(d)
     +'</div>'
     +'<div class="det-body">'

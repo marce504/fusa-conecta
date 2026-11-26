@@ -1898,3 +1898,11 @@ html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
 .form-grande .check input{width:24px;height:24px}
 .form-grande .ayuda{display:block;margin-top:4px;font-size:var(--text-sm);color:var(--ink-2)}
 .prueba-foto{display:block;width:100%;height:auto;margin-top:12px;border-radius:var(--radius-md)}
+/* =====================================================================
+   FASE 6 · Fotos
+   ===================================================================== */
+/* Sin foto: degradado del color de la categoría, círculos suaves y el ícono grande (nunca un recuadro vacío) */
+.tc-foto.sin-foto,.det-hero.sin-foto{background:radial-gradient(circle at 85% 15%,var(--blanco-60) 0 18%,transparent 19%),radial-gradient(circle at 10% 90%,var(--blanco-20) 0 22%,transparent 23%),linear-gradient(135deg,var(--cc-bg,var(--soft)) 0%,color-mix(in srgb,var(--cc,var(--ink-3)) 22%,var(--cc-bg,var(--soft))) 100%)}
+.tc-foto.sin-foto .fallback-ic .ic,.det-hero.sin-foto .fallback-ic .ic{width:56px;height:56px;opacity:.9}
+/* La foto genérica de una categoría no es la del local: se dice */
+.foto-referencia{position:absolute;right:12px;bottom:12px;z-index:3;padding:4px 10px;border-radius:var(--radius-full);background:var(--blanco-92);color:var(--tinta-fija);font-size:var(--text-sm);font-weight:600}
