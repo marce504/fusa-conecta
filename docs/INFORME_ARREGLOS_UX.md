@@ -54,7 +54,7 @@ Emulator Suite (`/?emulador`) con cuentas y datos de prueba. La versión anterio
 | N2 | Errores de ingreso solo en un aviso que se va | Corregido | `ea765fb` |
 | N3 | Error de Leaflet `_leaflet_pos` al cambiar de pestaña | Corregido | `f4f0945` |
 | N4 | Etiquetas de la foto tapadas por los botones fijos con letra grande | Corregido | `2ac4ab2` |
-| N5 | En modo emulador la app llama a la API de producción (la bloquea CORS) | Pendiente (ver 6) | — |
+| N5 | En modo emulador la app llama a la API de producción (la bloquea CORS) | Hecho: con `?emulador` usa la API local | — |
 
 ### Detalles importantes
 
@@ -175,8 +175,8 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
 4. ~~**Modo sencillo por defecto**~~ **Decidido (26-nov):** viene activado por defecto con letra Grande; se quita con
    «Ver el Inicio completo» o en Perfil → Apariencia.
 5. ~~**Aprobación de reclamos en la API**~~ **Hecho (26-nov):** la decide la API (ver 5.1).
-6. **N5:** en modo emulador la app llama a la API de producción (Render) para los avisos; CORS lo bloquea y no pasa nada,
-   pero convendría que en modo emulador no la llame.
+6. ~~**N5:**~~ **Hecho (26-nov):** en modo emulador la app ya no llama a la API de producción (Render): usa la API local
+   (`127.0.0.1:8000`), así los tokens y datos de prueba nunca salen hacia producción.
 7. **Completar datos:** teléfonos y horarios de Salud y Trámites (`docs/comercios-incompletos.csv`).
 8. **Dividir `app.js`** para llegar a rendimiento 80 (sección 4).
 

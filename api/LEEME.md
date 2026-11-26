@@ -106,7 +106,8 @@ firebase emulators:start --only firestore,auth --project fusa-conecta
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8099 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 ORIGENES=http://localhost:5510 .venv/Scripts/uvicorn app.main:app --port 8000
 ```
 
-Abre http://127.0.0.1:8000/docs. Para que la PWA local use esta API, abre `http://localhost:5510/?emulador&api_local`.
+Abre http://127.0.0.1:8000/docs. La PWA local abierta con `http://localhost:5510/?emulador` ya usa esta API (nunca la de producción);
+`?api_local` sirve para usarla sin el emulador.
 
 ## Pruebas
 

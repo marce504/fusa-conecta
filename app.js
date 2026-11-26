@@ -361,8 +361,9 @@ db.collection('banners').onSnapshot(s=>{
 },()=>{});
 /* ===== API REST (Python · FastAPI, carpeta api/) =====
    Calendario ICS, GPX de las rutas, reporte del negocio y estado en Diagnóstico. En el plan gratuito de Render el servicio
-   se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo. */
-const API_URL=new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
+   se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo.
+   Con el emulador (o ?api_local) se usa la API local: los tokens y datos de prueba nunca van a producción (N5). */
+const API_URL=EMULADOR||new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
 async function pedirAPI(ruta,{token=false,segundos=70,cuerpo=null}={}){
   const h=cuerpo?{'Content-Type':'application/json'}:{};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
   // Render (plan gratis) duerme la API: al despertar puede cortar la conexión («Failed to fetch»). Se reintenta
