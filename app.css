@@ -1909,3 +1909,7 @@ html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
 /* N2: error del ingreso escrito en el formulario */
 .login-error{margin:4px 0 12px;padding:12px;border-radius:var(--radius-md);background:var(--danger-50);color:var(--danger-700);font-size:var(--text-base);font-weight:500}
 .login-error[hidden]{display:none}
+/* N4: con los botones fijos arriba (E5), las etiquetas de la foto van abajo para no quedar tapadas con letra grande */
+.det-hero .pill-cat{top:auto;bottom:12px;left:12px;max-width:calc(100% - 24px)}
+.det-hero .badge-dest{top:auto;bottom:56px;left:12px}
+.det-hero .foto-referencia{right:12px;bottom:12px}
