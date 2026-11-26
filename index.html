@@ -21,7 +21,7 @@ var sen=false,l='';try{sen=localStorage.getItem('fc_sencillo')==='true';l=localS
 if(sen)document.documentElement.setAttribute('data-sencillo','');
 if(!l&&sen)l='grande';
 if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-letra',l);})();</script>
-<link rel="stylesheet" href="app.css?v=101">
+<link rel="stylesheet" href="app.css?v=102">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -189,12 +189,12 @@ if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-le
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=101"></script>
+<script src="icons.js?v=102"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=101"></script>
-<script src="app.js?v=101"></script>
+<script src="datos.js?v=102"></script>
+<script src="app.js?v=102"></script>
 </body>
 </html>
