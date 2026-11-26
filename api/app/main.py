@@ -343,7 +343,7 @@ def estadisticas(request: Request, repo: Repo, usuario: Usuario) -> dict:
 
 
 class Decision(BaseModel):
-    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "empleo"] = Field(
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reclamo_comercio", "empleo"] = Field(
         description="Qué revisó el admin"
     )
     id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")
@@ -440,7 +440,7 @@ def avisar_decision(
 
 
 class PedidoPendiente(BaseModel):
-    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reporte", "empleo"] = Field(
+    tipo: Literal["comercio", "evento", "ruta", "premium", "reclamo", "reclamo_comercio", "reporte", "empleo"] = Field(
         description="Qué se envió"
     )
     id: str = Field(min_length=1, max_length=60, pattern=r"^[A-Za-z0-9_-]+$", description="Id del documento")

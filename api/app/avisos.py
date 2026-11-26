@@ -20,7 +20,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
-Tipo = Literal["comercio", "evento", "ruta", "premium", "reclamo", "empleo"]
+Tipo = Literal["comercio", "evento", "ruta", "premium", "reclamo", "reclamo_comercio", "empleo"]
 Resultado = Literal["aprobado", "rechazado"]
 
 APP_URL = os.environ.get("APP_URL", "https://fusa-conecta.web.app").rstrip("/")
@@ -55,6 +55,14 @@ FUENTES: dict[str, Fuente] = {
     ),
     "reclamo": Fuente(
         "solicitudes", "uid", "comercio_nombre", "motivo", {"aprobado": "aprobada", "rechazado": "rechazada"}
+    ),
+    # Fase 5: reclamos con verificación (colección reclamos_comercio)
+    "reclamo_comercio": Fuente(
+        "reclamos_comercio",
+        "usuario_uid",
+        "comercio_nombre",
+        "motivo_rechazo",
+        {"aprobado": "aprobado", "rechazado": "rechazado"},
     ),
     "empleo": Fuente("empleos", "autor_uid", "titulo", "motivo", {"aprobado": "publicado", "rechazado": "rechazado"}),
 }
@@ -108,6 +116,12 @@ def mensaje(tipo: str, resultado: str, nombre: str, motivo: str = "", id_: str =
             f"Ya administras {nombre} en Fusa Conecta. Complétalo desde Mi negocio.",
             "#/mi-negocio",
         )
+    if tipo == "reclamo_comercio" and resultado != "aprobado":
+        return (
+            "Revisamos tu solicitud",
+            f"No aprobamos tu solicitud para {nombre}: {motivo}. Puedes reclamarlo de nuevo desde su ficha.",
+            "#/perfil",
+        )
     return "Revisamos tu reclamo", f"Revisamos tu reclamo de {nombre}: {motivo}.", "#/perfil"
 
 
@@ -141,6 +155,9 @@ PENDIENTES: dict[str, Pendiente] = {
     "ruta": Pendiente("rutas_comunidad", "autor_uid", "nombre", "estado", "propuso la ruta"),
     "premium": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "pidió Premium para", "premium"),
     "reclamo": Pendiente("solicitudes", "uid", "comercio_nombre", "estado", "reclamó el negocio", "reclamo"),
+    "reclamo_comercio": Pendiente(
+        "reclamos_comercio", "usuario_uid", "comercio_nombre", "estado", "reclamó el negocio"
+    ),
     "reporte": Pendiente("reportes", "uid", "comercio_nombre", "estado", "reportó un problema en"),
     "empleo": Pendiente("empleos", "autor_uid", "titulo", "estado", "publicó la oferta de empleo"),
 }
@@ -150,6 +167,7 @@ TITULO_PENDIENTE = {
     "ruta": "Ruta por aprobar",
     "premium": "Solicitud Premium",
     "reclamo": "Reclamo de negocio",
+    "reclamo_comercio": "Reclamo de negocio",
     "reporte": "Reporte por revisar",
     "empleo": "Oferta de empleo por aprobar",
 }
