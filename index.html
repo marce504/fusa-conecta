@@ -7,7 +7,9 @@
 <meta name="description" content="Directorio inteligente de comercios, turismo y emergencias de Fusagasugá y Pasca.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+<!-- Poppins sin bloquear el primer pintado: mientras llega se usa la fuente de respaldo con sus medidas (app.css) -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet"></noscript>
 <meta name="color-scheme" content="light dark">
 <script>/* Tema antes del primer pintado: Sistema (por defecto, U10: sigue al celular), Automático (oscuro de 6 p. m. a 6 a. m., hora de Colombia), Claro u Oscuro */
 (function(){var t='sistema';try{t=localStorage.getItem('fc_tema')||'sistema';}catch(e){}

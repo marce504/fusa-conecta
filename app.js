@@ -3056,12 +3056,12 @@ function cuandoEvento(e,ahora=Date.now()){
   return dia+' · '+horaEv(e.ini);
 }
 function diapositivaEventoHTML(e,i,n){
-  return '<article class="ev-diapo" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(e.titulo)+'">'
+  return '<div class="ev-diapo" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(e.titulo)+'">'
     +'<button type="button" class="ev-diapo-btn" data-evento="'+esc(e.id)+'"><span class="ev-diapo-foto">'+iluEvento(e,56,'ev-diapo-ilu')
     +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" decoding="async"'+(i?' loading="lazy"':' fetchpriority="high"')+' onerror="this.remove()">':'')+'</span>'
     +'<span class="ev-diapo-tx"><span class="ev-diapo-cuando">'+esc(cuandoEvento(e))+'</span><b>'+esc(e.titulo)+'</b>'
     +'<span class="ev-diapo-lugar">'+icon('map-pin',16)+lugarEv(e)+'</span><span class="ev-diapo-precio'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></span>'
-    +'</button></article>';
+    +'</button></div>';
 }
 // Flechas de 48 px a los lados de la foto (si hay más de un evento); debajo, los puntos y «Ver toda la agenda»
 function flechasEventosHTML(n){
