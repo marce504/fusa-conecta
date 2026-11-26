@@ -23,8 +23,10 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
   pausa del carrusel y fechas completas.
 - **Inicio y navegación (U1, U4, U8):** «Qué hacer en Fusa» (eventos) primero, «Lo que necesitas» (Transporte, Empleos,
   Salud, Trámites), Rutas y turismo, Ofertas y cupones; barra Inicio · Agenda · Mapa · Comunidad · Perfil con la
-  pestaña nueva Comunidad; Cupones pasa a Perfil y a Comunidad. CLS del Inicio de 0,36 a 0,01. Modo sencillo, activado
-  por defecto con letra Grande (se quita con «Ver el Inicio completo» o en Perfil).
+  pestaña nueva Comunidad; Cupones pasa a Perfil y a Comunidad. CLS del Inicio de 0,36 a 0,01. Modo sencillo con letra
+  Grande, opcional: el Inicio normal viene por defecto y el botón «Aa» de la barra de arriba (con un globo de ayuda la
+  primera vez) lleva el tamaño de letra y el modo sencillo; al quitarlo vuelve la letra que había. La X de las alertas
+  municipales mide 48 px (PWA v101).
 - **Reclamar este comercio** con verificación, colección `reclamos_comercio`, revisión del admin y reglas nuevas
   (Fase 5). La API avisa los reclamos (`reclamo_comercio`) y **decide** la aprobación o el rechazo
   (`POST /v1/reclamos/{id}/decision`): ningún navegador, ni el del admin, puede escribir el dueño de un comercio.

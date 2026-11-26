@@ -146,6 +146,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .btn-wa-ficha .ic{color:var(--whatsapp)}
 .btn-redondo{width:48px;height:48px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--bg);color:var(--ink);box-shadow:var(--shadow-sm);transition:background var(--t),color var(--t)}
 .btn-redondo:hover{background:var(--soft)}
+/* «Aa»: tamaño de letra y modo sencillo (barra de arriba) */
+.btn-letra{font-weight:700;font-size:1.125rem;letter-spacing:-.01em;color:var(--primary-700)}
 .cerrar{position:absolute;top:12px;right:12px;z-index:5}
 .enlace{color:var(--primary-700);text-decoration:underline;font-weight:500;font-size:inherit;padding:0}
 
@@ -528,7 +530,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .fil-ayuda{font-size:var(--text-xs);color:var(--ink-3);margin-left:-6px}
 .fila-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .fila-2 .input{width:100%;min-width:0}
-.alerta-muni{position:relative;display:flex;gap:12px;align-items:flex-start;padding:14px 44px 14px 14px;margin:0 0 16px;border-radius:var(--radius-md);background:var(--danger-50);border:1px solid var(--danger-600);color:var(--ink)}
+.alerta-muni{position:relative;display:flex;gap:12px;align-items:flex-start;padding:14px 52px 14px 14px;margin:0 0 16px;border-radius:var(--radius-md);background:var(--danger-50);border:1px solid var(--danger-600);color:var(--ink)}
 .sos-head+.seg~.alerta-muni,.vista>.alerta-muni{margin-top:12px}
 .am-ic{color:var(--danger-600);flex-shrink:0;margin-top:2px}
 .am-tx{min-width:0}
@@ -536,7 +538,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .am-tx b{display:block;font-size:var(--text-base);font-weight:600;margin:2px 0}
 .am-tx p{margin:0 0 6px;font-size:var(--text-sm);color:var(--ink)}
 .am-tx a{color:var(--danger-600)}
-.am-cerrar{position:absolute;top:8px;right:8px;width:32px;height:32px}
+/* U6: la X de ocultar la alerta también mide 48 px */
+.am-cerrar{position:absolute;top:2px;right:2px;width:48px;height:48px}
 .mb-16{margin-bottom:16px}
 .sos-ic.sos-ic-neutro{background:var(--primary-50);color:var(--primary-600)}
 .ruta-tr{padding:14px;margin-top:10px;border:1px solid var(--soft);border-radius:var(--radius-md);background:var(--bg)}

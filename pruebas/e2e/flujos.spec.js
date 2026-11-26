@@ -4,18 +4,16 @@ import { CLAVE, CUENTAS, CUPON, NEGOCIO, NEGOCIO_PASCA, poner } from './semilla.
 
 const APP = '/?emulador';
 
-// La ayuda del primer uso (letra grande y globos que explican etiquetas) se da por vista: estas pruebas no son de ella
+// Los globos del primer uso (botón «Aa» y etiquetas) se dan por vistos: estas pruebas no son de ellos
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     [
-      'fc_letra_preguntada',
+      'fc_explicado_letra',
       'fc_explicado_avisos',
       'fc_explicado_destacado',
       'fc_explicado_abierto',
       'fc_explicado_oficial',
     ].forEach(k => localStorage.setItem(k, 'true'));
-    // El modo sencillo viene por defecto; estas pruebas revisan el Inicio completo (la del modo sencillo lo activa)
-    if (!sessionStorage.getItem('fc_e2e_sencillo')) localStorage.setItem('fc_sencillo', 'false');
   });
 });
 
@@ -1345,27 +1343,26 @@ test('reclamar un comercio: en revisión, aprobar, editar el horario; rechazar y
     .toBe('pendiente');
 });
 
-// Decisión del proyecto: el modo sencillo viene por defecto, con letra Grande, y se quita desde el mismo Inicio
-test('modo sencillo por defecto: lo ve quien entra por primera vez y puede pasar al Inicio completo', async ({
-  page,
-}) => {
-  // Solo en la primera carga: como un teléfono que nunca abrió la app
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem('fc_e2e_sencillo')) return;
-    sessionStorage.setItem('fc_e2e_sencillo', '1');
-    localStorage.removeItem('fc_sencillo');
-  });
+// Decisión del proyecto: el Inicio de siempre viene por defecto; el botón «Aa» de arriba (con un globo la primera vez)
+// ofrece la letra más grande y el modo sencillo, y al quitarlo vuelve la letra que había
+test('Inicio normal por defecto: «Aa» activa el modo sencillo y lo quita', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('fc_explicado_letra'));
   await page.goto(APP);
   await page.locator('#sInvitado').click();
   await expect(page.locator('#splash')).toHaveClass(/oculto/);
-  await expect(page.locator('html')).toHaveAttribute('data-sencillo', '');
-  await expect(page.locator('html')).toHaveAttribute('data-letra', 'grande');
+  await expect(page.locator('#tQueHacer')).toBeVisible();
+  await expect(page.locator('html')).not.toHaveAttribute('data-sencillo', /.*/);
+  await expect(page.locator('html')).not.toHaveAttribute('data-letra', /.+/);
+  await expect(page.locator('#globoAyuda')).toContainText('Toca «Aa»');
+  await page.locator('#globoAyuda button').click();
+  await page.locator('#bLetra').click();
+  await page.locator('#hojaSencillo').click();
   await expect(page.locator('.sencillo-btn')).toHaveCount(6);
-  await page.locator('#verInicioCompleto').click();
+  await expect(page.locator('html')).toHaveAttribute('data-letra', 'grande');
+  await page.locator('#bLetra').click();
+  await expect(page.locator('#hojaSencillo')).toContainText('Volver al Inicio completo');
+  await page.locator('#hojaSencillo').click();
   await expect(page.locator('#tQueHacer')).toBeVisible();
   await expect(page.locator('html')).not.toHaveAttribute('data-letra', /.+/);
-  await page.reload();
-  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
   expect(await page.evaluate(() => localStorage.getItem('fc_sencillo'))).toBe('false');
-  await expect(page.locator('html')).not.toHaveAttribute('data-sencillo', /.*/);
 });
