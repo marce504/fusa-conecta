@@ -1308,3 +1308,27 @@ describe('Imagen de referencia por categoría (Fase 6)', () => {
     expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', fotos: ['f1'] }).src).toBe('');
   });
 });
+
+// ---------------------------------------------------------------- miniaturas de las tarjetas (v102)
+
+describe('miniDe: las tarjetas usan la miniatura de 420 px', () => {
+  const { miniDe } = cargar(['miniDe']);
+  it('pasa las fotos locales a img/mini en WebP y deja las demás igual', () => {
+    expect(miniDe('img/comercios/cerro-quinini.jpg')).toBe('img/mini/comercios/cerro-quinini.webp');
+    expect(miniDe('img/turismo/san-rafael/5-puente.jpg')).toBe('img/mini/turismo/san-rafael/5-puente.webp');
+    expect(miniDe('img/categorias/mecanica.webp')).toBe('img/mini/categorias/mecanica.webp');
+    expect(miniDe('img/banners/bienvenida.webp')).toBe('img/banners/bienvenida.webp');
+    expect(miniDe('data:image/webp;base64,AAAA')).toBe('data:image/webp;base64,AAAA');
+    expect(miniDe('https://ejemplo.com/a.jpg')).toBe('https://ejemplo.com/a.jpg');
+  });
+  it('cada foto local tiene su miniatura (si falta: python scripts/miniaturas.py)', () => {
+    const fotos = ['categorias', 'comercios', 'turismo'].flatMap(c =>
+      fs
+        .readdirSync(path.join(RAIZ, 'img', c), { recursive: true })
+        .filter(f => /\.(jpe?g|png|webp)$/i.test(f))
+        .map(f => `img/${c}/${f.split(path.sep).join('/')}`),
+    );
+    expect(fotos.length).toBeGreaterThan(50);
+    expect(fotos.filter(f => !fs.existsSync(path.join(RAIZ, miniDe(f))))).toEqual([]);
+  });
+});

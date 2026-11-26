@@ -2729,6 +2729,9 @@ function fotoVisible(d){
   const r=(d.fotos||[]).length?null:referenciaDe(d);
   return {src:r?r.archivo:'',referencia:r};
 }
+// Tarjetas: la miniatura de 420 px (img/mini, scripts/miniaturas.py) en vez de la foto de 800 px; si no existe, la original
+const miniDe=src=>/^img\/(categorias|comercios|turismo)\//.test(src||'')?'img/mini/'+src.slice(4).replace(/\.(jpe?g|png|webp)$/i,'.webp'):src;
+const FALLO_FOTO_TARJETA="if(this.dataset.orig){this.src=this.dataset.orig;this.removeAttribute('data-orig')}else{this.parentNode.classList.add('sin-foto');this.remove()}";
 function fotoHTML(d,cls){
   const img=fotoVisible(d).src;
   return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
@@ -3014,7 +3017,7 @@ function tarjetaHTML(d){
   return '<article class="tarjeta">'
     +'<div class="tc-foto c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),44)+'</span>'
       +'<span class="tc-sf-nombre" aria-hidden="true">'+esc(d.nombre)+'</span>'
-      +(img?'<img src="'+esc(img)+'" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'')+insignia
+      +(img?'<img src="'+esc(miniDe(img))+'"'+(miniDe(img)!==img?' data-orig="'+esc(img)+'"':'')+' alt="" loading="lazy" decoding="async" onerror="'+FALLO_FOTO_TARJETA+'">':'')+insignia
       +'<button class="tc-fav'+(esFav?' on':'')+'" data-fav="'+esc(d.id)+'" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos ':'Guardar en favoritos ')+esc(d.nombre)+'">'+icon('heart',18)+'</button></div>'
     +'<h3 class="tc-nombre"><button class="tc-link" data-ver="'+esc(d.id)+'">'+esc(d.nombre)+'</button></h3>'
     +(cal.total?'<p class="tc-calif">'+icon('star',14,'ic-fill')+cal.prom.toFixed(1).replace('.',',')+' <span>('+cal.total+')</span></p>':'')
