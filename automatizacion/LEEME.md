@@ -10,6 +10,10 @@ Firestore con la cuenta de servicio del secreto `FIREBASE_SA` y dejan su resumen
 
 - **Registro:** cada proceso usa `logging`. Las últimas 20 líneas quedan en su resumen («Ver registro (Python)» en el panel) y el registro completo en la corrida de GitHub Actions.
 - **Ninguna clave va en el código:** `GEMINI_API_KEY` y `FIREBASE_SA` son secretos de GitHub. Sin ellos, los procesos terminan sin hacer nada.
+- **Avisos al celular (v103):** cuando `agenda.py` publica eventos nuevos, manda **un solo aviso por corrida** a quienes
+  tienen los avisos encendidos y no apagaron «Eventos nuevos» («3 eventos nuevos en Fusagasugá y Pasca»). Para enviarlo,
+  la cuenta de `FIREBASE_SA` necesita el rol **Firebase Cloud Messaging API Admin**; sin él, el registro dice «No se
+  pudo avisar los eventos nuevos» y la agenda sigue igual. Los eventos que publica el admin los avisa la API.
 
 ## Migración desde JavaScript (Fase 3)
 

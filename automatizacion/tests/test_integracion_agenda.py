@@ -275,3 +275,29 @@ def test_la_foto_del_evento_va_aparte():
     assert not sale.get().exists and not agenda.ref_foto(sale).get().exists
     # La siguiente corrida ya no tiene nada que mover
     assert agenda.mover_fotos(db) == 0
+
+
+def test_aviso_de_eventos_nuevos_respeta_a_quien_los_apago():
+    """v103: un solo aviso por corrida a quienes tienen los avisos encendidos y no apagaron «Eventos nuevos»."""
+    import avisos_admin
+
+    db = firestore_cliente()
+    for uid, perfil in {
+        "con-avisos": {"nombre": "Rosa"},
+        "sin-avisos": {"nombre": "Pedro", "notificaciones_push": False},
+        "sin-eventos": {"nombre": "Luz", "avisos_eventos": False},
+    }.items():
+        db.collection("usuarios").document(uid).set(perfil)
+        db.collection("usuarios").document(uid).collection("dispositivos").document(f"tok-{uid}").set(
+            {"plataforma": "android"}
+        )
+    enviados: list[tuple] = []
+    eventos = [{"id": "e1", "titulo": "Festival de la Arveja", "municipio": "Pasca", "lugar_nombre": "Parque"}]
+    r = avisos_admin.avisar_eventos_nuevos(
+        db, eventos, "1", enviar=lambda t, *a: enviados.append((sorted(t), *a)) or len(t)
+    )
+    # Otras pruebas pueden dejar celulares en el emulador: se revisan solo los de esta
+    tokens = enviados[0][0]
+    assert "tok-con-avisos" in tokens and "tok-sin-avisos" not in tokens and "tok-sin-eventos" not in tokens
+    assert r["enviados"] == len(tokens) and len(enviados) == 1
+    assert enviados[0][1:] == ("Nuevo evento en Pasca", "«Festival de la Arveja» · Parque", "#/evento/e1", "eventos-1")

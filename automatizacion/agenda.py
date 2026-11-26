@@ -36,7 +36,7 @@ from typing import Any
 from urllib.parse import quote, urljoin
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from avisos_admin import avisar_admins  # noqa: E402
+from avisos_admin import avisar_admins, avisar_eventos_nuevos  # noqa: E402
 from comun import DIA_MS, ZONA_COL, a_ms, ahora_ms, de_ms, firestore_cliente, igual, registro, servidor  # noqa: E402
 
 log, memoria = registro("agenda")
@@ -630,6 +630,7 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             guardados.append((d, {**e, "fin": a_ms(x.get("fecha_fin")) or e["inicio"]}))
     publicados = pendientes = duplicados = 0
     titulos_pendientes: list[str] = []
+    nuevos_publicados: list[dict] = []
     lote, imagenes = db.batch(), {}  # una descarga por noticia aunque traiga varias actividades
     for e in unir_parecidos(unicos):
         if clave(e) in ya or clave_lugar_hora(e) in ya_lh:
@@ -651,6 +652,8 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
         if e["enlace"] not in imagenes:
             imagenes[e["enlace"]] = imagen_de(cliente, e["x"], e["enlace"]) if cliente else ""
         ref, img = db.collection("eventos").document(), imagenes[e["enlace"]]
+        if est == "publicado" and e["fin"] > ahora:
+            nuevos_publicados.append({"id": ref.id, **{k: e[k] for k in ("titulo", "municipio", "lugar_nombre")}})
         if img:
             lote.set(ref_foto(ref), foto_doc(img))
         lote.set(
@@ -693,6 +696,13 @@ def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
             log.info("Aviso a %d admin (%d celulares).", aviso["admins"], aviso["enviados"])
         except Exception as e:  # noqa: BLE001
             log.warning("No se pudo avisar a los admin: %s", e)
+    # v103: los eventos que la agenda publicó sola, en un solo aviso al celular de todos
+    if nuevos_publicados:
+        try:
+            aviso = avisar_eventos_nuevos(db, nuevos_publicados, str(ahora))
+            log.info("Aviso de %d eventos nuevos a %d celulares.", len(nuevos_publicados), aviso["enviados"])
+        except Exception as e:  # noqa: BLE001
+            log.warning("No se pudo avisar los eventos nuevos: %s", e)
     reparados = reparar(db, cliente, existentes, imagenes)
     unidos = unir_guardados(existentes)
     return {
