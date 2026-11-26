@@ -342,6 +342,7 @@ const claveEvento=e=>norm(e.titulo).replace(/\s+/g,' ').trim()+'|'+e.ini+'|'+nor
 function sinRepetidos(eventos){const vistos=new Set();return eventos.filter(e=>{const k=claveEvento(e);if(vistos.has(k))return false;vistos.add(k);return true;});}
 db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
   estado.eventos=sinRepetidos(s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};}));
+  estado.eventosListos=true;
   if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
   if(esAdmin())borrarDemosVencidos();
   refrescarVista();actualizarCampana();
@@ -3027,11 +3028,13 @@ function seccionQueHacerHTML(){
   const l=eventosInicio();
   const zona=municipioElegido()==='Pasca'?'Pasca':'Fusa';
   return '<section class="seccion-inicio que-hacer" aria-labelledby="tQueHacer"><div class="head-v"><h2 id="tQueHacer">Qué hacer en '+zona+'</h2></div>'
-    +(l.length?'<div class="ev-banner" role="region" aria-roledescription="carrusel" aria-label="Eventos de '+zona+'">'
+    // Mientras llegan los eventos, un esqueleto del mismo alto; sin eventos, una caja del mismo alto: el Inicio no salta
+    +(!estado.eventosListos?'<div class="ev-diapo-btn esqueleto" aria-busy="true" aria-label="Cargando eventos"></div><div class="ev-ctrl"></div>'
+      :l.length?'<div class="ev-banner" role="region" aria-roledescription="carrusel" aria-label="Eventos de '+zona+'">'
       +'<div class="ev-marco"><div class="ev-pista" id="evPista">'+l.map((e,i)=>diapositivaEventoHTML(e,i,l.length)).join('')+'</div>'+flechasEventosHTML(l.length)+'</div>'
       +controlesEventosHTML(l.length)+'</div>'
-      :'<div class="ev-banner-vacio">'+ILU_EVENTOS+'<div><p>Esta semana no hay eventos publicados.</p>'
-        +'<button class="btn btn-secundario btn-sm mt-8" data-agenda="30">'+icon('calendar-days',18)+'Ver la agenda del mes</button></div></div>')
+      :'<div class="ev-banner-vacio">'+ILU_EVENTOS+'<p>Esta semana no hay eventos publicados.</p></div>'
+        +'<div class="ev-ctrl"><span></span><button class="btn-ghost" data-agenda="30">Ver la agenda del mes</button></div>')
     +'</section>';
 }
 function enlazarQueHacer(){

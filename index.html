@@ -34,7 +34,7 @@ if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-le
 <div class="shell" id="shell">
   <div class="offline-bar" id="offlineBar" role="status"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="wifi-off"></svg>Sin conexión · mostrando datos guardados en tu teléfono</div>
   <div class="promo-banner" id="promoBanner" role="status"></div>
-  <header class="topbar" id="topbar">
+  <header class="topbar en-lista" id="topbar">
     <div class="nav-row" id="navRow">
       <button class="sos-pill nav-sos" data-sos aria-label="SOS: números de emergencia"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="siren"></svg>SOS</button>
       <button class="nav-btn invisible" id="bVolver"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="arrow-left"></svg>Volver</button>
@@ -51,7 +51,7 @@ if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-le
         <div class="sugerencias" id="sugerencias"></div>
       </div>
       <div class="sel-mun-fila" id="selMunicipio"></div>
-      <div class="fila-chips"><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
+      <div class="fila-chips" hidden><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
       <div class="fila-chips fila-sub vacia" id="filaSub"><div class="subcats" id="subcats" aria-label="Subcategorías"></div></div>
       <div class="filtros-activos" id="filtrosActivos" aria-label="Filtros activos"></div>
     </div>

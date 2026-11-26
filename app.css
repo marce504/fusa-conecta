@@ -82,7 +82,7 @@
   /* Tipografía (Poppins) en rem (16 px = 1 rem) para que crezca con «Tamaño de letra» (Perfil → Apariencia) y con el
      tamaño de letra del teléfono. U7: nada por debajo de 14 px; el texto de lectura va a 16 px.
      Pantalla 26 px, sección 18 px, texto 16 px, metadatos y etiquetas 14 px, números 30 px */
-  --font:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font:'Poppins','Poppins respaldo',system-ui,-apple-system,'Segoe UI',sans-serif;
   --text-2xs:.875rem;--text-xs:.875rem;--text-sm:.875rem;--text-base:1rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.625rem;--text-num:1.875rem;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
@@ -90,6 +90,8 @@
 
 
 /* ---------- Base ---------- */
+/* Mientras carga Poppins (font-display: swap) se usa Arial ajustada a sus medidas: el texto no salta al cambiar */
+@font-face{font-family:'Poppins respaldo';src:local('Arial'),local('Helvetica'),local('Roboto');size-adjust:112%;ascent-override:93%;descent-override:31%;line-gap-override:9%}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 /* Tamaño de letra (Perfil → Apariencia): todo el texto está en rem y crece con <html> */
@@ -288,7 +290,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .splash-cta .btn{min-height:52px;width:100%}
 /* v7 · Fase 5: los botones aparecen cuando la app está lista; si tarda más de 8 s, el aviso ocupa su lugar */
 .splash:not(.lista) .splash-cta{visibility:hidden}
-.splash-lento{position:relative;display:flex;flex-direction:column;gap:12px;text-align:center}
+/* CLS: «Cargando… revisa tu conexión» va sobre la zona de los botones; el logo no se mueve al aparecer */
+.splash-lento{position:absolute;left:24px;right:24px;bottom:calc(24px + var(--safe-b));display:flex;flex-direction:column;gap:12px;text-align:center}
 .splash-lento[hidden]{display:none}
 .splash-lento p{font-size:var(--text-base);font-weight:500}
 .splash-lento .btn{min-height:52px;width:100%}
@@ -1532,7 +1535,6 @@ button:disabled{opacity:.6;pointer-events:none}
 /* Carrusel: se ve una tarjeta y media */
 .carrusel-tc{gap:12px}
 /* Municipio (v1.3.0): selector del Inicio, la Agenda y el Mapa; tarjeta «¿Tienes un negocio en Pasca?» */
-.sel-mun-fila:empty{display:none}
 .sel-mun{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .sel-mun .chip-filtro{flex:1 1 auto;min-width:0;min-height:48px;justify-content:center;padding:0 12px}
 .mapa-mun{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0 16px 10px}
@@ -1816,12 +1818,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .ev-diapo-lugar .ic{flex-shrink:0}
 .ev-diapo-precio{align-self:flex-start;margin-top:4px;padding:2px 10px;border-radius:var(--radius-full);background:var(--blanco);color:var(--tinta-fija);font-size:var(--text-sm);font-weight:700;text-shadow:none}
 .ev-diapo-precio.gratis{background:var(--mint-50);color:var(--mint-700)}
-.ev-ctrl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.ev-ctrl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;min-height:48px;margin-top:4px}
 .ev-marco{position:relative}
 .ev-flecha{position:absolute;top:12px;width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--blanco-92);color:var(--tinta-fija);box-shadow:0 2px 8px rgba(27,31,59,.28)}
 .ev-flecha.ant{left:8px}.ev-flecha.sig{right:8px}
 .ev-flecha:hover{background:var(--blanco)}
-.ev-banner-vacio{display:flex;align-items:center;gap:12px;min-height:96px;padding:16px;border-radius:var(--radius-lg);background:var(--soft);color:var(--ink);font-size:var(--text-base)}
+.ev-banner-vacio{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;aspect-ratio:16/10;padding:16px;text-align:center;border-radius:var(--radius-lg);background:var(--soft);color:var(--ink);font-size:var(--text-base)}
 .ev-banner-vacio .ev-vacio-ilu{width:64px;height:64px;flex-shrink:0;color:var(--primary-500)}
 /* Lo que necesitas: cuatro botones grandes con ícono y palabra (2×2 con letra grande) */
 .necesitas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -1858,3 +1860,8 @@ html:not([data-letra]) .saludo-hora{flex-wrap:nowrap}
 html:not([data-letra]) .saludo-hora .sh-tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev-ctrl .btn-ghost{padding:0 8px}
 #cuerpo .seccion-inicio.que-hacer{margin-bottom:16px}
+.ev-diapo-btn.esqueleto{background:var(--line);animation:latido 1.4s ease-in-out infinite}
+/* CLS: la cabecera del Inicio tiene su alto desde el primer pintado (index.html ya la pinta en modo listado) */
+.topbar.en-lista .sesion{min-height:48px}
+.topbar.en-lista .saludo-hora{min-height:48px}
+.topbar.en-lista .sel-mun-fila{min-height:58px}
