@@ -583,6 +583,7 @@ function renderAgenda(){
       :'<div class="vacio">'+icon('calendar-days',48)+'<b>No hay eventos '+(A.rango==='hoy'?'hoy':A.rango==='finde'?'este fin de semana':'en los próximos 30 días')+(A.cat?' de '+catEvento(A.cat)[1].toLowerCase():'')+'</b><p>¿Sabes de alguno? Cuéntanos y lo publicamos después de revisarlo.</p></div>')
     +'<button class="btn btn-secundario btn-bloque mt-16" id="agSugerir">'+icon('calendar-plus',18)+quien+'</button>'
     +'<button class="btn btn-ghost btn-bloque" id="agSuscribir">'+icon('calendar-sync',18)+'Suscribirme a la agenda</button>'
+    +(recibeAvisosEventos()?'':'<button class="btn btn-ghost btn-bloque" id="agAvisos">'+icon('bell',18)+'Avisarme de eventos nuevos</button>')
     +'</div>'+footerHTML();
   $$('#cuerpo [data-rango]').forEach(b=>(b.onclick=()=>{A.rango=b.dataset.rango;render(true);}));
   $$('#cuerpo [data-evcat]').forEach(b=>(b.onclick=()=>{A.cat=A.cat===b.dataset.evcat?'':b.dataset.evcat;render(true);}));
@@ -590,6 +591,7 @@ function renderAgenda(){
   $$('#cuerpo .ev-link').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
   $('#agSugerir').onclick=sugerirEvento;
   $('#agSuscribir').onclick=suscribirAgenda;
+  if($('#agAvisos'))$('#agAvisos').onclick=quieroAvisosDeEventos;
   // Botón flotante "+" (dentro de la app, encima de la barra inferior; se quita al salir de la Agenda)
   const fab=document.createElement('button');fab.className='fab-agenda';fab.id='agFab';fab.setAttribute('aria-label',textoSugerir());
   fab.innerHTML=icon('plus',28);fab.onclick=sugerirEvento;$('#shell').appendChild(fab);
@@ -798,6 +800,8 @@ function formEvento(e,opc={}){
     try{
       const refEv=await conTiempoLimite(escritura,15000,'El servidor no confirmó el guardado');
       if(!directo&&!(admin&&e)&&refEv&&refEv.id)avisarAdmins('evento',refEv.id);
+      // Recién publicado (no la edición de uno que ya estaba en la agenda): aviso al celular de todos
+      if(refEv&&refEv.id&&(directo||editar)&&!(e&&e.estado==='publicado'))avisarEventoPublicado(refEv.id);
       cerrar('ovGen');medir(directo?'evento_publicado':'evento_sugerido');
       toast(directo?'Evento publicado en la agenda':'¡Gracias! Lo revisamos y te avisamos cuando esté publicado.');
       if(vistaActual().tipo==='admin')cargarAdmin();
@@ -1867,7 +1871,8 @@ function enlazarEventosAdmin(){
   const dm=$('#admEvDemo');if(dm)dm.onclick=()=>{dm.disabled=true;adminAccion(cargarEventosDemo,'3 eventos de ejemplo publicados');};
   const bBorrarDemos=$('#admEvDemoBorrar');if(bBorrarDemos)bBorrarDemos.onclick=async()=>{if(!await confirmar('Borrar eventos de ejemplo','Se eliminan de la agenda todos los eventos marcados como ejemplo.','Borrar','Cancelar','trash-2',true))return;
     adminAccion(async()=>{const s=await col.where('demo','==',true).get();const b=db.batch();s.docs.forEach(d=>borrarEventoEnLote(b,d.ref));await b.commit();},'Eventos de ejemplo borrados');};
-  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}),'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
+  $$('[data-evpub]').forEach(b=>(b.onclick=()=>adminAccion(()=>col.doc(b.dataset.evpub).update({estado:'publicado'}).then(()=>avisarEventoPublicado(b.dataset.evpub)),
+    'Evento publicado en la agenda',['evento',b.dataset.evpub,'aprobado'])));
   $$('[data-eveditp]').forEach(b=>(b.onclick=()=>formEvento(pend(b.dataset.eveditp))));
   $$('[data-evedit]').forEach(b=>(b.onclick=()=>formEvento(pub(b.dataset.evedit))));
   $$('[data-evdesc]').forEach(b=>(b.onclick=()=>pedirMotivo('Descartar el evento',m=>adminAccion(()=>col.doc(b.dataset.evdesc).update({estado:'rechazado',motivo:m}),'Evento descartado',['evento',b.dataset.evdesc,'rechazado']),
@@ -5042,6 +5047,7 @@ function renderPerfil(){
       +'<label class="switch-row mt-16"><span>Modo sencillo<small class="sw-det">Inicio con 6 botones grandes, sin carruseles ni radio, y «Llamar» en cada lugar</small></span>'
       +'<input type="checkbox" id="pfSencillo" '+(modoSencillo()?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
+    +(avisosOn?'<label class="switch-row"><span>Eventos nuevos en Fusa y Pasca<small class="sw-det">Un aviso cuando se publique un evento o un aviso del municipio</small></span><input type="checkbox" id="pfNotifEventos" '+(p.avisos_eventos!==false?'checked':'')+'></label>':'')
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
     +'<p class="nota-c izq">Autorizaste el tratamiento de tus datos el '+fechaCorta(aMs(p.fecha_consentimiento))+'.</p>'
@@ -5074,6 +5080,10 @@ function renderPerfil(){
       await desactivarAvisos();marcarPreferenciaAvisos(false);toast('Avisos desactivados en este celular');
     }
     sw.disabled=false;
+  };
+  if($('#pfNotifEventos'))$('#pfNotifEventos').onchange=e=>{
+    ponerAvisosEventos(e.target.checked);
+    toast(e.target.checked?'Listo: te avisaremos de los eventos nuevos':'Ya no te avisaremos de los eventos nuevos');
   };
   $('#pfLegal').onclick=()=>abrir('ovLegal');
   const pi=$('#pfInstalar');if(pi)pi.onclick=instalarApp;
@@ -6155,6 +6165,25 @@ function ofrecerAvisoAprobacion(nombre){
     cerrar('ovGen');
     if(await activarAvisos()){toast('Listo: te avisaremos en este celular');marcarPreferenciaAvisos(true);}
   };
+}
+/* Avisos de eventos nuevos (v103): al publicarse un evento, la API lo avisa al celular de quien tiene los avisos
+   encendidos y no apagó «Eventos nuevos» (avisos_eventos en su perfil). La API no lo repite si se edita o reintenta. */
+const recibeAvisosEventos=()=>logueado()&&!!estado.perfil&&estado.perfil.notificaciones_push!==false
+  &&estado.perfil.avisos_eventos!==false&&estadoAvisos()==='granted';
+function avisarEventoPublicado(id){
+  pedirAPI('/v1/eventos/'+encodeURIComponent(id)+'/avisar',{token:true,cuerpo:{}}).catch(e=>console.warn('Aviso del evento:',e.code||e.message));
+}
+function ponerAvisosEventos(on){
+  if(!logueado()||!estado.perfil)return;
+  db.collection('usuarios').doc(estado.usuario.uid).update({avisos_eventos:on}).catch(()=>{});
+  estado.perfil.avisos_eventos=on;ls.set('fc_perfil_'+estado.usuario.uid,estado.perfil);
+}
+async function quieroAvisosDeEventos(){
+  if(!logueado()){pedirLogin('Crea tu cuenta gratis para recibir un aviso cuando haya eventos nuevos en Fusa y Pasca.');return;}
+  if(!await activarAvisos())return;
+  marcarPreferenciaAvisos(true);ponerAvisosEventos(true);
+  toast('Listo: te avisaremos cuando haya eventos nuevos en Fusa y Pasca',5000);
+  render(true);
 }
 function marcarPreferenciaAvisos(on){
   if(!logueado()||!estado.perfil)return;

@@ -1482,6 +1482,17 @@ test('afiche vertical: se ve completo, se puede acomodar y se abre entero', asyn
     g.fillRect(30, 30, 540, 160);
     return cv.toDataURL('image/jpeg', 0.85);
   });
+  // Al publicar, la app pide a la API el aviso al celular de todos (aquí no corre la API: se registra la llamada)
+  const avisados = [];
+  await page.route(/\/v1\/eventos\/[^/]+\/avisar$/, async ruta => {
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+    if (ruta.request().method() === 'OPTIONS') {
+      await ruta.fulfill({ status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST' } });
+      return;
+    }
+    avisados.push(ruta.request().url().split('/v1/eventos/')[1].split('/')[0]);
+    await ruta.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: '{"repetido":false}' });
+  });
   await page.evaluate(() => window.formEvento(null));
   await page.locator('#evfFoto').setInputFiles({
     name: 'afiche.jpg',
@@ -1516,10 +1527,23 @@ test('afiche vertical: se ve completo, se puede acomodar y se abre entero', asyn
     return s.docs[0].id;
   });
   expect((await leerComoServidor(`eventos/${id}`)).foto_encuadre.stringValue).toBe('completa');
+  await expect.poll(() => avisados).toEqual([id]);
   // La hoja del evento: el afiche completo y el botón para verlo en grande
   await page.evaluate(i => window.abrirEvento(i), id);
   await expect(page.locator('.ev-hero img.foto-completa')).toBeVisible();
   await page.locator('#evVerAfiche').click();
   await expect(page.locator('#visorFotos img')).toHaveAttribute('src', /^data:image\//);
   await page.screenshot({ path: info.outputPath('afiche-visor.png') });
+});
+
+// v103: en la Agenda, quien no tiene cuenta puede pedir los avisos de eventos nuevos: primero crea su cuenta
+test('agenda: «Avisarme de eventos nuevos» pide la cuenta a quien solo explora', async ({ page }) => {
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.evaluate(() => window.irAgenda('30'));
+  await sinAvisoEmulador(page);
+  await page.locator('#agAvisos').click();
+  await expect(page.locator('#ovLogin')).toHaveClass(/abierto/);
+  await expect(page.locator('#ovLogin')).toContainText('eventos nuevos');
 });
