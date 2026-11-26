@@ -47,10 +47,10 @@ function cssVarClaro(n){
   if(!refClaro){refClaro=document.createElement('div');refClaro.dataset.tema='claro';refClaro.hidden=true;document.body.appendChild(refClaro);}
   return getComputedStyle(refClaro).getPropertyValue(n).trim();
 }
-/* ===== TEMA: Automático / Sistema / Claro / Oscuro (v4 · Fase 6; v7 · Fase 6). index.html ya lo puso antes del primer pintado =====
-   Automático (por defecto): oscuro de 6:00 p. m. a 6:00 a. m. en hora de Colombia (UTC-5), sin importar la zona del teléfono.
+/* ===== TEMA: Sistema / Automático / Claro / Oscuro (v4 · Fase 6; v7 · Fase 6; U10). index.html ya lo puso antes del primer pintado =====
+   Sistema (por defecto, U10): sigue el modo claro u oscuro del celular. Automático: oscuro de 6:00 p. m. a 6:00 a. m. en hora de Colombia (UTC-5).
    Se revisa cada minuto y al volver a la app. */
-function temaElegido(){try{return localStorage.getItem('fc_tema')||'automatico';}catch(e){return 'automatico';}}
+function temaElegido(){try{return localStorage.getItem('fc_tema')||'sistema';}catch(e){return 'sistema';}}
 const esDeNocheCol=()=>{const h=new Date(Date.now()-5*36e5).getUTCHours();return h>=18||h<6;};
 const temaOscuro=()=>document.documentElement.dataset.tema==='oscuro';
 const consultaOscuro=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
@@ -4733,8 +4733,8 @@ function renderPerfil(){
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
-      +[['automatico','clock','Automático'],['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
-      +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p>'
+      +[['sistema','smartphone','Sistema'],['automatico','clock','Automático'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
+      +'</div><p class="nota-c izq">«Sistema» sigue el modo claro u oscuro de tu celular. «Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia).</p>'
       +selectorLetraHTML()+'</div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
