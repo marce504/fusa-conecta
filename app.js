@@ -1744,6 +1744,7 @@ function enlazarEventosAdmin(){
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
 function escucharMisComercios(){
+  escucharMisReclamos();
   if(propiosUnsub||!logueado())return;
   propiosUnsub=db.collection('comercios').where('propietario_uid','==',estado.usuario.uid).onSnapshot(snap=>{
     comerciosPropios=snap.docs.map(doc=>normalizarNube(doc.id,doc.data()));refrescarVista();
@@ -1756,7 +1757,7 @@ function escucharMisComercios(){
 let migrandoPropias=false;
 // Foto antigua: imagen en base64 dentro del documento del negocio y sin galería
 const fotoAntigua=c=>/^data:image\//.test(c.imagen||'')&&!(c.fotos||[]).length;
-function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];}
+function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];dejarDeEscucharMisReclamos();}
 
 db.collection('calificaciones').onSnapshot(snap=>{
   const c={};
@@ -3368,7 +3369,7 @@ function abrirDetalle(id){
     +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>/^https:\/\//.test(f.url||'')?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>':esc(f.nombre)).join('<br>')
       +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
     +creditoFotoHTML(d)
-    +'</div>'+menuFichaHTML(d)
+    +'</div>'+tarjetaReclamoHTML(d,natural)+menuFichaHTML(d)
     +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
       +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'
         +'<p class="relieve-cred">Mapa: OpenFreeMap · © OpenStreetMap · Relieve: Mapzen / AWS</p>':'')
@@ -3382,8 +3383,7 @@ function abrirDetalle(id){
       :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
-    +'<div class="det-pie">'+(!d.propietario_uid&&!natural&&!['tramite','turismo'].includes(d.cat)?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
-    +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
+    +'<div class="det-pie"><button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
     +(natural||sinContacto
@@ -3426,6 +3426,7 @@ function abrirDetalle(id){
   $$('#sheetDetalle [data-cupon]').forEach(b=>(b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b)));
   const be=$('#btnEditar');if(be)be.onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
   const br=$('#bReclamar');if(br)br.onclick=()=>{cerrar('ovDetalle');reclamarNegocio(d);};
+  const vr=$('#bVerReclamo');if(vr)vr.onclick=()=>{cerrar('ovDetalle');navegar({tipo:'perfil'});};
   $('#bReportar').onclick=()=>{cerrar('ovDetalle');reportar(d);};
   $$('#sheetDetalle [data-rep]').forEach(b=>(b.onclick=()=>{cerrar('ovDetalle');reportar(d,califs.find(c=>c._id===b.dataset.rep));}));
   if(!logueado()){$('#bLoginCalif').onclick=()=>pedirLogin('Inicia sesión para calificar y comentar.');return;}
@@ -5312,7 +5313,7 @@ async function migrarFotosAntiguas(lista){
    Todos se registran como "usuario". Ser comerciante se deriva de tener un negocio aprobado (o ser admin):
    no hay que elegir nada al registrarse ni cambiar de cuenta. */
 function misNegociosHTML(){
-  const l=comerciosPropios;if(!l.length)return '';
+  const l=comerciosPropios,reclamos=misReclamosHTML();if(!l.length&&!reclamos)return '';
   const chip=c=>({aprobado:'<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>',rechazado:'<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>',
     oculto:'<span class="chip-estado rech">'+icon('eye-off',14)+'Oculto por el administrador</span>'})[c.estado_publicacion]||'<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
   return '<div class="seccion"><h3>'+icon('store',18)+'Mis negocios</h3>'+l.map(c=>'<div class="mi-negocio">'
@@ -5321,7 +5322,7 @@ function misNegociosHTML(){
         :c.estado_publicacion==='oculto'?'<p class="mn-motivo">'+icon('info',14)+'No aparece en el directorio. Escríbenos desde «Ayúdanos a mejorar» si crees que es un error.</p>'
         :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
       +avisoFichaHTML(c,'data-minegocio="'+esc(c.id)+'"')
-      +'</div>').join('')+'</div>';
+      +'</div>').join('')+reclamos+'</div>';
 }
 function enlazarMisNegocios(){
   $$('[data-minegocio]').forEach(b=>(b.onclick=()=>{estado.comercioSel=b.dataset.minegocio;navegar({tipo:'dashboard'});}));
@@ -5332,7 +5333,10 @@ function enlazarMisNegocios(){
 function guardarAccionPendiente(a){ls.set('fc_accion_pendiente',{a,t:Date.now()});}
 function retomarAccionPendiente(){
   const p=ls.get('fc_accion_pendiente',null);ls.del('fc_accion_pendiente');
-  if(p&&p.a==='negocio'&&Date.now()-p.t<15*60000&&logueado())abrirFormComercio(null);
+  if(!p||Date.now()-p.t>=15*60000||!logueado())return;
+  if(p.a==='negocio')abrirFormComercio(null);
+  // Fase 5: quien tocó «Reclamar» sin sesión vuelve a la misma ficha y al formulario
+  else if(String(p.a).startsWith('reclamar:')){const d=buscar(p.a.slice(9));if(d)setTimeout(()=>reclamarNegocio(d),300);}
 }
 
 /* ---------- Bienvenida después del primer registro: "¿Qué te gusta de Fusa?" (saltable) ---------- */
@@ -6069,11 +6073,15 @@ async function avisarAdmins(tipo,id){
 }
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
-estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};
+estado.adminPend={comercios:[],solicitudes:[],reclamos:[],eventos:[],rutas:[],empleos:[]};
 function escucharAdmin(){
   if(adminUnsubs.length||!esAdmin())return;
   adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
     estado.adminPend.comercios=s.docs.map(d=>{const x=d.data();return {id:d.id,nombre:x.nombre,fecha:aMs(x.fecha_modificacion)||aMs(x.fechaCreacion)||0};});
+    avisosAdminCambiaron();
+  },()=>{}));
+  adminUnsubs.push(db.collection('reclamos_comercio').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.reclamos=s.docs.map(d=>({id:d.id,...d.data(),fecha:aMs(d.data().fecha_solicitud)||0}));
     avisosAdminCambiaron();
   },()=>{}));
   adminUnsubs.push(db.collection('solicitudes').where('estado','==','pendiente').onSnapshot(s=>{
@@ -6101,9 +6109,9 @@ function escucharAdmin(){
     avisosAdminCambiaron();
   },()=>{}));
 }
-function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],reclamos:[],eventos:[],rutas:[],empleos:[]};}
 // "Por aprobar" = comercios nuevos + reclamos de negocio
-function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
+function porAprobar(){return estado.adminPend.comercios.length+(estado.adminPend.reclamos||[]).length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
 function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
 // Avisos del admin que llegaron después de la última vez que abrió la campana
 function avisosAdminNuevos(){
@@ -6124,26 +6132,94 @@ function irAlPanelAdmin(){
 }
 
 /* ===== RECLAMAR UN NEGOCIO EXISTENTE (Fase 2.4) ===== */
-async function reclamarNegocio(d){
-  if(!logueado()){pedirLogin('Inicia sesión para reclamar tu negocio.',true);return;}
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reclamar «'+esc(d.nombre)+'»</h2>'
-    +'<p class="nota">Un administrador te contactará para confirmar que eres el dueño. Cuando lo apruebe, podrás editar la ficha desde «Mi negocio».</p>'
-    +'<div class="campo mt-16"><label for="rTel">Teléfono de contacto <span class="req">*</span></label><input id="rTel" type="tel" maxlength="13" placeholder="Ej: 3001234567"></div>'
-    +'<div class="campo"><label for="rMsg">¿Cómo podemos confirmarlo? (opcional)</label><textarea id="rMsg" maxlength="300" placeholder="Ej: soy la propietaria desde 2019, mi NIT es..."></textarea></div>'
-    +'<button class="btn btn-primario btn-bloque" id="rEnviar">Enviar solicitud</button></div>');
-  $('#rEnviar').onclick=async()=>{
-    const tel=telLimpio($('#rTel').value);
-    if(!/^\d{7,10}$/.test(tel)){toast('Escribe un teléfono válido');return;}
-    try{
-      const prev=await db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','reclamo').get();
-      if(prev.docs.some(x=>x.data().comercio_id===d.id&&x.data().estado==='pendiente')){cerrar('ovGen');toast('Ya enviaste una solicitud para este negocio');return;}
-      const refRec=await db.collection('solicitudes').add({tipo:'reclamo',comercio_id:String(d.id),comercio_nombre:d.nombre,telefono:tel,mensaje:$('#rMsg').value.trim().slice(0,300),
-        uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
-      avisarAdmins('reclamo',refRec.id);
-      cerrar('ovGen');toast('Solicitud enviada. Te contactaremos pronto.');
-    }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
-  };
+/* ===== RECLAMAR ESTE COMERCIO (Fase 5) =====
+   Colección reclamos_comercio con id <comercio>__<uid>: un solo reclamo por comercio y persona (dos personas pueden
+   reclamar el mismo comercio y el admin ve las dos). La prueba (foto del RUT, de la Cámara de Comercio o en la fachada)
+   va comprimida en reclamos_comercio/{id}/prueba/foto: el plan Spark no tiene Storage. Solo un admin aprueba o rechaza,
+   nunca su propio reclamo, y propietario_uid solo cambia si el reclamo de esa persona queda aprobado en el mismo lote
+   (firestore.rules). Sin Cloud Functions, la aprobación la hace el panel del admin. */
+const idReclamo=(cid,uid)=>String(cid)+'__'+uid;
+function miReclamo(cid){return logueado()?(estado.misReclamos||[]).find(r=>r.comercio_id===String(cid)):null;}
+function tarjetaReclamoHTML(d,natural){
+  if(d.propietario_uid||natural||['tramite','turismo'].includes(d.cat))return '';
+  const r=miReclamo(d.id);
+  if(r&&r.estado==='pendiente')return '<div class="reclamo-card">'+icon('clock',24)+'<div><b>Tu solicitud está en revisión</b><p>Te avisaremos cuando esté lista.</p>'
+    +'<button class="btn btn-tonal btn-sm" id="bVerReclamo">Ver en mi perfil</button></div></div>';
+  return '<div class="reclamo-card">'+icon('store',24)+'<div><b>¿Este es tu negocio?</b><p>Reclámalo gratis para actualizar fotos, horario y teléfono.</p>'
+    +(r&&r.estado==='rechazado'?'<p class="reclamo-motivo">'+icon('info',16)+'No aprobamos tu solicitud anterior: '+esc(r.motivo_rechazo||'')+'</p>':'')
+    +'<button class="btn btn-primario" id="bReclamar">'+(r&&r.estado==='rechazado'?'Reclamarlo de nuevo':'Reclamar mi negocio')+'</button></div></div>';
 }
+function formReclamoHTML(d){
+  const tel=telLimpio(d.tel);
+  return '<div class="form-head"><h2>Reclamar «'+esc(d.nombre)+'»</h2><p>Un administrador revisará tu solicitud. Cuando la apruebe, podrás editar la ficha.</p></div>'
+    +'<form class="form-body form-grande" id="formReclamo" novalidate>'
+    +'<div class="campo"><label for="rcNombre">Tu nombre <span class="req">*</span></label><input id="rcNombre" maxlength="80" autocomplete="name" value="'+esc(estado.usuario.nombre||'')+'"></div>'
+    +'<fieldset class="campo"><legend>Eres <span class="req">*</span></legend><div class="opciones-grandes">'
+      +'<label class="opcion-grande"><input type="radio" name="rcCargo" value="dueño" checked><span>Dueño o dueña</span></label>'
+      +'<label class="opcion-grande"><input type="radio" name="rcCargo" value="administrador"><span>Administrador</span></label></div></fieldset>'
+    +'<div class="campo"><label for="rcTel">Teléfono de contacto <span class="req">*</span></label><input id="rcTel" type="tel" inputmode="tel" maxlength="13" autocomplete="tel" placeholder="Ej: 3001234567"></div>'
+    +'<fieldset class="campo"><legend>¿Cómo comprobamos que es tuyo? <span class="req">*</span></legend><div class="opciones-grandes">'
+      +(tel?'<label class="opcion-grande"><input type="radio" name="rcMetodo" value="codigo" checked><span>Un código por WhatsApp o llamada al '+esc(numeroLegible(tel))+' (el teléfono de la ficha)</span></label>':'')
+      +'<label class="opcion-grande"><input type="radio" name="rcMetodo" value="documento"'+(tel?'':' checked')+'><span>Una foto del RUT, de la Cámara de Comercio o tuya en la fachada con el letrero</span></label></div></fieldset>'
+    +'<div class="campo" id="rcFotoCampo"'+(tel?' hidden':'')+'><label for="rcFoto">Foto <span class="req">*</span></label><input id="rcFoto" type="file" accept="image/*"><small class="ayuda">La reducimos en tu celular antes de enviarla.</small></div>'
+    +'<label class="check"><input type="checkbox" id="rcConsent"><span>Autorizo el tratamiento de mis datos personales para verificar este reclamo, conforme a la <button type="button" class="enlace" id="rcLegal">Ley 1581 de 2012</button>. <span class="req">*</span></span></label>'
+    +'<button type="submit" class="btn btn-primario btn-bloque" id="rcEnviar">Enviar solicitud</button></form>';
+}
+function datosReclamo(d){
+  const nombre=$('#rcNombre').value.trim(),telefono=telLimpio($('#rcTel').value),metodo=($('input[name="rcMetodo"]:checked')||{}).value;
+  const foto=$('#rcFoto').files[0];
+  if(nombre.length<3)return {error:'Escribe tu nombre',campo:'#rcNombre'};
+  if(!/^\d{7,10}$/.test(telefono))return {error:'Escribe un teléfono de 7 a 10 números',campo:'#rcTel'};
+  if(metodo==='documento'&&!foto)return {error:'Agrega la foto que lo comprueba',campo:'#rcFoto'};
+  if(!$('#rcConsent').checked)return {error:'Para enviar la solicitud, acepta el tratamiento de datos',campo:'#rcConsent'};
+  return {foto,datos:{comercio_id:String(d.id),comercio_nombre:d.nombre,usuario_uid:estado.usuario.uid,nombre,cargo:$('input[name="rcCargo"]:checked').value,
+    telefono,metodo,con_prueba:metodo==='documento',correo:estado.usuario.email||'',estado:'pendiente',consentimiento_ley1581:true,
+    fecha_solicitud:FV.serverTimestamp(),fecha_consentimiento:FV.serverTimestamp()}};
+}
+async function enviarReclamo(d){
+  const r=datosReclamo(d);
+  if(r.error){toast(r.error);const c=$(r.campo);if(c)c.focus();return;}
+  if(!estado.online){toast('Necesitas conexión a internet para enviar la solicitud');return;}
+  const btn=$('#rcEnviar');btn.disabled=true;btn.textContent='Enviando…';
+  try{
+    const ref=db.collection('reclamos_comercio').doc(idReclamo(d.id,estado.usuario.uid)),lote=db.batch();
+    lote.set(ref,r.datos);
+    if(r.foto){const f=await comprimirFoto(r.foto,1280,200000);lote.set(ref.collection('prueba').doc('foto'),{data:f.src,fecha:FV.serverTimestamp()});}
+    await lote.commit();
+    avisarAdmins('reclamo_comercio',ref.id);
+    cerrar('ovForm');toast('Solicitud enviada. Te avisaremos cuando esté lista.',6000);
+  }catch(e){reportarError('reclamo',e);toast('No se pudo enviar la solicitud. Revisa tu conexión e intenta de nuevo.');btn.disabled=false;btn.textContent='Enviar solicitud';}
+}
+function reclamarNegocio(d){
+  if(!logueado()){guardarAccionPendiente('reclamar:'+d.id);pedirLogin('Inicia sesión o crea tu cuenta para reclamar tu negocio.',true);return;}
+  const r=miReclamo(d.id);
+  if(r&&r.estado==='pendiente'){toast('Ya enviaste una solicitud para este negocio. Te avisaremos cuando esté lista.');return;}
+  $('#sheetForm').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" data-cerrar="ovForm" aria-label="Cerrar">'+icon('x')+'</button>'+formReclamoHTML(d);
+  $('#sheetForm').setAttribute('aria-label','Reclamar '+d.nombre);
+  abrir('ovForm');
+  $('#sheetForm [data-cerrar]').onclick=()=>cerrar('ovForm');
+  $$('input[name="rcMetodo"]').forEach(x=>(x.onchange=()=>{$('#rcFotoCampo').hidden=x.value!=='documento'||!x.checked;}));
+  $('#rcLegal').onclick=()=>abrir('ovLegal');
+  $('#formReclamo').onsubmit=e=>{e.preventDefault();enviarReclamo(d);};
+}
+// Los reclamos de la persona (para la ficha y Perfil → Mis negocios)
+let reclamosUnsub=null;
+function escucharMisReclamos(){
+  if(reclamosUnsub||!logueado())return;
+  reclamosUnsub=db.collection('reclamos_comercio').where('usuario_uid','==',estado.usuario.uid).onSnapshot(s=>{
+    estado.misReclamos=s.docs.map(x=>({id:x.id,...x.data()}));refrescarVista();
+  },()=>{reclamosUnsub=null;});
+}
+function dejarDeEscucharMisReclamos(){if(reclamosUnsub){reclamosUnsub();reclamosUnsub=null;}estado.misReclamos=[];}
+function misReclamosHTML(){
+  const l=(estado.misReclamos||[]).filter(r=>r.estado!=='aprobado');if(!l.length)return '';
+  return l.map(r=>'<div class="mi-negocio"><div class="pf-item"><span class="mn-tx"><b>'+esc(r.comercio_nombre)+'</b>'
+    +(r.estado==='pendiente'?'<span class="chip-estado rev">'+icon('clock',14)+'Solicitud en revisión</span>':'<span class="chip-estado rech">'+icon('circle-alert',14)+'No aprobada</span>')+'</span></div>'
+    +(r.estado==='pendiente'?'<p class="mn-motivo">Solicitud en revisión. Te avisaremos cuando esté lista.</p>'
+      :'<p class="mn-motivo">'+icon('info',14)+'Motivo: '+esc(r.motivo_rechazo||'')+'</p><button class="btn btn-tonal btn-sm" data-reclamar-otra="'+esc(r.comercio_id)+'">Reclamarlo de nuevo</button>')
+    +'</div>').join('');
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-reclamar-otra]');if(!b)return;const d=buscar(b.dataset.reclamarOtra);if(d)reclamarNegocio(d);});
 
 /* ===== REPORTAR UN PROBLEMA (ficha o reseña) ===== */
 // U2: «¿Lo conoces? Envíanoslo» abre el mismo reporte con el motivo ya elegido
@@ -6464,7 +6540,8 @@ function renderAdmin(){
   const A=estado.admin,D=A.datos;
   if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
-  const nNegocios=D.pendientes.length+reclamos.length;
+  const nuevosReclamos=estado.adminPend.reclamos||[];
+  const nNegocios=D.pendientes.length+reclamos.length+nuevosReclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
     ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['perdidos','Perdidos','heart-handshake',0],['empleos','Empleos','briefcase',(estado.adminPend.empleos||[]).length],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
@@ -6477,7 +6554,8 @@ function renderAdmin(){
         +(D.pendientes.length?'<p class="dash-section">Negocios nuevos ('+D.pendientes.length+')</p>'+D.pendientes.map(c=>vistaPreviaAdminHTML(c,
           '<p class="nota-c izq">Registrado por '+esc(c._raw.propietario||'un usuario')+' · '+(c.esPremium?'Premium':'Gratis')+' · '+fechaCorta(aMs(c._raw.fecha_modificacion)||aMs(c._raw.fechaCreacion))+'</p>'
           +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-aprobar="'+esc(c.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-rechazar="'+esc(c.id)+'">Rechazar</button></div>')).join(''):'')
-        +(reclamos.length?'<p class="dash-section">Reclamos de negocios existentes ('+reclamos.length+')</p>'+reclamos.map(s=>{const c=buscar(s.comercio_id)||D.comercios.find(x=>x.id===s.comercio_id);
+        +reclamosAdminHTML(nuevosReclamos,D)
+        +(reclamos.length?'<p class="dash-section">Reclamos anteriores, sin verificación ('+reclamos.length+')</p>'+reclamos.map(s=>{const c=buscar(s.comercio_id)||D.comercios.find(x=>x.id===s.comercio_id);
             return c?vistaPreviaAdminHTML(c,'<p class="nota-c izq">'+icon('user',14)+' Lo reclama '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · Tel. '+esc(s.telefono||'')+'</p>'+(s.mensaje?'<p class="adm-desc">«'+esc(s.mensaje)+'»</p>':'')
               +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okreclamo="'+esc(s.id)+'">'+icon('check',16)+'Aprobar reclamo</button><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div>')
               :'<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3><p class="nota-c izq">Lo reclama '+esc(s.usuario_nombre||'')+'</p><div class="dc-actions"><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div></div>';}).join(''):'');
@@ -6570,6 +6648,7 @@ function renderAdmin(){
   $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete(),...premiumCampana(pend(b.dataset.aprobar)&&pend(b.dataset.aprobar)._raw)}),campanaVigente()?'Negocio aprobado, con Premium gratis hasta el '+CAMPANA.premiumTxt:'Negocio aprobado y publicado',['comercio',b.dataset.aprobar,'aprobado'])));
   $$('[data-rechazar]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.',['comercio',b.dataset.rechazar,'rechazado']))));
   $$('[data-okreclamo]').forEach(b=>(b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo))));
+  enlazarReclamosAdmin();
   $$('[data-noreclamo]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado',['reclamo',b.dataset.noreclamo,'rechazado']),['No se pudo verificar que sea el dueño','Duplicado','Otro'])));
   $$('[data-okprem]').forEach(b=>(b.onclick=()=>activarPremiumAdmin(sol(b.dataset.okprem))));
   $$('[data-noprem]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada',['premium',b.dataset.noprem,'rechazado']),['Negocio aún en revisión','Datos incompletos','Otro'])));
@@ -6959,7 +7038,8 @@ async function adminAccion(fn,msg,aviso){
   if(aviso)avisarDecision(...aviso);
   await cargarAdmin().catch(()=>{});
 }
-// Aprobar un reclamo: el negocio queda con dueño (si era de muestra, se crea en la nube con el mismo id)
+// Aprobar un reclamo anterior (colección solicitudes, sin verificación): el negocio queda con dueño (si era de muestra,
+// se crea en la nube con el mismo id)
 async function aprobarReclamo(s){
   if(!s)return;
   if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.'
@@ -6973,8 +7053,58 @@ async function aprobarReclamo(s){
       bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',...premiumCampana(null)}));
     }
     bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
+    // Fase 5: el dueño solo cambia con un reclamo aprobado en reclamos_comercio; el anterior queda registrado ahí
+    bt.set(db.collection('reclamos_comercio').doc(idReclamo(s.comercio_id,s.uid)),{comercio_id:String(s.comercio_id),comercio_nombre:s.comercio_nombre||'',
+      usuario_uid:s.uid,nombre:s.usuario_nombre||'',estado:'aprobado',migrado_de:s.id,fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid});
     await bt.commit();
   },'Reclamo aprobado: la persona ya ve el negocio en su perfil',['reclamo',s.id,'aprobado']);
+}
+/* ---------- Reclamos de comercios (Fase 5) en el panel ---------- */
+const MOTIVOS_RECLAMO=['No se pudo verificar que sea el dueño','La foto no se ve o no corresponde','No contestó al código','Otro'];
+function reclamoAdminHTML(r,D,todos){
+  const c=buscar(r.comercio_id)||D.comercios.find(x=>x.id===r.comercio_id)||{id:r.comercio_id,nombre:r.comercio_nombre,cat:'comercio'};
+  const otros=todos.filter(x=>x.comercio_id===r.comercio_id).length-1,propio=r.usuario_uid===estado.usuario.uid;
+  const datos='<p class="nota-c izq">'+icon('user',14)+' '+esc(r.nombre)+' ('+esc(r.cargo)+') · Tel. '+esc(numeroLegible(r.telefono))+(r.correo?' · '+esc(r.correo):'')+' · '+fechaCorta(r.fecha)+'</p>'
+    +'<p class="adm-desc">'+(r.metodo==='codigo'?'Verificación: código por WhatsApp o llamada al teléfono de la ficha ('+esc(numeroLegible(c.tel||''))+'). Envíalo a mano y confirma antes de aprobar.'
+      :'Verificación: foto del RUT, la Cámara de Comercio o en la fachada.')+'</p>'
+    +(otros>0?'<p class="aviso-suave">'+icon('users',18)+'<span>Hay '+(otros+1)+' solicitudes para este comercio.</span></p>':'')
+    +(c.propietario_uid?'<p class="aviso-suave">'+icon('circle-alert',18)+'<span>Este comercio ya tiene dueño.</span></p>':'');
+  const acciones='<div class="dc-actions">'+(r.metodo==='documento'?'<button class="btn btn-secundario btn-sm" data-verprueba="'+esc(r.id)+'">'+icon('image',16)+'Ver la prueba</button>':'')
+    +(propio?'<p class="nota-c izq">No puedes aprobar tu propio reclamo.</p>':'<button class="btn btn-primario btn-sm" data-okrc="'+esc(r.id)+'">'+icon('check',16)+'Aprobar</button>'
+      +'<button class="btn btn-secundario btn-sm" data-norc="'+esc(r.id)+'">Rechazar</button>')+'</div>';
+  return vistaPreviaAdminHTML(c,datos+acciones);
+}
+function reclamosAdminHTML(l,D){
+  return l.length?'<p class="dash-section">Reclamos de comercios ('+l.length+')</p>'+l.map(r=>reclamoAdminHTML(r,D,l)).join(''):'';
+}
+function enlazarReclamosAdmin(){
+  const rc=id=>(estado.adminPend.reclamos||[]).find(x=>x.id===id);
+  $$('[data-verprueba]').forEach(b=>(b.onclick=()=>verPruebaReclamo(b.dataset.verprueba)));
+  $$('[data-okrc]').forEach(b=>(b.onclick=()=>aprobarReclamoComercio(rc(b.dataset.okrc))));
+  $$('[data-norc]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('reclamos_comercio').doc(b.dataset.norc)
+    .update({estado:'rechazado',motivo_rechazo:m,fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid}),'Reclamo rechazado',['reclamo_comercio',b.dataset.norc,'rechazado']),MOTIVOS_RECLAMO)));
+}
+async function verPruebaReclamo(id){
+  try{
+    const f=await db.collection('reclamos_comercio').doc(id).collection('prueba').doc('foto').get();
+    if(!f.exists){toast('Esta solicitud no tiene foto');return;}
+    abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Prueba enviada</h2><img class="prueba-foto" src="'+esc(imgSegura(f.data().data))+'" alt="Foto que envió quien reclama el comercio"></div>');
+  }catch(e){toast('No se pudo abrir la foto');}
+}
+// Aprobar: el reclamo, el dueño del comercio (si era del directorio base se crea en la nube con el mismo id) y el rol, en un lote
+async function aprobarReclamoComercio(r){
+  if(!r)return;
+  if(!await confirmar('Aprobar reclamo','«'+r.comercio_nombre+'» pasará a ser administrado por '+r.nombre+'.'
+    +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
+  adminAccion(async()=>{
+    const ref=db.collection('comercios').doc(r.comercio_id),snap=await ref.get(),perfil=await db.collection('usuarios').doc(r.usuario_uid).get();
+    const lote=db.batch(),dueno={propietario_uid:r.usuario_uid,propietario:r.nombre};
+    lote.update(db.collection('reclamos_comercio').doc(r.id),{estado:'aprobado',fecha_revision:FV.serverTimestamp(),revisado_por:estado.usuario.uid});
+    if(snap.exists)lote.update(ref,{...dueno,estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),...premiumCampana(snap.data())});
+    else{const b=COMERCIOS_BASE.find(c=>c.id===r.comercio_id);if(!b)throw new Error('sin-datos');lote.set(ref,datosSemilla(b,{...dueno,...premiumCampana(null)}));}
+    if(perfil.exists&&perfil.data().rol==='usuario')lote.update(perfil.ref,{rol:'comerciante'});
+    await lote.commit();
+  },'Reclamo aprobado: la persona ya puede editar el comercio',['reclamo_comercio',r.id,'aprobado']);
 }
 // Activar Premium desde una solicitud (sin fecha de fin por defecto durante la fase de pruebas)
 function activarPremiumAdmin(s){

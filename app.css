@@ -1878,3 +1878,23 @@ html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
 .fs-ver b{display:block;font-size:var(--text-base)}
 .fs-ver small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
 .fs-llamar{flex:0 0 auto}
+/* =====================================================================
+   FASE 5 · Reclamar este comercio
+   ===================================================================== */
+.reclamo-card{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:16px;border-radius:var(--radius-lg);background:var(--primary-50);color:var(--ink)}
+.reclamo-card>.ic{flex-shrink:0;color:var(--primary-700);margin-top:2px}
+.reclamo-card b{display:block;font-size:var(--text-lg)}
+.reclamo-card p{margin:4px 0 12px;font-size:var(--text-base);color:var(--ink-2)}
+.reclamo-motivo{display:flex;gap:6px;align-items:flex-start;color:var(--ink)}
+/* Formulario con letra grande: etiquetas a 16 px y opciones como tarjetas de 56 px */
+.form-grande .campo>label,.form-grande legend{font-size:var(--text-base);font-weight:600;color:var(--ink)}
+.form-grande fieldset{border:0;padding:0;margin:0 0 16px}
+.form-grande input:not([type=radio]):not([type=checkbox]){min-height:52px;font-size:var(--text-lg)}
+.opciones-grandes{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.opcion-grande{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:2px solid var(--line);border-radius:var(--radius-md);font-size:var(--text-base);color:var(--ink);cursor:pointer}
+.opcion-grande:has(input:checked){border-color:var(--primary-500);background:var(--primary-50)}
+.opcion-grande input{width:22px;height:22px;flex-shrink:0;accent-color:var(--primary-500)}
+.form-grande .check{font-size:var(--text-base);margin:8px 0 16px}
+.form-grande .check input{width:24px;height:24px}
+.form-grande .ayuda{display:block;margin-top:4px;font-size:var(--text-sm);color:var(--ink-2)}
+.prueba-foto{display:block;width:100%;height:auto;margin-top:12px;border-radius:var(--radius-md)}

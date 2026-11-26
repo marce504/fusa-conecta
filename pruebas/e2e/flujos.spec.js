@@ -1189,3 +1189,98 @@ test('modo sencillo: 6 botones, letra grande y «Llamar» a dos toques desde el 
   await page.locator('[data-bn="inicio"]').click();
   await expect(page.locator('#tQueHacer')).toBeVisible();
 });
+
+// Fase 5: reclamar un comercio del directorio (sin dueño). Ana reclama con foto → «en revisión» → el admin aprueba →
+// Ana edita el horario y se ve en la ficha. Rosa reclama otro → el admin rechaza con motivo → Rosa lo reclama de nuevo.
+async function fotoDePrueba(page) {
+  return page.evaluate(async () => {
+    const cv = document.createElement('canvas');
+    cv.width = 240;
+    cv.height = 160;
+    cv.getContext('2d').fillRect(0, 0, 240, 160);
+    return cv.toDataURL('image/png').split(',')[1];
+  });
+}
+async function llenarReclamo(page) {
+  await page.locator('#rcTel').fill('3009998877');
+  const foto = await fotoDePrueba(page);
+  await page
+    .locator('#rcFoto')
+    .setInputFiles({ name: 'rut.png', mimeType: 'image/png', buffer: Buffer.from(foto, 'base64') });
+  await page.locator('#rcConsent').check();
+  await page.locator('#rcEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Solicitud enviada');
+}
+async function panelReclamos(page) {
+  await entrarComo(page, CUENTAS.admin);
+  await page.evaluate(() => {
+    estado.admin.datos = null;
+    estado.admin.tab = 'aprobar';
+    estado.admin.subtab = 'negocios';
+    window.navegar({ tipo: 'admin' });
+  });
+  await expect(page.locator('.dash-section', { hasText: 'Reclamos de comercios' })).toBeVisible();
+}
+
+test('reclamar un comercio: en revisión, aprobar, editar el horario; rechazar y volver a reclamar', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await sinAvisoEmulador(page);
+  await entrarComo(page, CUENTAS.ana);
+  // La ficha sin dueño ofrece reclamarlo
+  await page.evaluate(() => window.abrirDetalle('c354'));
+  await expect(page.locator('#sheetDetalle .reclamo-card')).toContainText('¿Este es tu negocio?');
+  await page.locator('#bReclamar').click();
+  await llenarReclamo(page);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await expect(page.locator('#cuerpo')).toContainText('Solicitud en revisión. Te avisaremos cuando esté lista.');
+  await page.screenshot({ path: info.outputPath('1-reclamo-en-revision.png') });
+  // Ana no puede aprobarse sola ni ponerse de dueña
+  const negado = await page.evaluate(async () => {
+    const uid = auth.currentUser.uid;
+    const intentos = [
+      db.collection('reclamos_comercio').doc(`c354__${uid}`).update({ estado: 'aprobado', revisado_por: uid }),
+      db.collection('comercios').doc('e2e-pasca').update({ propietario_uid: uid }),
+    ];
+    const r = await Promise.allSettled(intentos);
+    return r.map(x => x.status);
+  });
+  expect(negado).toEqual(['rejected', 'rejected']);
+  // El admin ve la prueba y aprueba
+  await panelReclamos(page);
+  await page.locator('[data-verprueba]').first().click();
+  await expect(page.locator('#sheetGen .prueba-foto')).toBeVisible();
+  await page.locator('#cerrarGen').click();
+  await page.screenshot({ path: info.outputPath('2-panel-reclamos.png') });
+  await page.locator('[data-okrc]').first().click();
+  await page.locator('#cfSi').click();
+  await expect(page.locator('#toast')).toContainText('Reclamo aprobado');
+  // Ana ya es dueña: edita el horario y se ve en la ficha
+  await entrarComo(page, CUENTAS.ana);
+  await page.waitForFunction(() => comerciosPropios.some(c => c.id === 'c354'));
+  await page.evaluate(() => db.collection('comercios').doc('c354').update({ horario: 'Lun-Sáb 7:00-21:00' }));
+  await page.evaluate(() => window.abrirDetalle('c354'));
+  await expect(page.locator('#btnEditar')).toHaveText(/Editar mi comercio/);
+  await expect(page.locator('#sheetDetalle')).toContainText('7:00 a. m. – 9:00 p. m.');
+  await page.screenshot({ path: info.outputPath('3-ficha-con-dueña.png') });
+  // Rosa reclama otro; el admin lo rechaza con motivo; Rosa lo ve y lo reclama de nuevo
+  await entrarComo(page, CUENTAS.rosa);
+  await page.evaluate(() => window.abrirDetalle('c365'));
+  await page.locator('#bReclamar').click();
+  await llenarReclamo(page);
+  await panelReclamos(page);
+  await page.locator('[data-norc]').first().click();
+  await page.locator('[data-motivo="La foto no se ve o no corresponde"]').click();
+  await page.locator('#motOk').click();
+  await expect(page.locator('#toast')).toContainText('Reclamo rechazado');
+  await entrarComo(page, CUENTAS.rosa);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await expect(page.locator('#cuerpo')).toContainText('Motivo: La foto no se ve o no corresponde');
+  await page.locator('[data-reclamar-otra="c365"]').click();
+  await llenarReclamo(page);
+  await expect
+    .poll(() => page.evaluate(() => estado.misReclamos.find(r => r.comercio_id === 'c365').estado))
+    .toBe('pendiente');
+});
