@@ -1059,3 +1059,19 @@ describe('Rutas turísticas, pico y placa, cajeros y parqueaderos', () => {
     expect(esParqueadero({ nombre: 'Parqueadero de busetas' })).toBe(false);
   });
 });
+
+describe('Agenda: cada evento una sola vez (E1)', () => {
+  const { sinRepetidos } = cargar(['norm', 'claveEvento', 'sinRepetidos']);
+  const ini = new Date('2026-11-24T14:00:00-05:00').getTime();
+  const expo = { titulo: 'Exposiciones de la Escuela de Artes Visuales EFAC', ini, lugar_nombre: 'Casona Quinta Balmoral' };
+  it('quita las copias guardadas varias veces y deja los eventos distintos', () => {
+    const l = [
+      { id: 'a', ...expo },
+      { id: 'b', ...expo },
+      { id: 'c', ...expo, titulo: 'Exposiciones de la  Escuela de Artes Visuales efac' },
+      { id: 'd', ...expo, titulo: 'Taller Tribu: gestión cultural' },
+      { id: 'e', ...expo, ini: ini + 864e5 },
+    ];
+    expect(sinRepetidos(l).map(e => e.id)).toEqual(['a', 'd', 'e']);
+  });
+});

@@ -259,8 +259,11 @@ const catEvento=k=>CATS_EVENTO.find(c=>c[0]===k)||CATS_EVENTO[7];
 const DIAS3=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'],DIAS_EV=['dom','lun','mar','mié','jue','vie','sáb'],MESES3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 estado.eventos=[];estado.agenda={rango:'30',cat:'',vista:'lista'};
 let eventoPorAbrir=null;
+// E1: la misma actividad guardada varias veces (mismo título, inicio y lugar) se muestra una sola vez
+const claveEvento=e=>norm(e.titulo).replace(/\s+/g,' ').trim()+'|'+e.ini+'|'+norm(e.lugar_nombre).replace(/\s+/g,' ').trim();
+function sinRepetidos(eventos){const vistos=new Set();return eventos.filter(e=>{const k=claveEvento(e);if(vistos.has(k))return false;vistos.add(k);return true;});}
 db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
-  estado.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};});
+  estado.eventos=sinRepetidos(s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};}));
   if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
   if(!$('#plegBanner').hidden)montarBanner();
   if(esAdmin())borrarDemosVencidos();
