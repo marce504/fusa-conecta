@@ -31,6 +31,8 @@ Servicios web REST de Fusa Conecta, en **Python 3.12** con **FastAPI**.
 | `POST /v1/notificaciones/aprobacion` | Avisa a la persona que el admin aprobó o rechazó lo que envió: novedad en su campana y push (FCM) a sus celulares. **Solo admin** | Panel admin → al aprobar o rechazar |
 | `POST /v1/alertas/enviar` | Manda al celular una alerta municipal ya publicada en `alertas/{id}` (con fuente oficial y vigente) a todos los que no apagaron los avisos, una sola vez por alerta (`alertas/{id}/envios/push`). **Solo admin** | Panel admin → Emergencias → Alertas municipales |
 | `POST /v1/notificaciones/pendiente` | Avisa a los admin que alguien envió algo a revisión (negocio, evento, ruta, Premium, reclamo, reporte u oferta de empleo): novedad en su campana y push. Solo lo puede pedir quien lo envió y solo si sigue pendiente | La app, después de enviar a revisión |
+| `POST /v1/reclamos/{id}/decision` | Aprueba o rechaza un reclamo de comercio (`{"resultado": "aprobado"\|"rechazado", "motivo": "…"}`) en una transacción: dueño del comercio (o su copia en la nube si es del directorio base), Premium de la campaña y rol «comerciante». 403 si no es admin o es su propio reclamo, 409 si ya fue revisado o el comercio tiene otro dueño, 422 si falta el motivo. **Solo admin** | Panel admin → Reclamos de comercios |
+| `POST /v1/reclamos/anteriores/{id}/aprobar` | Aprueba un reclamo anterior (colección `solicitudes`) y lo registra en `reclamos_comercio`. **Solo admin** | Panel admin → Solicitudes |
 | `GET /v1/salud` | Estado del servicio y de Firestore | Panel → **Diagnóstico** |
 
 Ejemplos:
@@ -67,6 +69,8 @@ api/
   app/repositorio.py    lectura de Firestore con caché (interfaz para probar sin Firestore)
   app/utilidades.py     horarios, búsqueda, avisos y fechas de Colombia (funciones puras)
   app/formatos.py       GPX, ICS, Excel (openpyxl) y PDF (ReportLab)
+  app/avisos.py         novedades y push (FCM) con la cuenta FIREBASE_SA_FCM
+  app/reclamos.py       decisión de los reclamos de comercios (transacción con la cuenta FIREBASE_SA_FCM)
   app/datos_base.json   copia de datos.js y rutas/ (la genera exportar_datos.mjs)
   exportar_datos.mjs    node api/exportar_datos.mjs  (--comprobar en la integración continua)
   tests/                pytest: unitarias, API con repositorio falso e integración con el emulador
@@ -102,7 +106,8 @@ firebase emulators:start --only firestore,auth --project fusa-conecta
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8099 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 ORIGENES=http://localhost:5510 .venv/Scripts/uvicorn app.main:app --port 8000
 ```
 
-Abre http://127.0.0.1:8000/docs. Para que la PWA local use esta API, abre `http://localhost:5510/?emulador&api_local`.
+Abre http://127.0.0.1:8000/docs. La PWA local abierta con `http://localhost:5510/?emulador` ya usa esta API (nunca la de producción);
+`?api_local` sirve para usarla sin el emulador.
 
 ## Pruebas
 
@@ -165,9 +170,10 @@ Pasos (los hace la dueña del proyecto; unos 10 minutos):
 **Límite de los permisos.** IAM no permite limitar «Cloud Datastore User» a algunas colecciones: la cuenta podría
 escribir en todo Firestore. Para compensarlo:
 - la clave vive solo en Render;
-- `app/avisos.py` es el único código que la usa, y solo escribe en `usuarios/{uid}/notificaciones` y
-  `usuarios/{uid}/dispositivos`. La prueba `test_repositorio_firestore_solo_escribe_novedades_y_dispositivos` lo
-  comprueba;
+- solo la usan `app/avisos.py`, que escribe en `usuarios/{uid}/notificaciones` y `usuarios/{uid}/dispositivos` (la
+  prueba `test_repositorio_firestore_solo_escribe_novedades_y_dispositivos` lo comprueba), y `app/reclamos.py`, que al
+  decidir un reclamo escribe ese reclamo, el comercio, el rol del usuario y, si era un reclamo anterior, su solicitud
+  (lo comprueba `test_decision_de_reclamo_en_firestore` contra el emulador);
 - las demás lecturas de la API siguen con la cuenta de solo lectura (`FIREBASE_SA`).
 
 **Clave VAPID (opcional).** La PWA usa la clave pública por defecto de Firebase. Para usar una propia:

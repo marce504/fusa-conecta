@@ -7,14 +7,21 @@
 <meta name="description" content="Directorio inteligente de comercios, turismo y emergencias de Fusagasugá y Pasca.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+<!-- Poppins sin bloquear el primer pintado: mientras llega se usa la fuente de respaldo con sus medidas (app.css) -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet"></noscript>
 <meta name="color-scheme" content="light dark">
-<script>/* Tema antes del primer pintado: Automático (por defecto: oscuro de 6 p. m. a 6 a. m., hora de Colombia), Sistema, Claro u Oscuro */
-(function(){var t='automatico';try{t=localStorage.getItem('fc_tema')||'automatico';}catch(e){}
+<script>/* Tema antes del primer pintado: Sistema (por defecto, U10: sigue al celular), Automático (oscuro de 6 p. m. a 6 a. m., hora de Colombia), Claro u Oscuro */
+(function(){var t='sistema';try{t=localStorage.getItem('fc_tema')||'sistema';}catch(e){}
 var h=new Date(Date.now()-18e6).getUTCHours();
 var o=t==='oscuro'||(t==='automatico'&&(h>=18||h<6))||(t==='sistema'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
-document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</script>
-<link rel="stylesheet" href="app.css?v=99">
+document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');
+/* Modo sencillo (por defecto; se quita en el Inicio o en Perfil → Apariencia) y tamaño de letra: sin elección, Grande en modo sencillo */
+var sen=true,l='';try{sen=localStorage.getItem('fc_sencillo')!=='false';l=localStorage.getItem('fc_letra')||'';}catch(e){}
+if(sen)document.documentElement.setAttribute('data-sencillo','');
+if(!l&&sen)l='grande';
+if(l==='grande'||l==='muy-grande')document.documentElement.setAttribute('data-letra',l);})();</script>
+<link rel="stylesheet" href="app.css?v=100">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B4EFF">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png">
@@ -31,10 +38,11 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
 <div class="shell" id="shell">
   <div class="offline-bar" id="offlineBar" role="status"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="wifi-off"></svg>Sin conexión · mostrando datos guardados en tu teléfono</div>
   <div class="promo-banner" id="promoBanner" role="status"></div>
-  <header class="topbar" id="topbar">
+  <header class="topbar en-lista" id="topbar">
     <div class="nav-row" id="navRow">
       <button class="sos-pill nav-sos" data-sos aria-label="SOS: números de emergencia"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="siren"></svg>SOS</button>
       <button class="nav-btn invisible" id="bVolver"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="arrow-left"></svg>Volver</button>
+      <h1 class="nav-titulo" id="navTitulo" hidden></h1>
     </div>
     <div class="descubre" id="descubre">
       <div class="sesion" id="sesion"></div>
@@ -42,12 +50,12 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
       <div class="buscador">
         <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="search"></svg>
         <input type="search" id="busqueda" placeholder="Busca comercios, fincas, rutas, trámites..." aria-label="Buscar en Fusa Conecta" autocomplete="off">
+        <button type="button" class="btn-borrar" id="bBorrar" aria-label="Borrar búsqueda" hidden><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="x"></svg></button>
         <button class="btn-filtros" id="bFiltros" aria-label="Filtros"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="sliders-horizontal"></svg><span class="filtros-globo" id="filtrosGlobo" hidden></span></button>
         <div class="sugerencias" id="sugerencias"></div>
       </div>
       <div class="sel-mun-fila" id="selMunicipio"></div>
-      <div class="plegable" id="plegBanner" hidden><div class="banner" id="banner" role="region" aria-roledescription="carrusel" aria-label="Novedades de Fusa Conecta"></div></div>
-      <div class="fila-chips"><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
+      <div class="fila-chips" hidden><div class="cats" id="cats" role="tablist" aria-label="Categorías"></div></div>
       <div class="fila-chips fila-sub vacia" id="filaSub"><div class="subcats" id="subcats" aria-label="Subcategorías"></div></div>
       <div class="filtros-activos" id="filtrosActivos" aria-label="Filtros activos"></div>
     </div>
@@ -58,11 +66,11 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
   <div class="radio-barra" id="radioBarra" role="region" aria-label="Radio en vivo" hidden></div>
 
   <nav class="bottom-nav" id="bottomNav" aria-label="Navegación principal">
-    <button class="bn-btn" data-bn="mapa"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="map"></svg><span>Mapa</span></button>
-    <button class="bn-btn" data-bn="cupones" aria-label="Cupones"><span class="bn-ic"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="ticket"></svg><span class="bn-badge" id="bnBadge" hidden></span></span><span>Cupones</span></button>
-    <button class="bn-btn bn-centro bn-active" data-bn="inicio" aria-current="page"><span class="bn-fab"><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="house"></svg></span><span>Inicio</span></button>
+    <button class="bn-btn bn-active" data-bn="inicio" aria-current="page"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="house"></svg><span>Inicio</span></button>
     <button class="bn-btn" data-bn="agenda"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="calendar-days"></svg><span>Agenda</span></button>
-    <button class="bn-btn" data-bn="perfil"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="user"></svg><span>Perfil</span></button>
+    <button class="bn-btn" data-bn="mapa"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="map"></svg><span>Mapa</span></button>
+    <button class="bn-btn" data-bn="comunidad"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="users"></svg><span>Comunidad</span></button>
+    <button class="bn-btn" data-bn="perfil" aria-label="Perfil"><span class="bn-ic"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="user"></svg><span class="bn-badge" id="bnBadge" hidden></span></span><span>Perfil</span></button>
   </nav>
 
   <section class="splash" id="splash" aria-label="Bienvenida" aria-busy="true">
@@ -112,6 +120,7 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
         <div class="campo"><label for="mail">Correo electrónico</label><input type="email" id="mail" placeholder="tucorreo@email.com" autocomplete="email"></div>
         <div class="campo"><label for="clave">Contraseña</label><input type="password" id="clave" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="current-password"></div>
         <label class="check" id="lConsentWrap" style="display:none"><input type="checkbox" id="lConsent"><span>Autorizo el tratamiento de mis datos personales conforme a la <button type="button" class="enlace" id="lVerLegal">Ley 1581 de 2012</button>.</span></label>
+        <p class="login-error" id="loginError" role="alert" hidden></p>
         <button type="submit" class="btn btn-primario btn-bloque" id="lMail">Ingresar</button>
         <button type="button" class="btn btn-ghost" id="lOlvido">¿Olvidaste tu contraseña?</button>
       </form>
@@ -180,12 +189,12 @@ document.documentElement.setAttribute('data-tema',o?'oscuro':'claro');})();</scr
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="icons.js?v=99"></script>
+<script src="icons.js?v=100"></script>
 <script>
 // Pinta los íconos declarados en el HTML (data-icon) con el sistema de íconos local
 document.querySelectorAll('svg[data-icon]').forEach(function(s){var c=ICONOS[s.getAttribute('data-icon')];if(c)s.innerHTML=c;});
 </script>
-<script src="datos.js?v=99"></script>
-<script src="app.js?v=99"></script>
+<script src="datos.js?v=100"></script>
+<script src="app.js?v=100"></script>
 </body>
 </html>

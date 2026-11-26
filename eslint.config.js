@@ -18,6 +18,8 @@ const globalesPWA = {
   jsQR: 'readonly',
   CAT: 'readonly',
   SUBCATS: 'readonly',
+  SINONIMOS: 'readonly',
+  IMAGENES_REFERENCIA: 'readonly',
   PLAZA_FUSA: 'readonly',
   COMERCIOS_BASE: 'readonly',
   RUTAS: 'readonly',
@@ -119,7 +121,7 @@ export default [
   },
   {
     // Playwright: el código dentro de page.evaluate() corre en la PWA (navegador y sus variables globales)
-    files: ['pruebas/e2e/**/*.js'],
+    files: ['pruebas/e2e/**/*.js', 'scripts/areas-tactiles.mjs', 'scripts/medir-cls.mjs'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -128,6 +130,8 @@ export default [
         arranque: 'readonly',
         auth: 'readonly',
         database: 'readonly',
+        db: 'readonly',
+        comerciosPropios: 'readonly',
         mercadosCampesinos: 'readonly',
       },
     },

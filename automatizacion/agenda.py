@@ -570,8 +570,11 @@ def borrar_ejemplos(db: Any, ahora: int) -> int:
 def guardar(db: Any, cliente: Any, unicos: list[dict], ahora: int) -> dict:
     from google.cloud.firestore_v1.base_query import FieldFilter
 
+    # Se compara contra todo lo que aún no ha terminado: un evento de varios días que empezó hace más de un día
+    # (la exposición del 24 al 28 de noviembre) también cuenta; antes se filtraba por la fecha de inicio y cada
+    # corrida lo volvía a crear (E1).
     existentes = list(
-        db.collection("eventos").where(filter=FieldFilter("fecha_inicio", ">=", de_ms(ahora - DIA_MS))).stream()
+        db.collection("eventos").where(filter=FieldFilter("fecha_fin", ">=", de_ms(ahora - DIA_MS))).stream()
     )
     ya, ya_lh, guardados = set(), set(), []
     for d in existentes:

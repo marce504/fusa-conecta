@@ -4,6 +4,21 @@ import { CLAVE, CUENTAS, CUPON, NEGOCIO, NEGOCIO_PASCA, poner } from './semilla.
 
 const APP = '/?emulador';
 
+// La ayuda del primer uso (letra grande y globos que explican etiquetas) se da por vista: estas pruebas no son de ella
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    [
+      'fc_letra_preguntada',
+      'fc_explicado_avisos',
+      'fc_explicado_destacado',
+      'fc_explicado_abierto',
+      'fc_explicado_oficial',
+    ].forEach(k => localStorage.setItem(k, 'true'));
+    // El modo sencillo viene por defecto; estas pruebas revisan el Inicio completo (la del modo sencillo lo activa)
+    if (!sessionStorage.getItem('fc_e2e_sencillo')) localStorage.setItem('fc_sencillo', 'false');
+  });
+});
+
 // El aviso del emulador tapa la barra inferior en las capturas
 async function sinAvisoEmulador(page) {
   await page.evaluate(() => document.querySelectorAll('.firebase-emulator-warning').forEach(e => e.remove()));
@@ -76,13 +91,14 @@ test('cupón: Ana lo obtiene → lo muestra con QR → la comerciante valida el 
   await sinAvisoEmulador(page);
   await page.screenshot({ path: info.outputPath('1-ficha-con-cupon.png') });
   await obtener.click();
-  // Queda en la billetera: la ficha ofrece «Ver en mi billetera» y el botón Cupones de la barra muestra el globo
+  // Queda en la billetera: la ficha ofrece «Ver en mi billetera» y la pestaña Perfil muestra el globo
   await expect(page.locator('#sheetDetalle [data-cupon]').first()).toContainText('Ver en mi billetera');
   await expect(page.locator('#bnBadge')).toHaveText('1');
-  // Se entra a la billetera por la barra inferior (Cupones ya no es el botón central)
+  // Fase 4: la billetera está en Perfil → «Mis cupones» (Cupones ya no es una pestaña de la barra)
   await page.locator('#cerrarDet').click();
-  await page.locator('[data-bn="cupones"]').click();
-  await expect(page.locator('[data-bn="cupones"]')).toHaveAttribute('aria-current', 'page');
+  await page.locator('[data-bn="perfil"]').click();
+  await page.locator('#pfBilletera').click();
+  await expect(page.locator('[data-bn="perfil"]')).toHaveAttribute('aria-current', 'page');
   // «Mostrar en caja» lo muestra en pantalla completa con el QR y el código
   await page.locator('.cupon-bill [data-mostrar]').first().click();
   const qr = page.locator('#pcQR');
@@ -280,18 +296,18 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
   await sinAvisoEmulador(page);
   const barra = page.locator('#bottomNav .bn-btn');
   await expect(page.locator('#bottomNav .bn-btn > span:last-child')).toHaveText([
-    'Mapa',
-    'Cupones',
     'Inicio',
     'Agenda',
+    'Mapa',
+    'Comunidad',
     'Perfil',
   ]);
-  // Inicio es el botón central grande
-  await expect(page.locator('.bn-centro')).toHaveAttribute('data-bn', 'inicio');
+  // Fase 4: los cinco botones son iguales (ya no hay un botón central flotante)
+  await expect(page.locator('#bottomNav .bn-centro')).toHaveCount(0);
   // Cada botón abre su pantalla y queda marcado (aria-current) como el único activo
   const pantallas = [
     ['mapa', 'mapa'],
-    ['cupones', 'billetera'],
+    ['comunidad', 'comunidad'],
     ['inicio', 'lista'],
     ['agenda', 'agenda'],
     ['perfil', 'perfil'],
@@ -300,9 +316,9 @@ test('barra inferior: Mapa · Cupones · Inicio · Agenda · Perfil y Perfil →
     await page.locator(`[data-bn="${boton}"]`).click();
     await expect.poll(() => page.evaluate(() => window.vistaActual().tipo)).toBe(tipo);
     await expect(page.locator('.bn-btn[aria-current="page"]')).toHaveAttribute('data-bn', boton);
-    // Todos los botones tienen al menos 44×44 px de área táctil (WCAG 2.5.5)
+    // Todos los botones tienen al menos 48×48 px de área táctil (RNF-03, U6)
     const cajas = await barra.evaluateAll(bs => bs.map(b => b.getBoundingClientRect()));
-    for (const c of cajas) expect(Math.min(c.width, c.height)).toBeGreaterThanOrEqual(44);
+    for (const c of cajas) expect(Math.min(c.width, c.height)).toBeGreaterThanOrEqual(48);
   }
   await expect(page.locator('#cuerpo h2').first()).toBeVisible();
   // La Agenda es la misma vista de «Ver agenda»
@@ -452,22 +468,26 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   const selector = page.locator('#selMunicipio [data-selmun]');
   await expect(selector).toHaveText(['Fusa y Pasca', 'Fusagasugá', 'Pasca']);
   await expect(page.locator('#selMunicipio [data-selmun=""]')).toHaveAttribute('aria-checked', 'true');
-  // Fusa y Pasca: la sección de Pasca y lugares de los dos municipios
+  // Fusa y Pasca: lugares de los dos municipios; «Pasca, puerta del Sumapaz» está en Turismo (U1)
+  const turismo = () => page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'turismo' }));
   const seccion = page.locator('.seccion-pasca');
+  await turismo();
   await expect(seccion.locator('h2')).toHaveText('Pasca, puerta del Sumapaz');
   await expect(seccion).toContainText(NEGOCIO_PASCA.nombre);
+  await page.evaluate(() => window.inicio());
   const municipios = () =>
     page.evaluate(() => [...new Set(window.itemsVisibles('todas', '', true).map(d => window.municipioDe(d)))].sort());
   expect(await municipios()).toEqual(['Fusagasugá', 'Pasca']);
-  await expect(page.locator('#tEventos')).toHaveText('Qué hacer en Fusa y Pasca');
+  await expect(page.locator('#tQueHacer')).toHaveText('Qué hacer en Fusa');
   // Pasca: solo lugares de Pasca y, como son pocos, «¿Tienes un negocio en Pasca?»
   await page.locator('#selMunicipio [data-selmun="Pasca"]').click();
   await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
   expect(await municipios()).toEqual(['Pasca']);
   await expect(page.locator('#todoFusa h2')).toHaveText('Todo Pasca');
-  // v1.4.0: Pasca tiene más lugares oficiales; el negocio con dueña va primero en el carrusel de Pasca
-  await expect(seccion.locator('.tarjeta').first()).toContainText(NEGOCIO_PASCA.nombre);
   await expect(page.locator('.grid-tc')).not.toContainText('Hacienda Coloma');
+  // v1.4.0: Pasca tiene más lugares oficiales; el negocio con dueña va primero en el carrusel de Pasca
+  await turismo();
+  await expect(seccion.locator('.tarjeta').first()).toContainText(NEGOCIO_PASCA.nombre);
   await expect(seccion.locator('.tarjeta-publica')).toContainText('¿Tienes un negocio en Pasca?');
   // Lugares verificados de Pasca (parte 2) y el aviso de senderos
   await expect(seccion).toContainText('Alcaldía Municipal de Pasca');
@@ -497,6 +517,7 @@ test('municipio: «Pasca» muestra solo Pasca y la invitación a publicar; «Fus
   await sinAvisoEmulador(page);
   await expect(page.locator('#selMunicipio [data-selmun="Pasca"]')).toHaveAttribute('aria-checked', 'true');
   // «Publicar» abre el registro (pide cuenta a un invitado)
+  await turismo();
   await page.locator('[data-pasca-negocio]').click();
   await expect(page.locator('#ovLogin')).toHaveClass(/abierto/);
   await page.locator('#ovLogin [data-cerrar], #ovLogin .cerrar').first().click();
@@ -827,7 +848,7 @@ test('a domicilio: la dueña lo marca, aparece en el filtro y no puede calificar
 });
 
 // v92: mercado campesino. Las fechas salen de la Agenda; las plazas son lugares reales del directorio
-test('mercado campesino: plazas del directorio y el próximo mercado de la agenda en Campo y en el inicio', async ({
+test('mercado campesino: plazas del directorio y el próximo mercado de la agenda en Campo y en la Agenda', async ({
   page,
 }, info) => {
   await page.goto(APP);
@@ -854,8 +875,9 @@ test('mercado campesino: plazas del directorio y el próximo mercado de la agend
   await page.evaluate(() => window.render(true));
   await expect(sec).toContainText('Mercado Campesino de prueba E2E');
   await page.screenshot({ path: info.outputPath('mercado-campo.png') });
-  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
-  await expect(page.locator('#cuerpo')).toContainText('Mercado campesino:');
+  // U1: el Inicio ya no repite el aviso del mercado; el mercado está en la Agenda
+  await page.evaluate(() => window.irAgenda('30'));
+  await expect(page.locator('#cuerpo')).toContainText('Mercado Campesino de prueba E2E');
 });
 
 // v93: menú y pedidos por WhatsApp. La dueña arma el menú; el cliente elige y se abre WhatsApp con el pedido
@@ -970,7 +992,7 @@ test('agenda automática: el admin publica un evento de un programa con sus fuen
 });
 
 // v97: perdidos y encontrados. Se publica sin revisión, la autora lo marca resuelto y nadie más lo puede cambiar
-test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca resuelta', async ({ page }, info) => {
+test('perdidos: Ana publica una mascota perdida, se ve en Comunidad y la marca resuelta', async ({ page }, info) => {
   await page.goto(APP);
   await page.locator('#sInvitado').click();
   await expect(page.locator('#splash')).toHaveClass(/oculto/);
@@ -991,9 +1013,10 @@ test('perdidos: Ana publica una mascota perdida, se ve en el inicio y la marca r
   const aviso = page.locator('#cuerpo .perdido').first();
   await expect(aviso).toContainText('Perrita criolla de prueba E2E');
   await page.screenshot({ path: info.outputPath('perdidos.png') });
-  // En el inicio
-  await page.evaluate(() => window.navegar({ tipo: 'lista', cat: 'todas' }));
-  await expect(page.locator('#cuerpo')).toContainText('Ayúdalos a volver a casa');
+  // Desde la pestaña Comunidad (Fase 4)
+  await page.locator('[data-bn="comunidad"]').click();
+  await page.locator('.comunidad-card', { hasText: 'Perdidos y encontrados' }).click();
+  await expect(page.locator('#cuerpo')).toContainText('Perrita criolla de prueba E2E');
   // Rosa no puede cambiarlo ni borrarlo
   const id = await page.evaluate(() => estado.perdidos[0].id);
   await entrarComo(page, CUENTAS.rosa);
@@ -1108,4 +1131,241 @@ test('moverse: rutas turísticas en Turismo y pico y placa, parqueaderos y cajer
   });
   await expect(c).toContainText('Fusagasugá: Lunes a viernes de prueba E2E', { timeout: 15000 });
   await page.screenshot({ path: info.outputPath('como-moverse.png') });
+});
+
+// Fase 4: modo sencillo. Desde Perfil se activa; el Inicio muestra 6 botones grandes y una droguería se llama en 2 toques
+test('modo sencillo: 6 botones, letra grande y «Llamar» a dos toques desde el Inicio', async ({ page }, info) => {
+  await poner('comercios/e2e-drogueria', {
+    nombre: 'Droguería de Prueba E2E',
+    cat: 'servicios',
+    categoria: 'servicios',
+    sub: 'salud',
+    desc: 'Droguería. Negocio de prueba.',
+    direccion: 'Calle 6 # 7-10',
+    tel: '3007654321',
+    whatsapp: '',
+    lat: 4.341,
+    lng: -74.363,
+    municipio: 'Fusagasugá',
+    propietario_uid: 'duena-drogueria-prueba',
+    estado_publicacion: 'aprobado',
+    esPremium: false,
+    prioridadBusqueda: 0,
+    dias: [0, 1, 2, 3, 4, 5, 6],
+    abre: '00:00',
+    cierra: '23:59',
+    imagen: '',
+    fotos: [],
+  });
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await page.waitForFunction(() => database.some(d => d.id === 'e2e-drogueria'));
+  await sinAvisoEmulador(page);
+  await page.locator('[data-bn="perfil"]').click();
+  await entrarComo(page, CUENTAS.ana);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await page.locator('#pfSencillo').check();
+  await expect(page.locator('html')).toHaveAttribute('data-letra', 'grande');
+  await page.locator('[data-bn="inicio"]').click();
+  await expect(page.locator('.sencillo-btn')).toHaveText([
+    'Buscar',
+    'Salud',
+    'Comida',
+    'Trámites',
+    'Emergencias',
+    'Mis favoritos',
+  ]);
+  await expect(page.locator('#cuerpo .ev-banner, #cuerpo .carrusel')).toHaveCount(0);
+  await expect(page.locator('#pRadio')).toBeHidden();
+  await sinAvisoEmulador(page);
+  await page.screenshot({ path: info.outputPath('modo-sencillo.png') });
+  // Toque 1: Salud. Toque 2: «Llamar» en la fila de la droguería (los que tienen teléfono van primero)
+  await page.locator('.sencillo-btn', { hasText: 'Salud' }).click();
+  const fila = page.locator('.fila-sencilla').first();
+  await expect(fila).toContainText('Droguería de Prueba E2E');
+  await expect(fila.locator('.fs-llamar')).toHaveAttribute('href', 'tel:3007654321');
+  // Se desactiva y vuelve el Inicio normal
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await page.locator('#pfSencillo').uncheck();
+  await page.locator('[data-bn="inicio"]').click();
+  await expect(page.locator('#tQueHacer')).toBeVisible();
+});
+
+// Fase 5: reclamar un comercio del directorio (sin dueño). Ana reclama con foto → «en revisión» → el admin aprueba →
+// Ana edita el horario y se ve en la ficha. Rosa reclama otro → el admin rechaza con motivo → Rosa lo reclama de nuevo.
+async function fotoDePrueba(page) {
+  return page.evaluate(async () => {
+    const cv = document.createElement('canvas');
+    cv.width = 240;
+    cv.height = 160;
+    cv.getContext('2d').fillRect(0, 0, 240, 160);
+    return cv.toDataURL('image/png').split(',')[1];
+  });
+}
+async function llenarReclamo(page) {
+  await page.locator('#rcTel').fill('3009998877');
+  const foto = await fotoDePrueba(page);
+  await page
+    .locator('#rcFoto')
+    .setInputFiles({ name: 'rut.png', mimeType: 'image/png', buffer: Buffer.from(foto, 'base64') });
+  await page.locator('#rcConsent').check();
+  await page.locator('#rcEnviar').click();
+  await expect(page.locator('#toast')).toContainText('Solicitud enviada');
+}
+// La decisión de los reclamos la toma la API (api/app/reclamos.py, con su prueba de integración contra el emulador).
+// Aquí no corre la API de Python: se responde esa llamada haciendo lo mismo en el emulador con permisos de servidor.
+const FS_E2E = 'http://127.0.0.1:8099/v1/projects/fusa-conecta/databases/(default)/documents';
+async function actualizarComoServidor(ruta, campos) {
+  const mascara = Object.keys(campos)
+    .map(k => `updateMask.fieldPaths=${k}`)
+    .join('&');
+  const fields = Object.fromEntries(Object.entries(campos).map(([k, v]) => [k, { stringValue: String(v) }]));
+  const r = await fetch(`${FS_E2E}/${ruta}?${mascara}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!r.ok) throw new Error(`No se pudo actualizar ${ruta}: ${r.status}`);
+}
+async function simularAPIDeReclamos(page) {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+  await page.route(/\/v1\/reclamos\/[^/]+\/decision$/, async ruta => {
+    if (ruta.request().method() === 'OPTIONS') {
+      await ruta.fulfill({ status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST' } });
+      return;
+    }
+    const id = decodeURIComponent(ruta.request().url().split('/v1/reclamos/')[1].split('/')[0]);
+    const { resultado, motivo } = JSON.parse(ruta.request().postData() || '{}');
+    const [cid, uid] = id.split('__');
+    if (resultado === 'aprobado') {
+      const lugar = await page.evaluate(c => {
+        const d = window.buscar(c);
+        return { nombre: d.nombre, cat: d.cat, categoria: d.cat, sub: d.sub || '', direccion: d.direccion || '' };
+      }, cid);
+      await poner(`comercios/${cid}`, { ...lugar, municipio: 'Fusagasugá', propietario_uid: uid, propietario: 'Ana',
+        estado_publicacion: 'aprobado', imagen: '', fotos: [] }); // prettier-ignore
+    }
+    await actualizarComoServidor(`reclamos_comercio/${id}`, { estado: resultado, revisado_por: 'admin-e2e',
+      ...(motivo ? { motivo_rechazo: motivo } : {}) }); // prettier-ignore
+    await ruta.fulfill({
+      status: 200,
+      headers: cors,
+      contentType: 'application/json',
+      body: JSON.stringify({ id, resultado }),
+    });
+  });
+}
+async function panelReclamos(page) {
+  await simularAPIDeReclamos(page);
+  await entrarComo(page, CUENTAS.admin);
+  await page.evaluate(() => {
+    estado.admin.datos = null;
+    estado.admin.tab = 'aprobar';
+    estado.admin.subtab = 'negocios';
+    window.navegar({ tipo: 'admin' });
+  });
+  await expect(page.locator('.dash-section', { hasText: 'Reclamos de comercios' })).toBeVisible();
+  // Ni siquiera el admin puede escribir el dueño ni la decisión desde el navegador: lo hace la API
+  const negadoAdmin = await page.evaluate(async () => {
+    const uid = auth.currentUser.uid;
+    const r = await Promise.allSettled([
+      db.collection('comercios').doc('e2e-pasca').update({ propietario_uid: uid }),
+      db
+        .collection('reclamos_comercio')
+        .where('estado', '==', 'pendiente')
+        .get()
+        .then(s => s.docs[0].ref.update({ estado: 'aprobado', revisado_por: uid })),
+    ]);
+    return r.map(x => x.status);
+  });
+  expect(negadoAdmin).toEqual(['rejected', 'rejected']);
+}
+
+test('reclamar un comercio: en revisión, aprobar, editar el horario; rechazar y volver a reclamar', async ({
+  page,
+}, info) => {
+  await page.goto(APP);
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  await sinAvisoEmulador(page);
+  await entrarComo(page, CUENTAS.ana);
+  // La ficha sin dueño ofrece reclamarlo
+  await page.evaluate(() => window.abrirDetalle('c354'));
+  await expect(page.locator('#sheetDetalle .reclamo-card')).toContainText('¿Este es tu negocio?');
+  await page.locator('#bReclamar').click();
+  await llenarReclamo(page);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await expect(page.locator('#cuerpo')).toContainText('Solicitud en revisión. Te avisaremos cuando esté lista.');
+  await page.screenshot({ path: info.outputPath('1-reclamo-en-revision.png') });
+  // Ana no puede aprobarse sola ni ponerse de dueña
+  const negado = await page.evaluate(async () => {
+    const uid = auth.currentUser.uid;
+    const intentos = [
+      db.collection('reclamos_comercio').doc(`c354__${uid}`).update({ estado: 'aprobado', revisado_por: uid }),
+      db.collection('comercios').doc('e2e-pasca').update({ propietario_uid: uid }),
+    ];
+    const r = await Promise.allSettled(intentos);
+    return r.map(x => x.status);
+  });
+  expect(negado).toEqual(['rejected', 'rejected']);
+  // El admin ve la prueba y aprueba
+  await panelReclamos(page);
+  await page.locator('[data-verprueba]').first().click();
+  await expect(page.locator('#sheetGen .prueba-foto')).toBeVisible();
+  await page.locator('#cerrarGen').click();
+  await page.screenshot({ path: info.outputPath('2-panel-reclamos.png') });
+  await page.locator('[data-okrc]').first().click();
+  await page.locator('#cfSi').click();
+  await expect(page.locator('#toast')).toContainText('Reclamo aprobado');
+  // Ana ya es dueña: edita el horario y se ve en la ficha
+  await entrarComo(page, CUENTAS.ana);
+  await page.waitForFunction(() => comerciosPropios.some(c => c.id === 'c354'));
+  await page.evaluate(() => db.collection('comercios').doc('c354').update({ horario: 'Lun-Sáb 7:00-21:00' }));
+  await page.evaluate(() => window.abrirDetalle('c354'));
+  await expect(page.locator('#btnEditar')).toHaveText(/Editar mi comercio/);
+  await expect(page.locator('#sheetDetalle')).toContainText('7:00 a. m. – 9:00 p. m.');
+  await page.screenshot({ path: info.outputPath('3-ficha-con-dueña.png') });
+  // Rosa reclama otro; el admin lo rechaza con motivo; Rosa lo ve y lo reclama de nuevo
+  await entrarComo(page, CUENTAS.rosa);
+  await page.evaluate(() => window.abrirDetalle('c365'));
+  await page.locator('#bReclamar').click();
+  await llenarReclamo(page);
+  await panelReclamos(page);
+  await page.locator('[data-norc]').first().click();
+  await page.locator('[data-motivo="La foto no se ve o no corresponde"]').click();
+  await page.locator('#motOk').click();
+  await expect(page.locator('#toast')).toContainText('Reclamo rechazado');
+  await entrarComo(page, CUENTAS.rosa);
+  await page.evaluate(() => window.navegar({ tipo: 'perfil' }));
+  await expect(page.locator('#cuerpo')).toContainText('Motivo: La foto no se ve o no corresponde');
+  await page.locator('[data-reclamar-otra="c365"]').click();
+  await llenarReclamo(page);
+  await expect
+    .poll(() => page.evaluate(() => estado.misReclamos.find(r => r.comercio_id === 'c365').estado))
+    .toBe('pendiente');
+});
+
+// Decisión del proyecto: el modo sencillo viene por defecto, con letra Grande, y se quita desde el mismo Inicio
+test('modo sencillo por defecto: lo ve quien entra por primera vez y puede pasar al Inicio completo', async ({
+  page,
+}) => {
+  // Solo en la primera carga: como un teléfono que nunca abrió la app
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('fc_e2e_sencillo')) return;
+    sessionStorage.setItem('fc_e2e_sencillo', '1');
+    localStorage.removeItem('fc_sencillo');
+  });
+  await page.goto(APP);
+  await page.locator('#sInvitado').click();
+  await expect(page.locator('#splash')).toHaveClass(/oculto/);
+  await expect(page.locator('html')).toHaveAttribute('data-sencillo', '');
+  await expect(page.locator('html')).toHaveAttribute('data-letra', 'grande');
+  await expect(page.locator('.sencillo-btn')).toHaveCount(6);
+  await page.locator('#verInicioCompleto').click();
+  await expect(page.locator('#tQueHacer')).toBeVisible();
+  await expect(page.locator('html')).not.toHaveAttribute('data-letra', /.+/);
+  await page.reload();
+  await page.waitForFunction(() => typeof arranque !== 'undefined' && arranque.listo);
+  expect(await page.evaluate(() => localStorage.getItem('fc_sencillo'))).toBe('false');
+  await expect(page.locator('html')).not.toHaveAttribute('data-sencillo', /.*/);
 });

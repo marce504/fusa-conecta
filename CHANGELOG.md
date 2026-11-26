@@ -8,6 +8,33 @@ este archivo es la del proyecto completo (PWA, app Android, API y procesos).
 
 ## [Sin publicar]
 
+### Cambiado (arreglos de UX/UI y accesibilidad, rama `ux-accesibilidad`; detalle en `docs/INFORME_ARREGLOS_UX.md`)
+- **Errores de la Fase 1.** La agenda automática ya no duplica eventos de varios días y la app muestra cada evento una
+  sola vez (E1); los eventos ya empezados dicen «En curso · hasta …» (E8); el buscador tolera errores de escritura y
+  entiende sinónimos, con «¿Quisiste decir…?» (E2, U3); «Pregúntale a Fusa» muestra los lugares del directorio y el
+  acceso a emergencias (E3); Inicio limpia la búsqueda y el buscador tiene «Borrar» (E4); los botones de la ficha
+  quedan fijos arriba (E5); las pestañas tienen título (E6) y los filtros de la Agenda no se cortan (E7).
+- **SOS más claro:** «Llamar» con palabra, «Copiar número», números agrupados y confirmación «¿Llamar a …?».
+- **Fichas incompletas:** «Horario sin confirmar», «¿Lo conoces? Envíanoslo» y «Guardar» en la barra (U2, U9);
+  listado `docs/comercios-incompletos.csv`.
+- **Accesibilidad para personas mayores:** tamaño de letra (Normal, Grande, Muy grande) con todo el CSS en rem, nada
+  por debajo de 14 px (U7), áreas táctiles de 48 px (U6), estrellas visibles con palabra (U5), tema «Sistema» por
+  defecto (U10), botones con palabras, avisos de 5 s con «Deshacer», explicaciones cortas, foco atrapado en las hojas,
+  pausa del carrusel y fechas completas.
+- **Inicio y navegación (U1, U4, U8):** «Qué hacer en Fusa» (eventos) primero, «Lo que necesitas» (Transporte, Empleos,
+  Salud, Trámites), Rutas y turismo, Ofertas y cupones; barra Inicio · Agenda · Mapa · Comunidad · Perfil con la
+  pestaña nueva Comunidad; Cupones pasa a Perfil y a Comunidad. CLS del Inicio de 0,36 a 0,01. Modo sencillo, activado
+  por defecto con letra Grande (se quita con «Ver el Inicio completo» o en Perfil).
+- **Reclamar este comercio** con verificación, colección `reclamos_comercio`, revisión del admin y reglas nuevas
+  (Fase 5). La API avisa los reclamos (`reclamo_comercio`) y **decide** la aprobación o el rechazo
+  (`POST /v1/reclamos/{id}/decision`): ningún navegador, ni el del admin, puede escribir el dueño de un comercio.
+- **Fotos:** crédito y fuente de la foto de los eventos, «Imagen de referencia», mejor diseño sin foto y
+  `scripts/proponer-fotos.mjs` (Fase 6). Imágenes de referencia de Unsplash por subcategoría para los lugares sin
+  foto (18, en `img/categorias/`).
+- **Arreglos encontrados en las pruebas:** enlaces de las paradas de las rutas turísticas que tapaban la pantalla (N1),
+  errores del ingreso escritos en el formulario (N2), error de Leaflet al cambiar de pestaña (N3) y etiquetas de la foto
+  tapadas con letra grande (N4). PWA v100 (`fusa-v93`).
+
 ### Agregado
 - **Video promocional: escena «Y ahora también».** Resume las 8 funciones nuevas (alertas del municipio, empleos,
   mascotas perdidas, pedidos por WhatsApp, servicios a domicilio, mercado campesino, rutas turísticas y «Cómo

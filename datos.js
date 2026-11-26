@@ -4,7 +4,7 @@
  * Firestore es la fuente de verdad y agrega los comercios registrados por productores.
  */
 // Variables globales que usa app.js (la PWA carga datos.js, icons.js y app.js en ese orden)
-/* exported CAT, SUBCATS, PLAZA_FUSA, COMERCIOS_BASE, RUTAS, EMERGENCIAS */
+/* exported CAT, SUBCATS, SINONIMOS, IMAGENES_REFERENCIA, PLAZA_FUSA, COMERCIOS_BASE, RUTAS, EMERGENCIAS */
 const CAT={
   campo:    {label:'Vitrina del Campo',    bg:'#DAB23F',fg:'#3a3110',hero:'linear-gradient(135deg,#e8cc78,#DAB23F)',emoji:'🌿'},
   comercio: {label:'Comida y tiendas',    bg:'#EA8143',fg:'#fff',   hero:'linear-gradient(135deg,#F4A079,#EA8143)',emoji:'🏪'},
@@ -21,6 +21,43 @@ const SUBCATS={
   servicios:[{k:'hogar',t:'Hogar y reparaciones'},{k:'belleza',t:'Belleza'},{k:'lavanderia',t:'Lavandería'},{k:'mecanica',t:'Mecánica y talleres'},{k:'tecnologia',t:'Tecnología'},
     {k:'transporte',t:'Transporte'},{k:'profesionales',t:'Profesionales'},{k:'salud',t:'Salud y bienestar'},{k:'mascotas',t:'Mascotas'},{k:'educacion',t:'Educación'}],
   turismo:[{k:'sendero',t:'🥾 Senderos'},{k:'mirador',t:'🌄 Miradores'},{k:'cascada',t:'Cascadas'},{k:'cultural',t:'⛪ Cultura'},{k:'finca',t:'☕ Fincas y haciendas'}]
+};
+
+// Sinónimos del buscador (E2): cada grupo reúne palabras que la gente usa para lo mismo. Buscar una encuentra las demás.
+// Para ampliarlo, agrega una palabra a un grupo o un grupo nuevo (sin importar tildes, mayúsculas ni plurales).
+const SINONIMOS=[
+  ['farmacia','droguería','drogas','medicamentos','remedios'],
+  ['médico','doctor','clínica','consultorio','hospital','salud'],
+  ['banco','cajero','plata'],
+  ['restaurante','almuerzo','comidas','corrientazo','comer'],
+  ['hotel','hospedaje','dormir','finca','hostal'],
+  ['taxi','transporte','bus','buses'],
+  ['veterinaria','veterinario','mascotas'],
+  ['ferretería','herramientas'],
+  ['alcaldía','trámites','notaría']
+];
+
+// Fase 6: imagen de referencia por subcategoría (o categoría) para los lugares SIN foto propia. Fotos de Unsplash
+// (Licencia de Unsplash: uso comercial gratuito); autor y enlace en CREDITOS_IMAGENES.md. La ficha dice «Imagen de referencia».
+const IMAGENES_REFERENCIA={
+  drogueria:{archivo:'img/categorias/drogueria.webp',autor:'David Trinks',url:'https://unsplash.com/photos/FLntgQJNjD0'},
+  salud:{archivo:'img/categorias/salud.webp',autor:'Etactics Inc',url:'https://unsplash.com/photos/g3PsF4_y7ZY'},
+  comidas:{archivo:'img/categorias/comidas.webp',autor:'Alfredo Burgos',url:'https://unsplash.com/photos/LAhQ2YdD-T8'},
+  panaderias:{archivo:'img/categorias/panaderias.webp',autor:'Yeh Xintong',url:'https://unsplash.com/photos/go3DT3PpIw4'},
+  tiendas:{archivo:'img/categorias/tiendas.webp',autor:'Eduardo Soares',url:'https://unsplash.com/photos/e4EmPx91Aj4'},
+  ferreterias:{archivo:'img/categorias/ferreterias.webp',autor:'Darien Attridge',url:'https://unsplash.com/photos/ciY4tc7539I'},
+  hogar:{archivo:'img/categorias/hogar.webp',autor:'Bermix Studio',url:'https://unsplash.com/photos/iwz5tmhjl7o'},
+  belleza:{archivo:'img/categorias/belleza.webp',autor:'Adam Winger',url:'https://unsplash.com/photos/FkAZqQJTbXM'},
+  lavanderia:{archivo:'img/categorias/lavanderia.webp',autor:'Chris Weiher',url:'https://unsplash.com/photos/GcB7eqnXnwI'},
+  mecanica:{archivo:'img/categorias/mecanica.webp',autor:'Dextar Studio',url:'https://unsplash.com/photos/XP8o9_Arwqg'},
+  tecnologia:{archivo:'img/categorias/tecnologia.webp',autor:'Clint Bustrillos',url:'https://unsplash.com/photos/K7OUs6y_cm8'},
+  transporte:{archivo:'img/categorias/transporte.webp',autor:'PJH',url:'https://unsplash.com/photos/PBc3bTUGFb4'},
+  profesionales:{archivo:'img/categorias/profesionales.webp',autor:'2H Media',url:'https://unsplash.com/photos/VnK5iT01HYQ'},
+  mascotas:{archivo:'img/categorias/mascotas.webp',autor:'Anya Prygunova',url:'https://unsplash.com/photos/u2H8mUzoF2Q'},
+  educacion:{archivo:'img/categorias/educacion.webp',autor:'Ivan Aleksic',url:'https://unsplash.com/photos/PDRFeeDniCk'},
+  campo:{archivo:'img/categorias/campo.webp',autor:'Shelley Pauls',url:'https://unsplash.com/photos/Zaiuy5dKeCk'},
+  hospedaje:{archivo:'img/categorias/hospedaje.webp',autor:'Lisha Riabinina',url:'https://unsplash.com/photos/qifUgNsrWmU'},
+  bares:{archivo:'img/categorias/bares.webp',autor:'M.S. Meeuwesen',url:'https://unsplash.com/photos/QYWYnzvPTAQ'}
 };
 
 // Plaza principal de Fusagasugá: centro del mapa cuando no hay GPS (RF-10)

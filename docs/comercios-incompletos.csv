@@ -1,0 +1,543 @@
+﻿Prioridad;Categoría;Subcategoría;ID;Nombre;Dirección;Municipio;Falta teléfono;Falta horario;Falta foto;Fuente
+Salud;Servicios;Salud y bienestar;c437;Centro de Atención Ambulatoria;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1344465180
+Salud;Servicios;Salud y bienestar;c365;Centro Médico Colsubsidio;Avenida Las Palmas;Fusagasugá;sí;;;https://www.openstreetmap.org/node/12998318722
+Salud;Servicios;Salud y bienestar;c489;Clínica Belén de Fusagasugá;Avenida Manuel Humberto Cárdenas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/relation/19260346
+Salud;Servicios;Salud y bienestar;c448;Copifam;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904441
+Salud;Servicios;Salud y bienestar;c422;Cruz Verde;Avenida Las Palmas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1340824790
+Salud;Servicios;Salud y bienestar;c356;Drogas La Economía;Carrera 6;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12770494513
+Salud;Servicios;Salud y bienestar;c397;Drogueria Alemana;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1098377138
+Salud;Servicios;Salud y bienestar;c398;Drogueria La Economía;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1098377139
+Salud;Servicios;Salud y bienestar;c354;Droguería La Rebaja Plus 3;Carrera 7;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12745305842
+Salud;Servicios;Salud y bienestar;c436;E.S.E Hospital San Rafael de Fusagasugá;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1344465178
+Salud;Servicios;Salud y bienestar;c341;Farmacenter;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/9419475747
+Salud;Servicios;Salud y bienestar;c441;La Economía;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351005587
+Salud;Servicios;Salud y bienestar;c111;La Rebaja;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2596027672
+Salud;Servicios;Salud y bienestar;c420;Nueva EPS - IPS Bienestar;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1340669554
+Salud;Servicios;Salud y bienestar;c419;Odontología de Javier Jiménez;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1340669552
+Salud;Servicios;Salud y bienestar;c352;Opticas Centro Visión;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12681536722
+Trámites;Trámites Municipales;;c51;Alcaldía Municipal de Fusagasugá;Carrera 7, Centro;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/12947683646
+Trámites;Trámites Municipales;;c72;Alcaldía Municipal de Pasca;Cra. 1 No. 2-06, Centro;Pasca;sí;;sí;https://www.pasca-cundinamarca.gov.co/tema/turismo | https://www.openstreetmap.org/node/12994395466
+Trámites;Trámites Municipales;;c114;Archivo Municipal;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2835771550
+Trámites;Trámites Municipales;;c443;Bancamía;Carrera 6;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351005609
+Trámites;Trámites Municipales;;c415;Banco Agrario;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1338335822
+Trámites;Trámites Municipales;;c500;Banco Agrario;Pasca;Pasca;sí;sí;;https://www.openstreetmap.org/way/1268533375
+Trámites;Trámites Municipales;;c470;Banco AV Villas;Avenida Las Palmas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1376621241
+Trámites;Trámites Municipales;;c413;Banco Caja Social;Avenida Las Palmas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1338335820
+Trámites;Trámites Municipales;;c414;Banco Popular;Avenida Las Palmas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1338335821
+Trámites;Trámites Municipales;;c347;Banco W;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/12343291083
+Trámites;Trámites Municipales;;c60;Bancolombia – Sucursal Fusagasugá;Avenida Las Palmas;Fusagasugá;sí;;;https://www.openstreetmap.org/node/1480226505
+Trámites;Trámites Municipales;;c423;BBVA;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1340824793
+Trámites;Trámites Municipales;;c54;Bomberos Voluntarios de Fusagasugá;Centro;Fusagasugá;sí;;sí;https://www.openstreetmap.org/way/816816187
+Trámites;Trámites Municipales;;c377;Cai de Policia la macarena;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/629284432
+Trámites;Trámites Municipales;;c592;Cajero Bancolombia · cerca del C. C. Manila;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12681536723
+Trámites;Trámites Municipales;;c591;Cajero Davivienda · Centro;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12507696269
+Trámites;Trámites Municipales;;c590;Cajero Davivienda · cerca del C. C. Manila;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480230942
+Trámites;Trámites Municipales;;c462;CAR - Dirección Regional Sumapaz;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1357866224
+Trámites;Trámites Municipales;;c96;Centro Administrativo Municipal;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480221476
+Trámites;Trámites Municipales;;c58;Comisaría de Familia;Centro;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/2835771551
+Trámites;Trámites Municipales;;c327;Corresponsal Bancario Bancolombia;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/6587080019
+Trámites;Trámites Municipales;;c410;Davivienda · Avenida Las Palmas;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335812
+Trámites;Trámites Municipales;;c411;Davivienda · Carrera 7;Carrera 7;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335818
+Trámites;Trámites Municipales;;c379;Defensa Civil;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/641378711
+Trámites;Trámites Municipales;;c316;Efecty Llano Largo La Pampa;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6319951986
+Trámites;Trámites Municipales;;c435;Emserfusa E.S.P.;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342279677
+Trámites;Trámites Municipales;;c487;Estación de Policía de Fusagasugá;Calle 7;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/relation/18858954
+Trámites;Trámites Municipales;;c495;Estación de Policía de Pasca;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/205862342
+Trámites;Trámites Municipales;;c57;Fiscalía General – Fusagasugá;Centro, Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/2835771552
+Trámites;Trámites Municipales;;c449;Fundación de la mujer;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904442
+Trámites;Trámites Municipales;;c115;Juzgados;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2835771553
+Trámites;Trámites Municipales;;c52;Notaría Primera de Fusagasugá;Diagonal 23 No. 16-90, Local 3, C. C. Jardín;Fusagasugá;;;sí;https://www.asuntoslegales.com.co/edictos/detalle/003_VEF_17394-2-1
+Trámites;Trámites Municipales;;c350;Pagatodo;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12507696162
+Trámites;Trámites Municipales;;c452;Registraduría Nacional del Estado Civil;Calle 5;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904522
+Trámites;Trámites Municipales;;c382;Secretaría de Gobierno Fusagasugá;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/669013782
+Trámites;Trámites Municipales;;c381;Secretaría de Transporte Fusagasugá;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/669013781
+Trámites;Trámites Municipales;;c55;SENA – Centro Agroecológico;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/1480444976
+Trámites;Trámites Municipales;;c116;UMATA;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4212634398
+Otras;Bares y Licores;;c66;Beer City Fusagasugá;Cra. 7 # 18-48;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c340;Cabron y vago;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/9419467520
+Otras;Bares y Licores;;c583;Cervecería Artesanal de Fusagasugá – Bar Rock-Crossover;Rotonda del Éxito, Parque Max Aya;Fusagasugá;;;sí;https://finkocolombia.com/fusagasuga/restaurantes-y-comida/cerveceria-artesanal-de-fusagasuga-bar-rock-crosover-fusagasuga
+Otras;Bares y Licores;;c586;Club de Billares El Rey;Carrera 6 # 12-15 y C. C. San Fernando, piso 2, Centro;Fusagasugá;;sí;sí;https://ubiyaaacomercio.com/promociones/56
+Otras;Bares y Licores;;c322;Doña Marcela;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562160773
+Otras;Bares y Licores;;c355;El Sitio Bar;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12770494512
+Otras;Bares y Licores;;c318;La Birra Donde Chucho;Calle 1 # 3-05;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562160769
+Otras;Bares y Licores;;c122;La Martina;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4557558320
+Otras;Bares y Licores;;c321;La Paisa;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562160772
+Otras;Bares y Licores;;c320;La Primera Bar;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562160771
+Otras;Bares y Licores;;c70;La Tequilera Licores;Cl. 22, frente al Hotel Catama;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c65;Licorera 24 Horas El Beber Me Llama;Transversal 37;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c64;Licorera Alquimia CC;Cra. 3 # 17-75;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c69;Licorera Barril sin Fondo;Cl. 10A # 1B-45;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c62;Licorera La Tasca VIP;Cl. 22 # 5-14 (una cuadra arriba del semáforo de la 22 con 6ª);Fusagasugá;;;sí;https://www.facebook.com/LicoreraLatascaVip/
+Otras;Bares y Licores;;c63;Licores & Estanco B Y K 24/7;Diagonal 24A # 39A-95 · Cl. 7A # 12-07;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c67;Licores Express Fusa;Cra. 3 # 18E-19;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c68;Licores San Valentín;Cl. 9B # 1A-01;Fusagasugá;;;sí;
+Otras;Bares y Licores;;c119;Nativo Café Bar;Calle 20 # 11A-31;Fusagasugá;;;sí;https://www.openstreetmap.org/node/4306532992
+Otras;Bares y Licores;;c587;Niko Likores – Domicilios Nocturnos;Calle 22 # 5A-19 (casa de color verde);Fusagasugá;;sí;sí;https://ubiyaaacomercio.com/promociones/47
+Otras;Bares y Licores;;c516;Pórtico Resto Bar;Cl 25 # 42-48 Locales 1-2 Cc La Querencia;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=258938
+Otras;Bares y Licores;;c71;Regional Licores;Fusagasugá (consultar dirección por teléfono);Fusagasugá;;;sí;
+Otras;Bares y Licores;;c339;Sandunga;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/9419467108
+Otras;Bares y Licores;;c517;Sanka Club Gastro Bar Turistico;Cl 25 No 38 - 78;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=287599
+Otras;Bares y Licores;;c311;Santana Bar;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6226865235
+Otras;Bares y Licores;;c584;Tu Tranquilo;Carrera 4 con Calle 22;Fusagasugá;;sí;sí;https://finkocolombia.com/fusagasuga/licores-bar/tu-tranquilo-fusagasuga
+Otras;Bares y Licores;;c585;Tuki Bar;Carrera 3 # 1-94 Norte, barrio La Esmeralda;Fusagasugá;sí;sí;sí;https://ubiyaaacomercio.com/promociones/41
+Otras;Bares y Licores;;c582;Volcano Rock City;Carrera 9 # 36;Fusagasugá;;sí;sí;https://ubiyaaacomercio.com/promociones/40
+Otras;Bares y Licores;;c85;Zamoha;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/845860895
+Otras;Comida y tiendas;Comidas;c571;Alma Jardin;Diagonal 23 16 90;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275444
+Otras;Comida y tiendas;Comidas;c384;Alpes;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/703183102
+Otras;Comida y tiendas;Comidas;c390;Bambuoco;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/739905508
+Otras;Comida y tiendas;Comidas;c301;Cafeteria SANTI;Calle 8 # 6-11;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5136616282
+Otras;Comida y tiendas;Comidas;c477;Domino's;Avenida Manuel Humberto Cárdenas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1395864583
+Otras;Comida y tiendas;Comidas;c572;Durango MX Taqueria Fusagasuga;Calle 22 43 35 Local 2 Barrio La Venta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275819
+Otras;Comida y tiendas;Comidas;c81;El Brasero;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/844392891
+Otras;Comida y tiendas;Comidas;c345;El Corral;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/10059553831
+Otras;Comida y tiendas;Comidas;c109;El Garcero;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2131731066
+Otras;Comida y tiendas;Comidas;c95;El Horizonte;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1352598436
+Otras;Comida y tiendas;Comidas;c573;El Marino Colombia By Kathe Torres;Calle 25 # 50- 35;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=93988
+Otras;Comida y tiendas;Comidas;c501;El Molino Gourmet;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/1419308737
+Otras;Comida y tiendas;Comidas;c331;El Peon Restaurante & Comidas Rapidas;Carrera 6 # 11-58;Fusagasugá;;;sí;https://www.openstreetmap.org/node/7727175765
+Otras;Comida y tiendas;Comidas;c359;Frisby;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/12788815660
+Otras;Comida y tiendas;Comidas;c80;Fritanga Blanca;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/810929414
+Otras;Comida y tiendas;Comidas;c110;Govindas;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2131731067
+Otras;Comida y tiendas;Comidas;c574;Gran Chalan Restaurante Bar;Km 685 Via Fusagasuga Melgar En Los Ocobos;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=274678
+Otras;Comida y tiendas;Comidas;c324;Gran Pekín;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562174002
+Otras;Comida y tiendas;Comidas;c468;Helados de Coco;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1370769428
+Otras;Comida y tiendas;Comidas;c302;La Cazuela;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5316546421
+Otras;Comida y tiendas;Comidas;c575;La Estacion 1955 VIP;Cl 8 No 25 - 42 L Lc 116;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=279768
+Otras;Comida y tiendas;Comidas;c314;La Provincia;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/6264810646
+Otras;Comida y tiendas;Comidas;c91;La Quindiana;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/850445060
+Otras;Comida y tiendas;Comidas;c84;Materile;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/845860891
+Otras;Comida y tiendas;Comidas;c98;PanParazzi;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480237833
+Otras;Comida y tiendas;Comidas;c303;Parador Donde Edgar;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5339451823
+Otras;Comida y tiendas;Comidas;c92;Parador Yadira;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/975559746
+Otras;Comida y tiendas;Comidas;c344;Popsy;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/10059553830
+Otras;Comida y tiendas;Comidas;c88;Punta del Este;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/850444779
+Otras;Comida y tiendas;Comidas;c363;Puro Coco;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12920402259
+Otras;Comida y tiendas;Comidas;c90;Rancho Tolimense;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/850445059
+Otras;Comida y tiendas;Comidas;c113;Rellena;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2735217649
+Otras;Comida y tiendas;Comidas;c118;Restaurante Bambouco;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4236749689
+Otras;Comida y tiendas;Comidas;c337;Restaurante De Sofy;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/8034272640
+Otras;Comida y tiendas;Comidas;c484;Restaurante El Descanso;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1567197231
+Otras;Comida y tiendas;Comidas;c367;Restaurante JTA;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/13265809215
+Otras;Comida y tiendas;Comidas;c428;Rico Mc. Pollo;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184225
+Otras;Comida y tiendas;Comidas;c404;Rico Pollo;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1336560711
+Otras;Comida y tiendas;Comidas;c89;Rincon Antioqueño;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/850445021
+Otras;Comida y tiendas;Comidas;c310;Terra;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6226860321
+Otras;Comida y tiendas;Comidas;c576;The Brothers Rooftop;Calle 8 21 13 Local 03;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275447
+Otras;Comida y tiendas;Comidas;c430;Tostao';Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184227
+Otras;Comida y tiendas;Ferreterías;c446;Atiz Color;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904439
+Otras;Comida y tiendas;Ferreterías;c312;Deposito los amigos;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/6264781314
+Otras;Comida y tiendas;Ferreterías;c402;Dismafusa;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1334636677
+Otras;Comida y tiendas;Panaderías;c330;Artes y pan;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6587098198
+Otras;Comida y tiendas;Panaderías;c105;Donald's Pan;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1853628893
+Otras;Comida y tiendas;Panaderías;c473;El Palacio de las Tortas;Carrera 8;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1376892769
+Otras;Comida y tiendas;Panaderías;c362;La Gloría;Avenida Manuel Humberto Cárdenas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12920402258
+Otras;Comida y tiendas;Panaderías;c103;La Terraza;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1852927842
+Otras;Comida y tiendas;Panaderías;c357;Pan & Café;Carrera 7;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12770494514
+Otras;Comida y tiendas;Panaderías;c306;Panaderia La 25;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5941057476
+Otras;Comida y tiendas;Panaderías;c396;Panaderia Pan & Cafe;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1098377136
+Otras;Comida y tiendas;Panaderías;c329;Panes y manjares Llano Grande;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6587095638
+Otras;Comida y tiendas;Panaderías;c112;Paneton;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/2607317412
+Otras;Comida y tiendas;Tiendas;c405;Ahorramas;Calle 6;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1336978374
+Otras;Comida y tiendas;Tiendas;c421;Ara;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1340803684
+Otras;Comida y tiendas;Tiendas;c434;Ara · Calle 19;Calle 19;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1342187358
+Otras;Comida y tiendas;Tiendas;c439;Ara · Calle 7B;Calle 7B;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1351005558
+Otras;Comida y tiendas;Tiendas;c451;Ara · Carrera 6;Carrera 6;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1351904479
+Otras;Comida y tiendas;Tiendas;c407;Autoservicio Merken Ya!;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335802
+Otras;Comida y tiendas;Tiendas;c409;Autoservicio Sumapaz;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335809
+Otras;Comida y tiendas;Tiendas;c399;Centro Comercial Avenida;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1098663087
+Otras;Comida y tiendas;Tiendas;c412;Centro comercial Diamante Real;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335819
+Otras;Comida y tiendas;Tiendas;c417;Centro Comercial Jardín;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1340669548
+Otras;Comida y tiendas;Tiendas;c391;Centro Comercial La Querencia;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1034313046
+Otras;Comida y tiendas;Tiendas;c389;Centro Comercial Manila;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/737394107
+Otras;Comida y tiendas;Tiendas;c408;Centro comercial San Andrecito;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1338335806
+Otras;Comida y tiendas;Tiendas;c481;Centro comercial San Fernando;Carrera 2;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1507516475
+Otras;Comida y tiendas;Tiendas;c472;Centro Comercial Sutagao;Calle 9;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1376621292
+Otras;Comida y tiendas;Tiendas;c438;Centro comercial Uno A;Calle 7B;Fusagasugá;sí;;sí;https://www.openstreetmap.org/way/1351005556
+Otras;Comida y tiendas;Tiendas;c82;Cigarreria La Valentina;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/845860886
+Otras;Comida y tiendas;Tiendas;c425;D1 · Calle 7B;Calle 7B;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1342184220
+Otras;Comida y tiendas;Tiendas;c317;D1 · Diagonal 25;Diagonal 25;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/6321075586
+Otras;Comida y tiendas;Tiendas;c445;Desechables & Plasticos;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904438
+Otras;Comida y tiendas;Tiendas;c447;Dias de Cosecha;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904440
+Otras;Comida y tiendas;Tiendas;c427;Dollarcity;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184222
+Otras;Comida y tiendas;Tiendas;c106;Doña Luz;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1853718311
+Otras;Comida y tiendas;Tiendas;c380;El Diamante;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/657047439
+Otras;Comida y tiendas;Tiendas;c433;ELA;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184230
+Otras;Comida y tiendas;Tiendas;c100;Escorial Center;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480444974
+Otras;Comida y tiendas;Tiendas;c426;Essencial y Moda;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184221
+Otras;Comida y tiendas;Tiendas;c371;Éxito;Calle 22;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/134703094
+Otras;Comida y tiendas;Tiendas;c450;Hogar electrodomesticos;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351904443
+Otras;Comida y tiendas;Tiendas;c406;IBG;Calle 6;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1336978375
+Otras;Comida y tiendas;Tiendas;c416;Ísimo;Calle 9;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1340669545
+Otras;Comida y tiendas;Tiendas;c364;Ktronix;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12998232493
+Otras;Comida y tiendas;Tiendas;c336;Las Fresitas;diagonal 2da N # 24A63;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/8034272637
+Otras;Comida y tiendas;Tiendas;c432;Lili Pink;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184229
+Otras;Comida y tiendas;Tiendas;c358;Luna Lunera;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12770494515
+Otras;Comida y tiendas;Tiendas;c108;MateoNet.com;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1853718318
+Otras;Comida y tiendas;Tiendas;c349;Maximayorista;Calle 7A;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12498977661
+Otras;Comida y tiendas;Tiendas;c466;Maximercado;Carrera 11;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1362056506
+Otras;Comida y tiendas;Tiendas;c465;Maximercado (Plaza de Mercado);Calle 7A;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1362056505
+Otras;Comida y tiendas;Tiendas;c83;Mercado Colsubsidio · Carrera 5;Carrera 5;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/845860888
+Otras;Comida y tiendas;Tiendas;c348;Mercado Colsubsidio · Transversal 12;Transversal 12;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/12401333609
+Otras;Comida y tiendas;Tiendas;c444;Mercado Organico;Carrera 27;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351841440
+Otras;Comida y tiendas;Tiendas;c323;Minimercado Pekín;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562174001
+Otras;Comida y tiendas;Tiendas;c343;Olímpica;Avenida Las Palmas;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/10059553829
+Otras;Comida y tiendas;Tiendas;c442;Ostu / Facol;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351005595
+Otras;Comida y tiendas;Tiendas;c418;Oxxo;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1340669551
+Otras;Comida y tiendas;Tiendas;c335;Papeleria Cybersop;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/8023630507
+Otras;Comida y tiendas;Tiendas;c372;Plaza de Mercado;Carrera 11;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/168084878
+Otras;Comida y tiendas;Tiendas;c499;Plaza de Mercado de Pasca;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/1268533367
+Otras;Comida y tiendas;Tiendas;c469;Rimax;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1370769432
+Otras;Comida y tiendas;Tiendas;c332;Sol y Luna minimarket;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/8023630500
+Otras;Comida y tiendas;Tiendas;c300;Super Tienda Punto Central;Carrera 41;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5134092259
+Otras;Comida y tiendas;Tiendas;c123;Supermercado Cundinamarca;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4586106817
+Otras;Comida y tiendas;Tiendas;c325;Supermercado Las Brisas del Tolima;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562174003
+Otras;Comida y tiendas;Tiendas;c326;Supermercado Llano Grande;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6587076346
+Otras;Comida y tiendas;Tiendas;c333;Tienda Don Fernando;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/8023630501
+Otras;Comida y tiendas;Tiendas;c299;Tienda Doña Teresa;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5134084647
+Otras;Comida y tiendas;Tiendas;c334;Tienda RJJ;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/8023630504
+Otras;Comida y tiendas;Tiendas;c403;Tiendas Ideal;Calle 7A;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1336560702
+Otras;Comida y tiendas;Tiendas;c93;Trinidad;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/975560193
+Otras;Comida y tiendas;Tiendas;c102;Villa del Carmen;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1793911143
+Otras;Comida y tiendas;Tiendas;c440;Xtra;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351005573
+Otras;Comida y tiendas;Tiendas;c319;ZNE;Calle 1;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6562160770
+Otras;Hospedaje;;c518;Campo Eden;Vereda La Puerta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=93985
+Otras;Hospedaje;;c454;Casa Hoiday Fusa;Calle 9;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1352945771
+Otras;Hospedaje;;c519;Centro Recreacional Valle de Eli SAS;Jardines Tocarema Vrd Novillero;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=31036
+Otras;Hospedaje;;c520;Centro Recreacional Villa Cristina Acsurponal;Km 66 Via Melgar;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=33308
+Otras;Hospedaje;;c521;Centro Recreacional Villa Los Sanchez;Av Eucaliptos Cll Ficus Fca Los Sanchez;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=116892
+Otras;Hospedaje;;c522;Chinauta Eco Glamping;Lote # 3 Vereda El Triunfo;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=112614
+Otras;Hospedaje;;c523;Club Vacacional La Fontaine;Vereda La Puerta - Predio Rural Villa Lucy Chinauta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=204327
+Otras;Hospedaje;;c524;Ecoparque Chinauta;Km 70 Via Panamericana;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=11524
+Otras;Hospedaje;;c385;El Castillo;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/733062429
+Otras;Hospedaje;;c525;Eventos y Excursiones Brayans Tours;Km 64 - Via Panamericana - Finca San Jose;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=44419
+Otras;Hospedaje;;c526;Finca Vacacional El Recreo;Chinauta Av Eucalipto 08;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=44758
+Otras;Hospedaje;;c527;Glamping El Nido;Finca Filadelfia Lote #5;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=156100
+Otras;Hospedaje;;c528;Grupo Barro Blanco;Colinas De Barro Blanco;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=180317
+Otras;Hospedaje;;c579;Hospedaje El Terruño Pasca;Cl 5 # 1 24;Pasca;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=197465
+Otras;Hospedaje;;c580;Hospedaje Los Frailejones;Cl 6 # 3 - 87;Pasca;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=168454
+Otras;Hospedaje;;c529;Hostal EDS;Lt 26 27 Parcelacion Las Brisas Santa Lina;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=259371
+Otras;Hospedaje;;c530;Hostel Montana;Av Palmas 8 - 66;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=55689
+Otras;Hospedaje;;c346;Hotel Barcelona Chinauta;Km 65 Villa Myriam Chinauta;Fusagasugá;;sí;sí;https://www.openstreetmap.org/node/10735274362 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=34052
+Otras;Hospedaje;;c531;Hotel Bella Pampa Fusagasuga;Cl 22 No 72 42;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=244968
+Otras;Hospedaje;;c532;Hotel Bogota Ciudad Jardin;Cl 5 # 6 - 08;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=98915
+Otras;Hospedaje;;c533;Hotel Boutique Sinai;Cl 6 # 7 56;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=31461
+Otras;Hospedaje;;c534;Hotel Bromelia Plaza;Cl 9 No 8 - 13;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=48826
+Otras;Hospedaje;;c535;Hotel Calipso;Cr 6 No 4 53;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5879
+Otras;Hospedaje;;c536;Hotel Campestre El Estoril;Cr 9 No 22 B 16;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=17933
+Otras;Hospedaje;;c459;Hotel Catama;Cl 22 36 91;Fusagasugá;;sí;sí;https://www.openstreetmap.org/way/1356012143 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=19251
+Otras;Hospedaje;;c537;Hotel Celeste Inn;Avenida Anturios Con Eucaliptos Lote 4 Kilometro 67 Chinauta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=103649
+Otras;Hospedaje;;c538;Hotel Central Fusa;Calle 7 7 64;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=91160
+Otras;Hospedaje;;c539;Hotel Centro de Convenciones Chinauta Real;Km 685 Via Chinauta-Fusagasuga;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=18765
+Otras;Hospedaje;;c540;Hotel Costa Azul Fusagasuga;Av Las Palmas # 9 54;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=238969
+Otras;Hospedaje;;c476;Hotel Costa del Sol;Calle 17 # 12-04;Fusagasugá;;sí;sí;https://www.openstreetmap.org/way/1395864564 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=240562
+Otras;Hospedaje;;c541;Hotel de Aventura y Centro de Convenciones Madaura;Km 59 Via Bogota Girardot;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=14260
+Otras;Hospedaje;;c542;Hotel Dorado Real;Cl 7 No 7-30;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=22002
+Otras;Hospedaje;;c543;Hotel El Horizonte Usatama;Finca Las Palomas Quebrada Los Guayabos Vereda Los Guayabos;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=202822
+Otras;Hospedaje;;c544;Hotel El Paraiso Fusagasuga;Cll 4 # 5 - 57;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=95969
+Otras;Hospedaje;;c545;Hotel El Refugio Central;Cl 6 # 7-59;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=153240
+Otras;Hospedaje;;c546;Hotel Garden City Boutique;Cl 7 No 8 - 57;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=55406
+Otras;Hospedaje;;c547;Hotel Gran Emperador;Cl 9 No 7 77;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=11753
+Otras;Hospedaje;;c548;Hotel Grand Boutique;Cl 9 # 7 - 71;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=85695
+Otras;Hospedaje;;c549;Hotel Hacienda El Novillero;Variante Fusagasuga Kilometro 64;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=284677
+Otras;Hospedaje;;c550;Hotel La Fuente;Calle 22 No 37-06;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=9571
+Otras;Hospedaje;;c551;Hotel La Manzana Fusa;Cr 68 21 A - 45;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=35456
+Otras;Hospedaje;;c424;Hotel La Montaña;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1340824794
+Otras;Hospedaje;;c552;Hotel Los Andes Las 24;Cl 5 No 6 18;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=275362
+Otras;Hospedaje;;c313;Hotel Los Sauces;Cr 6 No 4 19;Fusagasugá;;sí;sí;https://www.openstreetmap.org/node/6264810645 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5957
+Otras;Hospedaje;;c553;Hotel Monaco Spa;Tv 12 No 19A-30;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=22416
+Otras;Hospedaje;;c554;Hotel Ocean;Calle 22 No 53-06;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=248438
+Otras;Hospedaje;;c555;Hotel Restaurante Vasco;Cl 22 No 65-52;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5877
+Otras;Hospedaje;;c556;Hotel Santa Monica Fusagasuga;Avenida Las Palmas # 7-90;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=53354
+Otras;Hospedaje;;c557;Hotel Santana Fusa;Carrera 8 9 27;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=79297
+Otras;Hospedaje;;c558;Hotel Santander Las Piramides;Cr 4 # 3 - 23;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=265159
+Otras;Hospedaje;;c121;Hotel Scala;Carrera 8 # 10-38;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4557558319
+Otras;Hospedaje;;c559;Hotel Viejo Molino A.C.S;Kilometro 61 Via Girardot Bogota Chinauta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=278918
+Otras;Hospedaje;;c560;Hotel Villa Amparo;Km 645 Chinauta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=24253
+Otras;Hospedaje;;c483;Hotel y Parador el Descanso;Variante de Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1567197230
+Otras;Hospedaje;;c561;Hotel Zagus;Cl 6 # 7 - 41;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=5650
+Otras;Hospedaje;;c86;Las Palmas;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/845860898
+Otras;Hospedaje;;c562;Lirios 297;Transversal 28 22 10;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=303675
+Otras;Hospedaje;;c388;Los Alpes;Km 66 Via Fusagasuga-Chinauta;Fusagasugá;;sí;sí;https://www.openstreetmap.org/way/736535758 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=24651
+Otras;Hospedaje;;c307;Mi Hogar;Calle 20 # 11C-46;Fusagasugá;;sí;sí;https://www.openstreetmap.org/node/5970670586
+Otras;Hospedaje;;c563;Mirador Fogon de Chinauta;Km 67 Chinauta;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=46153
+Otras;Hospedaje;;c564;Mirador Verde;Lt 7 Vda Bosachoque;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=283064
+Otras;Hospedaje;;c351;Motel Edén de Cupido;Diagonal 25;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12570947172
+Otras;Hospedaje;;c565;Natural Glamping Fusagasuga;Vda Guayabal Fca Los Delirios;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=177743
+Otras;Hospedaje;;c566;Nissi Tours;Urbanizacion Los Ponches Finca Villa Parra;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=48948
+Otras;Hospedaje;;c305;Parque Zabal;Calle 6 # 7-71;Fusagasugá;;sí;sí;https://www.openstreetmap.org/node/5517557521 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=12061
+Otras;Hospedaje;;c309;Parques de terranova;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6174549987
+Otras;Hospedaje;;c567;Rancho Miller Aventura;Km 49 Aut Panamericana;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=88945
+Otras;Hospedaje;;c568;Sede Social Las Palmas;Cl 26 No 42 A 97;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=261046
+Otras;Hospedaje;;c569;Sede Vacacional Codema Chinauta;Benito Menni - Rural;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=68834
+Otras;Hospedaje;;c570;Villa Monica Centro Vacacional;Via Bogota Girardot Km 65;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=261669
+Otras;Hospedaje;;c386;Villa Sallent;Kilometro 61 Via Bogota - Melgar;Fusagasugá;;sí;sí;https://www.openstreetmap.org/way/733350905 | https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=167958
+Otras;Servicios;Belleza;c117;Betylook;diagonal 2 a norte 24-17;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4212659796
+Otras;Servicios;Educación;c480;Biblioteca Pública Quinta de Coburgo;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1422215038
+Otras;Servicios;Educación;c74;CDI de Pasca;Diagonal 3 # 5-02, segundo piso;Pasca;sí;;sí;https://www.pasca-cundinamarca.gov.co/tema/turismo
+Otras;Servicios;Educación;c458;Colegio Campestre León de Greiff;Calle 24;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1355047249
+Otras;Servicios;Educación;c490;Colegio Himalaya;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/relation/19701660
+Otras;Servicios;Educación;c400;Colegio Militar Pantano de Vargas;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1196568885
+Otras;Servicios;Educación;c370;Colegio Ricaurte;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/134700264
+Otras;Servicios;Educación;c126;Departamental Femenino;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4990856275
+Otras;Servicios;Educación;c99;Fundación Manuel Aya;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480436185
+Otras;Servicios;Educación;c497;IE Normal Superior de Pasca;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/205862357
+Otras;Servicios;Educación;c496;IE Normal Superior de Pasca Sede Jaime Hincapié Santamaría;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/205862344
+Otras;Servicios;Educación;c101;IED Carlos Lozano y Lozano;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480444978
+Otras;Servicios;Educación;c378;IEM Jose Celestino Mutis;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/629289417
+Otras;Servicios;Educación;c375;IEM Teodoro Aya Villaveces;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/226326745
+Otras;Servicios;Educación;c97;INCCA;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1480230650
+Otras;Servicios;Educación;c475;Institución Educativa Municipal Integral del Sumapaz;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1378452570
+Otras;Servicios;Educación;c374;Instituto Técnico Industrial sede Francisco de Paula Santander;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/205861770
+Otras;Servicios;Educación;c464;Instituto Técnico Salesiano Valsalice;Fusagasugá - Silvania - Soacha;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1360481669
+Otras;Servicios;Educación;c87;Liceo San Javier;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/845860909
+Otras;Servicios;Educación;c373;UE Manuel Humberto Cárdenas;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/174701884
+Otras;Servicios;Educación;c467;Universidad de Cundinamarca;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1364900318
+Otras;Servicios;Educación;c353;Universidad Nacional Abierta y a Distancia;Carrera 27;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/12708336835
+Otras;Servicios;Mascotas;c328;Como gatos y perros;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6587095397
+Otras;Servicios;Mascotas;c342;Pluto y gato;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/9419480344
+Otras;Servicios;Mecánica y talleres;c153;Accesorios y repuestos akt;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035113351
+Otras;Servicios;Mecánica y talleres;c183;Ak motos;Calle 10A # 7-28;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035320489
+Otras;Servicios;Mecánica y talleres;c191;Akt-Motos;Calle 11 # 6-33;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035341668
+Otras;Servicios;Mecánica y talleres;c205;Akt-tvs;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035393842
+Otras;Servicios;Mecánica y talleres;c281;Alamos;Avenida Las Palmas;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037805694
+Otras;Servicios;Mecánica y talleres;c176;Antonimotos;Calle 11 # 8-11;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035291653
+Otras;Servicios;Mecánica y talleres;c143;Artes electricos e inyeccion;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035062545
+Otras;Servicios;Mecánica y talleres;c172;Autoindustrial;Calle 11 # 8-31;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035184983
+Otras;Servicios;Mecánica y talleres;c271;Autot;Calle 22 # 66-20;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037784061
+Otras;Servicios;Mecánica y talleres;c217;Ayi motos;Carrera 10 # 1-02;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035444224
+Otras;Servicios;Mecánica y talleres;c151;Balineras;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035092313
+Otras;Servicios;Mecánica y talleres;c210;Banoy;Carrera 12 # 6-09;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035412765
+Otras;Servicios;Mecánica y talleres;c280;Boters;Avenida Las Palmas # 16-82;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037802326
+Otras;Servicios;Mecánica y talleres;c189;Bugimotos;Calle 11 # 6-50;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035337750
+Otras;Servicios;Mecánica y talleres;c248;Cajas y Transmisiones;Calle 22 # 39 - 35;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037721369
+Otras;Servicios;Mecánica y talleres;c139;Chape y cerrajeria el flaco;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035038267
+Otras;Servicios;Mecánica y talleres;c287;Chavez;Carrera 11 # 7-12;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037812195
+Otras;Servicios;Mecánica y talleres;c173;Cincromotos;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035189189
+Otras;Servicios;Mecánica y talleres;c209;Colacho;Carrera 12 # 6-07;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035410461
+Otras;Servicios;Mecánica y talleres;c161;Cuacho universal;Calle 11 # 8A-03;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035147664
+Otras;Servicios;Mecánica y talleres;c135;Danna Motos;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035020404
+Otras;Servicios;Mecánica y talleres;c278;Dh nelson;Avenida Las Palmas # 16-82;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037801670
+Otras;Servicios;Mecánica y talleres;c158;Diafer;Carrera 8A # 11-14;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035137117
+Otras;Servicios;Mecánica y talleres;c138;Diaz Diaz;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035032290
+Otras;Servicios;Mecánica y talleres;c107;Díaz Díaz;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1853718315
+Otras;Servicios;Mecánica y talleres;c295;Diesel motor;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037831452
+Otras;Servicios;Mecánica y talleres;c166;Don predo;Calle 11 # 8-41;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035165808
+Otras;Servicios;Mecánica y talleres;c245;El bolante;Calle 25 # 37-76;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037709742
+Otras;Servicios;Mecánica y talleres;c227;El cacique;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035508643
+Otras;Servicios;Mecánica y talleres;c293;El cairo;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037826673
+Otras;Servicios;Mecánica y talleres;c286;El correcaminos;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037811324
+Otras;Servicios;Mecánica y talleres;c263;El descare espigo;Calle 22 # 44-30;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037768837
+Otras;Servicios;Mecánica y talleres;c246;El Flaco;Calle 25 # 37 - 136;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037714116
+Otras;Servicios;Mecánica y talleres;c244;El porvenir;Calle 25 # 37-103;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037708082
+Otras;Servicios;Mecánica y talleres;c298;Electricidad sena;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037874721
+Otras;Servicios;Mecánica y talleres;c258;Electrico y mecanica automotriz;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037754739
+Otras;Servicios;Mecánica y talleres;c142;Electricos Martín;Calle 17A # 11 - 16;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035056761
+Otras;Servicios;Mecánica y talleres;c294;Electrisuares;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037827424
+Otras;Servicios;Mecánica y talleres;c272;Electro torrez;Calle 25 # 66A-05;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037786498
+Otras;Servicios;Mecánica y talleres;c212;Electroembobonado;Carrera 12 # 5-06;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035416786
+Otras;Servicios;Mecánica y talleres;c288;Electromecanica Automotores;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037813823
+Otras;Servicios;Mecánica y talleres;c216;Embragues Gracias;Cra 10 # 1 - 16;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035440370
+Otras;Servicios;Mecánica y talleres;c211;Embragues mechudo;Calle 6 # 11-06;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035415615
+Otras;Servicios;Mecánica y talleres;c250;Embragues pinilla;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037726231
+Otras;Servicios;Mecánica y talleres;c249;Exostos angel;Calle 22 # 39A - 75;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037722425
+Otras;Servicios;Mecánica y talleres;c265;Exostos y radiadores;Carrera 46 # 24-55;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037771754
+Otras;Servicios;Mecánica y talleres;c175;F.c motos;Carrera 8 # 10A-02;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035264606
+Otras;Servicios;Mecánica y talleres;c261;Fabio martinez;Calle 22 # 73 - 13;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037765383
+Otras;Servicios;Mecánica y talleres;c266;Fernández Omar;Calle 22 # 48 - 52;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037772969
+Otras;Servicios;Mecánica y talleres;c253;Fernando marentes;Calle 22 # 39-35;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037737454
+Otras;Servicios;Mecánica y talleres;c257;Ferney diesel;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037752975
+Otras;Servicios;Mecánica y talleres;c150;Flechamotos;Calle 16 # 6 - 06;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035089814
+Otras;Servicios;Mecánica y talleres;c291;Freniauto;Cra 27 # 2 - 136;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037820952
+Otras;Servicios;Mecánica y talleres;c168;Fusacauchos;Calle 11 # 8-42;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035167304
+Otras;Servicios;Mecánica y talleres;c256;Fusafrenos;Calle 22 # 39-82;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037751131
+Otras;Servicios;Mecánica y talleres;c199;Gaby motos;Carrera 6 # 11-54;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035354401
+Otras;Servicios;Mecánica y talleres;c155;Gerva;Cra 7A # 14 - 17;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035123955
+Otras;Servicios;Mecánica y talleres;c297;Gm;Calle 12 # 2B-20;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037868596
+Otras;Servicios;Mecánica y talleres;c289;Hidráulicas Fusa;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037815227
+Otras;Servicios;Mecánica y talleres;c279;Hidroelectromotriz;Avenida Las Palmas # 16-80;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037802325
+Otras;Servicios;Mecánica y talleres;c223;J.j;Carrera 5 # 1-30;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035497407
+Otras;Servicios;Mecánica y talleres;c230;J&h;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035517573
+Otras;Servicios;Mecánica y talleres;c180;Japonesa;Carrera 7 # 10A-13;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035308014
+Otras;Servicios;Mecánica y talleres;c132;Jpc Motos;Calle 22B # 3-27;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035003120
+Otras;Servicios;Mecánica y talleres;c162;La kia;Calle 11 # 8-21;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035148484
+Otras;Servicios;Mecánica y talleres;c247;Laboratorio sincrodiesel;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037718032
+Otras;Servicios;Mecánica y talleres;c192;Landimotos;Calle 11;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035342183
+Otras;Servicios;Mecánica y talleres;c165;Llantas y aceite;Calle 11 # 8-70;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035160783
+Otras;Servicios;Mecánica y talleres;c200;Lubrillantas la 6;Carrera 6 # 11-59;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035357017
+Otras;Servicios;Mecánica y talleres;c167;LubrirepuestoS;Calle 11 # 8-60;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035167136
+Otras;Servicios;Mecánica y talleres;c188;M lujos;Carrera 7 # 10-51;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035334823
+Otras;Servicios;Mecánica y talleres;c240;M&m;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5035570609
+Otras;Servicios;Mecánica y talleres;c127;Mario Motos;Calle 24 # 2D - 03;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5029028147
+Otras;Servicios;Mecánica y talleres;c219;Mecamotos;Calle 5 # 3-59;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035457129
+Otras;Servicios;Mecánica y talleres;c274;Mecánica chacón;Calle 25 # 66A - 05;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037789507
+Otras;Servicios;Mecánica y talleres;c242;Mecanica JC;Calle 5 Carrera 3;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035591142
+Otras;Servicios;Mecánica y talleres;c276;Mecánica jj;Avenida Las Palmas # 16-80;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037790911
+Otras;Servicios;Mecánica y talleres;c262;Mecanica martine;Calle 22;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037767097
+Otras;Servicios;Mecánica y talleres;c124;Montallantas;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4835985022
+Otras;Servicios;Mecánica y talleres;c231;Moto Japan;Transversal 4 # 1N-15;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035523503
+Otras;Servicios;Mecánica y talleres;c149;Moto lagos;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035084522
+Otras;Servicios;Mecánica y talleres;c182;Moto lujos;Carrera 7 # 10A-05;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035319764
+Otras;Servicios;Mecánica y talleres;c128;Moto Lujos Nacho;Calle 22 # 3A - 29;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5029085505
+Otras;Servicios;Mecánica y talleres;c201;Moto mac;Calle 11 # 5-32;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035360221
+Otras;Servicios;Mecánica y talleres;c204;Moto pita;Carrera 10 # 2-09;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035392334
+Otras;Servicios;Mecánica y talleres;c239;Moto scotter f;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035564024
+Otras;Servicios;Mecánica y talleres;c184;Moto tellez;Calle 10A # 7-34;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035324054
+Otras;Servicios;Mecánica y talleres;c213;Motobike;Carrera 7 # 10-49;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035420695
+Otras;Servicios;Mecánica y talleres;c187;Motocross;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035327571
+Otras;Servicios;Mecánica y talleres;c283;Motorvar;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037810011
+Otras;Servicios;Mecánica y talleres;c222;Motos JM;Calle 1 # 5 - 38;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035491721
+Otras;Servicios;Mecánica y talleres;c202;Motos la 5ta;Calle 10 # 3-30;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035362404
+Otras;Servicios;Mecánica y talleres;c177;Motos la milla;Calle 11 # 7-25;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035294292
+Otras;Servicios;Mecánica y talleres;c284;Motos peña;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037810320
+Otras;Servicios;Mecánica y talleres;c290;Multi gas;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037816628
+Otras;Servicios;Mecánica y talleres;c160;Multirepuestos;Calle 11 # 8A-33;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035144831
+Otras;Servicios;Mecánica y talleres;c156;Multiservicios mj;Calle 25 # 37-76;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035130516
+Otras;Servicios;Mecánica y talleres;c232;Oil master;Diagonal 4 Norte # 1A-07;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035527200
+Otras;Servicios;Mecánica y talleres;c163;Pipe muelles;Calle 11 # 8A-18;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035155778
+Otras;Servicios;Mecánica y talleres;c282;Pits;Calle 8 # 28-02;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037808482
+Otras;Servicios;Mecánica y talleres;c186;Pollo motos;Calle 10A # 7-20;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035324926
+Otras;Servicios;Mecánica y talleres;c131;Power Bike Scooter;Calle 22 # 4B - 11;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5034988638
+Otras;Servicios;Mecánica y talleres;c185;Power japan;Calle 10A # 7-12;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035324093
+Otras;Servicios;Mecánica y talleres;c269;Rally ejes;Calle 22 # 64A-03;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037780446
+Otras;Servicios;Mecánica y talleres;c338;Rectifusa;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/8291915217
+Otras;Servicios;Mecánica y talleres;c154;Repuestos auteco;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035120982
+Otras;Servicios;Mecánica y talleres;c195;Repuestos bajaj;Calle 11 # 6-10;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035344693
+Otras;Servicios;Mecánica y talleres;c171;Repuestos del sumapaz;Calle 11 # 6-43;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035179656
+Otras;Servicios;Mecánica y talleres;c146;Repuestos general;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035076298
+Otras;Servicios;Mecánica y talleres;c133;Repuestos tolima pijao;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035008394
+Otras;Servicios;Mecánica y talleres;c198;Repuestos tvs;Carrera 6 # 14-38;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035352964
+Otras;Servicios;Mecánica y talleres;c292;Repuestos xs;Carrera 27 # 3-36;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037823468
+Otras;Servicios;Mecánica y talleres;c145;Repuestos y lujos;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035071222
+Otras;Servicios;Mecánica y talleres;c206;Repuetodo;Carrera 12;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035398348
+Otras;Servicios;Mecánica y talleres;c104;Sabaneta;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/1852927845
+Otras;Servicios;Mecánica y talleres;c220;Satelite;Calle 3 # 4-19;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035461930
+Otras;Servicios;Mecánica y talleres;c169;Sc 40 motos;Calle 11 # 8-15;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035169162
+Otras;Servicios;Mecánica y talleres;c243;Servi autos chacon;Calle 24 # 12-48;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035598903
+Otras;Servicios;Mecánica y talleres;c134;Servi mecanico automotriz;Calle 22 # 4A-05;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035009421
+Otras;Servicios;Mecánica y talleres;c207;Serviauto;Calle 7 # 11-03;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035403222
+Otras;Servicios;Mecánica y talleres;c264;Servicio automotriz martinez;Calle 22 # 48-47;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037771121
+Otras;Servicios;Mecánica y talleres;c179;Servicio tecnico honda;Carrera 8 # 10A-14;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035301365
+Otras;Servicios;Mecánica y talleres;c196;Servicio tecnico yamaha;Calle 11 # 6-06;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035349086
+Otras;Servicios;Mecánica y talleres;c285;Servicios leon;Calle 8 # 27-150;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037810649
+Otras;Servicios;Mecánica y talleres;c255;Servielectrico soler;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037749254
+Otras;Servicios;Mecánica y talleres;c234;Serviescaner;Carrera 3 # 1-16;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035535150
+Otras;Servicios;Mecánica y talleres;c296;Servifrenos la 28;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037833203
+Otras;Servicios;Mecánica y talleres;c203;Servimecanica;Carrera 2 # 6-29;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035367370
+Otras;Servicios;Mecánica y talleres;c137;Servimotor RS;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035026760
+Otras;Servicios;Mecánica y talleres;c197;Servitecnico auteco;Calle 11 # 6-22;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035349384
+Otras;Servicios;Mecánica y talleres;c144;Sincronia;Calle 17A # 12 - 11;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035069423
+Otras;Servicios;Mecánica y talleres;c254;Soldaduras espaciales;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037739581
+Otras;Servicios;Mecánica y talleres;c164;Solo diesel;Calle 11 # 8A-20;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035158018
+Otras;Servicios;Mecánica y talleres;c275;Sport Bike;Calle 22 # 71 - 45;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037790074
+Otras;Servicios;Mecánica y talleres;c251;Sthepania motores;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037729069
+Otras;Servicios;Mecánica y talleres;c221;Stuart Motos;Cra 6 # 2 - 41;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035466501
+Otras;Servicios;Mecánica y talleres;c194;Suzuki;Calle 11 # 6-18;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035344040
+Otras;Servicios;Mecánica y talleres;c226;T motos;Transversal 4;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035503086
+Otras;Servicios;Mecánica y talleres;c157;T&T;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035135354
+Otras;Servicios;Mecánica y talleres;c152;Taller AKT;Cra 6 # 14 - 49;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035100892
+Otras;Servicios;Mecánica y talleres;c140;Taller botija;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035051529
+Otras;Servicios;Mecánica y talleres;c181;Taller carros mares;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035313509
+Otras;Servicios;Mecánica y talleres;c235;Taller Científico;Cra 2 Cll 1;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035539785
+Otras;Servicios;Mecánica y talleres;c130;Taller de Motos The Doctor;Cra 3B # 22 - 08;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5033289549
+Otras;Servicios;Mecánica y talleres;c273;Taller garcia;Calle 22 # 70-84;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037789214
+Otras;Servicios;Mecánica y talleres;c190;Taller motero;Calle 11 # 6-45;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035339339
+Otras;Servicios;Mecánica y talleres;c215;Taller origua;Carrera 12 # 2-45;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035433715
+Otras;Servicios;Mecánica y talleres;c260;Taller penagos cruz;Calle 22 # 41-31;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037762351
+Otras;Servicios;Mecánica y talleres;c125;Taller pintura cascos y accesorios;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4876263122
+Otras;Servicios;Mecánica y talleres;c241;Taller spa;Carrera 7 # 3-54;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035583942
+Otras;Servicios;Mecánica y talleres;c214;Taller Urrea;Calle 6 # 2 - 09;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035426660
+Otras;Servicios;Mecánica y talleres;c141;Talleres barbosa;Calle 17A # 11-29;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035053799
+Otras;Servicios;Mecánica y talleres;c148;Tata motos;Carrera 6;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035082722
+Otras;Servicios;Mecánica y talleres;c268;Tecni Embragues;Carrera 49;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037775860
+Otras;Servicios;Mecánica y talleres;c259;Tecni mazda;Calle 22 # 40-45;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037755392
+Otras;Servicios;Mecánica y talleres;c147;Tecnicentro velasquez;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035077046
+Otras;Servicios;Mecánica y talleres;c236;Tecnidiesel;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035549565
+Otras;Servicios;Mecánica y talleres;c270;Tecnifrenos la pampa;Calle 22 # 66A-08;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037780804
+Otras;Servicios;Mecánica y talleres;c238;Tecnifuller;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035554952
+Otras;Servicios;Mecánica y talleres;c277;Tecnirepuestos;Calle 22 # 73-13;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5037792710
+Otras;Servicios;Mecánica y talleres;c233;Tecno automotriz;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035529535
+Otras;Servicios;Mecánica y talleres;c129;Tecnolubricantes Torres;Calle 22 # 2B - 10;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5029085506
+Otras;Servicios;Mecánica y talleres;c224;Teller dia;Transversal 4;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035498332
+Otras;Servicios;Mecánica y talleres;c229;Terre motos;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035513643
+Otras;Servicios;Mecánica y talleres;c225;Ti hernan;Calle 1 # 3-35;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035500769
+Otras;Servicios;Mecánica y talleres;c208;Tomboloco;Calle 7 # 3-17;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035404402
+Otras;Servicios;Mecánica y talleres;c170;Torniaceites la 11;Calle 11 # 6-47;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035177751
+Otras;Servicios;Mecánica y talleres;c228;Tornilleria en general;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035511364
+Otras;Servicios;Mecánica y talleres;c159;Torno y fresa 3D;Calle 11 # 8A-43;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035138407
+Otras;Servicios;Mecánica y talleres;c237;Toro diesel;Fusagasugá;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035553671
+Otras;Servicios;Mecánica y talleres;c136;Um dibrey motos;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035023979
+Otras;Servicios;Mecánica y talleres;c252;Vargas gui;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037733443
+Otras;Servicios;Mecánica y talleres;c174;Vayom-motos;Calle 11 # 6-29;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035191983
+Otras;Servicios;Mecánica y talleres;c267;Ventiri motor;Carrera 50 # 19-32;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5037774438
+Otras;Servicios;Mecánica y talleres;c178;Wilge;Carrera 8 # 10A-26;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035299481
+Otras;Servicios;Mecánica y talleres;c193;Yamaha repuestos;Calle 11 # 6-08;Fusagasugá;sí;;sí;https://www.openstreetmap.org/node/5035344020
+Otras;Servicios;Mecánica y talleres;c218;Yepe;Calle 2 # 7-35;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5035445852
+Otras;Servicios;Profesionales;c502;Agencia de Viajes Programar Eventos Especiales;Cra 17 B 1 A Norte 26;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=218972
+Otras;Servicios;Profesionales;c503;Asociación Sabores Primarios y Turismo Comunitario;Cr 4 No 20 - 74;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=263207
+Otras;Servicios;Profesionales;c431;Contactar;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184228
+Otras;Servicios;Profesionales;c504;Crismar Travel;Calle 21 N 52A 02 Local 01;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=21650
+Otras;Servicios;Profesionales;c505;D&V Travel;Carrera 71A # 24 - 34;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=286899
+Otras;Servicios;Profesionales;c506;Dantour Viajes y Turismo;Diagonal 18 #21 - 31;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=70556
+Otras;Servicios;Profesionales;c578;Enpas Ruta 69;Km 8 Via Fusagasuga Pasca Fca L Aportada;Pasca;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=157278
+Otras;Servicios;Profesionales;c507;KHC Turismo;Diagonal 27 # 36-66 Manzana C1 Casa 2;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=27228
+Otras;Servicios;Profesionales;c508;Lion Global Tours;Diagonal 8A Norte # 3 -41;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=299346
+Otras;Servicios;Profesionales;c509;MDJ Tours;Calle 9 N 6-44;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=260062
+Otras;Servicios;Profesionales;c510;Natural Tribe Colombia;Calle 20 A 46 A 22;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=76957
+Otras;Servicios;Profesionales;c511;Orquídea Trips;Cra 7 No 1-36;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=164939
+Otras;Servicios;Profesionales;c361;Positiva Compañía de Seguros;Avenida Manuel Humberto Cárdenas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12920402244
+Otras;Servicios;Profesionales;c512;Tierra Verde Experience;Cl 23 No 54 A - 07;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=276536
+Otras;Servicios;Profesionales;c513;Tour Mountain Adventure Expedition;Calle 16 A # 12 - 37 Piso 3;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=78291
+Otras;Servicios;Profesionales;c514;Tripbus Colombia;Cra 6 No 7-36 Centro Comercial Escorial Center;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=46999
+Otras;Servicios;Profesionales;c515;Viagem 33;Calle 30 Este 2 90;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=302381
+Otras;Servicios;Tecnología;c366;Claro (tienda);Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/node/13202969398
+Otras;Servicios;Tecnología;c471;Movistar (tienda);Calle 10;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1376621253
+Otras;Servicios;Tecnología;c429;Wom Fusagasugá;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1342184226
+Otras;Servicios;Transporte;c393;Biomax;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1052860861
+Otras;Servicios;Transporte;c457;Biomax Los Árboles;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1354309999
+Otras;Servicios;Transporte;c376;Brío Sutagao;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/549118204
+Otras;Servicios;Transporte;c498;Estación de Servicio de Pasca;Pasca;Pasca;sí;sí;sí;https://www.openstreetmap.org/way/1092469953
+Otras;Servicios;Transporte;c478;Octano · Carrera 6;Carrera 6;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1411296565
+Otras;Servicios;Transporte;c394;Octano · Transversal 12;Transversal 12;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1052860862
+Otras;Servicios;Transporte;c368;Paradero Colectivo Fusagasugá-Chinauta;Carrera 9;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/14285380813
+Otras;Servicios;Transporte;c593;Parqueadero del Centro Comercial Manila;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1364900312
+Otras;Servicios;Transporte;c395;Petrobras;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1092470190
+Otras;Servicios;Transporte;c392;Petromil;Calle 1;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1052848954
+Otras;Servicios;Transporte;c461;Primax · Avenida Las Palmas;Avenida Las Palmas;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1357866221
+Otras;Servicios;Transporte;c474;Primax · Calle 22;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1377949007
+Otras;Servicios;Transporte;c315;Servientrega La Pampa;Calle 22;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/6319951985
+Otras;Servicios;Transporte;c369;Terminal de Transporte de Fusagasugá;Calle 24B;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/68860194
+Otras;Servicios;Transporte;c401;Terpel · Autopista Bogota Girardot - Boquerón - Fusagasugá;Autopista Bogota Girardot - Boquerón - Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1332653974
+Otras;Servicios;Transporte;c482;Terpel · Variante de Fusagasugá;Variante de Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1567197229
+Otras;Servicios;Transporte;c479;Texaco;Autopista Bogota Girardot - Boquerón - Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1414757198
+Otras;Servicios;Transporte;c453;Zeuss;Autopista Bogota Girardot - Boquerón - Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1351918316
+Otras;Turismo y Rutas;;c77;Páramo de Sumapaz (desde Pasca);Zona rural de Pasca;Pasca;sí;sí;;https://es.wikipedia.org/wiki/Pasca | https://www.komoot.com/guide/3960485/natural-monuments-in-pasca | https://www.parquesnacionales.gov.co/sala-prensa/noticias/el-parque-nacional-natural-sumapaz-no-esta-habilitado-al-ecoturismo/
+Otras;Turismo y Rutas;Cultura;c120;Casa de la Cultura de Fusagasugá;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/4307970390
+Otras;Turismo y Rutas;Cultura;c73;Casa de la Cultura de Pasca;Calle 8a No. 6-57, barrio Chapinero;Pasca;sí;;sí;https://www.pasca-cundinamarca.gov.co/tema/turismo
+Otras;Turismo y Rutas;Cultura;c460;Cinema Los Ángeles;Carrera 5;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1356017183
+Otras;Turismo y Rutas;Cultura;c383;Concha Acustica;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/669789401
+Otras;Turismo y Rutas;Cultura;c94;Govardhan;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/975560454
+Otras;Turismo y Rutas;Cultura;c29;Iglesia de Belén;Barrio Belén;Fusagasugá;sí;;;https://www.openstreetmap.org/way/669169737
+Otras;Turismo y Rutas;Cultura;c456;Monumento al Indio Sutagao;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1354309998
+Otras;Turismo y Rutas;Cultura;c455;Monumento Lucho Herrera;Fusagasugá;Fusagasugá;sí;sí;;https://www.openstreetmap.org/way/1353962085
+Otras;Turismo y Rutas;Cultura;c360;Monumento Manuel Humberto Cárdenas Vélez;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/12918317453
+Otras;Turismo y Rutas;Cultura;c76;Museo Arqueológico de Pasca;Calle 2 (según OpenStreetMap);Pasca;sí;;sí;https://es.wikipedia.org/wiki/Pasca | https://www.openstreetmap.org/way/1268533357
+Otras;Turismo y Rutas;Cultura;c75;Parroquia de Nuestra Señora de la Encarnación;Calle 3, plaza principal;Pasca;sí;sí;;https://www.openstreetmap.org/?mlat=4.30837&mlon=-74.29951#map=18/4.30837/-74.29951 | https://es.wikipedia.org/wiki/Pasca
+Otras;Turismo y Rutas;Cultura;c24;Pueblito Fusagasugueño;Sector turístico;Fusagasugá;sí;;sí;https://www.openstreetmap.org/way/1351841449
+Otras;Turismo y Rutas;Cultura;c488;Quinta Mazuera;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/relation/18925697
+Otras;Turismo y Rutas;Cultura;c588;Terraza Cultural Libro Abierto;Carrera 7 # 18-12, 3er piso, Balmoral;Fusagasugá;sí;sí;sí;https://queboleta.com/pages/event/17-cuarta-noche-de-comedia-y-cuento
+Otras;Turismo y Rutas;Fincas y haciendas;c577;Agroparque El Arca;Kilometro 48 Finca Portobello;Fusagasugá;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=274747
+Otras;Turismo y Rutas;Fincas y haciendas;c581;American Park;Km 54 Via Fusagasuga - Pasca Sector Buenas Tardes;Pasca;;sí;sí;https://www.datos.gov.co/resource/thwd-ivmp.json?codigo_rnt=230191
+Otras;Turismo y Rutas;Fincas y haciendas;c304;Ecoparque Cutucumay;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/node/5516861637
+Otras;Turismo y Rutas;Fincas y haciendas;c30;Hacienda Coloma – Museo del Café;Vía Fusa-Bogotá km 4;Fusagasugá;sí;;sí;https://haciendacoloma.com.co/
+Otras;Turismo y Rutas;Miradores;c79;Alto El Guavio;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/496815659
+Otras;Turismo y Rutas;Miradores;c308;Cerro Píco de Plata;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/5996652604
+Otras;Turismo y Rutas;Miradores;c78;Cuchilla de la Aguadita;Fusagasugá;Fusagasugá;;;sí;https://www.openstreetmap.org/node/496815645
+Otras;Turismo y Rutas;Miradores;c492;Cuchilla El Amarillal;Pasca;Pasca;;;sí;https://www.openstreetmap.org/node/703338651
+Otras;Turismo y Rutas;Miradores;c494;Cuchilla La Rica;Pasca;Pasca;;;sí;https://www.openstreetmap.org/node/703339816
+Otras;Turismo y Rutas;Miradores;c493;Loma Cajica;Pasca;Pasca;;;sí;https://www.openstreetmap.org/node/703339803
+Otras;Turismo y Rutas;Senderos;c21;Cerro Fusacatán;Costado oriental;Fusagasugá;;;sí;https://www.openstreetmap.org/node/12481799123
+Otras;Turismo y Rutas;Senderos;c23;Corregimiento La Aguadita;Cto La Aguadita;Fusagasugá;;;sí;https://www.openstreetmap.org/node/703339829
+Otras;Vitrina del Campo;;c463;Agropecuaria Fusagro;Avenida Las Palmas # 13-24;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1358110294
+Otras;Vitrina del Campo;;c387;Vivero La Esperanza;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/733350908
+Otras;Vitrina del Campo;;c486;Vivero Los Cambulos;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1567197252
+Otras;Vitrina del Campo;;c485;Vivero Poinsettias De Los Andes;Fusagasugá;Fusagasugá;sí;sí;sí;https://www.openstreetmap.org/way/1567197232

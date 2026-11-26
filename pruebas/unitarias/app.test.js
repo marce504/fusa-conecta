@@ -112,10 +112,28 @@ describe('formatearHora y horaTexto', () => {
 });
 
 // ---------------------------------------------------------------- búsqueda sin tildes ni plurales
-const busqueda = cargar(['norm', 'raiz', 'tokens', 'GRUPOS_SUB', 'subDe', 'nombreSub', 'coincide'], {}, [
-  'CAT',
-  'SUBCATS',
-]);
+const busqueda = cargar(
+  [
+    'norm',
+    'raiz',
+    'tokens',
+    'NIVEL',
+    'toleranciaDe',
+    'distanciaEdicion',
+    'gruposSinonimos',
+    'sinonimosDe',
+    'GRUPOS_SUB',
+    'subDe',
+    'nombreSub',
+    'camposBusqueda',
+    'camposDe',
+    'nivelPalabra',
+    'nivelCoincidencia',
+    'coincide',
+  ],
+  {},
+  ['CAT', 'SUBCATS', 'SINONIMOS'],
+);
 const panaderia = {
   nombre: 'Panadería La Espiga',
   desc: 'Pan de yuca y almojábanas',
@@ -405,7 +423,11 @@ describe('destinoDe: mapa y «Cómo llegar»', () => {
 });
 
 describe('creditoFotoHTML: autor y licencia de la foto', () => {
-  const { creditoFotoHTML } = cargar(['esc', 'imgSegura', 'filaDato', 'creditoFotoHTML'], { icon: () => '' });
+  const { creditoFotoHTML } = cargar(
+    ['esc', 'imgSegura', 'filaDato', 'GRUPOS_SUB', 'subDe', 'referenciaDe', 'fotoVisible', 'creditoFotoHTML'],
+    { icon: () => '' },
+    ['IMAGENES_REFERENCIA'],
+  );
   const credito = {
     autor: 'Petruss',
     licencia: 'CC BY-SA 4.0',
@@ -480,7 +502,7 @@ describe('pistaDiagnostico: errores de la IA con arreglo conocido', () => {
 });
 
 describe('fechaEvento: eventos sin hora de cierre', () => {
-  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'fechaEvento'], {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'fechaEvento'], {
     DIAS_EV: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
     MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
   });
@@ -1057,5 +1079,232 @@ describe('Rutas turísticas, pico y placa, cajeros y parqueaderos', () => {
     expect(esCajeroOBanco({ cat: 'tramite', nombre: 'Alcaldía de Fusagasugá' })).toBe(false);
     expect(esParqueadero({ nombre: 'Parqueadero del Centro Comercial Manila' })).toBe(true);
     expect(esParqueadero({ nombre: 'Parqueadero de busetas' })).toBe(false);
+  });
+});
+
+describe('Agenda: cada evento una sola vez (E1)', () => {
+  const { sinRepetidos } = cargar(['norm', 'claveEvento', 'sinRepetidos']);
+  const ini = new Date('2026-11-24T14:00:00-05:00').getTime();
+  const expo = {
+    titulo: 'Exposiciones de la Escuela de Artes Visuales EFAC',
+    ini,
+    lugar_nombre: 'Casona Quinta Balmoral',
+  };
+  it('quita las copias guardadas varias veces y deja los eventos distintos', () => {
+    const l = [
+      { id: 'a', ...expo },
+      { id: 'b', ...expo },
+      { id: 'c', ...expo, titulo: 'Exposiciones de la  Escuela de Artes Visuales efac' },
+      { id: 'd', ...expo, titulo: 'Taller Tribu: gestión cultural' },
+      { id: 'e', ...expo, ini: ini + 864e5 },
+    ];
+    expect(sinRepetidos(l).map(e => e.id)).toEqual(['a', 'd', 'e']);
+  });
+});
+
+describe('fechaEvento: eventos en curso (E8)', () => {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'fechaEvento'], {
+    DIAS_EV: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+    MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  });
+  const expo = {
+    ini: new Date('2026-11-24T14:00:00-05:00').getTime(),
+    fin: new Date('2026-11-28T18:00:00-05:00').getTime(),
+  };
+  it('el 26 dice «En curso · hasta el sáb 28 de nov» y no «mar 24»', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-26T10:00');
+    expect(fechaEvento(expo)).toBe('En curso · hasta el sáb 28 de nov');
+  });
+  it('antes de empezar muestra la fecha de inicio', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-23T10:00');
+    expect(fechaEvento(expo)).toBe('mar 24 de nov · 2:00 p. m. al sáb 28 de nov');
+  });
+  it('un evento de un solo día en curso dice hasta qué hora', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-26T16:00');
+    const taller = {
+      ini: new Date('2026-11-26T15:00:00-05:00').getTime(),
+      fin: new Date('2026-11-26T17:00:00-05:00').getTime(),
+    };
+    expect(fechaEvento(taller)).toBe('En curso · hasta las 5:00 p. m.');
+  });
+});
+
+describe('Buscador tolerante: sinónimos, errores de escritura y orden (E2)', () => {
+  // El directorio base real (datos.js); el orden secundario no importa aquí
+  const { COMERCIOS_BASE } = cargar([], {}, ['COMERCIOS_BASE']);
+  const b = cargar(
+    [
+      'norm',
+      'raiz',
+      'tokens',
+      'NIVEL',
+      'toleranciaDe',
+      'distanciaEdicion',
+      'gruposSinonimos',
+      'sinonimosDe',
+      'GRUPOS_SUB',
+      'subDe',
+      'nombreSub',
+      'camposBusqueda',
+      'camposDe',
+      'nivelPalabra',
+      'nivelCoincidencia',
+      'coincide',
+      'filtrarYOrdenar',
+      'vocabularioBusqueda',
+      'vocabulario',
+      'quisisteDecir',
+    ],
+    { database: COMERCIOS_BASE, ordenar: l => l },
+    ['CAT', 'SUBCATS', 'SINONIMOS'],
+  );
+  const buscar = q => b.filtrarYOrdenar([...COMERCIOS_BASE], q, 'recomendados');
+  const esDrogueria = d => d.sub === 'salud' && /drog|farma|rebaja/i.test(d.nombre);
+
+  it.each(['drogeria', 'farmacia', 'drogueria', 'Droguerías', 'farmasia'])('«%s» encuentra las droguerías', q => {
+    const r = buscar(q);
+    expect(r.filter(esDrogueria).length).toBeGreaterThanOrEqual(6);
+    expect(r.map(d => d.nombre)).toContain('Farmacenter');
+    expect(esDrogueria(r[0])).toBe(true);
+  });
+  it('«doctor» encuentra lugares de salud', () => {
+    expect(buscar('doctor').filter(d => d.sub === 'salud').length).toBeGreaterThan(3);
+  });
+  it('«almuerzo» encuentra restaurantes y comidas', () => {
+    expect(buscar('almuerzo').filter(d => d.sub === 'comidas').length).toBeGreaterThan(5);
+  });
+  it('«hotel» encuentra hospedaje', () => {
+    expect(buscar('hotel').filter(d => d.cat === 'hospedaje').length).toBeGreaterThan(3);
+  });
+  it('«alcaldia» pone primero las alcaldías', () => {
+    const r = buscar('alcaldia');
+    expect(r[0].nombre).toMatch(/^Alcaldía/);
+    expect(r.some(d => /Notaría/.test(d.nombre))).toBe(true);
+  });
+  it('ordena exactas, después parciales y al final aproximadas', () => {
+    const lugares = [
+      { id: 'aprox', nombre: 'Drogeria Mal Escrita', desc: '', cat: 'servicios', sub: 'salud' },
+      { id: 'parcial', nombre: 'Superdroguerías', desc: '', cat: 'servicios', sub: 'salud' },
+      { id: 'exacta', nombre: 'Droguería Central', desc: '', cat: 'servicios', sub: 'salud' },
+    ];
+    expect(b.filtrarYOrdenar(lugares, 'drogueria', 'recomendados').map(d => d.id)).toEqual([
+      'exacta',
+      'parcial',
+      'aprox',
+    ]);
+  });
+  it('tolerancia: nada en palabras cortas, 1 letra de 4 a 7 y 2 en las largas', () => {
+    expect([
+      b.toleranciaDe('pan'),
+      b.toleranciaDe('cafe'),
+      b.toleranciaDe('hospital'),
+      b.toleranciaDe('drogueria'),
+    ]).toEqual([0, 1, 2, 2]);
+    expect(b.distanciaEdicion('drogeria', 'drogueria', 2)).toBe(1);
+    expect(b.distanciaEdicion('pizza', 'plaza', 1)).toBe(2);
+    expect(b.coincide({ nombre: 'Pan del día', desc: '', cat: 'comercio' }, 'par')).toBe(false);
+  });
+  it('«¿Quisiste decir…?» propone la palabra más parecida del directorio', () => {
+    expect(b.quisisteDecir('restaurnte')).toBe('restaurante');
+    expect(b.quisisteDecir('xyzqw')).toBe('');
+  });
+});
+
+describe('Pregúntale a Fusa: tarjetas del directorio y salida a SOS (E3)', () => {
+  const { COMERCIOS_BASE } = cargar([], {}, ['COMERCIOS_BASE']);
+  const a = cargar(
+    [
+      'norm',
+      'raiz',
+      'tokens',
+      'NIVEL',
+      'toleranciaDe',
+      'distanciaEdicion',
+      'gruposSinonimos',
+      'sinonimosDe',
+      'GRUPOS_SUB',
+      'subDe',
+      'nombreSub',
+      'camposBusqueda',
+      'camposDe',
+      'nivelPalabra',
+      'nivelCoincidencia',
+      'coincide',
+      'VACIAS_ASIS',
+      'RE_URGENCIA',
+      'esUrgenciaAsis',
+      'palabrasAsis',
+      'busquedaDeAsis',
+      'rangoApertura',
+      'lugaresAsis',
+    ],
+    {
+      database: COMERCIOS_BASE,
+      estado: { mayorEdad: false, pos: null },
+      ASIS: { maxTarjetas: 5 },
+      municipioElegido: () => '',
+      enMunicipio: () => true,
+      ordenar: l => l,
+      estadoApertura: () => null,
+    },
+    ['CAT', 'SUBCATS', 'SINONIMOS'],
+  );
+  it('«necesito una drogeria abierta cerca» muestra droguerías del directorio', () => {
+    const l = a.lugaresAsis('necesito una drogeria abierta cerca');
+    expect(l.length).toBe(5);
+    expect(l.every(d => d.sub === 'salud')).toBe(true);
+  });
+  it.each(['necesito una drogeria abierta', 'me duele el pecho', 'urgencias del hospital', 'ambulancia'])(
+    '«%s» es de salud o urgencia: lleva el botón de emergencias',
+    q => expect(a.esUrgenciaAsis(q)).toBe(true),
+  );
+  it('una pregunta de comida no es urgencia', () => {
+    expect(a.esUrgenciaAsis('¿dónde almuerzo?')).toBe(false);
+  });
+  it('propone buscar con las palabras útiles tal como se escribieron', () => {
+    expect(a.palabrasAsis('¿Dónde venden xilófonos cerca?')).toEqual(['xilofono']);
+    expect(a.busquedaDeAsis('¿Dónde venden xilófonos cerca?')).toBe('xilófonos');
+  });
+});
+
+describe('fechaEvento larga para el detalle (Fase 3)', () => {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'MESES_LARGO', 'fechaEvento'], {
+    DIAS_EV: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+    DIAS_LARGO: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+    MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  });
+  it('escribe el día y el mes completos', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-20T10:00');
+    const e = {
+      ini: new Date('2026-11-24T14:00:00-05:00').getTime(),
+      fin: new Date('2026-11-28T18:00:00-05:00').getTime(),
+    };
+    expect(fechaEvento(e, true)).toBe('martes 24 de noviembre · 2:00 p. m. al sábado 28 de noviembre');
+  });
+});
+
+describe('Imagen de referencia por categoría (Fase 6)', () => {
+  const r = cargar(['imgSegura', 'GRUPOS_SUB', 'subDe', 'referenciaDe', 'fotoVisible'], {}, ['IMAGENES_REFERENCIA']);
+  it('sin foto propia, la droguería usa la suya y el restaurante la de comidas', () => {
+    expect(r.fotoVisible({ cat: 'servicios', sub: 'salud', nombre: 'Droguería Alemana' }).src).toBe(
+      'img/categorias/drogueria.webp',
+    );
+    expect(r.fotoVisible({ cat: 'servicios', sub: 'salud', nombre: 'Clínica Belén' }).src).toBe(
+      'img/categorias/salud.webp',
+    );
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', nombre: 'El Brasero' }).referencia.autor).toBeTruthy();
+  });
+  it('la foto propia siempre gana y los lugares oficiales o naturales no tienen referencia', () => {
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', imagen: 'img/comercios/x.jpg' })).toEqual({
+      src: 'img/comercios/x.jpg',
+      referencia: null,
+    });
+    expect(r.fotoVisible({ cat: 'tramite', nombre: 'Alcaldía' }).src).toBe('');
+    expect(r.fotoVisible({ cat: 'turismo', tipo: 'sendero', nombre: 'Cerro' }).src).toBe('');
+    expect(r.fotoVisible({ cat: 'comercio', sub: 'comidas', fotos: ['f1'] }).src).toBe('');
   });
 });

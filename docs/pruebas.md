@@ -39,6 +39,16 @@ Flujos de extremo a extremo:
 10. **Municipio:** el selector del Inicio muestra «Fusa y Pasca», «Fusagasugá» y «Pasca». Con «Pasca» elegido se ven solo lugares de Pasca, «Todo Pasca» y la tarjeta «¿Tienes un negocio en Pasca?». La elección sobrevive a la recarga y el mapa se centra en Pasca. Con «Fusa y Pasca» vuelven los dos municipios. Con «Pasca» también se ven la Alcaldía (lugar verificado) y el mensaje de senderos de Pasca. La ficha del páramo muestra el aviso oficial de Parques Nacionales sin «Llamar» ni «Cómo llegar», y la de la Alcaldía, el correo y la fuente sin teléfono.
 11. **Invitación de organizador:** `/?organizador=correo` abre «Crea tu cuenta» con el correo escrito, y el mensaje que copia el admin incluye ese enlace.
 
+## Verificaciones de UX y accesibilidad (con el servidor local y el emulador encendidos)
+
+- `node scripts/areas-tactiles.mjs [--letra=muy-grande]`: recorre las pantallas principales a 360×800 y lista lo que
+  mide menos de 48×48 px o queda a menos de 8 px del vecino (U6).
+- `node scripts/medir-cls.mjs [--ancho=412 --alto=915] [--red=normal]`: mide el CLS del Inicio con red lenta (Slow 4G y
+  CPU 4×) y dice qué elemento se movió. Meta: menos de 0,1.
+- `node scripts/comercios-incompletos.mjs`: lugares sin teléfono, horario o foto → `docs/comercios-incompletos.csv`.
+- `node scripts/proponer-fotos.mjs`: propuestas de fotos con licencia libre → `docs/propuestas-fotos.csv` (no escribe
+  en Firestore).
+
 ## Cómo correrlas
 
 ```bash

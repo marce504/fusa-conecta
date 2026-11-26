@@ -183,3 +183,39 @@ def test_une_los_dia_dulce_ya_guardados():
     r = agenda.guardar(db, None, [manana], ahora)
     assert r["duplicados"] == 1 and r["publicados"] == 0 and r["unidos"] == 0
     assert {d.id for d in db.collection("eventos").stream()} == {"tarde", "de-persona"}
+
+
+def test_evento_de_varios_dias_ya_empezado_no_se_repite():
+    """E1: la exposición del 24 al 28 de noviembre empezó hace dos días y sigue vigente; la corrida que vuelve a leer
+    el programa no la crea otra vez, y las copias que ya existían se unen en una."""
+    db, ahora = firestore_cliente(), ahora_ms()
+    for d in db.collection("eventos").stream():
+        d.reference.delete()
+    ini = datetime.fromtimestamp((ahora - 2 * 86_400_000) / 1000, tz=timezone.utc)
+    fin = datetime.fromtimestamp((ahora + 2 * 86_400_000) / 1000, tz=timezone.utc)
+    guardado = {
+        "origen": "automatico",
+        "estado": "publicado",
+        "categoria": "cultura",
+        "tipo": "plan",
+        "imagen": "",
+        "programa": "festival-artes",
+        "titulo": "Exposiciones de la Escuela de Artes Visuales EFAC",
+        "lugar_nombre": "Casona Quinta Balmoral",
+        "fecha_inicio": ini,
+        "fecha_fin": fin,
+    }
+    db.collection("eventos").document("expo-1").set(guardado)
+    db.collection("eventos").document("expo-2").set(guardado)
+    candidato = {
+        "titulo": guardado["titulo"],
+        "inicio": int(ini.timestamp() * 1000),
+        "fin": int(fin.timestamp() * 1000),
+        "lugar_nombre": guardado["lugar_nombre"],
+        "enlace": "https://www.fusagasuga.gov.co/noticias/festival",
+        "programa": "festival-artes",
+    }
+    r = agenda.guardar(db, None, [candidato], ahora)
+    assert r["duplicados"] == 1 and r["publicados"] == 0 and r["pendientes"] == 0
+    assert r["unidos"] == 1
+    assert len(list(db.collection("eventos").stream())) == 1

@@ -44,6 +44,12 @@ class RepoAvisosFalso:
                 "estado": "aprobada",
                 "uid": "otro",
             },
+            ("reclamos_comercio", "c354__otro"): {
+                "comercio_nombre": "Droguería La Rebaja Plus 3",
+                "estado": "rechazado",
+                "motivo_rechazo": "La foto no se ve",
+                "usuario_uid": "otro",
+            },
             ("usuarios", "duena"): {"nombre": "Marcela Estrella", "notificaciones_push": True},
             ("usuarios", "organiza"): {"nombre": "Pedro", "notificaciones_push": False},
             ("usuarios", "otro"): {"nombre": "Luz"},
@@ -175,6 +181,12 @@ def test_entrada_invalida_422(avisar):
         ("premium", "aprobado", "¡X ya es Premium en Fusa Conecta!"),
         ("premium", "rechazado", "Revisamos la solicitud Premium de X: Fecha pasada."),
         ("reclamo", "rechazado", "Revisamos tu reclamo de X: Fecha pasada."),
+        ("reclamo_comercio", "aprobado", "Ya administras X en Fusa Conecta. Complétalo desde Mi negocio."),
+        (
+            "reclamo_comercio",
+            "rechazado",
+            "No aprobamos tu solicitud para X: Fecha pasada. Puedes reclamarlo de nuevo desde su ficha.",
+        ),
     ],
 )
 def test_mensajes(tipo, resultado, esperado):
@@ -492,3 +504,13 @@ def test_empleo_pendiente_avisa_a_los_admin(pendiente):
     pendiente.repo.docs[("empleos", "e2")] = {"titulo": "Cocinero", "estado": "pendiente", "autor_uid": "duena"}
     j = pendiente.post("empleo", "e2").json()
     assert j["nuevos"] == 2 and pendiente.fcm.enviados[-1]["titulo"] == "Oferta de empleo por aprobar"
+
+
+def test_reclamo_comercio_rechazado_avisa_con_el_motivo(avisar):
+    """Fase 5: el reclamo verificado vive en reclamos_comercio y avisa a quien reclamó."""
+    j = avisar.post("reclamo_comercio", "c354__otro", "rechazado").json()
+    assert j["novedad"] is True and j["destinatario"] == "Luz"
+    nov = avisar.repo.novedades["otro/reclamo_comercio-c354__otro-rechazado"]
+    assert "La foto no se ve" in nov["mensaje"] and nov["enlace"] == "#/perfil"
+    # Aún no está aprobado: no se puede avisar como aprobado
+    assert avisar.post("reclamo_comercio", "c354__otro", "aprobado").status_code == 409

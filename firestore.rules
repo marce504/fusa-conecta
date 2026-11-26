@@ -91,6 +91,59 @@ service cloud.firestore {
     }
 
     /* ---------- Comercios ---------- */
+    /* ---------- Reclamos de comercios (Fase 5) ----------
+       id = <comercio_id>__<uid>: un solo reclamo por comercio y persona; dos personas pueden reclamar el mismo comercio.
+       La persona crea y lee los suyos y, si se lo rechazan, puede volver a enviarlo. La decisión (aprobar o rechazar) la
+       toma la API con su cuenta de servicio (POST /v1/reclamos/{id}/decision): solo un admin, nunca sobre su propio
+       reclamo. Ningún navegador escribe la decisión ni propietario_uid. El admin lee y borra. */
+    function sinDueno(cid) {
+      return !exists(/databases/$(database)/documents/comercios/$(cid))
+        || get(/databases/$(database)/documents/comercios/$(cid)).data.get('propietario_uid', null) == null;
+    }
+    function reclamoValido(d, id) {
+      return d.keys().hasOnly(['comercio_id', 'comercio_nombre', 'usuario_uid', 'nombre', 'cargo', 'telefono', 'metodo',
+                               'con_prueba', 'correo', 'estado', 'consentimiento_ley1581', 'fecha_solicitud',
+                               'fecha_consentimiento'])
+        && d.keys().hasAll(['comercio_id', 'comercio_nombre', 'usuario_uid', 'nombre', 'cargo', 'telefono', 'metodo',
+                            'con_prueba', 'estado', 'consentimiento_ley1581', 'fecha_solicitud', 'fecha_consentimiento'])
+        && d.comercio_id is string && d.comercio_id.size() > 0 && d.comercio_id.size() <= 120
+        && id == d.comercio_id + '__' + request.auth.uid
+        && d.usuario_uid == request.auth.uid
+        && d.estado == 'pendiente'
+        && d.comercio_nombre is string && d.comercio_nombre.size() <= 120
+        && d.nombre is string && d.nombre.size() >= 3 && d.nombre.size() <= 80
+        && d.cargo in ['dueño', 'administrador']
+        && d.telefono is string && d.telefono.matches('^[0-9]{7,10}$')
+        && d.metodo in ['codigo', 'documento']
+        && d.con_prueba == (d.metodo == 'documento')
+        && d.get('correo', '') is string && d.get('correo', '').size() <= 120
+        && d.consentimiento_ley1581 == true
+        && d.fecha_solicitud == request.time && d.fecha_consentimiento == request.time
+        && sinDueno(d.comercio_id);
+    }
+    match /reclamos_comercio/{id} {
+      allow create: if cuentaReal() && reclamoValido(request.resource.data, id);
+      allow read: if esAdmin() || (cuentaReal() && resource.data.usuario_uid == request.auth.uid);
+      // Volver a reclamar después de un rechazo (el documento se reemplaza completo)
+      allow update: if cuentaReal() && resource.data.usuario_uid == request.auth.uid && resource.data.estado == 'rechazado'
+          && reclamoValido(request.resource.data, id);
+      allow delete: if esAdmin();
+
+      // Foto de la prueba (≈ 200 KB en WebP, como las fotos de los negocios): la envía quien reclama, la ve el admin
+      match /prueba/{doc} {
+        function reclamoDespues() { return getAfter(/databases/$(database)/documents/reclamos_comercio/$(id)).data; }
+        allow create, update: if cuentaReal() && doc == 'foto'
+          && reclamoDespues().usuario_uid == request.auth.uid && reclamoDespues().estado == 'pendiente'
+          && request.resource.data.keys().hasOnly(['data', 'fecha'])
+          && request.resource.data.data is string && request.resource.data.data.size() <= 280000
+          && request.resource.data.data.matches('^data:image/(webp|jpeg);base64,.*')
+          && request.resource.data.fecha == request.time;
+        allow read: if esAdmin()
+          || (cuentaReal() && get(/databases/$(database)/documents/reclamos_comercio/$(id)).data.usuario_uid == request.auth.uid);
+        allow delete: if esAdmin();
+      }
+    }
+
     match /comercios/{id} {
       // Público: solo aprobados. El dueño ve los suyos en cualquier estado. El admin, todos.
       allow read: if resource.data.get('estado_publicacion', '') == 'aprobado'
@@ -98,7 +151,8 @@ service cloud.firestore {
         || esAdmin();
       // Cualquier persona con cuenta registra un negocio: entra "pendiente" de revisión, sin Premium y con máx. 4 fotos.
       // El admin crea la copia en la nube de un lugar del directorio (datos.js) al corregirlo o subirle fotos.
-      allow create: if esAdmin()
+      // Fase 5: ningún navegador pone dueño a un comercio existente ni a la copia de uno del directorio: lo hace la API
+      allow create: if (esAdmin() && request.resource.data.get('propietario_uid', null) == null)
         || (tienePerfil()
         && request.resource.data.get('fotos', []).size() <= 4
         && request.resource.data.propietario_uid == request.auth.uid
@@ -113,7 +167,7 @@ service cloud.firestore {
         && request.resource.data.get('imagen', '').size() <= 56000);
       // El dueño edita su ficha, pero solo el admin cambia publicación, Premium y prioridad.
       // Excepción: el dueño puede reenviar a revisión un comercio rechazado.
-      allow update: if esAdmin()
+      allow update: if (esAdmin() && !cambia(['propietario_uid']))
         || (cuentaReal() && resource.data.get('propietario_uid', '') == request.auth.uid
             && !cambia(['propietario_uid', 'esPremium', 'suscripcion_vigente_hasta', 'prioridadBusqueda', 'prueba_usada', 'plan', 'fecha_aprobacion'])
             && request.resource.data.get('fotos', []).size() <= (premiumVigente(resource.data) ? 10 : 4)
@@ -438,7 +492,8 @@ service cloud.firestore {
     function eventoValido(d) {
       return d.keys().hasOnly(['titulo', 'descripcion', 'categoria', 'fecha_inicio', 'fecha_fin', 'lugar_nombre', 'lat', 'lng', 'municipio',
           'imagen', 'organizador', 'enlace_fuente', 'gratis', 'precio', 'estado', 'origen', 'creado_por', 'fecha_creacion', 'motivo', 'demo',
-          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar'])
+          'fuente_oficial', 'tipo', 'programa', 'sin_hora_fin', 'fuentes', 'hora_por_confirmar', 'lugar_por_confirmar',
+          'foto_credito', 'foto_fuente'])
         && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
         && campoTexto(d, 'descripcion', 1000) && campoTexto(d, 'organizador', 80) && campoTexto(d, 'precio', 60) && campoTexto(d, 'motivo', 200)
         && d.categoria in ['cultura', 'musica', 'deporte', 'gastronomia', 'feria', 'religioso', 'institucional', 'otro']
@@ -456,6 +511,9 @@ service cloud.firestore {
         && d.get('fuentes', []) is list && d.get('fuentes', []).size() <= 5
         // v8: plan para la gente o aviso del municipio (jornadas de salud, vacunación, cortes de servicio)
         && d.get('tipo', 'plan') in ['plan', 'aviso']
+        // Fase 6: de quién es la foto y de dónde salió
+        && campoTexto(d, 'foto_credito', 120)
+        && d.get('foto_fuente', '') in ['', 'propia', 'oficial', 'generica']
         && (d.get('imagen', '') == '' || (d.imagen is string && d.imagen.matches('data:image/(webp|jpeg);base64,.*') && d.imagen.size() <= 360000))
         && (d.get('enlace_fuente', '') == '' || (d.enlace_fuente is string && d.enlace_fuente.matches('https://[^ ]+') && d.enlace_fuente.size() <= 500))
         && d.estado in ['pendiente', 'publicado', 'rechazado']
@@ -604,10 +662,12 @@ service cloud.firestore {
     }
 
     /* ---------- Moderación general (CU-18) ----------
-       El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque. */
+       El admin puede todo, salvo en banners, eventos y rutas de la comunidad: ahí también debe cumplir la validación de su bloque.
+       Fase 5: tampoco en comercios ni reclamos_comercio, para que ningún navegador asigne el dueño ni decida un reclamo. */
     match /{coleccion}/{documento=**} {
       allow read: if esAdmin();
-      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'empleos', 'eventos', 'perdidos', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
+      allow write: if esAdmin() && !(coleccion in ['alertas', 'banners', 'comercios', 'empleos', 'eventos', 'perdidos',
+        'reclamos_comercio', 'rutas_comunidad', 'rutas_oficiales', 'transporte']);
     }
   }
 }

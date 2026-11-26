@@ -79,17 +79,24 @@
   --sombra-texto:0 1px 3px rgba(27,31,59,.55);
   --whatsapp:#25D366;       /* logo oficial; el glifo blanco va encima (marca: exento de contraste) */
   --google-azul:#4285F4;--google-verde:#34A853;--google-amarillo:#FBBC05;--google-rojo:#EA4335;
-  /* Tipografía (Poppins): pantalla 26 px, sección 18 px, texto 16 px, metadatos 13 px, números 30 px */
-  --font:'Poppins',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --text-2xs:11px;--text-xs:13px;--text-sm:14px;--text-base:16px;--text-lg:18px;--text-xl:22px;--text-2xl:26px;--text-num:30px;
+  /* Tipografía (Poppins) en rem (16 px = 1 rem) para que crezca con «Tamaño de letra» (Perfil → Apariencia) y con el
+     tamaño de letra del teléfono. U7: nada por debajo de 14 px; el texto de lectura va a 16 px.
+     Pantalla 26 px, sección 18 px, texto 16 px, metadatos y etiquetas 14 px, números 30 px */
+  --font:'Poppins','Poppins respaldo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --text-2xs:.875rem;--text-xs:.875rem;--text-sm:.875rem;--text-base:1rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.625rem;--text-num:1.875rem;
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
 }
 
 
 /* ---------- Base ---------- */
+/* Mientras carga Poppins (font-display: swap) se usa Arial ajustada a sus medidas: el texto no salta al cambiar */
+@font-face{font-family:'Poppins respaldo';src:local('Arial'),local('Helvetica'),local('Roboto');size-adjust:112%;ascent-override:93%;descent-override:31%;line-gap-override:9%}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
+/* Tamaño de letra (Perfil → Apariencia): todo el texto está en rem y crece con <html> */
+html[data-letra="grande"]{font-size:118%}
+html[data-letra="muy-grande"]{font-size:135%}
 body{font-family:var(--font);font-size:var(--text-base);line-height:1.5;color:var(--ink-2);background:var(--soft);-webkit-font-smoothing:antialiased;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
 h1,h2,h3{color:var(--ink);font-weight:600;line-height:1.25}
 button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -123,21 +130,21 @@ button:disabled{opacity:.6;pointer-events:none}
 .btn-primario:active{background:var(--primary-700)}
 .btn-secundario{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
 .btn-secundario:hover{background:var(--soft)}
-.btn-ghost{background:none;color:var(--primary-700);min-height:44px;padding:0 12px}
+.btn-ghost{background:none;color:var(--primary-700);min-height:48px;padding:0 12px}
 .btn-ghost:hover{background:var(--primary-50)}
 .btn-tonal{background:var(--primary-50);color:var(--primary-700)}
 .btn-tonal:hover{background:var(--primary-100)}
 .btn-peligro{background:var(--danger-600);color:var(--blanco)}
 .btn[disabled],.btn.desactivado{background:var(--soft);color:var(--ink-3);border-color:var(--soft);box-shadow:none}
 .btn-bloque{width:100%}
-.btn-sm{min-height:44px;padding:0 14px;font-size:var(--text-sm)}
-.btn-ico{width:44px;min-width:44px;height:44px;min-height:44px;padding:0;border-radius:var(--radius-md)}
+.btn-sm{min-height:48px;padding:0 14px;font-size:var(--text-sm)}
+.btn-ico{width:48px;min-width:48px;height:48px;min-height:48px;padding:0;border-radius:var(--radius-md)}
 .ic-wa{color:var(--whatsapp)}
-.btn-wa{width:44px;height:44px;min-width:44px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--whatsapp);color:var(--blanco);flex-shrink:0;transition:transform var(--t)}
+.btn-wa{width:48px;height:48px;min-width:48px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--whatsapp);color:var(--blanco);flex-shrink:0;transition:transform var(--t)}
 .btn-wa:active{transform:scale(.94)}
 .btn-wa-ficha{background:var(--bg);border:1px solid var(--line);color:var(--ink)}
 .btn-wa-ficha .ic{color:var(--whatsapp)}
-.btn-redondo{width:44px;height:44px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--bg);color:var(--ink);box-shadow:var(--shadow-sm);transition:background var(--t),color var(--t)}
+.btn-redondo{width:48px;height:48px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--bg);color:var(--ink);box-shadow:var(--shadow-sm);transition:background var(--t),color var(--t)}
 .btn-redondo:hover{background:var(--soft)}
 .cerrar{position:absolute;top:12px;right:12px;z-index:5}
 .enlace{color:var(--primary-700);text-decoration:underline;font-weight:500;font-size:inherit;padding:0}
@@ -149,18 +156,21 @@ button:disabled{opacity:.6;pointer-events:none}
 .topbar:focus-within{overflow:visible}
 .nav-row{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px}
 .topbar.en-lista .nav-row{display:none}
-.nav-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm);font-weight:500;transition:background var(--t)}
+.nav-btn{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 16px 0 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm);font-weight:500;transition:background var(--t)}
 .nav-btn:hover{background:var(--line)}
 .nav-btn.invisible{display:none}
+/* E6: nombre de la pestaña a la izquierda de la barra superior */
+.nav-titulo{font-size:var(--text-xl);font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-titulo[hidden]{display:none}
 .descubre{padding:12px 16px}
 .sesion{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;margin-bottom:8px}
-.sesion-acciones{display:flex;align-items:center;gap:6px}
+.sesion-acciones{display:flex;align-items:center;gap:8px}
 /* SOS siempre visible: píldora roja en la cabecera (36 px de alto, 44 px de área táctil) */
 .sos-pill{position:relative;display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 12px 0 10px;border-radius:var(--radius-full);background:var(--danger-50);color:var(--danger-700);font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;flex-shrink:0;transition:transform var(--t)}
-.sos-pill::before{content:"";position:absolute;inset:-4px -2px}
+.sos-pill::before{content:"";position:absolute;inset:-6px -2px}
 .sos-pill:active{transform:scale(.96)}
 .sos-pill .ic{color:var(--danger-700)}
-.btn-cuenta{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;flex-shrink:0}
+.btn-cuenta{width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;flex-shrink:0}
 .btn-cuenta .av,.btn-cuenta>.ic{width:36px;height:36px}
 .btn-cuenta>.ic{padding:7px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700)}
 /* Saludo según la hora del día */
@@ -171,8 +181,14 @@ button:disabled{opacity:.6;pointer-events:none}
 .av{width:32px;height:32px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;font-weight:600;font-size:var(--text-sm)}
 .buscador{position:relative}
 .buscador>.ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ink-2);pointer-events:none}
-.buscador input{width:100%;min-height:48px;border:1px solid var(--line);border-radius:var(--radius-full);padding:0 52px 0 48px;background:var(--bg);box-shadow:var(--sombra-buscador);outline:none;transition:border-color var(--t),box-shadow var(--t)}
+.buscador input{width:100%;min-height:52px;border:1px solid var(--line);border-radius:var(--radius-full);padding:0 52px 0 48px;background:var(--bg);box-shadow:var(--sombra-buscador);outline:none;transition:border-color var(--t),box-shadow var(--t)}
 .buscador input::placeholder{color:var(--ink-2)}
+/* E4: X propia para borrar (44×44) a la izquierda de Filtros; se oculta la del navegador */
+.buscador input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.buscador.con-texto input{padding-right:96px}
+.btn-borrar{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);background:var(--soft)}
+.btn-borrar[hidden]{display:none}
+.btn-borrar:hover{color:var(--ink)}
 .buscador input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--primary-100)}
 .sugerencias{position:absolute;left:0;right:0;top:calc(100% + 8px);background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);z-index:40;overflow:hidden;display:none}
 .sugerencias.ver{display:block}
@@ -182,6 +198,10 @@ button:disabled{opacity:.6;pointer-events:none}
 .sg-tx b{display:block;font-size:var(--text-sm);font-weight:500;color:var(--ink)}
 .sg-tx small{font-size:var(--text-xs);color:var(--ink-2)}
 .sg-vacio{padding:12px 16px;font-size:var(--text-sm);color:var(--ink-2)}
+/* E2: «¿Quisiste decir…?» con la palabra propuesta como enlace tocable */
+.quisiste{padding:0 16px 12px;font-size:var(--text-base);color:var(--ink)}
+.vacio .quisiste{padding:8px 0}
+.quisiste .enlace,.sugerencias .quisiste .enlace{display:inline-flex;width:auto;min-height:48px;padding:0 4px;border:0;font-weight:700}
 
 /* ---------- Filas de chips (scroll horizontal + degradado de "hay más") ---------- */
 .fila-chips{position:relative;margin:12px -16px 0}
@@ -192,7 +212,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .cat:hover{background:var(--line)}
 .cat.activa{background:var(--primary-500);color:var(--blanco)}
 .cat.activa[data-cat]:not([data-cat="todas"]){background:var(--cc-bg);color:var(--cc-texto,var(--cc));box-shadow:inset 0 0 0 1px var(--cc-borde,var(--cc))}
-.cat::before,.subcat::before,.chip-filtro::before{content:"";position:absolute;inset:-4px 0}
+.cat::before,.subcat::before,.chip-filtro::before{content:"";position:absolute;inset:-6px 0}
 .fila-sub{margin-top:4px}
 .fila-sub.vacia{display:none}
 .subcat{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-sm);font-weight:500;white-space:nowrap;position:relative;transition:background var(--t),color var(--t)}
@@ -218,7 +238,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .fallback-ic{width:40px;height:40px;border-radius:var(--radius-full);background:var(--cc-bg,var(--primary-50));color:var(--cc,var(--primary-700));display:grid;place-items:center}
 .badge-dest{position:absolute;top:12px;left:12px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:var(--radius-sm);background:var(--sun-400);color:var(--tinta-fija);font-size:var(--text-xs);font-weight:600;line-height:1.5}
 .badge-dest .ic{color:var(--ink)}
-.fav-btn{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;display:grid;place-items:center}
+.fav-btn{position:absolute;top:8px;right:8px;z-index:2;width:48px;height:48px;display:grid;place-items:center}
 .fav-btn span{width:40px;height:40px;border-radius:var(--radius-full);background:var(--bg);box-shadow:var(--shadow-sm);display:grid;place-items:center;color:var(--ink-2);transition:color var(--t),transform var(--t)}
 .fav-btn.on span{color:var(--primary-500)}
 .fav-btn.on .ic{fill:currentColor}
@@ -232,7 +252,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .nuevo{font-size:var(--text-xs);color:var(--ink-2)}
 .card-dir{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:var(--text-sm);color:var(--ink-2);white-space:nowrap;overflow:hidden}
 .card-dir span{overflow:hidden;text-overflow:ellipsis}
-.card-desc{margin-top:8px;font-size:var(--text-sm);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-desc{margin-top:8px;font-size:var(--text-base);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-acc{display:flex;gap:8px;margin-top:16px}
 .card-acc [data-ver]{flex:1}
 
@@ -242,6 +262,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .estado.ab{color:var(--mint-700)}
 .estado.ab .punto{background:var(--mint-600)}
 .estado.cerr{color:var(--ink-2)}
+/* U2: sin horario publicado: neutro, con un anillo en vez del punto lleno */
+.estado.sin{color:var(--ink-2)}
+.estado.sin .punto{background:none;border:2px solid var(--ink-3)}
 .estado.pronto{color:var(--warning-700)}
 .estado.pronto .punto{background:var(--warning-600)}
 
@@ -249,14 +272,14 @@ button:disabled{opacity:.6;pointer-events:none}
 .vacio{text-align:center;padding:48px 16px;color:var(--ink-2)}
 .vacio>.ic{color:var(--ink-3);margin:0 auto 12px;display:block}
 .vacio b{display:block;color:var(--ink);font-weight:600;font-size:var(--text-base);margin-bottom:4px}
-.vacio p{font-size:var(--text-sm)}
+.vacio p{font-size:var(--text-base)}
 .sug-cats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px}
 
 /* ---------- Footer ---------- */
 .footer{padding:24px 16px;border-top:1px solid var(--line);text-align:center;font-size:var(--text-xs);color:var(--ink-2)}
 .footer .logo{margin:0 auto 14px}
 .f-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0}
-.f-links button{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:var(--primary-700);font-size:var(--text-xs);font-weight:500}
+.f-links button{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 12px;color:var(--primary-700);font-size:var(--text-xs);font-weight:500}
 
 /* ---------- Pantalla de bienvenida ---------- */
 .splash{position:absolute;inset:0;z-index:50;overflow:hidden;background:var(--primary-500);color:var(--blanco);transition:opacity .3s ease-out,transform .3s ease-out}
@@ -267,7 +290,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .splash-cta .btn{min-height:52px;width:100%}
 /* v7 · Fase 5: los botones aparecen cuando la app está lista; si tarda más de 8 s, el aviso ocupa su lugar */
 .splash:not(.lista) .splash-cta{visibility:hidden}
-.splash-lento{position:relative;display:flex;flex-direction:column;gap:12px;text-align:center}
+/* CLS: «Cargando… revisa tu conexión» va sobre la zona de los botones; el logo no se mueve al aparecer */
+.splash-lento{position:absolute;left:24px;right:24px;bottom:calc(24px + var(--safe-b));display:flex;flex-direction:column;gap:12px;text-align:center}
 .splash-lento[hidden]{display:none}
 .splash-lento p{font-size:var(--text-base);font-weight:500}
 .splash-lento .btn{min-height:52px;width:100%}
@@ -285,18 +309,18 @@ button:disabled{opacity:.6;pointer-events:none}
 .mc-ic{width:56px;height:56px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;margin:0 auto 12px}
 .mc-ic.peligro{background:var(--danger-50);color:var(--danger-600)}
 .modal-card h3{font-size:var(--text-xl);margin-bottom:8px}
-.modal-card p{font-size:var(--text-sm);color:var(--ink-2);margin-bottom:20px}
+.modal-card p{font-size:var(--text-base);color:var(--ink-2);margin-bottom:20px}
 .modal-acc{display:flex;gap:8px}
 .modal-acc .btn{flex:1}
 .mc-pie{margin-top:12px;font-size:var(--text-xs);color:var(--ink-2)}
-.check{display:flex;align-items:flex-start;gap:12px;min-height:44px;font-size:var(--text-sm);color:var(--ink-2);text-align:left;cursor:pointer;padding:4px 0}
+.check{display:flex;align-items:flex-start;gap:12px;min-height:48px;font-size:var(--text-sm);color:var(--ink-2);text-align:left;cursor:pointer;padding:4px 0}
 .check input{width:20px;height:20px;margin-top:2px;flex-shrink:0;accent-color:var(--primary-700)}
 .modal-card .check{margin:-8px 0 16px}
 .hoja-pad{padding:24px 16px}
 .hoja-centro{text-align:center}
 .hoja-centro .mc-ic{width:64px;height:64px}
 .hoja-centro h2{font-size:var(--text-xl);margin-bottom:4px}
-.hoja-centro>p{font-size:var(--text-sm);color:var(--ink-2)}
+.hoja-centro>p{font-size:var(--text-base);color:var(--ink-2)}
 .nota{font-size:var(--text-xs);color:var(--ink-2);margin-top:12px}
 
 /* ---------- Ficha del lugar ---------- */
@@ -304,7 +328,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .det-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .det-hero .badge-dest{top:auto;bottom:12px}
 .pill-cat{position:absolute;top:12px;left:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-full);background:var(--blanco-92);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:var(--tinta-fija);font-size:var(--text-xs);font-weight:500}
-.det-top-acc{position:absolute;top:12px;right:12px;z-index:3;display:flex;gap:8px}
+/* E5: barra fija arriba de la hoja. Mide 0 de alto para no empujar la foto; los botones quedan encima con fondo sólido y sombra */
+.det-top-acc{position:sticky;top:0;z-index:6;height:0;display:flex;justify-content:flex-end;gap:8px;padding:0 12px;overflow:visible}
+.det-top-acc .btn-redondo{margin-top:12px;box-shadow:0 2px 8px rgba(27,31,59,.28)}
 .det-top-acc .btn-redondo.on{color:var(--primary-500)}
 .det-top-acc .btn-redondo.on .ic{fill:currentColor}
 .det-body{padding:16px 16px 0}
@@ -318,6 +344,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .fila-dato>.ic{color:var(--ink-2);margin-top:2px}
 .fila-dato small{display:block;font-size:var(--text-xs);color:var(--ink-2)}
 .fila-dato span{display:block;font-size:var(--text-base);color:var(--ink)}
+/* U6: los enlaces de los datos (fuente, correo, sitio web) se tocan en 48 px de alto */
+.fila-dato span a{display:inline-flex;align-items:center;min-height:48px}
 .bloque{border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
 .bloque-tit{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);font-weight:600;color:var(--ink);margin-bottom:8px}
 .bloque-cupon{background:var(--sun-50);border:1px solid var(--sun-borde)}
@@ -340,11 +368,14 @@ button:disabled{opacity:.6;pointer-events:none}
 .det-acc-fija .btn{flex:1;padding:0 8px;font-size:var(--text-sm)}
 .seccion-det{margin-top:24px}
 .seccion-det h3{font-size:var(--text-lg);margin-bottom:12px}
-.star-sel{display:flex;gap:4px;margin-bottom:12px}
-.star-sel button{width:44px;height:44px;display:grid;place-items:center;color:var(--line);transition:color var(--t),transform var(--t)}
-.star-sel button.on{color:var(--sun-400)}
+/* U5: vacías = solo el borde en tinta 2 (6:1 sobre blanco); elegidas = relleno sol con borde ámbar */
+.star-sel{display:flex;gap:4px}
+.star-sel button{width:48px;height:48px;display:grid;place-items:center;color:var(--ink-2);transition:color var(--t),transform var(--t)}
+.star-sel .ic{fill:none;stroke-width:2}
+.star-sel button.on{color:var(--sun-800)}
+.star-sel button.on .ic{fill:var(--sun-400)}
 .star-sel button:active{transform:scale(1.15)}
-.star-sel .ic{fill:currentColor}
+.star-ayuda{margin:4px 0 12px;font-size:var(--text-base);font-weight:600;color:var(--ink)}
 .opiniones{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .opinion{background:var(--soft);border-radius:var(--radius-md);padding:12px}
 .op-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
@@ -352,9 +383,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .op-stars{display:flex;gap:2px;color:var(--line)}
 .op-stars .on{color:var(--sun-400)}
 .op-stars .ic{fill:currentColor}
-.op-text{font-size:var(--text-sm);color:var(--ink-2)}
+.op-text{font-size:var(--text-base);color:var(--ink-2)}
 .op-fecha{display:block;font-size:var(--text-xs);color:var(--ink-2);margin-top:4px}
-.nota-c{font-size:var(--text-sm);color:var(--ink-2);text-align:center;padding:8px 0}
+.nota-c{font-size:var(--text-base);color:var(--ink-2);text-align:center;padding:8px 0}
 .nota-c.izq{text-align:left}
 
 /* ---------- Formularios ---------- */
@@ -370,10 +401,10 @@ button:disabled{opacity:.6;pointer-events:none}
 .ayuda{font-size:var(--text-xs);color:var(--ink-2);margin-top:4px}
 .form-head{padding:24px 16px 8px}
 .form-head h2{font-size:var(--text-xl)}
-.form-head p{font-size:var(--text-sm);color:var(--ink-2);margin-top:4px}
+.form-head p{font-size:var(--text-base);color:var(--ink-2);margin-top:4px}
 .form-body{padding:8px 16px 24px}
 .dias-sel{display:flex;flex-wrap:wrap;gap:8px}
-.dias-sel label{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full);font-size:var(--text-sm);cursor:pointer}
+.dias-sel label{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full);font-size:var(--text-sm);cursor:pointer}
 .dias-sel input{accent-color:var(--primary-700)}
 .horas-row{display:flex;gap:12px}
 .horas-row>div{flex:1}
@@ -383,13 +414,26 @@ button:disabled{opacity:.6;pointer-events:none}
 .login-head{padding:24px 16px 8px;text-align:center}
 .login-head .logo{margin:0 auto 12px}
 .login-head h2{font-size:var(--text-xl)}
-.login-head p{font-size:var(--text-sm);color:var(--ink-2);margin-top:4px}
+.login-head p{font-size:var(--text-base);color:var(--ink-2);margin-top:4px}
 .login-body{padding:8px 16px 24px;display:flex;flex-direction:column;gap:12px}
 .seg{display:flex;gap:4px;padding:4px;background:var(--soft);border-radius:var(--radius-md)}
-.seg button{flex:1;min-height:44px;border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:500;color:var(--ink-2);transition:background var(--t),color var(--t)}
+.seg button{flex:1;min-height:48px;border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:500;color:var(--ink-2);transition:background var(--t),color var(--t)}
 .seg button.on{background:var(--bg);color:var(--ink);box-shadow:var(--shadow-sm)}
 /* Apariencia: 4 opciones en 2 columnas (v7 · Fase 6) */
 .seg.seg-tema{display:grid;grid-template-columns:1fr 1fr}
+/* Selector de tamaño de letra: tres opciones grandes con su «Aa» de muestra */
+.sub-tit{font-size:var(--text-base);font-weight:600;color:var(--ink);margin:20px 0 8px}
+.letra-ops{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.letra-op{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;min-height:88px;padding:10px 4px;border:2px solid var(--line);border-radius:var(--radius-md);background:var(--bg);color:var(--ink);font-size:var(--text-sm);font-weight:600;text-align:center;line-height:1.2}
+.letra-op.on{border-color:var(--primary-500);background:var(--primary-50);color:var(--primary-700)}
+.letra-muestra{font-weight:700;line-height:1}
+.letra-previa{margin-top:10px;font-size:var(--text-base);color:var(--ink)}
+/* Primer uso: «¿Quieres la letra más grande?» en el Inicio */
+.oferta-letra{margin-bottom:16px;padding:16px;border-radius:var(--radius-lg);background:var(--primary-50);color:var(--ink)}
+.oferta-letra h2{font-size:var(--text-lg);line-height:1.3}
+.oferta-letra p{margin-top:4px;font-size:var(--text-base);color:var(--ink-2)}
+.oferta-acc{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.oferta-acc .btn{flex:1 1 140px}
 .seg.seg-tema button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .login-aviso{display:none;align-items:flex-start;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px;font-size:var(--text-sm);color:var(--ink-2)}
 .btn-google .g-b{fill:var(--google-azul)}
@@ -407,7 +451,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .perfil-card{text-align:center;padding:8px 0 16px}
 .pf-av{width:64px;height:64px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);font-size:var(--text-xl);font-weight:600;display:grid;place-items:center;margin:0 auto 12px}
 .perfil-card h2{font-size:var(--text-xl)}
-.perfil-card p{font-size:var(--text-sm);color:var(--ink-2);margin:4px 0 12px}
+.perfil-card p{font-size:var(--text-base);color:var(--ink-2);margin:4px 0 12px}
 .pf-rol{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-full);background:var(--soft);color:var(--ink-2);font-size:var(--text-xs);font-weight:500}
 .pf-alerta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:12px;padding:12px;border-radius:var(--radius-md);background:var(--soft);border:1px solid var(--line);font-size:var(--text-sm);color:var(--ink-2)}
 .perfil-acc{display:flex;flex-direction:column;gap:8px;margin-top:16px}
@@ -427,7 +471,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .switch-row input{width:22px;height:22px;accent-color:var(--primary-700)}
 .dash-hero{padding:24px 16px 0}
 .dash-hero h2{font-size:var(--text-2xl)}
-.dash-hero p{font-size:var(--text-sm);color:var(--ink-2);margin-top:4px}
+.dash-hero p{font-size:var(--text-base);color:var(--ink-2);margin-top:4px}
 .dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
 .dash-stat{background:var(--soft);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px 8px;text-align:center}
 .ds-n{font-size:var(--text-num);font-weight:600;color:var(--ink)}
@@ -454,18 +498,27 @@ button:disabled{opacity:.6;pointer-events:none}
 .sos-head p .ic{color:var(--mint-700)}
 .sos-head.tr-head{background:var(--primary-50)}
 .sos-head.tr-head h2{color:var(--primary-700)}
-.sos-nota{font-size:var(--text-sm);color:var(--ink-2);margin-top:12px}
-.sos-grupo{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);margin:24px 0 4px}
+.sos-nota{font-size:var(--text-base);color:var(--ink-2);margin-top:12px}
+.sos-grupo{font-size:var(--text-base);font-weight:600;color:var(--ink);margin:24px 0 4px}
 .sos-fila{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--soft)}
 .sos-ic{width:40px;height:40px;border-radius:var(--radius-full);background:var(--danger-50);color:var(--danger-600);display:grid;place-items:center;flex-shrink:0}
 .sos-info{flex:1;min-width:0}
 .sos-info b{display:block;font-size:var(--text-base);font-weight:600;color:var(--ink);line-height:1.25}
 .sos-info span{display:block;font-size:var(--text-sm);color:var(--ink-2)}
 .sos-num{font-weight:600;color:var(--ink)}
-.sos-llamar{width:44px;height:44px;border-radius:var(--radius-full);border:1px solid var(--danger-50);background:var(--danger-50);color:var(--danger-600);display:grid;place-items:center;flex-shrink:0;transition:background var(--t),border-color var(--t)}
+.sos-llamar{width:48px;height:48px;border-radius:var(--radius-full);border:1px solid var(--danger-50);background:var(--danger-50);color:var(--danger-600);display:grid;place-items:center;flex-shrink:0;transition:background var(--t),border-color var(--t)}
 .sos-llamar:hover{background:var(--bg);border-color:var(--danger-600)}
 .sos-llamar.sos-ver{border-color:var(--soft);background:var(--bg);color:var(--ink-2)}
 .sos-llamar.sos-ver:hover{border-color:var(--primary-500);color:var(--primary-600)}
+/* SOS más claro: «Llamar» con palabra y «Copiar número» debajo de los datos, en una fila que se acomoda a la letra grande */
+.sos-contacto{flex-wrap:wrap}
+.sos-acc{display:flex;flex-wrap:wrap;gap:8px;width:100%;padding-left:52px}
+.sos-acc .btn{flex:1 1 auto;min-height:48px;padding:0 14px}
+.sos-btn-llamar{background:var(--danger-600);color:var(--blanco)}
+.sos-btn-llamar:hover{background:var(--danger-700)}
+/* Confirmación de llamada: «Sí, llamar» en verde y grande (pedido expreso; el verde de la marca da 5,48:1 con blanco) */
+.btn-llamar-si{min-height:60px;font-size:var(--text-lg);background:var(--menta-fija);color:var(--blanco)}
+.btn-llamar-si:hover{filter:brightness(1.08)}
 .sos-fila .sos-info .estado{display:inline-flex;margin-top:4px}
 .sos-fila .sos-info .estado span{display:inline-block}
 .sos-turno{display:flex;gap:12px;align-items:flex-start;padding:12px;margin-top:8px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700)}
@@ -545,6 +598,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .ruta-tur{padding:14px;margin-top:10px;border:1px solid var(--soft);border-radius:var(--radius-lg);background:var(--bg)}
 .ruta-tur small{display:block;font-size:var(--text-xs);color:var(--ink-2);margin-top:2px}
 .ruta-tur p{margin:6px 0;font-size:var(--text-sm);color:var(--ink)}
+/* N1: las paradas son enlaces de texto: sin el «enlace estirado» de las tarjetas, que aquí tapaba toda la pantalla */
+.ruta-tur .tc-link::after{content:none}
 .rt-paradas{margin:4px 0 10px;padding-left:20px;font-size:var(--text-sm)}
 .rt-paradas li{margin:2px 0}
 .rt-paradas .tc-link{background:none;border:0;padding:0;font:inherit;color:var(--primary-700);text-decoration:underline;cursor:pointer;text-align:left}
@@ -554,19 +609,13 @@ button:disabled{opacity:.6;pointer-events:none}
 /* ---------- Barra inferior ---------- */
 .bottom-nav{position:relative;display:flex;align-items:stretch;flex-shrink:0;background:var(--bg);border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:var(--shadow-nav);padding:0 4px var(--safe-b);z-index:25}
 .bn-btn{position:relative;flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink-2);font-size:var(--text-2xs);font-weight:500;transition:color var(--dur-base) var(--ease-out)}
-.bn-btn::before{content:"";position:absolute;top:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:var(--radius-full);background:var(--primary-500);transform:scale(0);transition:transform var(--dur-base) var(--ease-spring)}
+.bn-btn::before{content:"";position:absolute;top:0;left:18%;right:18%;height:4px;border-radius:0 0 4px 4px;background:var(--primary-500);transform:scaleX(0);transition:transform var(--dur-base) var(--ease-out)}
 .bn-btn .ic{transition:transform var(--dur-base) var(--ease-spring)}
-.bn-btn.bn-active{color:var(--primary-500);font-weight:600}
-.bn-btn.bn-active::before{transform:scale(1)}
+.bn-btn.bn-active{color:var(--primary-700);font-weight:600;background:var(--primary-50)}
+.bn-btn.bn-active::before{transform:scaleX(1)}
 .bn-btn.bn-active .ic{transform:translateY(1px)}
 /* Botón central: círculo de 60 px elevado la mitad sobre la barra, anillo blanco de 4 px */
-.bn-centro{justify-content:flex-end;padding-bottom:7px}
-.bn-centro::before{display:none}
-.bn-fab{position:relative;width:60px;height:60px;margin-top:-30px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);border:4px solid var(--bg);box-shadow:var(--shadow-primary);display:grid;place-items:center;transition:transform var(--dur-base) var(--ease-spring),background var(--t)}
-.bn-centro:active .bn-fab{transform:scale(.94)}
-.bn-centro.bn-active .bn-fab{background:var(--primary-600);box-shadow:0 0 0 3px var(--primary-100),var(--shadow-primary)}
 .bn-ic{position:relative;display:grid;place-items:center}
-.bn-centro .bn-fab .ic{transform:none}
 .bn-badge{position:absolute;top:-8px;right:-14px;min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-full);background:var(--sun-400);color:var(--tinta-fija);border:2px solid var(--bg);font-size:var(--text-2xs);font-weight:700;display:grid;place-items:center}
 .bn-badge[hidden]{display:none}
 
@@ -616,8 +665,19 @@ button:disabled{opacity:.6;pointer-events:none}
 .codigo{font-size:var(--text-xl);font-weight:600;letter-spacing:.08em;color:var(--ink)}
 
 /* ---------- Avisos ---------- */
-.toast{position:fixed;left:50%;top:calc(72px + var(--safe-t));transform:translate(-50%,-12px);z-index:90;max-width:calc(100vw - 32px);width:max-content;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:var(--radius-md);font-size:var(--text-sm);text-align:center;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .18s ease-out,transform .18s ease-out}
+.toast{position:fixed;left:50%;top:calc(72px + var(--safe-t));transform:translate(-50%,-12px);z-index:90;max-width:calc(100vw - 32px);width:max-content;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:var(--radius-md);font-size:var(--text-base);text-align:center;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .18s ease-out,transform .18s ease-out}
 .toast.ver{opacity:1;transform:translate(-50%,0)}
+/* Con «Deshacer»: el aviso se puede tocar y la acción va subrayada en negrita (mismo color del texto en ambos temas) */
+.toast.con-accion{display:flex;align-items:center;gap:12px;text-align:left}
+.toast.con-accion.ver{pointer-events:auto}
+.toast-accion{flex-shrink:0;min-height:48px;padding:0 8px;font-weight:700;text-decoration:underline;color:inherit}
+/* Explicación corta de una etiqueta («Destacado», «Abierto», «Fuente oficial», la campana) */
+.globo-ayuda{position:fixed;z-index:120;padding:12px 14px;border-radius:var(--radius-md);background:var(--ink);color:var(--bg);box-shadow:var(--shadow-md)}
+.globo-ayuda p{font-size:var(--text-base);line-height:1.45}
+.globo-ayuda .btn{margin-top:10px}
+.explica{display:inline-flex;align-items:center;min-height:48px;padding:0;color:inherit;text-align:left}
+/* Corazón de la ficha con palabra: «Guardar» o «Guardado» */
+.btn-redondo.btn-con-texto{width:auto;display:inline-flex;gap:6px;padding:0 14px;font-size:var(--text-sm);font-weight:600}
 .offline-bar{display:none;align-items:center;justify-content:center;gap:8px;background:var(--ink);color:var(--bg);font-size:var(--text-xs);padding:6px 12px;flex-shrink:0;z-index:30}
 .offline-bar.ver{display:flex}
 .promo-banner{position:absolute;left:16px;right:16px;top:12px;z-index:60;display:flex;gap:12px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow-md);cursor:pointer;transform:translateY(calc(-100% - 60px));visibility:hidden;transition:transform .2s ease-out,visibility 0s linear .2s}
@@ -626,13 +686,13 @@ button:disabled{opacity:.6;pointer-events:none}
 .promo-banner b{display:block;font-size:var(--text-sm);font-weight:600;color:var(--ink)}
 .promo-banner span{font-size:var(--text-sm);color:var(--ink-2)}
 .inst-ic{width:72px;height:72px;border-radius:var(--radius-lg);margin:0 auto 12px;box-shadow:var(--shadow-sm)}
-.inst-pasos{text-align:left;margin:16px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:var(--text-sm);color:var(--ink-2)}
+.inst-pasos{text-align:left;margin:16px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:var(--text-base);color:var(--ink-2)}
 
 /* ---------- Apoyo, edad y aviso legal ---------- */
 .legal-body{padding:24px 16px}
 .legal-body h2{font-size:var(--text-xl);margin-bottom:12px}
 .legal-body h3{font-size:var(--text-base);margin:16px 0 4px}
-.legal-body p{font-size:var(--text-sm);color:var(--ink-2);margin-bottom:8px}
+.legal-body p{font-size:var(--text-base);color:var(--ink-2);margin-bottom:8px}
 .legal-body .btn{margin-top:16px}
 
 /* ---------- Animaciones ---------- */
@@ -650,7 +710,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .det-acc-fija .btn{gap:6px;white-space:nowrap;padding:0 6px}
 .det-acc-fija .btn .ic{width:18px;height:18px}
 .sos-info .sos-num{display:block;font-size:var(--text-sm);font-weight:600;color:var(--ink)}
-.mapa-head h2{white-space:nowrap}
+.mapa-head h2{min-width:0;overflow-wrap:anywhere}
 /* ---------- Fase 1: estado de publicación, campana y bandeja de Novedades ---------- */
 .chip-estado{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:500;max-width:100%}
 .chip-estado.pub{background:var(--mint-50);color:var(--mint-700)}
@@ -681,7 +741,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .wiz-pie .btn{flex:1}
 .wiz-mapa{height:220px;border-radius:var(--radius-lg);border:1px solid var(--line);overflow:hidden;margin-top:12px;z-index:1}
 .chips-dias{display:flex;flex-wrap:wrap;gap:8px}
-.chip-dia{min-width:56px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--bg);font-size:var(--text-sm);font-weight:500;color:var(--ink-2);transition:background var(--t),color var(--t),border-color var(--t)}
+.chip-dia{min-width:56px;min-height:48px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--bg);font-size:var(--text-sm);font-weight:500;color:var(--ink-2);transition:background var(--t),color var(--t),border-color var(--t)}
 .chip-dia.on{background:var(--primary-500);border-color:var(--primary-500);color:var(--blanco)}
 .foto-wiz{width:160px;height:160px;border-radius:var(--radius-lg);background:var(--soft);overflow:hidden;display:grid;place-items:center}
 .foto-wiz img{width:100%;height:100%;object-fit:cover}
@@ -698,7 +758,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .estado-card.pub{background:var(--mint-50)}.estado-card.pub>.ic{color:var(--mint-700)}
 .estado-card.rev{background:var(--sun-50)}.estado-card.rev>.ic{color:var(--sun-800)}
 .estado-card.rech{background:var(--danger-50)}.estado-card.rech>.ic{color:var(--danger-600)}
-.plan-fila{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px}
+.plan-fila{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px}
 .metricas{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .metrica{border:1px solid var(--line);border-radius:var(--radius-md);padding:12px;display:flex;flex-direction:column;gap:2px}
 .metrica .ic{color:var(--ink-2)}
@@ -728,26 +788,26 @@ button:disabled{opacity:.6;pointer-events:none}
 .det-pie{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:24px;padding-top:16px;border-top:1px solid var(--soft)}
 .enlace-discreto{position:relative;display:inline-flex;align-items:center;gap:4px;color:var(--ink-2);font-size:var(--text-xs);text-decoration:underline;padding:0}
 .enlace-discreto::before{content:"";position:absolute;inset:-14px -6px}
-.det-pie .enlace-discreto{min-height:44px}
+.det-pie .enlace-discreto{min-height:48px}
 .chips-motivo{display:flex;flex-wrap:wrap;gap:8px}
-.chips-motivo .chip-filtro{min-height:44px}
+.chips-motivo .chip-filtro{min-height:48px}
 /* ---------- Fase 2: panel de administración ---------- */
 .adm-tabs{display:flex;gap:4px;margin:16px 0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
 .adm-tabs::-webkit-scrollbar{display:none}
-.adm-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;font-size:var(--text-sm);font-weight:500;color:var(--ink-2);border-bottom:3px solid transparent;transition:color var(--t),border-color var(--t)}
+.adm-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 12px;font-size:var(--text-sm);font-weight:500;color:var(--ink-2);border-bottom:3px solid transparent;transition:color var(--t),border-color var(--t)}
 .adm-tabs button.on{color:var(--primary-700);border-bottom-color:var(--primary-500)}
 .contador{min-width:20px;height:20px;padding:0 6px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);font-size:var(--text-xs);font-weight:600;display:inline-grid;place-items:center}
 .adm-card{border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
 .adm-card h3{font-size:var(--text-base)}
 .adm-head{display:flex;gap:12px;align-items:center}
-.adm-desc{font-size:var(--text-sm);color:var(--ink-2);margin:8px 0}
+.adm-desc{font-size:var(--text-base);color:var(--ink-2);margin:8px 0}
 .emg-fila{display:flex;gap:8px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--soft)}
 .emg-campos{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.emg-campos .input{min-height:44px;font-size:var(--text-sm)}
+.emg-campos .input{min-height:48px;font-size:var(--text-sm)}
 /* ---------- Fase 2: avisos para el admin ---------- */
 .admin-card{display:flex;align-items:center;gap:12px;width:100%;min-height:72px;padding:16px;margin-bottom:16px;border-radius:var(--radius-lg);background:var(--primary-500);color:var(--blanco);text-align:left;box-shadow:var(--shadow-primary);transition:background var(--t)}
 .admin-card:hover{background:var(--primary-600)}
-.admin-ic{width:44px;height:44px;border-radius:var(--radius-full);background:var(--primary-700);display:grid;place-items:center;flex-shrink:0}
+.admin-ic{width:48px;height:48px;border-radius:var(--radius-full);background:var(--primary-700);display:grid;place-items:center;flex-shrink:0}
 .admin-tx{flex:1;min-width:0}
 .admin-tx b{display:block;font-size:var(--text-base);font-weight:600}
 .admin-tx small{display:block;font-size:var(--text-xs);opacity:.92}
@@ -772,17 +832,9 @@ button:disabled{opacity:.6;pointer-events:none}
 .ticket+.ticket{margin-top:8px}
 .ticket-grande{margin:12px 0}
 .ticket-grande .ticket-tit{font-size:var(--text-lg)}
-.ticket-mini{flex:0 0 264px;min-height:104px;cursor:pointer;transition:transform var(--t)}
-.ticket-mini:active{transform:scale(.98)}
-.ticket-mini:focus-visible{outline:none;box-shadow:inset 0 0 0 3px var(--primary-700)}
-.ticket-mini .ticket-tit{font-size:var(--text-sm);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .bloque-tickets{margin-bottom:16px}
 .listo-cupon .ticket{margin-top:16px}
 /* Inicio: "Cupones de la semana" en carrusel horizontal */
-.cupones-semana{margin-bottom:24px}
-.cupones-semana .head-v{margin-bottom:12px;align-items:center}
-.cupones-semana h2{font-size:var(--text-lg)}
-.cupones-semana .btn-ghost{white-space:nowrap}
 /* En celulares angostos la cabecera muestra solo la inicial: el nombre completo está en Perfil */
 @media(max-width:420px){.saludo-nom{display:none}}
 .carrusel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 16px;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}
@@ -797,7 +849,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .billetera{display:flex;flex-direction:column;gap:16px}
 .cupon-bill{background:var(--sun-50);border:1px solid var(--sun-borde);border-radius:var(--radius-lg);padding:16px;text-align:center}
 .cb-cab{display:flex;gap:12px;align-items:center;text-align:left;padding-bottom:12px;border-bottom:2px dashed var(--sun-borde)}
-.cb-ic{width:44px;height:44px;border-radius:var(--radius-full);background:var(--sun-400);color:var(--tinta-fija);display:grid;place-items:center;flex-shrink:0}
+.cb-ic{width:48px;height:48px;border-radius:var(--radius-full);background:var(--sun-400);color:var(--tinta-fija);display:grid;place-items:center;flex-shrink:0}
 .cb-cab small{display:block;font-size:var(--text-xs);font-weight:500;color:var(--sun-800)}
 .cb-cab b{display:block;font-size:var(--text-base);font-weight:600;line-height:1.3;color:var(--ink)}
 .cb-qr{display:block;margin:16px auto 8px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-md)}
@@ -857,7 +909,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .escaner.rojo .btn-claro{color:var(--danger-600)}
 .btn-xl{min-height:60px;font-size:var(--text-lg)}
 .btn-ghost-claro{background:none;color:inherit}
-.enlace-claro{min-height:44px;padding:0 12px;color:inherit;font-size:var(--text-sm);text-decoration:underline}
+.enlace-claro{min-height:48px;padding:0 12px;color:inherit;font-size:var(--text-sm);text-decoration:underline}
 /* Asistente para crear cupones */
 .tiles-cupon{grid-template-columns:repeat(2,1fr)}
 .tiles-cupon .tile{min-height:104px}
@@ -888,7 +940,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .ticket-acc .btn{margin-top:0}
 .conteo.izq{display:block;margin:-8px 0 12px}
 /* ---------- Filtros: botón en el buscador, hoja inferior y línea de filtros activos ---------- */
-.btn-filtros{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink);transition:background var(--t)}
+.btn-filtros{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink);transition:background var(--t)}
 .btn-filtros:hover{background:var(--soft)}
 .btn-filtros.on{color:var(--primary-700)}
 .filtros-globo{position:absolute;top:4px;right:4px;min-width:18px;height:18px;padding:0 4px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);font-size:var(--text-2xs);font-weight:700;display:grid;place-items:center}
@@ -913,22 +965,17 @@ button:disabled{opacity:.6;pointer-events:none}
 .fil-pie{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;padding:12px 16px;margin-top:24px;background:var(--bg);border-top:1px solid var(--line)}
 .fil-pie .btn-primario{flex:1}
 /* ---------- Banner principal rotativo ---------- */
-.banner{position:relative;margin:12px 0 4px}
-.banner-pista{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;cursor:grab}
-.banner-pista::-webkit-scrollbar{display:none}
-.banner-pista.arrastrando{scroll-snap-type:none;cursor:grabbing;user-select:none}
 /* Cada diapositiva deja ver 12 px de la siguiente para invitar a deslizar */
 /* Rejilla: ilustración a la derecha del título; subtítulo y botón a todo el ancho */
 .slide{position:relative;flex:0 0 calc(100% - 20px);height:168px;scroll-snap-align:start;border-radius:24px;padding:12px 14px 12px 16px;overflow:hidden;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) 96px;grid-template-rows:auto auto auto 1fr;column-gap:6px;align-content:start}
 .slide-ilu{grid-column:2;grid-row:1 / span 2;position:relative;width:96px;height:74px;overflow:hidden}
 .slide-tag{grid-column:1;justify-self:start;display:inline-block;padding:3px 10px;border-radius:var(--radius-full);font-size:var(--text-2xs);font-weight:700;letter-spacing:.02em}
-.slide-tit{grid-column:1;margin-top:4px;font-size:20px;font-weight:600;line-height:1.15;letter-spacing:-.02em;color:inherit}
-.slide-sub{grid-column:1 / -1;margin-top:4px;font-size:13px;line-height:1.3}
+.slide-tit{grid-column:1;margin-top:4px;font-size:1.25rem;font-weight:600;line-height:1.15;letter-spacing:-.02em;color:inherit}
+.slide-sub{grid-column:1 / -1;margin-top:4px;font-size:.875rem;line-height:1.3}
 .slide-pie{grid-column:1 / -1;align-self:end;display:flex;align-items:center;gap:10px}
 .slide-btn{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 14px;border-radius:var(--radius-full);font-size:var(--text-sm);font-weight:600;white-space:nowrap;transition:transform var(--t)}
-.slide-btn::before{content:"";position:absolute;inset:-6px -4px}
+.slide-btn::before{content:"";position:absolute;inset:-8px -4px}
 .slide-btn:active{transform:scale(.96)}
-.slide-dato{font-size:var(--text-xs);font-weight:700}
 .forma{position:absolute;z-index:-1}
 .forma path{fill:currentColor}
 /* 1 · Bienvenida: violeta con formas menta */
@@ -950,8 +997,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .ilu-ticket{--corte:56px;position:absolute;left:8px;top:10px;width:80px;height:54px;border-radius:var(--radius-md);background:var(--blanco);color:var(--tinta-fija);transform:rotate(-8deg);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:var(--shadow-md);
   -webkit-mask:radial-gradient(circle at var(--corte) 0,transparent 7px,var(--ink) 7.5px) top/100% 51% no-repeat,radial-gradient(circle at var(--corte) 100%,transparent 7px,var(--ink) 7.5px) bottom/100% 51% no-repeat;
   mask:radial-gradient(circle at var(--corte) 0,transparent 7px,var(--ink) 7.5px) top/100% 51% no-repeat,radial-gradient(circle at var(--corte) 100%,transparent 7px,var(--ink) 7.5px) bottom/100% 51% no-repeat}
-.ilu-ticket b{font-size:28px;line-height:1;font-weight:700;margin-right:22px}
-.ilu-ticket small{position:absolute;right:6px;font-size:10px;font-weight:700;writing-mode:vertical-rl;transform:rotate(180deg)}
+.ilu-ticket b{font-size:1.75rem;line-height:1;font-weight:700;margin-right:22px}
+.ilu-ticket small{position:absolute;right:6px;font-size:.875rem;font-weight:700;writing-mode:vertical-rl;transform:rotate(180deg)}
 .ilu-ticket i{position:absolute;left:56px;top:4px;bottom:4px;border-left:2px dashed var(--sun-800)}
 /* 3 · Tu negocio: menta suave con acentos menta 600 */
 .s-negocio{background:var(--mint-50);color:var(--ink)}
@@ -967,12 +1014,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .s-bienvenida .slide-sub,.s-cupones .slide-sub,.s-negocio .slide-sub,.s-opinion .slide-sub{opacity:1}
 .s-negocio .slide-sub,.s-opinion .slide-sub{color:var(--ink-2)}
 /* Indicadores: el activo se alarga en píldora violeta */
-.banner-puntos{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.banner-puntos{display:flex;justify-content:center;gap:6px}
 .banner-puntos span{width:6px;height:6px;border-radius:var(--radius-full);background:var(--line);transition:width var(--dur-base) var(--ease-out),background var(--dur-base) var(--ease-out)}
 .banner-puntos span.on{width:20px;background:var(--primary-500)}
 /* ---------- Secciones del inicio ---------- */
-.seccion-inicio,.cupones-semana{margin-bottom:24px}
-.seccion-inicio .head-v,.cupones-semana .head-v{margin-bottom:12px;align-items:center}
+.seccion-inicio{margin-bottom:24px}
+.seccion-inicio .head-v{margin-bottom:12px;align-items:center}
 .seccion-inicio h2{font-size:var(--text-lg);letter-spacing:0}
 .seccion-inicio .btn-ghost{white-space:nowrap}
 .mini-card{position:relative;flex:0 0 148px;display:flex;flex-direction:column;gap:2px;font-size:var(--text-xs)}
@@ -1009,7 +1056,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .cc-dir{display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
 .cc-dir span{overflow:hidden;text-overflow:ellipsis}
 .cc-acc{position:relative;z-index:1;display:flex;flex-direction:column;gap:0;flex-shrink:0}
-.cc-fav{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);transition:color var(--t),transform var(--t)}
+.cc-fav{width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);transition:color var(--t),transform var(--t)}
 .cc-fav.on{color:var(--primary-500)}
 .cc-fav.on .ic{fill:currentColor}
 .cc-fav.pop{animation:pop .3s ease-out}
@@ -1024,7 +1071,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .cara.c3.on,.op-cara.c3{color:var(--ink-2)}
 .cara.c4.on,.op-cara.c4{color:var(--mint-700)}
 .cara.c5.on,.op-cara.c5{color:var(--primary-500)}
-.opinion .chip-filtro{min-height:44px}
+.opinion .chip-filtro{min-height:48px}
 .gracias .logo-gracias{display:inline-block;margin-bottom:12px}
 .logo-gracias .logo-iso path{transform-box:fill-box;transform-origin:center;animation:hojaGracias .6s var(--ease-spring) both}
 .logo-gracias .logo-iso path:nth-of-type(2){animation-delay:.1s}
@@ -1048,12 +1095,6 @@ button:disabled{opacity:.6;pointer-events:none}
 .op-tema b{text-align:right}
 .op-cara{display:grid;place-items:center;flex-shrink:0}
 /* ---------- Instalar: tarjeta dentro del inicio ---------- */
-.tarjeta-instalar{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:24px;border-radius:var(--radius-lg);box-shadow:inset 0 0 0 1px var(--line)}
-.tarjeta-instalar img{width:44px;height:44px;border-radius:var(--radius-md)}
-.tarjeta-instalar>div{flex:1;min-width:0}
-.tarjeta-instalar b{display:block;font-size:var(--text-sm);font-weight:600;color:var(--ink)}
-.tarjeta-instalar span{font-size:var(--text-xs);color:var(--ink-2)}
-.tarjeta-instalar .ti-no{box-shadow:none;flex-shrink:0}
 @keyframes subir{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 /* Un toque salta la animación (o ya se vio en esta sesión): todo queda en su estado final */
 .splash.saltar,.splash.saltar *{animation-delay:0s!important;animation-duration:1ms!important}
@@ -1128,7 +1169,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .slide-ilu{position:absolute;right:12px;top:50%;margin-top:-37px}
 .slide-pie{align-self:flex-start;flex-wrap:wrap;gap:6px 10px;margin-top:auto;padding-top:10px}
 /* ---------- Radio en vivo ---------- */
-.rb-play{width:44px;height:44px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;flex-shrink:0;transition:transform var(--t)}
+.rb-play{width:48px;height:48px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);display:grid;place-items:center;flex-shrink:0;transition:transform var(--t)}
 .rb-play:active{transform:scale(.94)}
 /* Mini reproductor (52 px) justo encima de la barra inferior. Un hueco curvo (máscara) deja libre el botón central
    de Cupones; el texto y los controles quedan a los lados del hueco. */
@@ -1145,12 +1186,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .rb-tx b{font-size:var(--text-sm);font-weight:600;color:var(--ink)}
 .rb-tx small{font-size:var(--text-2xs);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .radio-barra.error .rb-tx small{color:var(--danger-700)}
-.rb-cerrar{width:44px;height:44px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);flex-shrink:0}
+.rb-cerrar{width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;color:var(--ink-2);flex-shrink:0}
 /* Píldora "EN VIVO · 88.1 FM" junto al saludo (32 px visibles, 44 px de área táctil) */
-.saludo-hora{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.sh-tx{min-width:0}
+.saludo-hora{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+.sh-tx{flex:1 1 12rem;min-width:0}
 .pildora-radio{position:relative;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--radius-full);background:var(--primary-50);color:var(--primary-700);font-size:var(--text-2xs);font-weight:700;letter-spacing:.04em;white-space:nowrap;transition:background var(--t),color var(--t)}
-.pildora-radio::after{content:"";position:absolute;inset:-6px -2px}
+.pildora-radio::after{content:"";position:absolute;inset:-8px -2px}
 .pildora-radio.on{background:var(--primary-500);color:var(--blanco)}
 .punto-vivo{width:8px;height:8px;border-radius:var(--radius-full);background:var(--primary-500);animation:latido 1.6s ease-in-out infinite}
 .pildora-radio.on .punto-vivo{background:var(--bg)}
@@ -1168,7 +1209,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .diag-lista{list-style:none;padding:0;margin:16px 0 0}
 .diag-fila{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);min-height:56px}
 .diag-fila b{display:block;font-size:var(--text-sm);color:var(--ink)}
-.diag-fila small{display:block;font-size:13px;color:var(--ink-2);word-break:break-word}
+.diag-fila small{display:block;font-size:.875rem;color:var(--ink-2);word-break:break-word}
 .diag-ic{flex-shrink:0;color:var(--ink-2);margin-top:2px}
 .diag-fila.ok .diag-ic,.diag-fila.ok small{color:var(--mint-700)}
 .diag-fila.mal .diag-ic,.diag-fila.mal small{color:var(--danger-700)}
@@ -1201,7 +1242,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .foto-tile.destino{box-shadow:inset 0 0 0 3px var(--primary-500)}
 .foto-cargando{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3)}
 .foto-portada{position:absolute;left:6px;bottom:6px;padding:2px 8px;border-radius:var(--radius-full);background:var(--sun-400);color:var(--tinta-fija);font-size:var(--text-2xs);font-weight:700}
-.foto-mover,.foto-quitar{position:absolute;z-index:1;isolation:isolate;width:44px;height:44px;display:grid;place-items:center;color:var(--blanco)}
+.foto-mover,.foto-quitar{position:absolute;z-index:1;isolation:isolate;width:48px;height:48px;display:grid;place-items:center;color:var(--blanco)}
 .foto-mover::before,.foto-quitar::before{content:"";position:absolute;width:30px;height:30px;border-radius:var(--radius-full);background:var(--overlay);z-index:-1}
 .foto-mover{right:0;bottom:0;touch-action:none;cursor:grab}
 .foto-quitar{right:0;top:0}
@@ -1212,7 +1253,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .gal-foto{position:relative;overflow:hidden;flex:0 0 100%;height:100%;scroll-snap-align:start;background:var(--soft);display:grid;place-items:center;color:var(--ink-3)}
 .gal-foto img{width:100%;height:100%;object-fit:cover}
 .gal-contador{position:absolute;right:12px;bottom:12px;z-index:2;padding:2px 10px;border-radius:var(--radius-full);background:var(--velo-escaner);color:var(--blanco);font-size:var(--text-xs);font-weight:600}
-.det-hero .pill-cat,.det-hero .badge-dest,.det-hero .det-top-acc{z-index:3}
+.det-hero .pill-cat,.det-hero .badge-dest{z-index:3}
 .visor{position:relative;width:100%;height:100%;background:var(--tinta-fija)}
 .visor .cerrar{top:calc(12px + var(--safe-t));z-index:2}
 .visor-pista{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
@@ -1240,7 +1281,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .mm-teselas img{position:absolute;width:256px;height:256px;max-width:none}
 .mm-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);color:var(--primary-500);filter:var(--sombra-pin)}
 .mm-pin .ic{fill:var(--blanco)}
-.mm-atrib{position:absolute;right:4px;bottom:2px;padding:0 4px;border-radius:4px;background:var(--blanco-92);color:var(--tinta-fija);font-size:10px}
+.mm-atrib{position:absolute;right:4px;bottom:2px;padding:0 4px;border-radius:4px;background:var(--blanco-92);color:var(--tinta-fija);font-size:.875rem}
 .adm-fila{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
 .adm-fila .dc-info b{display:block;font-size:var(--text-base);font-weight:600;color:var(--ink)}
 .adm-fila .dc-info>span{font-size:var(--text-xs);color:var(--ink-2)}
@@ -1288,17 +1329,10 @@ button:disabled{opacity:.6;pointer-events:none}
 .pf-suelto{margin-top:12px;padding:0 16px;border:1px solid var(--line);border-radius:var(--radius-lg)}
 /* ---------- v4 · Fase 5: inicio más limpio ---------- */
 /* Cupones compactos: boletos de 236 x 92 (se ve uno y medio por pantalla) */
-.ticket-mini{--corte:52px;flex:0 0 236px;width:236px;min-width:0;height:92px;min-height:0}
-.ticket-mini .ticket-cuerpo{justify-content:center;gap:1px;padding:8px 12px 8px 14px}
-.ticket-mini .ticket-com,.ticket-mini .ticket-det{font-size:var(--text-2xs);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ticket-mini .ticket-tit{line-height:1.25}
-.ticket-mini .ticket-lado .ic{width:20px;height:20px}
 .carrusel{scroll-padding:0;scroll-padding-inline:16px}
 /* Carrusel del banner: la pista va de borde a borde; cada diapositiva mide el ancho de la pantalla menos 40 px
    (16 px de margen a la izquierda y 24 px a la derecha, donde asoma solo el borde de la siguiente).
    El relleno derecho de 24 px deja que la última también se alinee a 16 px en vez de quedar corrida. */
-.banner-pista{gap:8px;margin:0 -16px;padding:0 24px 0 16px;scroll-padding-inline:16px}
-.banner-pista>.slide{flex:0 0 100%;scroll-snap-align:start}
 /* Banner con foto (todas las diapositivas): foto (z 0) → velo de su color (z 1) → texto (z 2).
    .slide ya crea su contexto de apilamiento (position, isolation, overflow), así la foto queda dentro y encima de su fondo. */
 .slide.s-foto{position:relative;isolation:isolate;overflow:hidden;color:var(--blanco)}
@@ -1312,7 +1346,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .s-foto .slide-tag{display:inline-flex;align-items:center;gap:4px;background:var(--blanco);color:var(--tinta-fija)}
 .s-foto.s-destacado .slide-tag{background:var(--sun-400)}
 .s-foto .slide-tit,.s-foto .slide-sub{color:var(--blanco);text-shadow:var(--sombra-texto)}
-.s-foto.v-sol .slide-tit,.s-foto.v-sol .slide-sub,.s-foto.v-sol .slide-dato{color:var(--tinta-fija);text-shadow:none}
+.s-foto.v-sol .slide-tit,.s-foto.v-sol .slide-sub{color:var(--tinta-fija);text-shadow:none}
 .s-foto .slide-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .s-foto .slide-pie{margin-top:auto;padding-top:10px}
 .s-foto .slide-btn{background:var(--blanco);color:var(--violeta-fijo)}
@@ -1325,7 +1359,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .s-foto .ilu-ticket{position:relative;left:auto;top:auto}
 /* Admin · banners */
 .banner-fila{align-items:center}
-.bf-foto{width:72px;height:44px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0}
+.bf-foto{width:72px;height:48px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0}
 .foto-banner{display:grid;place-items:center;width:100%;aspect-ratio:2/1;margin:12px 0 16px;border:1.5px dashed var(--line);border-radius:var(--radius-lg);background:var(--soft);color:var(--ink-2);cursor:pointer;overflow:hidden}
 .foto-banner:focus-within{outline:3px solid var(--primary-700);outline-offset:2px}
 .foto-banner img{width:100%;height:100%;object-fit:cover}
@@ -1443,15 +1477,15 @@ button:disabled{opacity:.6;pointer-events:none}
 .relive-fotos img{flex:0 0 auto;width:140px;height:100px;object-fit:cover;border-radius:var(--radius-md);scroll-snap-align:start}
 .relive-acc{display:flex;flex-direction:column;gap:8px;margin-top:20px}
 /* ---------- v4 · Fase 8: áreas táctiles de 44 px en mapas y enlaces ---------- */
-#cuerpo .leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:22px}
-.tres-d .maplibregl-ctrl-group button{width:44px;height:44px}
+#cuerpo .leaflet-bar a{width:48px;height:48px;line-height:48px;font-size:1.375rem}
+.tres-d .maplibregl-ctrl-group button{width:48px;height:48px}
 /* Créditos del mapa 3D siempre visibles y legibles sobre la barra de controles */
 .tres-d .maplibregl-ctrl-bottom-right{bottom:calc(150px + var(--safe-b))}
-.tres-d .maplibregl-ctrl-attrib{background:var(--blanco-92);color:var(--tinta-fija);font-size:11px}
+.tres-d .maplibregl-ctrl-attrib{background:var(--blanco-92);color:var(--tinta-fija);font-size:.875rem}
 .tres-d .maplibregl-ctrl-attrib a{color:var(--tinta-fija)}
 /* Los pines miden 32 px; un área invisible los lleva a 44 px sin taparse con el mapa */
 .leaflet-marker-icon.pin-fc::after{content:"";position:absolute;inset:-6px}
-.pf-alerta .enlace{display:inline-flex;align-items:center;min-height:44px}
+.pf-alerta .enlace{display:inline-flex;align-items:center;min-height:48px}
 .fb-fechas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .campo[hidden]{display:none}
 /* ---------- v5 · Fase 1 ---------- */
@@ -1474,12 +1508,12 @@ button:disabled{opacity:.6;pointer-events:none}
 .tc-foto.sin-foto,.det-hero.sin-foto{background:var(--cc-bg,var(--soft))}
 .tc-foto.sin-foto .fallback-ic,.det-hero.sin-foto .fallback-ic{width:auto;height:auto;background:none;color:var(--cc,var(--ink-2));margin-bottom:22px}
 .tc-sf-nombre{display:none}
-.tc-foto.sin-foto .tc-sf-nombre{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:absolute;left:10px;right:10px;bottom:8px;font-size:12px;font-weight:600;line-height:1.25;color:var(--cc-texto,var(--cc,var(--ink)))}
+.tc-foto.sin-foto .tc-sf-nombre{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;position:absolute;left:10px;right:10px;bottom:8px;font-size:.875rem;font-weight:600;line-height:1.25;color:var(--cc-texto,var(--cc,var(--ink)))}
 .tc-ins{position:absolute;left:8px;top:8px;z-index:1;display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--radius-full);font-size:var(--text-2xs);font-weight:700}
 .tc-ins.cupon{background:var(--sun-400);color:var(--tinta-fija)}
 .tc-ins.dest{background:var(--blanco);color:var(--tinta-fija)}
 .tc-fav{position:absolute;right:6px;top:6px;z-index:3;width:32px;height:32px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--blanco);color:var(--tinta-fija);box-shadow:var(--shadow-sm)}
-.tc-fav::before{content:"";position:absolute;inset:-6px}
+.tc-fav::before{content:"";position:absolute;inset:-8px}
 .tc-fav.on{color:var(--primary-500)}
 .tc-fav.on .ic{fill:currentColor}
 .tc-fav.pop{animation:latido .4s ease-out}
@@ -1491,8 +1525,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .tc-calif{display:flex;align-items:center;gap:3px;margin-top:2px;font-size:var(--text-xs);font-weight:600;color:var(--ink)}
 .tc-calif .ic{color:var(--sun-400)}
 .tc-calif span{font-weight:400;color:var(--ink-2)}
-.tc-linea{margin-top:2px;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tc-linea .estado{font-size:12px}
+.tc-linea{margin-top:2px;font-size:.875rem;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-linea .estado{font-size:.875rem}
 /* Esqueleto de carga con el mismo tamaño */
 .tarjeta.esqueleto .tc-foto,.esq-l{background:var(--line)}
 .esq-l{display:block;height:12px;margin-top:10px;border-radius:6px;width:85%}
@@ -1501,24 +1535,23 @@ button:disabled{opacity:.6;pointer-events:none}
 /* Carrusel: se ve una tarjeta y media */
 .carrusel-tc{gap:12px}
 /* Municipio (v1.3.0): selector del Inicio, la Agenda y el Mapa; tarjeta «¿Tienes un negocio en Pasca?» */
-.sel-mun-fila:empty{display:none}
-.sel-mun{display:flex;gap:6px;margin-top:10px}
-.sel-mun .chip-filtro{flex:1 1 0;min-width:0;min-height:44px;justify-content:center;padding:0 8px}
+.sel-mun{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sel-mun .chip-filtro{flex:1 1 auto;min-width:0;min-height:48px;justify-content:center;padding:0 12px}
 .mapa-mun{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0 16px 10px}
 .mapa-mun .sel-mun{margin-top:0}
-.mapa-mun .btn-sm{min-height:44px;align-self:flex-start}
+.mapa-mun .btn-sm{min-height:48px;align-self:flex-start}
 .vista>.sel-mun{margin:0 0 12px}
 .seg-mun{margin-bottom:16px}
-.seg-mun button{min-height:44px}
+.seg-mun button{min-height:48px}
 .tarjeta-publica{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border-radius:16px;background:var(--primary-50);border:1px dashed var(--primary-300)}
 .tarjeta-publica .tp-ic{width:48px;height:48px;border-radius:var(--radius-full);background:var(--bg);color:var(--primary-700);display:grid;place-items:center}
 .tarjeta-publica .tc-nombre{font-size:var(--text-base)}
 .tarjeta-publica .tc-linea{color:var(--ink-2)}
-.tarjeta-publica .btn{margin-top:auto;min-height:44px}
+.tarjeta-publica .btn{margin-top:auto;min-height:48px}
 /* Aviso oficial en la ficha (p. ej. el PNN Sumapaz no está habilitado para el ecoturismo) */
 .aviso-oficial{display:flex;gap:10px;align-items:flex-start;margin:12px 0;padding:12px 14px;border-radius:var(--radius-md);background:var(--sun-50);color:var(--ink);border:1px solid var(--sun-borde)}
 .aviso-oficial .ic{flex-shrink:0;color:var(--sun-800);margin-top:2px}
-.aviso-oficial p{font-size:var(--text-sm);line-height:1.5}
+.aviso-oficial p{font-size:var(--text-base);line-height:1.5}
 .aviso-oficial a{font-weight:600}
 .aa-fuentes small{display:block}
 .aa-fuentes .aa-vieja{color:var(--sun-800);font-weight:500}
@@ -1531,7 +1564,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .tile-cat:active .tile-ic{transform:scale(.95)}
 .tile-cat:focus-visible{outline:none}
 .tile-cat:focus-visible .tile-ic{box-shadow:0 0 0 3px var(--primary-700)}
-.tile-tx{font-size:12px;font-weight:500;color:var(--ink);text-align:center;line-height:1.2}
+.tile-tx{font-size:.875rem;font-weight:500;color:var(--ink);text-align:center;line-height:1.2}
 .tile-ic.c-comer{background:var(--tile-comer-bg);color:var(--cat-comer)}
 .tile-ic.c-servicios{background:var(--tile-servicios-bg);color:var(--cat-servicios)}
 /* El ícono de Servicios (mano) es más bajo que los demás: se agranda para que pese igual */
@@ -1545,20 +1578,20 @@ button:disabled{opacity:.6;pointer-events:none}
 @media (max-width:340px){.tile-ic{width:64px;height:64px}}
 /* Barra del listado: orden y vista */
 .lista-barra{display:flex;align-items:center;gap:8px;margin:-4px 0 16px}
-.lb-orden{flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.lb-orden{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:8px}
 .lb-orden::-webkit-scrollbar{display:none}
 .lb-orden .chip-filtro{flex-shrink:0;white-space:nowrap}
 .lb-vista{display:flex;flex-shrink:0;border:1px solid var(--line);border-radius:var(--radius-full);overflow:hidden}
-.lb-vista button{width:44px;height:44px;display:grid;place-items:center;color:var(--ink-2)}
+.lb-vista button{width:48px;height:48px;display:grid;place-items:center;color:var(--ink-2)}
 .lb-vista button.on{background:var(--primary-50);color:var(--primary-700)}
 .mapa-lista{height:min(62vh,520px);border-radius:var(--radius-lg);overflow:hidden;z-index:1}
 .fila-chips[hidden]{display:none}
 .lb-orden .chip-filtro{min-height:44px}
 /* ---------- v5 · Fase 4: eventos y agenda ---------- */
 /* Bloque tipo calendario: "SÁB 25" */
-.cal-bloque{display:flex;flex-direction:column;align-items:center;justify-content:center;width:48px;height:52px;border-radius:12px;background:var(--blanco);color:var(--tinta-fija);box-shadow:var(--shadow-sm);flex-shrink:0;line-height:1}
-.cal-bloque small{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--violeta-fijo)}
-.cal-bloque b{font-size:20px;font-weight:800;margin-top:2px}
+.cal-bloque{display:flex;flex-direction:column;align-items:center;justify-content:center;width:3rem;height:3.25rem;border-radius:12px;background:var(--blanco);color:var(--tinta-fija);box-shadow:var(--shadow-sm);flex-shrink:0;line-height:1}
+.cal-bloque small{font-size:.875rem;font-weight:700;letter-spacing:.06em;color:var(--violeta-fijo)}
+.cal-bloque b{font-size:1.25rem;font-weight:800;margin-top:2px}
 .tarjeta-ev .cal-bloque{position:absolute;left:8px;top:8px;z-index:1}
 .tarjeta-ev .tc-linea{display:flex;align-items:center;gap:4px}
 .fallback-ic.c-ev{background:var(--primary-50);color:var(--primary-700)}
@@ -1585,16 +1618,11 @@ button:disabled{opacity:.6;pointer-events:none}
 .ruta-fotos-adm{display:flex;gap:6px;overflow-x:auto;margin:8px 0}
 .ruta-fotos-adm img{width:96px;height:72px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0}
 /* Pregúntale a Fusa (v7 · Fase 3) */
-.asis-entrada{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 14px;margin:4px 0 16px;border-radius:var(--radius-lg);background:var(--primary-50);border:1px solid var(--primary-100);color:var(--ink);text-align:left}
-.asis-entrada>.ic{color:var(--primary-700);flex-shrink:0}
-.asis-entrada-tx{flex:1;min-width:0}
-.asis-entrada-tx b{display:block;font-size:var(--text-base);font-weight:600}
-.asis-entrada-tx small{display:block;font-size:var(--text-xs);color:var(--ink-2)}
 .asis-logo{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--radius-full);background:var(--primary-500);color:var(--blanco);flex-shrink:0}
 .vista.asis{display:flex;flex-direction:column;flex:1;padding-bottom:40px}
 .asis-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .asis-head h2{font-size:var(--text-xl);line-height:1.2}
-.asis-head p{font-size:var(--text-sm);color:var(--ink-2)}
+.asis-head p{font-size:var(--text-base);color:var(--ink-2)}
 .asis-log{flex:1;display:flex;flex-direction:column;gap:12px;padding-bottom:12px}
 .asis-msg{display:flex;gap:8px;max-width:100%}
 .asis-msg p{font-size:var(--text-base);line-height:1.5}
@@ -1615,8 +1643,16 @@ button:disabled{opacity:.6;pointer-events:none}
 .asis-item-tx{flex:1;min-width:0}
 .asis-item-tx b{display:block;font-size:var(--text-sm);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .asis-item-tx small{display:block;font-size:var(--text-xs);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* E3: lugar del directorio con su estado y el botón Llamar al lado; salidas y SOS siempre a mano */
+.asis-lugar{display:flex;gap:8px;align-items:stretch}
+.asis-lugar .asis-item{flex:1;min-width:0}
+.asis-llamar{flex-shrink:0;min-height:56px;padding:0 14px}
+.asis-cont>.asis-sos{margin-top:12px;min-height:56px;font-size:var(--text-base)}
+.asis-salidas{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.asis-salidas .btn{flex:1 1 140px}
+.asis-lento{margin-top:12px;color:var(--ink-2)}
 .asis-chips{display:flex;flex-wrap:wrap;gap:8px;padding-left:40px}
-.asis-chips .chip-filtro{min-height:44px;white-space:normal;text-align:left;color:var(--primary-700);border-color:var(--primary-100)}
+.asis-chips .chip-filtro{max-width:100%;min-height:48px;white-space:normal;text-align:left;color:var(--primary-700);border-color:var(--primary-100)}
 .asis-pensando{color:var(--ink-2)}
 .asis-pensando span{display:inline-flex;gap:3px;margin-left:6px}
 .asis-pensando i{width:6px;height:6px;border-radius:50%;background:var(--primary-500);animation:asisPunto 1.2s infinite ease-in-out}
@@ -1638,18 +1674,23 @@ button:disabled{opacity:.6;pointer-events:none}
 .aa-fuentes{list-style:none;padding:0;margin:0 0 8px}
 .aa-fuentes li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
 .aa-fuentes li b{display:block;font-size:var(--text-sm)}
-.aa-fuentes small{display:block;font-size:13px;color:var(--ink-2)}
+.aa-fuentes small{display:block;font-size:.875rem;color:var(--ink-2)}
 .aa-fuentes li.ok>.ic{color:var(--mint-700)}
 .aa-fuentes li.mal>.ic{color:var(--danger-700)}
 .aa-pedido{display:flex;gap:6px;align-items:center;color:var(--primary-700)}
 /* Agenda */
 .ag-rango{margin:-4px 0 12px}
-.ag-rango .chip-filtro,.lista-barra .chip-filtro{min-height:44px}
+/* E7: en la Agenda los filtros pasan a la línea siguiente: ningún chip queda cortado */
+.ag-rango,.ag-filtros .lb-orden{flex-wrap:wrap;overflow:visible}
+.ag-filtros{align-items:flex-start}
+.ag-rango .chip-filtro,.lista-barra .chip-filtro{min-height:48px}
 .ev-lista{display:flex;flex-direction:column;gap:12px}
 .ev-fila{position:relative;display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg)}
 .ev-fila .cal-bloque{background:var(--primary-50);box-shadow:none}
 .ev-fila .cal-bloque small{color:var(--primary-700)}
 .ev-fila .cal-bloque b{color:var(--ink)}
+/* E8: evento en curso: «HOY» en verde (Abierto/estado) */
+.cal-bloque.en-curso small{color:var(--menta-fija)}
 .ev-tx{flex:1;min-width:0}
 .ev-tx h3{font-size:var(--text-base);font-weight:600;line-height:1.3;color:var(--ink)}
 .ev-link{font:inherit;color:inherit;text-align:left}
@@ -1677,7 +1718,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .ev-vacio{display:flex;align-items:center;gap:16px;padding:16px;border-radius:var(--radius-lg);background:var(--cat-eventos-bg);color:var(--ink)}
 .ev-vacio-ilu{width:80px;height:80px;flex-shrink:0;color:var(--cat-eventos)}
 .ev-vacio-tx{flex:1;min-width:0}
-.ev-vacio-tx p{font-size:var(--text-sm);font-weight:600;color:var(--ink);margin-bottom:10px}
+.ev-vacio-tx p{font-size:var(--text-base);font-weight:600;color:var(--ink);margin-bottom:10px}
 /* Botón flotante "+" de la Agenda: encima de la barra inferior (y del mini reproductor si suena la radio) */
 .fab-agenda{position:absolute;right:16px;bottom:calc(84px + var(--safe-b));z-index:30;width:56px;height:56px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--primary-500);color:var(--blanco);box-shadow:var(--shadow-primary);transition:transform var(--t)}
 .fab-agenda:active{transform:scale(.94)}
@@ -1695,8 +1736,8 @@ button:disabled{opacity:.6;pointer-events:none}
 
 /* Registro de los procesos automáticos (Fase 3) */
 .registro{margin-top:8px;font-size:var(--text-sm)}
-.registro summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--primary-700);font-weight:600}
-.registro pre{margin:0;padding:10px;max-height:240px;overflow:auto;border-radius:var(--radius-md);background:var(--soft);color:var(--ink);font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.registro summary{min-height:48px;display:flex;align-items:center;cursor:pointer;color:var(--primary-700);font-weight:600}
+.registro pre{margin:0;padding:10px;max-height:240px;overflow:auto;border-radius:var(--radius-md);background:var(--soft);color:var(--ink);font-size:.875rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .aa-fuentes li.prep>.ic{color:var(--sun-800)}
 .aa-fuentes li>div{flex:1;min-width:0}
 /* ===== v8 · Agenda, asistente, inicio y senderos =====
@@ -1724,7 +1765,7 @@ button:disabled{opacity:.6;pointer-events:none}
 .pasos-permiso{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:var(--text-sm);color:var(--ink-2)}
 /* Asistente: enlace a la fuente oficial bajo la tarjeta del evento */
 .asis-ev{display:flex;flex-direction:column;gap:2px}
-.asis-fuente{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;font-size:var(--text-sm);font-weight:600;color:var(--primary-700)}
+.asis-fuente{display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 10px;font-size:var(--text-sm);font-weight:600;color:var(--primary-700)}
 /* Mis negocios: invitar a subir una foto */
 .mn-foto{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 12px;padding:12px;border-radius:var(--radius-md);background:var(--sun-50);color:var(--sun-800);font-size:var(--text-sm)}
 .mn-foto>span{flex:1 1 180px;color:var(--ink)}
@@ -1753,3 +1794,122 @@ button:disabled{opacity:.6;pointer-events:none}
 .contacto-rapido .cr-sig b{font-size:var(--text-lg);color:var(--ink)}
 .contacto-rapido .cr-sig span{font-size:var(--text-sm);color:var(--ink-2)}
 .contacto-rapido .cr-fin{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--mint-700)}
+
+/* =====================================================================
+   FASE 4 · Inicio reorganizado, Comunidad y barra inferior
+   ===================================================================== */
+/* Etiquetas de la barra: 14 px como mínimo; con letra grande no crecen más de lo que cabe en 360 px */
+.bn-btn>span:last-child{font-size:max(14px,min(var(--text-2xs),3.9vw));letter-spacing:-.01em;white-space:nowrap}
+/* «Pregúntale a Fusa»: una línea bajo el buscador */
+.asis-linea{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;margin:0;color:var(--primary-700);font-size:var(--text-base);font-weight:600;text-align:left}
+.asis-linea span{flex:1;min-width:0}
+/* Qué hacer en Fusa: diapositivas del mismo alto (no salta al cargar la foto ni al cambiar) */
+.ev-pista{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:var(--radius-lg)}
+.ev-pista::-webkit-scrollbar{display:none}
+.ev-diapo{flex:0 0 100%;min-width:0;scroll-snap-align:start}
+.ev-diapo-btn{position:relative;display:block;width:100%;aspect-ratio:16/10;border-radius:var(--radius-lg);overflow:hidden;text-align:left;color:var(--blanco);background:var(--soft)}
+.ev-diapo-foto{position:absolute;inset:0}
+.ev-diapo-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(var(--brillo-foto))}
+.ev-diapo-foto .ev-diapo-ilu{position:absolute;inset:0;width:100%;height:100%;border-radius:0}
+.ev-diapo-tx{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:2px;padding:48px 16px 14px;background:var(--velo-foto);text-shadow:var(--sombra-texto)}
+.ev-diapo-cuando{font-size:var(--text-sm);font-weight:700;color:var(--sun-400)}
+.ev-diapo-tx b{font-size:var(--text-lg);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ev-diapo-lugar{display:flex;align-items:center;gap:4px;font-size:var(--text-sm);min-width:0}
+.ev-diapo-lugar .ic{flex-shrink:0}
+.ev-diapo-precio{align-self:flex-start;margin-top:4px;padding:2px 10px;border-radius:var(--radius-full);background:var(--blanco);color:var(--tinta-fija);font-size:var(--text-sm);font-weight:700;text-shadow:none}
+.ev-diapo-precio.gratis{background:var(--mint-50);color:var(--mint-700)}
+.ev-ctrl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;min-height:48px;margin-top:4px}
+.ev-marco{position:relative}
+.ev-flecha{position:absolute;top:12px;width:48px;height:48px;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--blanco-92);color:var(--tinta-fija);box-shadow:0 2px 8px rgba(27,31,59,.28)}
+.ev-flecha.ant{left:8px}.ev-flecha.sig{right:8px}
+.ev-flecha:hover{background:var(--blanco)}
+.ev-banner-vacio{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;aspect-ratio:16/10;padding:16px;text-align:center;border-radius:var(--radius-lg);background:var(--soft);color:var(--ink);font-size:var(--text-base)}
+.ev-banner-vacio .ev-vacio-ilu{width:64px;height:64px;flex-shrink:0;color:var(--primary-500)}
+/* Lo que necesitas: cuatro botones grandes con ícono y palabra (2×2 con letra grande) */
+.necesitas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+html[data-letra] .necesitas{grid-template-columns:repeat(2,1fr)}
+.necesita{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:80px;padding:10px 4px;border-radius:var(--radius-md);background:var(--primary-50);color:var(--ink);font-size:var(--text-sm);font-weight:600;line-height:1.2;text-align:center}
+.necesita-ic{color:var(--primary-700)}
+/* Ofertas y cupones */
+.carrusel-anuncios{margin-bottom:12px}
+.carrusel-anuncios>.slide{flex:0 0 calc(100% - 32px)}
+.carrusel-cupones .ticket{flex:0 0 288px;scroll-snap-align:start}
+.oferta-vacia{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:var(--radius-lg);background:var(--sun-50);color:var(--ink)}
+.oferta-vacia p{font-size:var(--text-base)}
+.oferta-vacia-ic{color:var(--sun-800)}
+/* Pie discreto del Inicio */
+.pie-inicio{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:24px}
+.pie-inicio .enlace-discreto{display:inline-flex;align-items:center;gap:6px;min-height:48px;font-size:var(--text-sm)}
+/* Comunidad: tarjetas grandes con ícono, título y para qué sirve */
+.comunidad-intro{margin-bottom:12px;font-size:var(--text-base);color:var(--ink-2)}
+.comunidad{display:flex;flex-direction:column;gap:12px}
+.comunidad-card{display:flex;align-items:center;gap:14px;width:100%;min-height:80px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--bg);color:var(--ink);text-align:left}
+.comunidad-card.on{border-color:var(--primary-500);background:var(--primary-50)}
+.comunidad-card>.ic{flex-shrink:0;color:var(--ink-2)}
+.comunidad-ic{display:grid;place-items:center;width:52px;height:52px;flex-shrink:0;border-radius:var(--radius-md);background:var(--primary-50);color:var(--primary-700)}
+.comunidad-tx{flex:1;min-width:0}
+.comunidad-tx b{display:block;font-size:var(--text-lg);line-height:1.25}
+.comunidad-tx small{display:block;margin-top:2px;font-size:var(--text-base);color:var(--ink-2)}
+/* Inicio compacto: títulos de sección a 22 px para que eventos y «Lo que necesitas» quepan sin deslizar */
+#cuerpo .seccion-inicio .head-v{margin-bottom:8px;align-items:center}
+#cuerpo .seccion-inicio .head-v h2{font-size:var(--text-xl);line-height:1.2}
+.seccion-inicio .btn-ghost{flex-shrink:0;white-space:nowrap}
+/* El saludo va en una línea con la radio (a 18 px) */
+.saludo-hora .sh-tx b{font-size:var(--text-lg)}
+html:not([data-letra]) .saludo-hora{flex-wrap:nowrap}
+html:not([data-letra]) .saludo-hora .sh-tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-ctrl .btn-ghost{padding:0 8px}
+#cuerpo .seccion-inicio.que-hacer{margin-bottom:16px}
+.ev-diapo-btn.esqueleto{background:var(--line);animation:latido 1.4s ease-in-out infinite}
+/* CLS: la cabecera del Inicio tiene su alto desde el primer pintado (index.html ya la pinta en modo listado) */
+.topbar.en-lista .sesion{min-height:48px}
+.topbar.en-lista .saludo-hora{min-height:48px}
+.topbar.en-lista .sel-mun-fila{min-height:58px}
+/* Modo sencillo: 6 botones grandes en dos columnas; sin radio en la cabecera */
+html[data-sencillo] .pildora-radio,html[data-sencillo] #radioBarra{display:none}
+.sencillo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.sencillo-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:128px;padding:16px 8px;border-radius:var(--radius-lg);background:var(--primary-50);color:var(--ink);font-size:var(--text-lg);font-weight:600;line-height:1.2;text-align:center}
+.sencillo-ic{color:var(--primary-700)}
+.sencillo-btn.sos{background:var(--danger-50)}
+.sencillo-btn.sos .sencillo-ic{color:var(--danger-700)}
+.lista-sencilla{display:flex;flex-direction:column;gap:8px}
+.fila-sencilla{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--bg)}
+.fs-ver{flex:1 1 12rem;min-width:0;min-height:48px;text-align:left;color:var(--ink)}
+.fs-ver b{display:block;font-size:var(--text-base)}
+.fs-ver small{display:block;font-size:var(--text-sm);color:var(--ink-2)}
+.fs-llamar{flex:0 0 auto}
+/* =====================================================================
+   FASE 5 · Reclamar este comercio
+   ===================================================================== */
+.reclamo-card{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:16px;border-radius:var(--radius-lg);background:var(--primary-50);color:var(--ink)}
+.reclamo-card>.ic{flex-shrink:0;color:var(--primary-700);margin-top:2px}
+.reclamo-card b{display:block;font-size:var(--text-lg)}
+.reclamo-card p{margin:4px 0 12px;font-size:var(--text-base);color:var(--ink-2)}
+.reclamo-motivo{display:flex;gap:6px;align-items:flex-start;color:var(--ink)}
+/* Formulario con letra grande: etiquetas a 16 px y opciones como tarjetas de 56 px */
+.form-grande .campo>label,.form-grande legend{font-size:var(--text-base);font-weight:600;color:var(--ink)}
+.form-grande fieldset{border:0;padding:0;margin:0 0 16px}
+.form-grande input:not([type=radio]):not([type=checkbox]){min-height:52px;font-size:var(--text-lg)}
+.opciones-grandes{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.opcion-grande{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:2px solid var(--line);border-radius:var(--radius-md);font-size:var(--text-base);color:var(--ink);cursor:pointer}
+.opcion-grande:has(input:checked){border-color:var(--primary-500);background:var(--primary-50)}
+.opcion-grande input{width:22px;height:22px;flex-shrink:0;accent-color:var(--primary-500)}
+.form-grande .check{font-size:var(--text-base);margin:8px 0 16px}
+.form-grande .check input{width:24px;height:24px}
+.form-grande .ayuda{display:block;margin-top:4px;font-size:var(--text-sm);color:var(--ink-2)}
+.prueba-foto{display:block;width:100%;height:auto;margin-top:12px;border-radius:var(--radius-md)}
+/* =====================================================================
+   FASE 6 · Fotos
+   ===================================================================== */
+/* Sin foto: degradado del color de la categoría, círculos suaves y el ícono grande (nunca un recuadro vacío) */
+.tc-foto.sin-foto,.det-hero.sin-foto{background:radial-gradient(circle at 85% 15%,var(--blanco-60) 0 18%,transparent 19%),radial-gradient(circle at 10% 90%,var(--blanco-20) 0 22%,transparent 23%),linear-gradient(135deg,var(--cc-bg,var(--soft)) 0%,color-mix(in srgb,var(--cc,var(--ink-3)) 22%,var(--cc-bg,var(--soft))) 100%)}
+.tc-foto.sin-foto .fallback-ic .ic,.det-hero.sin-foto .fallback-ic .ic{width:56px;height:56px;opacity:.9}
+/* La foto genérica de una categoría no es la del local: se dice */
+.foto-referencia{position:absolute;right:12px;bottom:12px;z-index:3;padding:4px 10px;border-radius:var(--radius-full);background:var(--blanco-92);color:var(--tinta-fija);font-size:var(--text-sm);font-weight:600}
+/* N2: error del ingreso escrito en el formulario */
+.login-error{margin:4px 0 12px;padding:12px;border-radius:var(--radius-md);background:var(--danger-50);color:var(--danger-700);font-size:var(--text-base);font-weight:500}
+.login-error[hidden]{display:none}
+/* N4: con los botones fijos arriba (E5), las etiquetas de la foto van abajo para no quedar tapadas con letra grande */
+.det-hero .pill-cat{top:auto;bottom:12px;left:12px;max-width:calc(100% - 24px)}
+.det-hero .badge-dest{top:auto;bottom:56px;left:12px}
+.det-hero .foto-referencia{right:12px;bottom:12px}

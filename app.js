@@ -47,10 +47,10 @@ function cssVarClaro(n){
   if(!refClaro){refClaro=document.createElement('div');refClaro.dataset.tema='claro';refClaro.hidden=true;document.body.appendChild(refClaro);}
   return getComputedStyle(refClaro).getPropertyValue(n).trim();
 }
-/* ===== TEMA: Automático / Sistema / Claro / Oscuro (v4 · Fase 6; v7 · Fase 6). index.html ya lo puso antes del primer pintado =====
-   Automático (por defecto): oscuro de 6:00 p. m. a 6:00 a. m. en hora de Colombia (UTC-5), sin importar la zona del teléfono.
+/* ===== TEMA: Sistema / Automático / Claro / Oscuro (v4 · Fase 6; v7 · Fase 6; U10). index.html ya lo puso antes del primer pintado =====
+   Sistema (por defecto, U10): sigue el modo claro u oscuro del celular. Automático: oscuro de 6:00 p. m. a 6:00 a. m. en hora de Colombia (UTC-5).
    Se revisa cada minuto y al volver a la app. */
-function temaElegido(){try{return localStorage.getItem('fc_tema')||'automatico';}catch(e){return 'automatico';}}
+function temaElegido(){try{return localStorage.getItem('fc_tema')||'sistema';}catch(e){return 'sistema';}}
 const esDeNocheCol=()=>{const h=new Date(Date.now()-5*36e5).getUTCHours();return h>=18||h<6;};
 const temaOscuro=()=>document.documentElement.dataset.tema==='oscuro';
 const consultaOscuro=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
@@ -64,6 +64,75 @@ function aplicarTema(pref=temaElegido()){
 }
 function elegirTema(pref){try{localStorage.setItem('fc_tema',pref);}catch(e){}aplicarTema(pref);medir('tema',{tema:pref});}
 setInterval(()=>{if(temaElegido()==='automatico')aplicarTema('automatico');},60000);
+/* ===== TAMAÑO DE LETRA (Fase 3): Normal 100 %, Grande 118 %, Muy grande 135 % =====
+   Cambia el font-size de <html> (todo app.css está en rem). index.html lo pone antes del primer pintado.
+   Se guarda en el teléfono y, con sesión, en el perfil (tamano_letra) para llevarlo a otro celular. */
+const TAMANOS_LETRA=[['normal','Normal',1],['grande','Grande',1.18],['muy-grande','Muy grande',1.35]];
+function letraElegida(){try{return localStorage.getItem('fc_letra')||'';}catch(e){return '';}}
+function aplicarLetra(t){
+  const v=TAMANOS_LETRA.some(x=>x[0]===t)?t:'normal';
+  if(v==='normal')delete document.documentElement.dataset.letra;else document.documentElement.dataset.letra=v;
+}
+function elegirLetra(t,guardarEnPerfil=true){
+  try{localStorage.setItem('fc_letra',t);}catch(e){}
+  aplicarLetra(t);
+  if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({tamano_letra:t}).catch(()=>{});
+  medir('letra',{tamano:t});
+}
+// La elección de este teléfono manda; si aún no hay, se usa la del perfil
+function letraDelPerfil(p){
+  if(!letraElegida()&&p&&p.tamano_letra)elegirLetra(p.tamano_letra,false);
+  if(ls.get('fc_sencillo',null)===null&&p&&typeof p.modo_sencillo==='boolean')elegirSencillo(p.modo_sencillo,false);
+}
+/* ===== MODO SENCILLO (Fase 4) =====
+   Inicio con 6 botones grandes (Buscar, Salud, Comida, Trámites, Emergencias, Mis favoritos), sin carruseles, banners ni
+   radio; las listas muestran «Llamar» en cada fila. Viene activado por defecto (decisión del proyecto, 26-nov-2026) y
+   con letra «Grande» mientras la persona no elija otra; se quita desde el mismo Inicio o en Perfil → Apariencia.
+   index.html lo aplica antes del primer pintado (data-sencillo y data-letra en <html>). */
+const modoSencillo=()=>ls.get('fc_sencillo',true)===true;
+// Letra que se ve: la elegida o, sin elección, «Grande» en modo sencillo
+const letraActual=()=>letraElegida()||(modoSencillo()?'grande':'normal');
+function elegirSencillo(activo,guardarEnPerfil=true){
+  ls.set('fc_sencillo',!!activo);
+  if(activo)document.documentElement.dataset.sencillo='';else delete document.documentElement.dataset.sencillo;
+  // Activarlo sube la letra a «Grande» (sin guardarla como elección si la persona nunca eligió); quitarlo la devuelve
+  if(activo&&!letraElegida())aplicarLetra('grande');
+  else if(activo&&letraElegida()==='normal')elegirLetra('grande',guardarEnPerfil);
+  if(!activo)aplicarLetra(letraElegida()||'normal');
+  if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({modo_sencillo:!!activo}).catch(()=>{});
+  medir('modo_sencillo',{activo:!!activo});
+}
+const BOTONES_SENCILLO=[
+  {t:'Buscar',ic:'search',hacer:()=>{$('#busqueda').focus();}},
+  {t:'Salud',ic:'stethoscope',hacer:()=>navegar({tipo:'lista',cat:'servicios',sub:'salud'})},
+  {t:'Comida',ic:'utensils',hacer:()=>navegar({tipo:'lista',cat:'comercio',sub:'g-comida'})},
+  {t:'Trámites',ic:'landmark',hacer:()=>navegar({tipo:'lista',cat:'tramite'})},
+  {t:'Emergencias',ic:'siren',hacer:()=>navegar({tipo:'sos'}),clase:'sos'},
+  {t:'Mis favoritos',ic:'heart',hacer:()=>irAFavoritos()}
+];
+function inicioSencilloHTML(){
+  return '<div class="sencillo">'+BOTONES_SENCILLO.map((b,i)=>'<button type="button" class="sencillo-btn'+(b.clase?' '+b.clase:'')+'" data-sencillo="'+i+'">'
+    +'<span class="sencillo-ic" aria-hidden="true">'+icon(b.ic,36)+'</span>'+b.t+'</button>').join('')+'</div>'
+    +'<button type="button" class="btn btn-secundario btn-bloque mt-16" id="verInicioCompleto">'+icon('layout-grid',18)+'Ver el Inicio completo (eventos, categorías y más)</button>'
+    +'<p class="nota-c">Puedes volver al modo sencillo cuando quieras en Perfil → Apariencia.</p>';
+}
+document.addEventListener('click',e=>{
+  if(!(e.target.closest&&e.target.closest('#verInicioCompleto')))return;
+  elegirSencillo(false);render();toast('Listo: Inicio completo. El modo sencillo está en Perfil → Apariencia.',6000);
+});
+// En modo sencillo cada lugar es una fila con su estado y el botón «Llamar» (los que tienen teléfono van primero)
+function listaSencillaHTML(items,limite){
+  const l=[...items].sort((a,b)=>!a.tel-!b.tel).slice(0,limite);
+  return '<div class="lista-sencilla">'+l.map(d=>'<div class="fila-sencilla"><button type="button" class="fs-ver" data-ver="'+esc(d.id)+'"><b>'+esc(d.nombre)+'</b>'
+    +'<small>'+(estadoLugar(d)?estadoHTML(estadoLugar(d)):esc(etiquetaDe(d)))+'</small></button>'
+    +(d.tel?'<a class="btn btn-primario fs-llamar" href="tel:'+esc(telLimpio(d.tel))+'" data-tel="'+esc(d.id)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone',20)+'Llamar</a>':'')
+    +'</div>').join('')+'</div>'
+    +(items.length>l.length?'<button class="btn btn-secundario btn-bloque mt-16" id="verMas">Ver más ('+(items.length-l.length)+')</button>':'');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-sencillo],.fs-ver');if(!b)return;
+  if(b.dataset.ver)abrirDetalle(b.dataset.ver);else BOTONES_SENCILLO[+b.dataset.sencillo].hacer();
+});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&temaElegido()==='automatico')aplicarTema('automatico');});
 if(consultaOscuro)(consultaOscuro.addEventListener?consultaOscuro.addEventListener('change',()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}):consultaOscuro.addListener(()=>{if(temaElegido()==='sistema')aplicarTema('sistema');}));
 // Teselas del mapa: siempre OpenStreetMap; en modo noche se oscurecen con un filtro solo en el panel de teselas (CSS)
@@ -77,11 +146,72 @@ const ls={
   del(k){try{localStorage.removeItem(k);}catch(e){}}
 };
 // Aviso arriba, justo bajo la fila del logo (no tapa títulos ni tarjetas)
-function toast(msg,ms=2500){const t=$('#toast'),ref=vistaActual().tipo==='lista'?$('#sesion'):$('#topbar');t.style.top=Math.max(8,(ref?ref.getBoundingClientRect().bottom:0)+6)+'px';t.textContent=msg;t.classList.add('ver');if(t._t)clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),ms);}
-function abrir(id){$('#'+id).classList.add('abierto');}
+// Fase 3: se queda al menos 5 s (8 s si trae una acción como «Deshacer») y se anuncia por aria-live (#toast es role=status)
+function toast(msg,ms=5000,accion=null){
+  const t=$('#toast'),ref=vistaActual().tipo==='lista'?$('#sesion'):$('#topbar');
+  t.style.top=Math.max(8,(ref?ref.getBoundingClientRect().bottom:0)+6)+'px';
+  t.textContent=msg;t.classList.toggle('con-accion',!!accion);
+  if(accion){
+    const b=document.createElement('button');b.type='button';b.className='toast-accion';b.textContent=accion.texto;
+    b.onclick=()=>{t.classList.remove('ver');accion.hacer();};t.appendChild(b);
+  }
+  t.classList.add('ver');if(t._t)clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('ver'),Math.max(ms,accion?8000:5000));
+}
+/* Fase 3: mientras una hoja está abierta, Tab no sale de ella; al cerrarla el foco vuelve a donde estaba */
+const focoAntes={};
+const enfocables=c=>[...c.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+  .filter(e=>e.offsetParent!==null);
+function abrir(id){
+  const o=$('#'+id);
+  if(!o.classList.contains('abierto'))focoAntes[id]=document.activeElement;
+  o.classList.add('abierto');
+  setTimeout(()=>{if(o.classList.contains('abierto')&&!o.contains(document.activeElement)){const f=enfocables(o)[0];if(f)f.focus({preventScroll:true});}},80);
+}
+function devolverFoco(id){
+  const f=focoAntes[id];focoAntes[id]=null;
+  if(f&&f.isConnected&&f.focus&&!$('.overlay.abierto'))f.focus({preventScroll:true});
+}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;
+  const o=[...$$('.overlay.abierto')].pop(),l=o?enfocables(o):[];if(!l.length)return;
+  const primero=l[0],ultimo=l[l.length-1],dentro=o.contains(document.activeElement);
+  if(e.shiftKey&&(!dentro||document.activeElement===primero)){e.preventDefault();ultimo.focus();}
+  else if(!e.shiftKey&&(!dentro||document.activeElement===ultimo)){e.preventDefault();primero.focus();}
+});
 // Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
 const alCerrar={};
-function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');if(alCerrar[id])alCerrar[id]();}
+function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');cerrarExplicacion();if(alCerrar[id])alCerrar[id]();devolverFoco(id);}
+/* ===== EXPLICACIONES CORTAS (Fase 3) =====
+   Un toque en «Destacado», el punto verde de «Abierto» o «Fuente oficial» abre una frase que lo explica; la primera
+   vez que aparecen se abre sola. La campana explica los avisos la primera vez. */
+const EXPLICACIONES={
+  destacado:'«Destacado» es un negocio con plan Premium: sale primero en las búsquedas. No quiere decir que sea mejor que los demás.',
+  abierto:'El punto verde quiere decir que está abierto ahora, según el horario publicado. Si vas a ir, llama antes.',
+  oficial:'«Fuente oficial» quiere decir que la información viene de la Alcaldía, la Casa de la Cultura u otra entidad pública.',
+  avisos:'En la campana están los avisos del municipio y las novedades de los comercios.'
+};
+function explicar(ancla,clave){
+  cerrarExplicacion();
+  const g=document.createElement('div');g.className='globo-ayuda';g.id='globoAyuda';g.setAttribute('role','status');
+  g.innerHTML='<p>'+esc(EXPLICACIONES[clave])+'</p><button type="button" class="btn btn-tonal btn-sm">Entendido</button>';
+  document.body.appendChild(g);
+  const r=ancla.getBoundingClientRect(),ancho=Math.min(320,window.innerWidth-24);
+  g.style.width=ancho+'px';g.style.left=Math.max(12,Math.min(r.left,window.innerWidth-ancho-12))+'px';
+  const alto=g.offsetHeight;g.style.top=(r.bottom+8+alto<window.innerHeight-72?r.bottom+8:Math.max(8,r.top-alto-8))+'px';
+  g.querySelector('button').onclick=cerrarExplicacion;
+  ls.set('fc_explicado_'+clave,true);
+}
+function cerrarExplicacion(){const g=$('#globoAyuda');if(g)g.remove();}
+function explicarPrimeraVez(raiz,selector='[data-explica]'){
+  const el=[...$$(selector,raiz)].find(x=>x.offsetParent&&!ls.get('fc_explicado_'+(x.dataset.explica||x.dataset.explicaAuto),false));
+  if(el)explicar(el,el.dataset.explica||el.dataset.explicaAuto);
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-explica]');
+  if(b){e.preventDefault();explicar(b,b.dataset.explica);}else if(!(e.target.closest&&e.target.closest('#globoAyuda')))cerrarExplicacion();
+});
+document.addEventListener('scroll',cerrarExplicacion,true);
 function aMs(v){
   if(!v)return null;if(typeof v==='number')return v;if(v.toMillis)return v.toMillis();
   // Fechas "AAAA-MM-DD" valen hasta el final de ese día en hora local
@@ -226,20 +356,22 @@ db.collection('config').doc('directorio').onSnapshot(s=>{
 estado.banners=[];
 db.collection('banners').onSnapshot(s=>{
   estado.banners=s.docs.map(d=>({id:d.id,...d.data()}));
-  if(!$('#plegBanner').hidden)montarBanner();
+  if(vistaActual().tipo==='lista')render(true);
   if(vistaActual().tipo==='admin'&&estado.admin.tab==='banners')render(true);
 },()=>{});
 /* ===== API REST (Python · FastAPI, carpeta api/) =====
    Calendario ICS, GPX de las rutas, reporte del negocio y estado en Diagnóstico. En el plan gratuito de Render el servicio
-   se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo. */
-const API_URL=new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
-async function pedirAPI(ruta,{token=false,segundos=70}={}){
-  const h={};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
+   se duerme tras 15 minutos sin uso: la primera petición puede tardar hasta un minuto en despertarlo.
+   Con el emulador (o ?api_local) se usa la API local: los tokens y datos de prueba nunca van a producción (N5). */
+const API_URL=EMULADOR||new URLSearchParams(window.location.search).has('api_local')?'http://127.0.0.1:8000':'https://fusa-conecta-api.onrender.com';
+async function pedirAPI(ruta,{token=false,segundos=70,cuerpo=null}={}){
+  const h=cuerpo?{'Content-Type':'application/json'}:{};if(token){if(!auth.currentUser)throw Object.assign(new Error('Inicia sesión'),{code:'sin-sesion'});h.Authorization='Bearer '+await auth.currentUser.getIdToken();}
   // Render (plan gratis) duerme la API: al despertar puede cortar la conexión («Failed to fetch»). Se reintenta
   // cada 3 s mientras quede tiempo, en vez de rendirse al primer intento.
   const fin=Date.now()+segundos*1000;let r;
   for(;;){
-    try{r=await conTiempoLimite(fetch(API_URL+ruta,{headers:h}),Math.max(1000,fin-Date.now()),'La API no respondió');break;}
+    const op=cuerpo?{method:'POST',headers:h,body:JSON.stringify(cuerpo)}:{headers:h};
+    try{r=await conTiempoLimite(fetch(API_URL+ruta,op),Math.max(1000,fin-Date.now()),'La API no respondió');break;}
     catch(e){if(e instanceof TypeError&&navigator.onLine&&Date.now()+3000<fin){await new Promise(ok=>{setTimeout(ok,3000);});continue;}throw e;}
   }
   if(!r.ok){let d='';try{d=(await r.json()).error;}catch(e){}throw Object.assign(new Error(d||('HTTP '+r.status)),{code:'api-'+r.status});}
@@ -259,10 +391,13 @@ const catEvento=k=>CATS_EVENTO.find(c=>c[0]===k)||CATS_EVENTO[7];
 const DIAS3=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'],DIAS_EV=['dom','lun','mar','mié','jue','vie','sáb'],MESES3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 estado.eventos=[];estado.agenda={rango:'30',cat:'',vista:'lista'};
 let eventoPorAbrir=null;
+// E1: la misma actividad guardada varias veces (mismo título, inicio y lugar) se muestra una sola vez
+const claveEvento=e=>norm(e.titulo).replace(/\s+/g,' ').trim()+'|'+e.ini+'|'+norm(e.lugar_nombre).replace(/\s+/g,' ').trim();
+function sinRepetidos(eventos){const vistos=new Set();return eventos.filter(e=>{const k=claveEvento(e);if(vistos.has(k))return false;vistos.add(k);return true;});}
 db.collection('eventos').where('estado','==','publicado').onSnapshot(s=>{
-  estado.eventos=s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};});
+  estado.eventos=sinRepetidos(s.docs.map(d=>{const x=d.data();return {id:d.id,...x,ini:aMs(x.fecha_inicio),fin:aMs(x.fecha_fin)};}));
+  estado.eventosListos=true;
   if(eventoPorAbrir&&estado.eventos.some(e=>e.id===eventoPorAbrir)){const id=eventoPorAbrir;eventoPorAbrir=null;abrirEvento(id);}
-  if(!$('#plegBanner').hidden)montarBanner();
   if(esAdmin())borrarDemosVencidos();
   refrescarVista();actualizarCampana();
 },()=>{});
@@ -304,12 +439,6 @@ function mercadoCampesinoHTML(){
     +'</section>';
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-verplaza]');if(b)abrirDetalle(b.dataset.verplaza);});
-// En el inicio, solo si hay un mercado campesino en los próximos 14 días
-function avisoMercadoInicioHTML(){
-  const e=mercadosCampesinos(municipioElegido()).find(x=>x.ini<=Date.now()+14*24*3600e3);
-  if(!e)return '';
-  return '<button class="tarjeta-opinion mb-16" data-evento="'+esc(e.id)+'"><span class="to-ic">'+icon('sprout',22)+'</span><span class="to-tx"><b>Mercado campesino: '+esc(fechaEvento(e))+'</b><small>'+esc(e.titulo)+' · '+esc(e.lugar_nombre||'')+'</small></span>'+icon('chevron-right')+'</button>';
-}
 function finDelDomingo(){const d=new Date();d.setHours(23,59,59,999);d.setDate(d.getDate()+((7-d.getDay())%7));return d.getTime();}
 function inicioDelViernes(){const d=new Date();if([0,5,6].includes(d.getDay()))return Date.now();d.setHours(0,0,0,0);d.setDate(d.getDate()+(5-d.getDay()));return d.getTime();}
 function eventosEn(rango,cat){
@@ -319,14 +448,21 @@ function eventosEn(rango,cat){
   return eventosVigentes().filter(e=>e.ini<=hasta&&e.fin>=desde&&enMunicipio(e,municipioElegido())&&(cat==='avisos'?esAviso(e):!esAviso(e)&&(!cat||e.categoria===cat)));
 }
 function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
-function fechaEvento(e){
+// E8: ya empezó y no ha terminado
+const enCurso=(e,ahora=Date.now())=>e.ini<=ahora&&e.fin>=ahora;
+// Fase 3: con «largo» la fecha va completa («martes 24 de noviembre»), para el detalle donde hay espacio
+const MESES_LARGO=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fechaEvento(e,largo=false){
   const a=new Date(e.ini),b=new Date(e.fin),mismoDia=a.toDateString()===b.toDateString();
-  const dia=d=>DIAS_EV[d.getDay()]+' '+d.getDate()+' de '+MESES3[d.getMonth()];
+  const dia=d=>(largo?DIAS_LARGO:DIAS_EV)[d.getDay()]+' '+d.getDate()+' de '+(largo?MESES_LARGO:MESES3)[d.getMonth()];
+  if(enCurso(e))return 'En curso · hasta '+(mismoDia?'las '+horaEv(e.fin):'el '+dia(b));
   // v1.4.2: la fuente no dijo a qué hora termina (la agenda lo deja vigente todo el día)
   if(e.sin_hora_fin&&mismoDia)return dia(a)+' · desde las '+horaEv(e.ini);
   return dia(a)+' · '+horaEv(e.ini)+(mismoDia?' – '+horaEv(e.fin):' al '+dia(b));
 }
-const calBloque=ms=>{const d=new Date(ms);return '<span class="cal-bloque" aria-hidden="true"><small>'+DIAS3[d.getDay()]+'</small><b>'+d.getDate()+'</b></span>';};
+// Bloque de calendario: el día del evento o, si ya está en curso, «HOY» con la fecha de hoy
+const calBloque=e=>{const hoy=enCurso(e),d=new Date(hoy?Date.now():e.ini);
+  return '<span class="cal-bloque'+(hoy?' en-curso':'')+'" aria-hidden="true"><small>'+(hoy?'HOY':DIAS3[d.getDay()])+'</small><b>'+d.getDate()+'</b></span>';};
 const precioEv=e=>e.gratis?'Gratis':(e.precio||'Con costo');
 // v1.3.0: los eventos de Pasca dicen «Pasca» en la tarjeta, para no confundirlos con los de Fusagasugá
 const lugarEv=e=>esc(e.lugar_nombre)+(municipioDe(e)==='Pasca'&&!/pasca/i.test(e.lugar_nombre||'')?' · Pasca':'');
@@ -338,11 +474,11 @@ const iluEvento=(e,tam,clase)=>{const c=catEvento(e.categoria);return '<span cla
 // Tarjeta de evento para el carrusel del inicio (mismo tamaño que la tarjeta compacta)
 function tarjetaEventoHTML(e){
   return '<article class="tarjeta tarjeta-ev"><div class="tc-foto">'+iluEvento(e,32,'tc-ilu')
-    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e.ini)+'</div>'
+    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" loading="lazy" decoding="async" onerror="this.remove()">':'')+calBloque(e)+'</div>'
     +(e.demo?'<span class="ev-demo">Ejemplo</span>':'')
     +'<h3 class="tc-nombre"><button class="tc-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +(e.fuente_oficial?'<p class="tc-linea ev-oficial">'+icon('badge-check',12)+'Fuente oficial</p>':'')
-    +'<p class="tc-linea">'+icon('map-pin',12)+lugarEv(e)+'</p><p class="tc-linea">'+horaEv(e.ini)+' · '+esc(precioEv(e))+'</p></article>';
+    +'<p class="tc-linea">'+icon('map-pin',12)+lugarEv(e)+'</p><p class="tc-linea">'+(enCurso(e)?'En curso':horaEv(e.ini))+' · '+esc(precioEv(e))+'</p></article>';
 }
 // Quien puede publicar directo o como organizador ve "Publicar un evento"; los demás, "Sugerir un evento"
 const puedePublicarEventos=()=>esAdmin()||esComerciante()||esOrganizador();
@@ -352,23 +488,9 @@ function sugerirEvento(){if(!logueado()){pedirLogin('Inicia sesión para sugerir
 const ILU_EVENTOS='<svg class="ev-vacio-ilu" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   +'<rect x="16" y="22" width="56" height="54" rx="10"/><path d="M16 38h56M30 14v14M58 14v14"/><path d="M30 52h6M44 52h6M30 64h6M44 64h6"/>'
   +'<path d="M80 50v12M74 56h12M76 24l4 4M84 20v6"/></svg>';
-function seccionEventosHTML(){
-  const l=planesVigentes().filter(e=>enMunicipio(e,municipioElegido())).slice(0,10);
-  return '<section class="seccion-inicio" aria-labelledby="tEventos"><div class="head-v"><h2 id="tEventos">Qué hacer en '+nombreZona()+'</h2><button class="btn-ghost" data-agenda>Ver agenda</button></div>'
-    +(l.length?'<div class="carrusel carrusel-tc">'+l.map(tarjetaEventoHTML).join('')+'</div>'
-      :'<div class="ev-vacio">'+ILU_EVENTOS+'<div class="ev-vacio-tx"><p>Aún no hay eventos esta semana. ¿Sabes de uno?</p>'
-        +'<button class="btn btn-primario btn-sm" data-sugerir>'+icon('calendar-plus',16)+textoSugerir()+'</button></div></div>')
-    +'</section>';
-}
-// Primera diapositiva del banner si hay eventos entre hoy y el domingo
-function slideFinDeSemana(){
-  const e=planesVigentes().find(x=>x.ini<=finDelDomingo()&&enMunicipio(x,municipioElegido()));if(!e)return null;
-  return {id:'evento-'+e.id,foto:e.imagen||'',velo:'violeta',tag:'Este fin de semana en '+(municipioDe(e)==='Pasca'?'Pasca':'Fusa'),tit:e.titulo,
-    sub:fechaEvento(e)+' · '+e.lugar_nombre,accion:'agenda',textoBoton:'Ver agenda',ilu:'<span class="ilu-circulo">'+icon('calendar-days',30)+'</span>'};
-}
 function enlazarEventos(){
   $$('#cuerpo [data-evento]').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
-  $$('#cuerpo [data-agenda]').forEach(b=>(b.onclick=()=>irAgenda()));
+  $$('#cuerpo [data-agenda]').forEach(b=>(b.onclick=()=>irAgenda(b.dataset.agenda||'')));
   $$('#cuerpo [data-sugerir]').forEach(b=>(b.onclick=sugerirEvento));
 }
 function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agenda'});}
@@ -376,7 +498,7 @@ function irAgenda(rango){if(rango)estado.agenda.rango=rango;navegar({tipo:'agend
 /* ---------- Pantalla Agenda: Hoy · Este fin de semana · Próximos 30 días · categoría; lista o mapa ---------- */
 function filaEventoHTML(e){
   const c=catEvento(e.categoria);
-  return '<article class="ev-fila">'+calBloque(e.ini)
+  return '<article class="ev-fila">'+calBloque(e)
     +'<div class="ev-tx"><h3><button class="ev-link" data-evento="'+esc(e.id)+'">'+esc(e.titulo)+'</button></h3>'
     +'<p>'+icon('clock',14)+esc(fechaEvento(e))+'</p><p>'+icon('map-pin',14)+lugarEv(e)+'</p>'
     +'<p class="ev-chips">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span>':'')+(e.fuente_oficial?'<span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span><span class="ev-chip'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></p></div>'
@@ -389,7 +511,7 @@ function renderAgenda(){
     +selectorMunicipioHTML()
     +'<div class="lb-orden ag-rango" role="radiogroup" aria-label="Cuándo">'+[['hoy','Hoy'],['finde','Este fin de semana'],['30','Próximos 30 días']]
       .map(([k,t])=>'<button type="button" role="radio" aria-checked="'+(A.rango===k)+'" class="chip-filtro'+(A.rango===k?' on':'')+'" data-rango="'+k+'">'+t+'</button>').join('')+'</div>'
-    +'<div class="lista-barra"><div class="lb-orden" role="group" aria-label="Categoría">'
+    +'<div class="lista-barra ag-filtros"><div class="lb-orden" role="group" aria-label="Categoría">'
       +'<button type="button" aria-pressed="'+avisos+'" class="chip-filtro chip-avisos'+(avisos?' on':'')+'" data-evcat="avisos">'+icon('megaphone',14)+'Avisos del municipio'+(nAvisos?' <span class="contador gris">'+nAvisos+'</span>':'')+'</button>'
       +CATS_EVENTO.filter(c=>c[0]!=='institucional').map(([k,t,ic])=>'<button type="button" aria-pressed="'+(A.cat===k)+'" class="chip-filtro'+(A.cat===k?' on':'')+'" data-evcat="'+k+'">'+icon(ic,14)+t+'</button>').join('')+'</div>'
     +'<div class="lb-vista" role="radiogroup" aria-label="Vista"><button type="button" role="radio" aria-checked="'+(A.vista!=='mapa')+'" class="'+(A.vista!=='mapa'?'on':'')+'" data-agvista="lista" aria-label="Lista">'+icon('calendar-days',20)+'</button>'
@@ -422,7 +544,7 @@ async function mapaAgenda(l){
       .bindPopup('<b>'+esc(e.titulo)+'</b><br><small>'+esc(fechaEvento(e))+'</small><br><button class="pop-ver" data-evento="'+esc(e.id)+'">Ver evento</button>');});
   if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
   m.on('popupopen',ev=>{const b=ev.popup.getElement().querySelector('[data-evento]');if(b)b.onclick=()=>abrirEvento(b.dataset.evento);});
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 // Calendario suscribible (GET /v1/eventos.ics): el calendario del teléfono trae los eventos nuevos solo
@@ -453,12 +575,13 @@ function abrirEvento(id){
   enviarAnalitica(()=>umami.track(p=>({...p,url:'/evento/'+e.id,title:e.titulo+' · Fusa Conecta'})));
   const c=catEvento(e.categoria),fav='ev:'+e.id,on=estado.favoritos.includes(fav);
   const destino=e.lat&&e.lng?e.lat+','+e.lng:e.lugar_nombre+', '+(e.municipio||'Fusagasugá')+', Cundinamarca';
-  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e.ini)+'</div>'
+  abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e)+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
-    +(e.fuente_oficial?' <span class="ev-chip ev-chip-oficial">'+icon('badge-check',12)+'Fuente oficial</span>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
-    +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
+    +(e.fuente_oficial?' <button type="button" class="ev-chip ev-chip-oficial" data-explica="oficial">'+icon('badge-check',12)+'Fuente oficial</button>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
+    +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e,true)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
+    +(e.imagen&&e.foto_credito?filaDato('camera','Foto',esc(e.foto_credito)):'')
     +filaDato('ticket','Entrada',esc(precioEv(e)))
     +(e.enlace_fuente?filaDato('external-link','Fuente oficial','<a href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">Ver la publicación original</a>'
       // Eventos unidos por la agenda automática (v1.2.0): las demás noticias que hablan del mismo evento
@@ -468,6 +591,7 @@ function abrirEvento(id){
     +'<div class="ev-acc2"><button class="btn btn-secundario'+(on?' on':'')+'" id="evInteresa" aria-pressed="'+on+'">'+icon('heart',18)+(on?'Te interesa':'Me interesa')+'</button>'
     +'<button class="btn btn-secundario" id="evCompartir">'+icon('share-2',18)+'Compartir</button></div></div></div>');
   $('#sheetGen').setAttribute('aria-label','Evento: '+e.titulo);
+  setTimeout(()=>explicarPrimeraVez($('#sheetGen')),350);
   $('#evCal').onclick=()=>{medir('evento_calendario');entregarArchivo(new File([icsEvento(e)],'evento-fusa-conecta.ics',{type:'text/calendar'}),e.titulo);};
   $('#evInteresa').onclick=()=>{if(!toggleFavorito(fav))return;const ya=estado.favoritos.includes(fav),b=$('#evInteresa');
     b.classList.toggle('on',ya);b.setAttribute('aria-pressed',ya);b.innerHTML=icon('heart',18)+(ya?'Te interesa':'Me interesa');};
@@ -491,6 +615,7 @@ function formEvento(e,opc={}){
     +(puedeUsarIA()?iaCajaHTML():'')
     +'<label class="foto-banner" id="evfCaja"><input type="file" accept="image/*" id="evfFoto" class="sr-only">'
     +(foto?'<img src="'+esc(foto.src)+'" alt="Foto del evento. Toca para cambiarla">':'<span class="fb-vacio">'+icon('image-plus',28)+'<b>Foto o afiche (opcional)</b></span>')+'</label>'
+    +'<div class="campo"><label for="evfCredito">¿De quién es la foto? (si subiste una)</label><input class="input" id="evfCredito" maxlength="120" placeholder="Ej.: Alcaldía de Fusagasugá, o tu nombre si la tomaste tú" value="'+v('foto_credito')+'"></div>'
     +'<div class="campo"><label for="evfTit">Nombre del evento <span class="req">*</span></label><input class="input" id="evfTit" maxlength="80" value="'+v('titulo')+'"></div>'
     +'<div class="campo"><label for="evfCat">Categoría <span class="req">*</span></label><select class="input" id="evfCat">'+CATS_EVENTO.map(([k,t])=>'<option value="'+k+'"'+(e&&e.categoria===k?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'
     +'<div class="fb-fechas"><div class="campo"><label for="evfIni">Empieza <span class="req">*</span></label><input class="input" type="datetime-local" id="evfIni" value="'+aLocal(e&&e.ini)+'"></div>'
@@ -542,7 +667,9 @@ function formEvento(e,opc={}){
     if(fuente&&!/^https:\/\/\S+$/.test(fuente)){toast('El enlace debe comenzar con https://');$('#evfFuente').focus();return;}
     const datos={titulo:tit,descripcion:$('#evfDesc').value.trim(),categoria:$('#evfCat').value,fecha_inicio:TS.fromMillis(ini),fecha_fin:TS.fromMillis(fin),
       lugar_nombre:lugar,lat:lat||null,lng:lng||null,municipio:$('#evfMun').value,imagen:foto?foto.src:'',organizador:$('#evfOrg').value.trim(),
-      enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim()};
+      enlace_fuente:fuente,gratis:$('#evfGratis').checked,precio:$('#evfGratis').checked?'':$('#evfPrecio').value.trim(),
+      // Fase 6: la foto del evento (imagen) lleva su crédito; si no se sube, se muestra la ilustración de su tipo
+      foto_credito:foto?$('#evfCredito').value.trim().slice(0,120):'',foto_fuente:foto?(fuente?'oficial':'propia'):''};
     const b=$('#evfGuardar'),textoBoton=b.innerHTML;b.disabled=true;b.innerHTML=icon('loader-circle',18,'gira')+'Guardando…';
     // Con la caché de Firestore la escritura queda en el teléfono al instante; la promesa espera la confirmación del servidor
     const escritura=admin&&e
@@ -754,8 +881,8 @@ function enlazarIAEvento(alLlenar){
    datos de la app (directorio, agenda, rutas, trámites y emergencias). La conversación vive solo en esta pantalla: no se
    guarda en el servidor. Límite por día (hora de Colombia): 30 preguntas con cuenta y 10 como invitado (la cuenta anónima
    del dispositivo); el contador lo validan las reglas. La ubicación se pide solo si la pregunta es "cerca de mí". */
-const ASIS={limiteCuenta:30,limiteInvitado:10,rondas:4,recordar:6,maxTarjetas:5,segundos:30};
-estado.asis={msgs:[],historial:[],quedan:null,ocupado:false,parcial:null};
+const ASIS={limiteCuenta:30,limiteInvitado:10,rondas:4,recordar:6,maxTarjetas:5,segundos:30,lentoSeg:20};
+estado.asis={msgs:[],historial:[],quedan:null,ocupado:false,parcial:null,locales:null,urgencia:false,lento:false,turno:0};
 const diaCol=()=>Math.floor((Date.now()-5*36e5)/864e5);
 const limiteAsis=()=>logueado()?ASIS.limiteCuenta:ASIS.limiteInvitado;
 const CHIPS_ASIS=['¿Qué está abierto ahora?','¿Qué hay para hacer este fin de semana?','Recomiéndame una ruta para caminar',
@@ -892,13 +1019,11 @@ function tarjetasAsis(resultados,texto){
   const agregar=(clave,html)=>{if(fuera.has(clave)||filas.length>=ASIS.maxTarjetas)return;fuera.add(clave);filas.push(html);};
   const elegir=l=>{const n=l.filter(x=>nombrado(x.nombre||x.titulo||x.entidad));return n.length?n:l;};
   for(const {r} of resultados){
-    if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(!d)return;
-      agregar('l'+x.id,'<button class="asis-item" data-ver="'+esc(x.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
-        +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(x.ahora!=='Sin horario publicado'?x.ahora:x.tipo)+(x.distancia_km!=null?' · '+fmtDist(x.distancia_km):'')+'</small></span>'+icon('chevron-right',18)+'</button>');});
+    if(r.lugares)elegir(r.lugares).forEach(x=>{const d=buscar(x.id);if(d)agregar('l'+x.id,tarjetaLugarAsisHTML(d));});
     // Eventos de la agenda automática: con el enlace a la publicación oficial
     if(r.eventos)elegir(r.eventos).forEach(x=>{const e=estado.eventos.find(y=>y.id===x.id);if(!e)return;
       const fuente=e.origen==='automatico'&&/^https:\/\//.test(e.enlace_fuente||'');
-      agregar('e'+x.id,(fuente?'<div class="asis-ev">':'')+'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e.ini)
+      agregar('e'+x.id,(fuente?'<div class="asis-ev">':'')+'<button class="asis-item" data-evento="'+esc(x.id)+'">'+calBloque(e)
         +'<span class="asis-item-tx"><b>'+esc(e.titulo)+'</b><small>'+esc(horaEv(e.ini)+' · '+e.lugar_nombre)+'</small></span>'+icon('chevron-right',18)+'</button>'
         +(fuente?'<a class="asis-fuente" href="'+esc(e.enlace_fuente)+'" target="_blank" rel="noopener">'+icon('external-link',14)+'Ver fuente oficial</a></div>':''));});
     if(r.rutas)elegir(r.rutas).forEach(x=>agregar('r'+x.id,'<button class="asis-item" data-ruta="'+esc(x.id)+'"><span class="asis-item-ic c-turismo">'+icon('route',20)+'</span>'
@@ -908,6 +1033,7 @@ function tarjetasAsis(resultados,texto){
   }
   // La nota «confirma horarios y precios» solo cuando se recomiendan lugares, eventos o rutas
   filas.recomienda=[...fuera].some(k=>/^[ler]/.test(k));
+  filas.conLugares=[...fuera].some(k=>k[0]==='l');
   return filas;
 }
 async function modeloAsistente(){
@@ -916,64 +1042,133 @@ async function modeloAsistente(){
   return modeloDoble({uso:'asistente',tools,systemInstruction,generationConfig,
     sdk:()=>m.getGenerativeModel(m.ai,{model:IA.modelos[0],tools,systemInstruction,generationConfig})});
 }
+/* ---------- E3: respuesta inmediata con el directorio y nunca sin salida ----------
+   Antes de que conteste la IA (Gemini tarda de 5 a 20 s) se muestran los lugares del directorio que coinciden, con su
+   estado y el botón Llamar. Las preguntas de salud o urgencia llevan siempre el acceso a los números de emergencia. */
+const VACIAS_ASIS=new Set(['necesito','quiero','busco','buscar','donde','hay','una','uno','unos','unas','que','para','por','favor',
+  'cerca','aqui','mi','me','de','del','la','las','el','los','en','con','algo','abierta','abierto','ahora','hoy','ya','urgente','esta',
+  'estan','queda','puedo','encontrar','un','al','como','cual','mas','muy','sitio','lugar','alguna','alguno','tienen','venden'].map(raiz));
+const RE_URGENCIA=/drog|farmac|hospital|clinic|ambulanc|urgenc|emergenc|dolor|duele|herid|accident|sangr|fiebre|infart|desmay|respir|quemad|medic|salud/;
+const esUrgenciaAsis=texto=>RE_URGENCIA.test(norm(texto));
+const palabrasAsis=texto=>tokens(texto).filter(t=>t.length>2&&!VACIAS_ASIS.has(t));
+// Lo que se propone buscar en el directorio, con las palabras tal como las escribió la persona
+const busquedaDeAsis=texto=>texto.replace(/[¿?¡!.,;:]/g,' ').split(/\s+/).filter(w=>palabrasAsis(w).length).join(' ');
+// Abiertos primero, luego los que no tienen horario y al final los cerrados
+const rangoApertura=d=>{const a=estadoApertura(d);return a?(a.abierto?2:0):1;};
+function lugaresAsis(texto){
+  const ps=palabrasAsis(texto);if(!ps.length)return [];
+  const mun=municipioElegido(),n=norm(texto);
+  let l=database.filter(d=>(d.cat!=='bares'||estado.mayorEdad)&&(!mun||enMunicipio(d,mun)));
+  const conTodas=l.filter(d=>ps.every(t=>coincide(d,t)));
+  l=conTodas.length?conTodas:l.filter(d=>ps.some(t=>coincide(d,t)));
+  l=ordenar(l,/cerca|aqui/.test(n)&&estado.pos?'cercanos':'recomendados');
+  if(/abiert/.test(n))l.sort((a,b)=>rangoApertura(b)-rangoApertura(a));
+  return l.slice(0,ASIS.maxTarjetas);
+}
+function tarjetaLugarAsisHTML(d){
+  const ap=estadoApertura(d),km=distanciaA(d),tel=telLimpio(d.tel);
+  const estadoTx=ap?estadoHTML(ap):esNatural(d)?esc(etiquetaDe(d)):estadoHTML(SIN_HORARIO);
+  return '<div class="asis-lugar"><button class="asis-item" data-ver="'+esc(d.id)+'"><span class="asis-item-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),20)+'</span>'
+    +'<span class="asis-item-tx"><b>'+esc(d.nombre)+'</b><small>'+estadoTx+(km!=null?' · '+fmtDist(km):'')+'</small></span>'+icon('chevron-right',18)+'</button>'
+    +(tel?'<a class="btn btn-tonal asis-llamar" href="tel:'+tel+'" data-tel="'+esc(d.id)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone',18)+'Llamar</a>':'')+'</div>';
+}
+// Una vuelta completa con la IA: funciones del directorio y la frase final
+async function consultarIA(texto){
+  const A=estado.asis;
+  A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
+  // Cada vuelta tiene su límite. En cuanto las funciones devuelven datos, las tarjetas aparecen; si la frase final
+  // no llega a tiempo, se responde solo con ellas.
+  const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),segIA(ASIS.segundos)*1000,'La IA tardó demasiado');A.parcial=resultados;
+  const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
+  let x=await enviar(chat,texto),resp='';
+  try{
+    for(let i=0;i<ASIS.rondas;i++){
+      const ll=x.response.functionCalls();if(!ll||!ll.length)break;
+      const partes=[];
+      for(const c of ll){
+        const f=FUNCIONES_ASIS[c.name];let res;
+        try{res=f?await f(c.args||{}):{error:'Esa función no existe'};}catch(e){res={error:'No se pudo consultar'};reportarError('asistente, '+c.name,e);}
+        resultados.push({f:c.name,r:res});usadas.push(c.name);partes.push({functionResponse:{name:c.name,response:res}});
+      }
+      pintarAsis();
+      x=await enviar(chat,partes);
+    }
+    try{resp=x.response.text().trim();}catch(e){}
+  }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
+  return {resp,resultados,usadas};
+}
+// Las tarjetas de la IA; si no nombró lugares, las del directorio. Sin tarjetas, botones para seguir buscando
+function respuestaFusa({resp,resultados},texto,locales,urgencia){
+  resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length||locales.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
+  const tarjetas=tarjetasAsis(resultados,resp),propias=tarjetas.conLugares?[]:locales.map(tarjetaLugarAsisHTML);
+  const todas=propias.concat(tarjetas).slice(0,ASIS.maxTarjetas+propias.length);
+  return {rol:'fusa',texto:resp,tarjetas:todas,recomienda:!!tarjetas.recomienda||propias.length>0,sos:urgencia,salidas:!todas.length,buscar:busquedaDeAsis(texto)};
+}
+function errorFusa(e,texto,locales,urgencia){
+  const cod=reportarError('asistente',e);
+  return {rol:'fusa',error:true,reintentar:e.code!=='limite',pregunta:texto,sos:urgencia,tarjetas:locales.map(tarjetaLugarAsisHTML),salidas:!locales.length,buscar:busquedaDeAsis(texto),
+    texto:(locales.length?'Te muestro lo que hay en el directorio. ':'')+(e.code==='limite'?'Ya hiciste las '+limiteAsis()+' preguntas de hoy. Vuelve mañana'+(logueado()?'.':', o inicia sesión para tener '+ASIS.limiteCuenta+' preguntas al día.')
+      :e.code==='tiempo'?'Me demoré demasiado en responder. Intenta de nuevo en un momento. (Error '+cod+')'
+      :cod==='E-CUPO'?'Hay muchas preguntas en este momento. Intenta de nuevo en un minuto. (Error '+cod+')'
+      :'No pude responder ahora. Intenta de nuevo en un momento. (Error '+cod+')')};
+}
 async function preguntarFusa(texto){
   const A=estado.asis;texto=String(texto||'').trim().slice(0,300);
   if(!texto||A.ocupado)return;
   A.msgs.push({rol:'yo',texto});
-  if(!estado.online){A.msgs.push({rol:'fusa',error:true,texto:'Necesito conexión a internet para responder. Los números de emergencia sí funcionan sin conexión.',sos:true});pintarAsis();return;}
-  A.ocupado=true;pintarAsis();
+  const locales=lugaresAsis(texto),urgencia=esUrgenciaAsis(texto);
+  if(!estado.online){A.msgs.push({rol:'fusa',error:true,texto:'Necesito conexión a internet para responder. Los números de emergencia sí funcionan sin conexión.',sos:true,tarjetas:locales.map(tarjetaLugarAsisHTML)});pintarAsis();return;}
+  const turno=++A.turno;
+  Object.assign(A,{ocupado:true,locales,urgencia,lento:false});pintarAsis();
+  const lento=setTimeout(()=>{if(A.turno===turno&&A.ocupado){A.lento=true;pintarAsis();}},ASIS.lentoSeg*1000);
   try{
-    A.quedan=await conTiempoLimite(contarPregunta(),10000,'El contador de preguntas no respondió');
-    // Cada vuelta con la IA tiene su límite. Gemini tarda entre 5 y 20 s por vuelta: en cuanto las funciones
-    // devuelven datos, las tarjetas aparecen; si la frase final no llega a tiempo, se responde solo con ellas.
-    const resultados=[],usadas=[],enviar=(chat,p)=>conTiempoLimite(chat.sendMessage(p),segIA(ASIS.segundos)*1000,'La IA tardó demasiado');A.parcial=resultados;
-    const chat=(await conTiempoLimite(modeloAsistente(),15000,'La IA no cargó')).startChat({history:A.historial});
-    let x=await enviar(chat,texto),resp='';
-    try{
-      for(let i=0;i<ASIS.rondas;i++){
-        const ll=x.response.functionCalls();if(!ll||!ll.length)break;
-        const partes=[];
-        for(const c of ll){
-          const f=FUNCIONES_ASIS[c.name];let res;
-          try{res=f?await f(c.args||{}):{error:'Esa función no existe'};}catch(e){res={error:'No se pudo consultar'};console.warn('Asistente',c.name,e);}
-          resultados.push({f:c.name,r:res});usadas.push(c.name);partes.push({functionResponse:{name:c.name,response:res}});
-        }
-        pintarAsis();
-        x=await enviar(chat,partes);
-      }
-      try{resp=x.response.text().trim();}catch(e){}
-    }catch(e){if(!resultados.length)throw e;reportarError('asistente, respuesta final',e);}
-    resp=resp.replace(/\*\*?|__|^#+\s*/gm,'').replace(/^[\s.,;:]+/,'')||(resultados.length?'Esto fue lo que encontré en Fusa Conecta:':'No tengo una respuesta para eso. Prueba con otra pregunta.');
-    const tarjetas=tarjetasAsis(resultados,resp);
-    A.msgs.push({rol:'fusa',texto:resp,tarjetas,recomienda:!!tarjetas.recomienda});
-    A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:resp}]});
+    const r=await consultarIA(texto);
+    if(A.turno!==turno)return;   // la persona pidió reintentar: esta respuesta ya no cuenta
+    const m=respuestaFusa(r,texto,locales,urgencia);A.msgs.push(m);
+    A.historial.push({role:'user',parts:[{text:texto}]},{role:'model',parts:[{text:m.texto}]});
     A.historial=A.historial.slice(-ASIS.recordar*2);
-    medir('asistente',{funciones:[...new Set(usadas)].join(',')||'ninguna'});
+    medir('asistente',{funciones:[...new Set(r.usadas)].join(',')||'ninguna'});
   }catch(e){
-    const cod=reportarError('asistente',e);
-    A.msgs.push({rol:'fusa',error:true,reintentar:e.code!=='limite',pregunta:texto,
-      texto:e.code==='limite'?'Ya hiciste las '+limiteAsis()+' preguntas de hoy. Vuelve mañana'+(logueado()?'.':', o inicia sesión para tener '+ASIS.limiteCuenta+' preguntas al día.')
-        :e.code==='tiempo'?'Me demoré demasiado en responder. Intenta de nuevo en un momento. (Error '+cod+')'
-        :cod==='E-CUPO'?'Hay muchas preguntas en este momento. Intenta de nuevo en un minuto. (Error '+cod+')'
-        :'No pude responder ahora. Intenta de nuevo en un momento. (Error '+cod+')'});
+    if(A.turno!==turno)return;
+    A.msgs.push(errorFusa(e,texto,locales,urgencia));
     if(e.code==='limite')A.quedan=0;
-  }finally{A.ocupado=false;A.parcial=null;pintarAsis();}
+  }finally{
+    clearTimeout(lento);
+    if(A.turno===turno){Object.assign(A,{ocupado:false,parcial:null,locales:null,lento:false});pintarAsis();}
+  }
+}
+// Pasados 20 s: se deja de esperar esa respuesta y se pregunta otra vez
+function reintentarLento(){
+  const A=estado.asis,ultima=[...A.msgs].reverse().find(m=>m.rol==='yo');if(!ultima)return;
+  A.turno++;A.msgs.splice(A.msgs.lastIndexOf(ultima),1);
+  Object.assign(A,{ocupado:false,parcial:null,locales:null,lento:false});
+  preguntarFusa(ultima.texto);
+}
+const botonSOSAsis='<button class="btn btn-peligro btn-bloque asis-sos" data-asis-sos>'+icon('siren',20)+'Ver números de emergencia</button>';
+function salidasAsisHTML(m){
+  return '<div class="asis-salidas"><button class="btn btn-secundario" data-asis-mapa>'+icon('map',18)+'Ver el mapa</button>'
+    +(m.buscar?'<button class="btn btn-secundario" data-asis-buscar="'+esc(m.buscar)+'">'+icon('search',18)+'Buscar «'+esc(m.buscar)+'»</button>':'')+'</div>';
 }
 function burbujaAsis(m,i){
   if(m.rol==='yo')return '<div class="asis-msg yo"><p>'+esc(m.texto)+'</p></div>';
   return '<div class="asis-msg fusa'+(m.error?' error':'')+'"><span class="asis-ava" aria-hidden="true">'+icon(m.error?'circle-alert':'sparkles',18)+'</span><div class="asis-cont">'
     +String(m.texto).split(/\n+/).map(p=>'<p>'+esc(p)+'</p>').join('')
     +(m.tarjetas&&m.tarjetas.length?'<div class="asis-items">'+m.tarjetas.join('')+'</div>':'')
-    +(m.sos?'<button class="btn btn-secundario btn-sm" data-asis-sos>'+icon('siren',16)+'Ver números de emergencia</button>':'')
+    +(m.salidas&&!m.bienvenida?salidasAsisHTML(m):'')
+    +(m.sos?botonSOSAsis:'')
     +(m.reintentar?'<button class="btn btn-secundario btn-sm" data-reintentar="'+i+'">'+icon('refresh-cw',16)+'Intentar de nuevo</button>':'')
     +(m.rol==='fusa'&&!m.error&&m.recomienda?'<p class="asis-ia">Respuesta con IA: confirma horarios y precios antes de ir.</p>':'')+'</div></div>';
 }
-// Mientras la IA trabaja: primero "Buscando", y cuando las funciones devuelven datos, las tarjetas
-function pensandoAsis(parcial){
-  const t=parcial&&parcial.length?tarjetasAsis(parcial,''):[];
+// Mientras la IA trabaja: el mensaje de espera, los lugares del directorio y, cuando las funciones devuelven datos, sus tarjetas
+function pensandoAsis(A){
+  const ia=A.parcial&&A.parcial.length?tarjetasAsis(A.parcial,''):[];
+  const t=(ia.conLugares?[]:(A.locales||[]).map(tarjetaLugarAsisHTML)).concat(ia);
   return '<div class="asis-msg fusa"><span class="asis-ava" aria-hidden="true">'+icon('sparkles',18)+'</span><div class="asis-cont">'
-    +'<p class="asis-pensando">'+(t.length?'Encontré esto. Estoy escribiendo la respuesta':'Buscando en Fusa Conecta')+'<span aria-hidden="true"><i></i><i></i><i></i></span></p>'
-    +(t.length?'<div class="asis-items">'+t.join('')+'</div>':'')+'</div></div>';
+    +'<p class="asis-pensando">'+(ia.length?'Encontré esto. Estoy escribiendo la respuesta':'Estoy buscando… esto puede tardar unos segundos')+'<span aria-hidden="true"><i></i><i></i><i></i></span></p>'
+    +(t.length?'<div class="asis-items">'+t.join('')+'</div>':'')
+    +(A.urgencia?botonSOSAsis:'')
+    +(A.lento?'<p class="asis-lento">Está tardando más de lo normal.</p><button class="btn btn-secundario" data-asis-lento>'+icon('refresh-cw',18)+'Intentar de nuevo</button>':'')
+    +'</div></div>';
 }
 function pintarNotaAsis(){
   const n=$('#asisCupo');if(!n)return;const q=estado.asis.quedan;
@@ -984,13 +1179,16 @@ function pintarAsis(){
   const bienvenida={rol:'fusa',bienvenida:true,texto:'Hola, soy Fusa. Te ayudo a encontrar lugares, planes, rutas, trámites y números de emergencia en Fusagasugá y Pasca.'};
   log.innerHTML=[bienvenida,...A.msgs].map((m,i)=>burbujaAsis(m,i-1)).join('')
     +(A.msgs.length?'':'<div class="asis-chips" role="group" aria-label="Preguntas de ejemplo">'+CHIPS_ASIS.map(c=>'<button class="chip-filtro" data-chip>'+esc(c)+'</button>').join('')+'</div>')
-    +(A.ocupado?pensandoAsis(A.parcial):'');
+    +(A.ocupado?pensandoAsis(A):'');
   $$('#asisLog [data-chip]').forEach(b=>(b.onclick=()=>preguntarFusa(b.textContent)));
   $$('#asisLog [data-ver]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.ver)));
   $$('#asisLog [data-evento]').forEach(b=>(b.onclick=()=>abrirEvento(b.dataset.evento)));
   $$('#asisLog [data-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'ruta',id:b.dataset.ruta})));
   $$('#asisLog [data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
   $$('#asisLog [data-asis-sos]').forEach(b=>(b.onclick=()=>navegar({tipo:'sos'})));
+  $$('#asisLog [data-asis-mapa]').forEach(b=>(b.onclick=()=>navegar({tipo:'mapa'})));
+  $$('#asisLog [data-asis-buscar]').forEach(b=>(b.onclick=()=>buscarTexto(b.dataset.asisBuscar)));
+  $$('#asisLog [data-asis-lento]').forEach(b=>(b.onclick=reintentarLento));
   $$('#asisLog [data-reintentar]').forEach(b=>(b.onclick=()=>{const m=A.msgs[+b.dataset.reintentar];A.msgs.splice(+b.dataset.reintentar-1,2);preguntarFusa(m.pregunta);}));
   const env=$('#asisEnviar');if(env){env.disabled=A.ocupado;env.setAttribute('aria-busy',A.ocupado);}
   pintarNotaAsis();
@@ -1014,9 +1212,9 @@ function renderAsistente(){
   pintarAsis();leerCupoAsis();
 }
 function irAsistente(pregunta){navegar({tipo:'asistente'});if(pregunta)preguntarFusa(pregunta);}
+// U1: «Pregúntale a Fusa» es una línea pequeña bajo el buscador (ya no una tarjeta grande)
 function asisEntradaHTML(){
-  return '<button class="asis-entrada" id="asisEntrada"><span class="asis-logo" aria-hidden="true">'+icon('sparkles',22)+'</span>'
-    +'<span class="asis-entrada-tx"><b>Pregúntale a Fusa</b><small>¿Dónde almorzar? ¿Qué hacer el sábado?</small></span>'+icon('chevron-right',20)+'</button>';
+  return '<button class="asis-linea" id="asisEntrada">'+icon('sparkles',18)+'<span>Pregúntale a Fusa</span>'+icon('chevron-right',18)+'</button>';
 }
 
 /* ===== RUTAS DE LA COMUNIDAD (v7 · Fase 4) =====
@@ -1519,7 +1717,7 @@ function enlazarAgendaAutoAdmin(){
 }
 function eventosAdminHTML(){
   const pend=(estado.adminPend.eventos||[]).slice().sort((a,b)=>(a.ini||0)-(b.ini||0)),pub=eventosVigentes();
-  const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e.ini)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
+  const fila=(e,botones)=>'<div class="adm-card"><div class="adm-head">'+calBloque(e)+'<div class="dc-info"><h3>'+esc(e.titulo)+'</h3><p>'+esc(fechaEvento(e))+' · '+esc(e.lugar_nombre)+'</p></div></div>'
     +'<p class="nota-c izq">'+catEvento(e.categoria)[1]+' · '+esc(precioEv(e))+(e.organizador?' · '+esc(e.organizador):'')+' · Origen: '+esc({admin:'admin',organizador:'organizador',usuario:'sugerido por un usuario',ia:'IA',automatico:'agenda automática'+(e.fuente_oficial?' (fuente oficial)':'')}[e.origen]||e.origen)+'</p>'
     +(e.hora_por_confirmar||e.lugar_por_confirmar?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p><b>Revisa antes de publicar:</b> '
       +[e.hora_por_confirmar?'la noticia no dice la hora (la agenda puso 9:00 a. m.)':'',e.lugar_por_confirmar?'el lugar no está claro':''].filter(Boolean).join(' y ')
@@ -1564,6 +1762,7 @@ function enlazarEventosAdmin(){
 // Comercios del dueño en cualquier estado (pendiente, rechazado, aprobado): solo con sesión de comerciante
 let comerciosPropios=[],propiosUnsub=null;
 function escucharMisComercios(){
+  escucharMisReclamos();
   if(propiosUnsub||!logueado())return;
   propiosUnsub=db.collection('comercios').where('propietario_uid','==',estado.usuario.uid).onSnapshot(snap=>{
     comerciosPropios=snap.docs.map(doc=>normalizarNube(doc.id,doc.data()));refrescarVista();
@@ -1576,7 +1775,7 @@ function escucharMisComercios(){
 let migrandoPropias=false;
 // Foto antigua: imagen en base64 dentro del documento del negocio y sin galería
 const fotoAntigua=c=>/^data:image\//.test(c.imagen||'')&&!(c.fotos||[]).length;
-function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];}
+function dejarDeEscucharMisComercios(){if(propiosUnsub){propiosUnsub();propiosUnsub=null;}comerciosPropios=[];dejarDeEscucharMisReclamos();}
 
 db.collection('calificaciones').onSnapshot(snap=>{
   const c={};
@@ -1729,12 +1928,6 @@ db.collection('perdidos').where('estado','in',['activo','resuelto']).onSnapshot(
   ls.set('fc_perdidos',estado.perdidos.map(p=>({...p,foto:''})));
   const v=vistaActual();if(v.tipo==='perdidos'||(v.tipo==='lista'&&v.cat==='todas'))render(true);
 },()=>{});
-function seccionPerdidosHTML(){
-  const l=perdidosVisibles(estado.perdidos,{mun:municipioElegido()}).filter(p=>p.estado==='activo').slice(0,8);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tPerdidos"><div class="head-v"><h2 id="tPerdidos">Ayúdalos a volver a casa</h2><button class="btn-ghost" data-irperdidos>Ver todos</button></div>'
-    +'<div class="carrusel carrusel-pd">'+l.map(p=>tarjetaPerdidoHTML(p,false)).join('')+'</div></section>';
-}
 function renderPerdidos(){
   const cuerpo=$('#cuerpo'),f=estado.pd,uid=logueado()&&estado.usuario.uid;
   const l=perdidosVisibles(estado.perdidos,{tipo:f.tipo,situacion:f.situacion,mun:municipioElegido()});
@@ -1854,20 +2047,24 @@ function escucharMisEmpleos(){
     estado.misEmpleos=s.docs.map(d=>empleoDeDoc(d.id,d.data()));if(['dashboard','empleos'].includes(vistaActual().tipo))render(true);
   },()=>{});
 }
-function seccionEmpleosHTML(){
-  const l=empleosVisibles(estado.empleos,municipioElegido()).slice(0,6);
-  if(!l.length)return '';
-  return '<section class="seccion-inicio" aria-labelledby="tEmpleos"><div class="head-v"><h2 id="tEmpleos">Empleos en '+nombreZona()+'</h2><button class="btn-ghost" data-irempleos>Ver todos</button></div>'
-    +'<div class="carrusel carrusel-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div></section>';
-}
 function renderEmpleos(){
   const cuerpo=$('#cuerpo'),l=empleosVisibles(estado.empleos,municipioElegido());
   cuerpo.innerHTML='<div class="vista"><div class="sos-head tr-head"><h2>'+icon('briefcase',24)+'Empleos locales</h2><p>'+icon('circle-check',16)+'Ofertas de negocios de Fusa y Pasca, revisadas antes de publicarse. Nadie debe cobrarte por postularte.</p></div>'
     +(l.length?'<div class="lista-pd">'+l.map(e=>tarjetaEmpleoHTML(e,false)).join('')+'</div>'
-      :'<div class="vacio">'+icon('briefcase',48)+'<b>Aún no hay ofertas publicadas</b><p>Los negocios publican sus vacantes desde «Mi negocio». Vuelve pronto.</p></div>')
+      :'<div class="vacio">'+icon('briefcase',48)+'<b>Pronto habrá ofertas de trabajo aquí</b><p>¿Tienes una vacante? Publícala gratis.</p>'
+        +'<button class="btn btn-primario mt-16" id="emPublicar">'+icon('plus',18)+'Publicar una vacante</button></div>')
     +'<p class="nota-c izq mt-16">¿Tienes un negocio en la app? Publica tu vacante desde Mi negocio → «Ofrecer empleo».</p>'
     +'</div>'+footerHTML();
+  const pv=$('#emPublicar');if(pv)pv.onclick=publicarVacante;
   enlazarFooter();
+}
+// Publicar una vacante: la publica un negocio aprobado; sin negocio, primero se registra uno
+function publicarVacante(){
+  if(!logueado()){pedirLogin('Inicia sesión para publicar una vacante.');return;}
+  const propio=comerciosPropios.find(c=>c.estado_publicacion==='aprobado');
+  if(propio){formEmpleo(propio);return;}
+  toast('Primero registra tu negocio; después publicas la vacante desde «Mi negocio».',6000);
+  registrarMiNegocio();
 }
 document.addEventListener('click',e=>{
   const t=e.target.closest&&e.target.closest('[data-emwa],[data-emcerrar],[data-emborrar],[data-irempleos]');if(!t)return;
@@ -2061,6 +2258,9 @@ function estadoApertura(d){
   const cuando=prox.o===0?'Abre a las '+horaTexto(prox.ini):prox.o===1?'Abre mañana '+horaTexto(prox.ini):'Abre el '+DIAS_LARGO[prox.di]+' '+horaTexto(prox.ini);
   return {tipo:'cerr',abierto:false,texto:cuando};
 }
+// U2: sin horario publicado no se dice «Abierto» ni «Cerrado» (los sitios naturales no tienen horario)
+const SIN_HORARIO={tipo:'sin',abierto:false,texto:'Horario sin confirmar'};
+function estadoLugar(d){return estadoApertura(d)||(esNatural(d)?null:SIN_HORARIO);}
 function estadoHTML(ap,id){return ap?'<span class="estado '+ap.tipo+'"'+(id!=null?' data-estado="'+esc(id)+'"':'')+'><span class="punto" aria-hidden="true"></span><span class="et">'+esc(ap.texto)+'</span></span>':'';}
 function horarioTexto(d){
   if(d.dias&&d.dias.length&&d.abre&&d.cierra)return d.dias.slice().sort().map(i=>DIAS_TXT[i]).join(', ')+' · '+formatearHora(d.abre)+' – '+formatearHora(d.cierra);
@@ -2132,7 +2332,15 @@ let saliendo=false;
 function vistaActual(){return stack[stack.length-1]||{tipo:'lista',cat:'todas'};}
 function navegar(v){stack.push(v);try{window.history.pushState({n:stack.length},'');}catch(e){}render();}
 function volver(){if(stack.length>1)window.history.back();}
-function inicio(){stack.length=0;navegar({tipo:'lista',cat:'todas'});}
+// E4: Inicio deja la portada limpia: sin texto en el buscador, sin filtros y arriba del todo (render vuelve arriba)
+function inicio(){
+  limpiarBusqueda();
+  estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};
+  stack.length=0;navegar({tipo:'lista',cat:'todas'});
+}
+function limpiarBusqueda(){estado.q='';$('#busqueda').value='';$('#sugerencias').classList.remove('ver');pintarBorrar();}
+// La X del buscador solo aparece cuando hay algo escrito
+function pintarBorrar(){const hay=!!$('#busqueda').value;$('#bBorrar').hidden=!hay;$('.buscador').classList.toggle('con-texto',hay);}
 window.addEventListener('popstate',()=>{
   if(saliendo){window.history.back();return;}
   const ab=$('.overlay.abierto');
@@ -2193,8 +2401,15 @@ const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de e
 function saludoDeHora(h=new Date(Date.now()-5*36e5).getUTCHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
 function pintarSaludo(){
   const nom=logueado()?estado.usuario.nombre.split(' ')[0]:'';
-  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b><span>¿Qué plan hay hoy en '+(municipioElegido()==='Pasca'?'Pasca':municipioElegido()?'Fusa':'Fusa y Pasca')+'?</span></div>'+pildoraRadioHTML();
+  // U1: una sola línea (saludo y radio en vivo) para que los eventos se vean sin deslizar
+  $('#saludoHora').innerHTML='<div class="sh-tx"><b>'+saludoDeHora()+(nom?', '+esc(nom):'')+'</b></div>'+pildoraRadioHTML();
   $('#pRadio').onclick=radioAlternar;
+}
+// E6: las pestañas de la barra inferior muestran su nombre arriba a la izquierda (sin «Volver», la barra se veía vacía)
+const TITULO_PESTANA={mapa:'Mapa',comunidad:'Comunidad',agenda:'Agenda',perfil:'Mi perfil'};
+function pintarTituloBarra(v,enLista){
+  const t=$('#navTitulo'),texto=!enLista&&$('#bVolver').classList.contains('invisible')?TITULO_PESTANA[v.tipo]||'':'';
+  t.textContent=texto;t.hidden=!texto;
 }
 function renderHeader(){
   const v=vistaActual();
@@ -2202,17 +2417,17 @@ function renderHeader(){
   const enLista=v.tipo==='lista'&&v.cat!=='favoritos';
   // En los listados no hay "Volver": se vuelve tocando "Todas" (o con el botón Atrás del celular)
   // Las pestañas de la barra inferior (Mapa, Cupones, Inicio, Agenda, Perfil) no llevan "Volver"; solo las pantallas de segundo nivel
-  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','cupones','billetera','agenda','perfil'].includes(v.tipo));
+  $('#bVolver').classList.toggle('invisible',stack.length<=1||enLista||['mapa','comunidad','agenda','perfil'].includes(v.tipo));
+  pintarTituloBarra(v,enLista);
   $('#topbar').classList.toggle('en-lista',enLista);
   $('#descubre').style.display=enLista?'block':'none';
   if(!enLista)return;
   pintarSaludo();
   $('#selMunicipio').innerHTML=selectorMunicipioHTML();enlazarSelectorMunicipio();
-  const conBanner=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
-  $('#cats').closest('.fila-chips').hidden=conBanner;
-  $('#plegBanner').hidden=!conBanner;
-  if(conBanner)montarBanner();
+  // En la portada las categorías van en la cuadrícula del cuerpo
+  $('#cats').closest('.fila-chips').hidden=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q;
   if(document.activeElement!==$('#busqueda'))$('#busqueda').value=estado.q;
+  pintarBorrar();
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
@@ -2223,6 +2438,8 @@ function renderHeader(){
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
   $('#bNovedades').onclick=abrirNovedades;
+  // La campana se explica la primera vez, después de la pregunta de la letra grande (no dos avisos a la vez)
+  if(letraElegida()||ls.get('fc_letra_preguntada',false))setTimeout(()=>explicarPrimeraVez($('#sesion'),'[data-explica-auto]'),800);
   const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comida y tiendas'},{k:'servicios',t:'Servicios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'" role="tab" aria-selected="'+(v.cat===c.k)+'">'+icon(ICONO_CAT[c.k],18)+c.t+'</button>').join('');
@@ -2302,14 +2519,104 @@ function subDe(d){return d.cat==='turismo'?(d.tipo||''):(d.sub||'');}
 function nombreSub(cat,k){if(GRUPOS_SUB[k])return GRUPOS_SUB[k].t;const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^[^\p{L}]+/u,'').trim():'';}
 function irABares(){if(estado.mayorEdad){navegar({tipo:'lista',cat:'bares'});return;}abrir('ovEdad');}
 
-/* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19) ===== */
-// Ignora tildes, mayúsculas y plurales: "droguerias" encuentra "Droguería"
+/* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19, E2) =====
+   Ignora tildes, mayúsculas, espacios dobles y plurales («droguerias» encuentra «Droguería»), entiende sinónimos
+   (SINONIMOS en datos.js: «farmacia» encuentra droguerías) y errores de escritura: una letra de diferencia en
+   palabras de 4 a 7 letras y dos en las más largas («drogeria»). Primero van las coincidencias exactas, después
+   las parciales y al final las aproximadas. */
 function raiz(w){if(w.length>4&&w.endsWith('es'))return w.slice(0,-2);if(w.length>3&&w.endsWith('s'))return w.slice(0,-1);return w;}
 function tokens(s){return norm(s).split(/[^a-z0-9]+/).filter(Boolean).map(raiz);}
-function coincide(d,q){
-  if(!q)return true;
-  const txt=tokens(d.nombre+' '+d.desc+' '+d.direccion+' '+(CAT[d.cat]?CAT[d.cat].label:'')+' '+(d.tipo||'')+' '+nombreSub(d.cat,subDe(d))).join(' ');
-  return tokens(q).every(t=>txt.includes(t));
+const NIVEL={exacta:3,parcial:2,aproximada:1,ninguna:0};
+function toleranciaDe(w){return w.length>=8?2:w.length>=4?1:0;}
+// Distancia de edición (Levenshtein) con tope: apenas pasa de «max» devuelve max+1
+function distanciaEdicion(a,b,max){
+  if(Math.abs(a.length-b.length)>max)return max+1;
+  let previa=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){
+    const fila=[i];
+    for(let j=1;j<=b.length;j++)fila.push(Math.min(previa[j]+1,fila[j-1]+1,previa[j-1]+(a[i-1]===b[j-1]?0:1)));
+    if(Math.min(...fila)>max)return max+1;
+    previa=fila;
+  }
+  return previa[b.length];
+}
+// Grupos de sinónimos ya normalizados (se arman la primera vez)
+let gruposSinonimos=null;
+function sinonimosDe(t,tol=0){
+  if(!gruposSinonimos)gruposSinonimos=SINONIMOS.map(g=>g.map(w=>tokens(w)[0]));
+  const grupos=gruposSinonimos.filter(g=>g.some(w=>(tol?distanciaEdicion(t,w,tol)<=tol:w===t)));
+  return [...new Set(grupos.flat())].filter(w=>w!==t);
+}
+// Palabras donde se busca: nombre, descripción, subcategoría, tipo y etiquetas; aparte la dirección y la categoría
+const camposBusqueda=new WeakMap();
+function camposDe(d){
+  const principal=[d.nombre,d.desc,d.tipo,nombreSub(d.cat,subDe(d)),...(Array.isArray(d.etiquetas)?d.etiquetas:[])].join(' ');
+  const extra=(d.direccion||'')+' '+(CAT[d.cat]?CAT[d.cat].label:'');
+  const fuente=principal+'|'+extra,guardado=camposBusqueda.get(d);
+  if(guardado&&guardado.fuente===fuente)return guardado;
+  const p=tokens(principal),todo=p.concat(tokens(extra));
+  const c={fuente,principal:p,todo,unido:' '+todo.join(' ')+' '};
+  camposBusqueda.set(d,c);
+  return c;
+}
+// Qué tan bien coincide una palabra buscada con un lugar
+function nivelPalabra(c,t){
+  if(c.todo.includes(t))return NIVEL.exacta;
+  if(c.unido.includes(t))return NIVEL.parcial;   // parte de una palabra: «drog» → droguería
+  if(sinonimosDe(t).some(s=>c.principal.includes(s)))return NIVEL.parcial;
+  const tol=toleranciaDe(t);
+  if(!tol)return NIVEL.ninguna;
+  if(c.todo.some(w=>distanciaEdicion(t,w,tol)<=tol))return NIVEL.aproximada;
+  return sinonimosDe(t,tol).some(s=>c.principal.includes(s))?NIVEL.aproximada:NIVEL.ninguna;
+}
+// El lugar coincide si coinciden todas las palabras; su nivel es el de la peor
+function nivelCoincidencia(d,q){
+  const ts=tokens(q);if(!ts.length)return NIVEL.exacta;
+  const c=camposDe(d);let nivel=NIVEL.exacta;
+  for(const t of ts){nivel=Math.min(nivel,nivelPalabra(c,t));if(!nivel)break;}
+  return nivel;
+}
+function coincide(d,q){return !q||nivelCoincidencia(d,q)>NIVEL.ninguna;}
+// Filtra por la búsqueda y ordena: exactas, parciales y aproximadas (dentro de cada grupo, el orden elegido)
+function filtrarYOrdenar(items,q,orden){
+  if(!tokens(q).length)return ordenar(items,orden);
+  const nivel=new Map();
+  items.forEach(d=>{const n=nivelCoincidencia(d,q);if(n)nivel.set(d,n);});
+  return ordenar([...nivel.keys()],orden).sort((a,b)=>nivel.get(b)-nivel.get(a));
+}
+// «¿Quisiste decir…?»: la palabra del directorio más parecida a cada palabra buscada (una letra más de lo que tolera la búsqueda)
+let vocabularioBusqueda=null;
+function vocabulario(){
+  if(vocabularioBusqueda&&vocabularioBusqueda.n===database.length)return vocabularioBusqueda.mapa;
+  const mapa=new Map(),agregar=txt=>String(txt||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).forEach(w=>{
+    const k=tokens(w)[0];if(k&&k.length>=4&&!mapa.has(k))mapa.set(k,w);});
+  database.forEach(d=>{agregar(d.nombre);agregar(nombreSub(d.cat,subDe(d)));});
+  Object.values(CAT).forEach(c=>agregar(c.label));SINONIMOS.flat().forEach(agregar);
+  vocabularioBusqueda={n:database.length,mapa};
+  return mapa;
+}
+function quisisteDecirHTML(q){
+  const p=q?quisisteDecir(q):'';
+  return p?'<p class="quisiste">¿Quisiste decir <button type="button" class="enlace" data-quisiste="'+esc(p)+'">'+esc(p)+'</button>?</p>':'';
+}
+function buscarTexto(q){
+  $('#busqueda').value=q;estado.q=q;$('#sugerencias').classList.remove('ver');pintarBorrar();
+  if(vistaActual().tipo==='lista')render();else navegar({tipo:'lista',cat:'todas'});
+}
+function enlazarQuisisteDecir(caja=document){
+  $$('[data-quisiste]',caja).forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>buscarTexto(b.dataset.quisiste);});
+}
+function quisisteDecir(q){
+  const mapa=vocabulario();let cambio=false;
+  const palabras=norm(q).split(/\s+/).filter(Boolean).map(w=>{
+    const t=raiz(w);if(t.length<4||mapa.has(t))return w;
+    let mejor=null,dist=toleranciaDe(t)+2;
+    mapa.forEach((original,k)=>{const x=distanciaEdicion(t,k,dist-1);if(x<dist){dist=x;mejor=original;}});
+    if(mejor){cambio=true;return mejor;}
+    return w;
+  });
+  const propuesta=palabras.join(' ');
+  return cambio&&database.some(d=>coincide(d,propuesta))?propuesta:'';
 }
 function prioridad(d){
   // Premium primero cuando está dentro del radio de cercanía (2 km) o si no hay GPS
@@ -2339,7 +2646,7 @@ function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
     if(f.domicilio)items=items.filter(aDomicilio);
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
   }
-  return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
+  return filtrarYOrdenar(items,estado.q,conFiltros?f.orden:'recomendados');
 }
 function renderSugerencias(){
   const box=$('#sugerencias');const q=$('#busqueda').value.trim();
@@ -2347,18 +2654,30 @@ function renderSugerencias(){
   estado.q=q;
   const res=itemsVisibles('todas','',false).slice(0,6);estado.q='';
   box.innerHTML=res.length?res.map(d=>'<button data-sug="'+esc(d.id)+'"><span class="sg-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),16)+'</span><span class="sg-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(etiquetaDe(d))+(premiumVigente(d)?' · Destacado':'')+'</small></span></button>').join('')
-    :'<p class="sg-vacio">Sin coincidencias para «'+esc(q)+'»</p>';
+    :'<p class="sg-vacio">Sin coincidencias para «'+esc(q)+'»</p>'+quisisteDecirHTML(q);
   box.classList.add('ver');
+  enlazarQuisisteDecir(box);
   $$('#sugerencias [data-sug]').forEach(b=>(b.onmousedown=e=>{e.preventDefault();box.classList.remove('ver');abrirDetalle(b.dataset.sug);}));
 }
 
 /* ===== TARJETA DE LUGAR ===== */
+/* Fase 6: la foto que se ve es la propia del lugar o, si no tiene ninguna, la de referencia de su categoría (las droguerías
+   tienen la suya). La de referencia nunca se guarda en el lugar: así el dueño no la toma por suya al editar la ficha. */
+function referenciaDe(d){
+  if(d.cat==='servicios'&&d.sub==='salud'&&/drog|farmac/i.test(d.nombre||''))return IMAGENES_REFERENCIA.drogueria;
+  return IMAGENES_REFERENCIA[subDe(d)]||IMAGENES_REFERENCIA[d.cat]||null;
+}
+function fotoVisible(d){
+  const propia=imgSegura(d.imagen);if(propia)return {src:propia,referencia:null};
+  const r=(d.fotos||[]).length?null:referenciaDe(d);
+  return {src:r?r.archivo:'',referencia:r};
+}
 function fotoHTML(d,cls){
-  const img=imgSegura(d.imagen);
+  const img=fotoVisible(d).src;
   return '<div class="'+cls+' c-'+esc(d.cat)+(img?'':' sin-foto')+'"><span class="fallback-ic">'+icon(iconoDe(d),56)+'</span>'
     +(img?'<img src="'+esc(img)+'" alt="Foto de '+esc(d.nombre)+'" loading="lazy" onerror="this.parentNode.classList.add(\'sin-foto\');this.remove()">':'');
 }
-function badgeDestacado(d){return premiumVigente(d)?'<span class="badge-dest">'+icon('star',14,'ic-fill')+'Destacado</span>':'';}
+function badgeDestacado(d){return premiumVigente(d)?'<button type="button" class="badge-dest" data-explica="destacado">'+icon('star',14,'ic-fill')+'Destacado</button>':'';}
 function enlazarTarjetas(){
   $$('#cuerpo .tc-link').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.ver)));
   $$('#cuerpo .tc-fav').forEach(b=>(b.onclick=e=>{
@@ -2443,8 +2762,16 @@ function toggleFavorito(rawId){
   if(i===-1)estado.favoritos.push(id);else estado.favoritos.splice(i,1);
   ls.set(claveFav(),estado.favoritos);
   db.collection('usuarios').doc(estado.usuario.uid).update({favoritos:i===-1?FV.arrayUnion(id):FV.arrayRemove(id)}).catch(()=>{});
-  toast(i===-1?'Agregado a favoritos':'Quitado de favoritos');
+  pintarFavorito(id);
+  toast(i===-1?'Guardado en tus favoritos':'Quitado de tus favoritos',5000,{texto:'Deshacer',hacer:()=>toggleFavorito(id)});
   return true;
+}
+// El corazón de las tarjetas y el «Guardar» de la ficha muestran lo mismo (también al deshacer)
+function pintarFavorito(id){
+  const on=estado.favoritos.includes(String(id));
+  $$('.tc-fav[data-fav="'+id+'"]').forEach(b=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  if($('#sheetDetalle').dataset.id!==String(id))return;
+  [$('#detFav'),$('#detGuardar')].filter(Boolean).forEach(b=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.innerHTML=icon('heart',b.id==='detFav'?18:20)+(on?'Guardado':'Guardar');});
 }
 
 /* ===== RENDER PRINCIPAL ===== */
@@ -2456,7 +2783,7 @@ function limpiarMapas(){
 }
 function refrescarVista(){
   const v=vistaActual();
-  if(['lista','perfil','dashboard','billetera','cupones','planes','agenda'].includes(v.tipo))render(true);
+  if(['lista','perfil','dashboard','billetera','cupones','planes','agenda','comunidad'].includes(v.tipo))render(true);
 }
 function render(conservarScroll){
   const v=vistaActual();const cuerpo=$('#cuerpo');
@@ -2478,6 +2805,7 @@ function render(conservarScroll){
   else if(v.tipo==='cupones')renderCuponesDisponibles();
   else if(v.tipo==='planes')renderPlanes();
   else if(v.tipo==='agenda')renderAgenda();
+  else if(v.tipo==='comunidad')renderComunidad();
   else if(v.tipo==='recorridos')renderRecorridos();
   else if(v.tipo==='recorrido')renderRecorrido(v.id);
   else if(v.tipo==='asistente')renderAsistente();
@@ -2496,18 +2824,26 @@ function renderLista(v){
   let html;
   const enInicio=v.cat==='todas'&&!v.sub&&!v.todo&&!estado.q&&!hayFiltros();
   if(estado.listaClave!==JSON.stringify([v.cat,v.sub,v.todo,estado.q])){estado.listaClave=JSON.stringify([v.cat,v.sub,v.todo,estado.q]);estado.limiteLista=POR_PAGINA;}
-  if(enInicio){
+  if(enInicio&&modoSencillo()){
+    html=alertasInicioHTML()+inicioSencilloHTML();
+  }else if(enInicio){
     // Inicio: categorías en tiles y secciones en carrusel; al final una muestra del directorio en 2 columnas
     destacadosInicio=new Set();
     vistosInicio=new Set();
-    html=alertasInicioHTML()+asisEntradaHTML()+tilesHTML()+seccionEventosHTML()+seccionPascaHTML()+seccionCuponesHTML()+seccionAbiertosHTML()+seccionCercaHTML()+seccionCampoHTML()+seccionEmpleosHTML()+transporteEntradaHTML()+seccionPerdidosHTML()+seccionRutasHTML()+seccionRecientesHTML()+tarjetaInstalarHTML()
+    /* U1: buscador y municipio (cabecera) → Qué hacer en Fusa (eventos) → Lo que necesitas → categorías de comercios →
+       Abierto ahora → Rutas y turismo → Ofertas y cupones → Todo Fusa Conecta; al pie, «Dar mi opinión» e «Instalar».
+       Las alertas del municipio, si hay, van arriba de todo. */
+    html=alertasInicioHTML()+asisEntradaHTML()+seccionQueHacerHTML()+seccionNecesitasHTML()+tilesHTML()+seccionAbiertosHTML()
+      +seccionTurismoHTML()+seccionOfertasHTML()
       +(items.length?'<div class="head-v" id="todoFusa"><h2>'+(municipioElegido()?'Todo '+municipioElegido():'Todo Fusa Conecta')+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
         +'<div class="grid-tc">'+items.slice(0,8).map(tarjetaHTML).join('')+'</div>'
-        +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'');
+        +'<button class="btn btn-secundario btn-bloque mt-16" id="verTodo">Ver todos los lugares ('+items.length+')</button>':'')
+      +pieInicioHTML();
   }else if(items.length){
-    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML():'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML():'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
+    html=(v.cat==='favoritos'?eventosFavoritosHTML():'')+(v.cat==='servicios'&&v.sub==='transporte'?transporteEntradaHTML():'')+(v.cat==='tramite'&&!v.sub&&!estado.q?avisosMunicipioEntradaHTML():'')+(v.cat==='campo'&&!v.sub&&!estado.q?mercadoCampesinoHTML()+seccionesCategoriaHTML(seccionCampoHTML):'')+(v.cat==='turismo'&&!v.sub&&!estado.q?rutasEntradaHTML()+seccionesCategoriaHTML(seccionRutasHTML,seccionPascaHTML):'')+(v.cat==='servicios'&&v.sub==='mascotas'?'<button class="tarjeta-opinion mb-16" data-irperdidos><span class="to-ic">'+icon('paw-print',22)+'</span><span class="to-tx"><b>Mascotas perdidas y encontradas</b><small>Avisos de los vecinos de Fusa y Pasca</small></span>'+icon('chevron-right')+'</button>':'')+'<div class="head-v" id="todoFusa"><h2>'+esc(titulo)+'</h2><span class="conteo">'+items.length+(items.length===1?' lugar':' lugares')+'</span></div>'
       +barraListaHTML(items.length)
-      +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>':cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
+      +(estado.vistaLista==='mapa'?'<div id="mapaLista" class="mapa-lista" role="region" aria-label="Mapa de los resultados"></div>'
+        :modoSencillo()?listaSencillaHTML(items,estado.limiteLista||POR_PAGINA):cuadriculaHTML(items,estado.limiteLista||POR_PAGINA));
   }else if(v.cat==='favoritos'&&!estado.q&&!hayFiltros()){
     html=eventosFavoritosHTML()+'<div class="vacio">'+icon('heart',48)+'<b>Aún no tienes favoritos</b><p>Toca el corazón de un lugar para guardarlo aquí. Tus favoritos quedan disponibles sin conexión.</p></div>';
   }else if(v.sub==='sendero'&&municipioElegido()==='Pasca'&&!estado.q){
@@ -2517,51 +2853,32 @@ function renderLista(v){
       :estado.filtros.municipio==='Pasca'?'Aún no hay lugares registrados en Pasca con estos filtros'
       :'No hay lugares que cumplan estos filtros';
     const sug=[['comercio','Comida y tiendas'],['servicios','Servicios'],['turismo','Turismo'],['hospedaje','Hospedaje'],['campo','Campo']];
-    html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b><p>Prueba con otra palabra o explora una categoría:</p>'
+    html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b>'+quisisteDecirHTML(estado.q)+'<p>Prueba con otra palabra o explora una categoría:</p>'
       +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div>'
       +(estado.q?'<button class="btn btn-secundario mt-16" id="asisDesdeBusqueda">'+icon('sparkles',18)+'Pregúntale a Fusa</button>':'')+'</div>';
   }
-  $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
+  // Fase 3: cada listado tiene su h1 (oculto a la vista: el saludo y el buscador ya dicen dónde se está)
+  const h1='<h1 class="sr-only">'+(enInicio?'Inicio de Fusa Conecta':esc(titulo))+'</h1>';
+  $('#cuerpo').innerHTML='<div class="vista">'+h1+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>(b.onclick=()=>{
     estado.q='';estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
   }));
-  enlazarTarjetas();enlazarCuponesSemana();enlazarSecciones();enlazarInstalar();enlazarFooter();
+  enlazarTarjetas();enlazarSecciones();enlazarInicio();enlazarFooter();
   enlazarEventos();enlazarSeccionPasca();
+  if(enInicio&&!modoSencillo())ofrecerLetraUnaVez();
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
-  if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
+  enlazarQuisisteDecir();
+  if(enInicio&&!modoSencillo()){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
   else if(items.length)enlazarListado(items);
 }
 
-/* ===== BANNER PRINCIPAL ROTATIVO (inicio) =====
-   Primero el "Negocio destacado" (un solo espacio) y los banners con foto que publica el admin (colección banners);
-   después las 4 diapositivas propias de la app. Cambia sola cada 5 s; se pausa al tocarla o arrastrarla y
-   se reanuda a los 8 s. Se desliza con el dedo (scroll-snap) o con el mouse (pointer events).
-   Con prefers-reduced-motion no avanza sola. */
+/* ===== ANUNCIOS DEL INICIO (en «Ofertas y cupones») =====
+   El "Negocio destacado" (un solo espacio) y los banners con foto que publica el admin (colección banners).
+   Van en un carrusel que se desliza con el dedo; no avanzan solos (U1). */
 const HOJA_SVG='M50 2C80 12 98 42 90 70 82 94 44 100 18 82-4 66 4 22 50 2Z';
-function cuponesActivosTotal(){let n=0;database.forEach(d=>(n+=cuponesDe(d).length));return n;}
-function textoCuponesBanner(){const n=cuponesActivosTotal();return n?n+(n===1?' cupón activo':' cupones activos'):'Pronto, cupones nuevos';}
-// Banners propios de la app: todos con foto real de Fusa (WebP 800 px) y el velo de su color;
-// si una foto no carga queda el fondo de color con la ilustración
-function slidesBase(){
-  return [
-    {id:'bienvenida',foto:'img/banners/bienvenida.webp',velo:'violeta',tag:'Bienvenido',tit:'Todo Fusa, en tu bolsillo',
-      sub:'Comercios, rutas y emergencias de la región.',accion:'explorar',textoBoton:'Explorar',
-      ilu:'<span class="ilu-logo">'+logo('iso','lila',{alto:56,decorativo:true})+'</span>'},
-    {id:'cupones',foto:'img/banners/cupones.webp',velo:'sol',tag:'Ahorra en Fusa',tit:'Tu cupón te está esperando',
-      sub:'Toma un descuento, muéstralo en caja y ahorra.',accion:'cupones',textoBoton:'Ver cupones',
-      ilu:'<span class="ilu-ticket"><b>%</b><i></i><small>OFF</small></span>',iluSiempre:true,
-      extra:'<span class="slide-dato" id="bannerCupones">'+textoCuponesBanner()+'</span>'},
-    {id:'negocio',foto:'img/banners/negocio.webp',velo:'menta',tag:'Para comerciantes',tit:'¿Tienes un negocio? Súmalo gratis',
-      sub:'Llega a más vecinos y turistas de la región.',accion:'negocio',textoBoton:'Registrar mi negocio',
-      ilu:'<span class="ilu-circulo">'+icon('store',30)+'</span>'},
-    {id:'opinion',foto:'img/banners/opinion.webp',velo:'noche',tag:'Estamos en pruebas',tit:'Tu opinión hace mejor esta app',
-      sub:'Cuéntanos qué te gustó y qué cambiarías.',accion:'opinion',textoBoton:'Dar mi opinión',
-      ilu:'<span class="ilu-circulo">'+icon('message-circle-heart',30)+'</span>'}
-  ];
-}
 const porOrden=(a,b)=>(a.orden||0)-(b.orden||0);
 // Fechas del banner como texto AAAA-MM-DD (fecha local): sin fechas se muestra mientras esté activo
 function hoyISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -2571,16 +2888,25 @@ function accionBanner(b){
   if(t==='negocio'||t==='categoria')return b.enlace_valor?t+':'+b.enlace_valor:'';
   return t==='cupones'?'cupones':t==='registrar'?'negocio':'';
 }
-function slidesBanner(){
+function anunciosInicio(){
   const l=[],bs=estado.banners||[];
-  const finde=slideFinDeSemana();if(finde)l.push(finde);
   const dest=bs.find(b=>b.id==='destacado'&&b.activo!==false),dc=dest&&buscar(dest.comercio_id);
   if(dc&&premiumVigente(dc))l.push({id:'destacado-'+dc.id,foto:imgSegura(dc.imagen)?dc.imagen:'',fotoNube:dc.fotos&&dc.fotos[0]?dc.fotos[0]:'',comercio:dc.id,
     tag:'Negocio destacado',tit:dc.nombre,sub:etiquetaDe(dc)+(dc.direccion?' · '+dc.direccion:''),accion:'negocio:'+dc.id,textoBoton:'Ver negocio',
     ilu:'<span class="ilu-circulo">'+icon(iconoDe(dc),30)+'</span>'});
   bs.filter(b=>b.tipo==='foto'&&b.imagen&&bannerVigente(b)).sort(porOrden).forEach(b=>l.push({id:b.id,foto:b.imagen,tag:b.etiqueta||'',tit:b.titulo||'',sub:b.texto||'',
     accion:accionBanner(b),textoBoton:b.boton||(b.enlace_tipo==='negocio'?'Ver negocio':'Ver más')}));
-  return l.concat(slidesBase());
+  return l;
+}
+// El destacado se ve de una vez con la portada liviana y luego cambia a su primera foto en buena calidad
+function mejorarFotoDestacado(){
+  const a=anunciosInicio().find(x=>x.fotoNube),caja=a&&$('#cuerpo [data-sid="'+a.id+'"]');if(!caja)return;
+  db.collection('comercios').doc(String(a.comercio)).collection('fotos').doc(a.fotoNube).get().then(f=>{
+    if(!f.exists||!caja.isConnected)return;
+    let img=caja.querySelector('.slide-foto');
+    if(!img){img=document.createElement('img');img.className='slide-foto';img.alt='';caja.prepend(img);}
+    img.src=f.data().data;
+  }).catch(()=>{});
 }
 function slideHTML(s,i,n){
   const aria=' role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(s.tit)+'" data-sid="'+esc(s.id)+'"';
@@ -2597,64 +2923,12 @@ function slideHTML(s,i,n){
     +'<h2 class="slide-tit">'+esc(s.tit)+'</h2>'+(s.sub?'<p class="slide-sub">'+esc(s.sub)+'</p>':'')
     +(s.accion?'<div class="slide-pie"><button class="slide-btn" data-slide="'+esc(s.accion)+'">'+esc(s.textoBoton)+icon('arrow-right',16)+'</button>'+(s.extra||'')+'</div>':'')+'</div>';
 }
-function bannerHTML(sl){
-  return '<div class="banner-pista" id="bannerPista">'+sl.map((s,i)=>slideHTML(s,i,sl.length)).join('')+'</div>'
-    +'<div class="banner-puntos" aria-hidden="true">'+sl.map((s,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>';
-}
-const banner={actual:0,n:0,timer:null,pausaHasta:0,firma:'',arr:null,ventana:false};
-const pasoBanner=p=>p.firstElementChild.offsetWidth+8;
-function montarBanner(){
-  const caja=$('#banner'),sl=slidesBanner();
-  // Solo se regenera si cambió lo que muestra (nuevo banner, destacado distinto...): así no parpadea al navegar
-  const firma=sl.map(s=>s.id+'|'+s.tit+'|'+(s.foto?s.foto.length:0)+'|'+(s.accion||'')).join(';');
-  if(banner.firma!==firma){
-    banner.firma=firma;banner.n=sl.length;banner.actual=0;
-    caja.innerHTML=bannerHTML(sl);
-    const pista=$('#bannerPista');
-    const pausar=()=>{banner.pausaHasta=Date.now()+8000;};
-    ['pointerdown','touchstart','wheel','focusin'].forEach(ev=>pista.addEventListener(ev,pausar,{passive:true}));
-    pista.addEventListener('scroll',()=>{
-      const i=Math.round(pista.scrollLeft/pasoBanner(pista));
-      if(i!==banner.actual){banner.actual=i;$$('.banner-puntos span').forEach((p,k)=>p.classList.toggle('on',k===i));}
-    },{passive:true});
-    // Arrastre con el mouse en computador (en el celular el dedo usa el desplazamiento nativo)
-    pista.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;banner.arr={x:e.clientX,s:pista.scrollLeft};pista.classList.add('arrastrando');});
-    $$('[data-slide]',caja).forEach(b=>(b.onclick=()=>accionSlide(b.dataset.slide)));
-    // El destacado se ve de una vez con la portada liviana y luego cambia a su primera foto en buena calidad
-    const d=sl.find(s=>s.fotoNube);
-    if(d)db.collection('comercios').doc(String(d.comercio)).collection('fotos').doc(d.fotoNube).get().then(s=>{
-      const sl2=caja.querySelector('[data-sid="'+d.id+'"]');if(!s.exists||!sl2)return;
-      let img=sl2.querySelector('.slide-foto');
-      if(!img){img=document.createElement('img');img.className='slide-foto';img.alt='';sl2.prepend(img);}
-      img.src=s.data().data;
-    }).catch(()=>{});
-  }
-  if(!banner.ventana){
-    banner.ventana=true;
-    window.addEventListener('pointermove',e=>{const p=$('#bannerPista');if(banner.arr&&p)p.scrollLeft=banner.arr.s-(e.clientX-banner.arr.x);});
-    window.addEventListener('pointerup',()=>{const p=$('#bannerPista');if(!banner.arr||!p)return;banner.arr=null;p.classList.remove('arrastrando');irASlide(Math.round(p.scrollLeft/pasoBanner(p)));});
-    if(!sinMovimiento())banner.timer=setInterval(avanzarBanner,5000);
-  }
-  const c=$('#bannerCupones');if(c)c.textContent=textoCuponesBanner();
-}
-function irASlide(i){
-  const pista=$('#bannerPista');if(!pista||!banner.n)return;
-  i=(i+banner.n)%banner.n;pista.scrollTo({left:i*pasoBanner(pista),behavior:sinMovimiento()?'auto':'smooth'});
-}
-function avanzarBanner(){
-  const caja=$('#banner');
-  // Solo avanza si se ve: en el inicio, sin la cabecera plegada y con la app en primer plano
-  if(Date.now()<banner.pausaHasta||document.hidden||!caja.offsetParent||$('#topbar').classList.contains('arriba')||$('.overlay.abierto'))return;
-  irASlide(banner.actual+1);
-}
 function accionSlide(k){
-  banner.pausaHasta=Date.now()+8000;
   if(k==='agenda'){irAgenda('finde');return;}
   const [tipo,valor]=k.split(':');
   if(tipo==='negocio'&&valor){abrirDetalle(valor);return;}
   if(tipo==='categoria'&&valor&&CAT[valor]){valor==='bares'?irABares():navegar({tipo:'lista',cat:valor});return;}
-  if(k==='explorar'){const t=$('#todoFusa');if(t)t.scrollIntoView({behavior:sinMovimiento()?'auto':'smooth',block:'start'});}
-  else if(k==='cupones'){estado.filtros.cupon=true;render();}
+  if(k==='cupones'){navegar({tipo:'cupones'});}
   else if(k==='negocio')registrarMiNegocio();
   else if(k==='opinion')abrirOpinion('banner');
 }
@@ -2676,7 +2950,7 @@ function llevaDestacado(d){
   if(destacadosInicio.has(d.id))return true;if(destacadosInicio.size>=6)return false;destacadosInicio.add(d.id);return true;
 }
 function tarjetaHTML(d){
-  const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=imgSegura(d.imagen);
+  const esFav=estado.favoritos.includes(String(d.id)),cal=calificacionDe(d),ap=estadoApertura(d),km=distanciaA(d),img=fotoVisible(d).src;
   const insignia=cuponesDe(d).length?'<span class="tc-ins cupon">'+icon('ticket',12)+'Cupón</span>'
     :llevaDestacado(d)?'<span class="tc-ins dest">'+icon('star',12,'ic-fill')+'Destacado</span>':'';
   // Abierto o "Cierra pronto" cuando aplica; si no, la categoría y la distancia
@@ -2698,8 +2972,9 @@ function carruselHTML(id,titulo,items,ir,cargando){
     +'<div class="carrusel carrusel-tc"'+(cargando?' aria-busy="true"':'')+'>'+(cargando?tarjetaEsqueletoHTML().repeat(3):items.map(tarjetaHTML).join(''))+'</div></section>';
 }
 
-/* ===== CATEGORÍAS EN TILES (inicio) =====
-   v6 · Fase 3: siempre 8 mosaicos. "Más" abre solo categorías principales (Bares, Trámites, Salud). */
+/* ===== CATEGORÍAS DE COMERCIOS EN TILES (inicio) =====
+   v6 · Fase 3: siempre 8 mosaicos. U1/U4: Comida, Tiendas, Servicios, Campo, Turismo, Hospedaje, Bares y Más. Salud y Trámites
+   están arriba, en «Lo que necesitas». Eventos ya no es una categoría: tiene su sección arriba y la pestaña Agenda. */
 // Grupos de subcategorías que abre un mosaico (Comida = Comidas + Panaderías; Tiendas = Tiendas + Ferreterías)
 const GRUPOS_SUB={'g-comida':{t:'Comida',subs:['comidas','panaderias']},'g-tiendas':{t:'Tiendas',subs:['tiendas','ferreterias']}};
 const TILES=[
@@ -2709,21 +2984,20 @@ const TILES=[
   {t:'Campo',ic:'sprout',cat:'campo',c:'campo'},
   {t:'Turismo',ic:'mountain',cat:'turismo',c:'turismo'},
   {t:'Hospedaje',ic:'bed-double',cat:'hospedaje',c:'hospedaje'},
-  {t:'Eventos',ic:'calendar-days',agenda:true,c:'eventos'},
-  // En la hoja "Más"
-  {t:'Bares',ic:'wine',cat:'bares',c:'bares',mas:true},
-  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites',mas:true},
-  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true}
+  {t:'Bares',ic:'wine',cat:'bares',c:'bares'},
+  // En la hoja "Más" (Salud y Trámites también están en «Lo que necesitas»)
+  {t:'Salud',ic:'stethoscope',cat:'servicios',sub:'salud',c:'servicios',mas:true},
+  {t:'Trámites',ic:'landmark',cat:'tramite',c:'tramites',mas:true}
 ];
 // Solo los mosaicos con lugares; "Eventos" siempre está (aunque no haya ninguno publicado: lleva a la Agenda y a sugerir uno)
-function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return x.agenda||database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
+function tileConLugares(x){const g=GRUPOS_SUB[x.sub],m=municipioElegido();return database.some(d=>enMunicipio(d,m)&&d.cat===x.cat&&(!x.sub||(g?g.subs.includes(subDe(d)):subDe(d)===x.sub)));}
 function tileHTML(x,i){return '<button class="tile-cat" data-tile="'+i+'"><span class="tile-ic c-'+x.c+'" aria-hidden="true">'+icon(x.ic,28)+'</span><span class="tile-tx">'+x.t+'</span></button>';}
 function tilesHTML(){
   const l=TILES.filter(x=>!x.mas&&tileConLugares(x)),mas=TILES.some(x=>x.mas&&tileConLugares(x));
   return '<nav class="tiles-cat" aria-label="Categorías">'+l.map(x=>tileHTML(x,TILES.indexOf(x))).join('')
     +(mas?'<button class="tile-cat" id="tileMas"><span class="tile-ic c-mas" aria-hidden="true">'+icon('layout-grid',28)+'</span><span class="tile-tx">Más</span></button>':'')+'</nav>';
 }
-function irATile(x){if(x.agenda){irAgenda();return;}if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
+function irATile(x){if(x.cat==='bares'){irABares();return;}navegar({tipo:'lista',cat:x.cat,sub:x.sub||''});}
 function enlazarTiles(){
   $$('#cuerpo [data-tile]').forEach(b=>(b.onclick=()=>irATile(TILES[+b.dataset.tile])));
   const m=$('#tileMas');if(m)m.onclick=()=>{
@@ -2746,12 +3020,7 @@ function seccionAbiertosHTML(){
   const l=paraCarrusel(itemsVisibles('todas','',false).filter(d=>{const a=estadoApertura(d);return a&&a.abierto;}));
   return carruselHTML('Abiertos','Abierto ahora',l,'abierto');
 }
-function seccionCercaHTML(){
-  if(!estado.pos)return '';
-  const l=itemsVisibles('todas','',false).filter(d=>{const k=distanciaA(d);return k!=null&&k<=3;}).sort((a,b)=>distanciaA(a)-distanciaA(b)).slice(0,10);
-  return carruselHTML('Cerca','Cerca de ti',l,'cercanos');
-}
-function seccionCampoHTML(){return avisoMercadoInicioHTML()+carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
+function seccionCampoHTML(){return carruselHTML('Campo','Del campo a tu mesa',paraCarrusel(itemsVisibles('campo','',false)),'campo');}
 // Rutas y senderos: primero los que tienen recorrido, luego los demás senderos
 function seccionRutasHTML(){
   const l=database.filter(d=>(RUTAS[d.id]||subDe(d)==='sendero')&&enMunicipio(d,municipioElegido())).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom)).slice(0,10);
@@ -2762,11 +3031,6 @@ function seccionRutasHTML(){
 function senderosPascaVacioHTML(){
   return '<div class="ev-vacio">'+icon('footprints',40)+'<div class="ev-vacio-tx"><p>Aún no hay senderos de Pasca con trazado real. ¿Conoces uno? Grábalo con «Grabar mi recorrido» y propónlo.</p>'
     +'<button class="btn btn-primario btn-sm" data-grabar-ruta>'+icon('footprints',16)+'Grabar mi recorrido</button></div></div>';
-}
-// Recién llegados: negocios aprobados en la nube, del más nuevo al más antiguo (esqueleto mientras carga la nube)
-function seccionRecientesHTML(){
-  const l=paraCarrusel(database.filter(d=>d.creado&&enMunicipio(d,municipioElegido())).sort((a,b)=>b.creado-a.creado));
-  return carruselHTML('Recientes','Recién llegados',l,'',!estado.nubeLista);
 }
 // «Pasca, puerta del Sumapaz» (v1.3.0): los lugares de Pasca y, mientras haya pocos negocios, la invitación a publicar el suyo
 function seccionPascaHTML(){
@@ -2796,6 +3060,118 @@ function enlazarSecciones(){
     else if(k==='senderos')navegar({tipo:'lista',cat:'turismo',sub:'sendero'});
     else navegar({tipo:'lista',cat:k});}));
 }
+
+// Carruseles que se mudaron del Inicio a su categoría (U1): cada lugar sale una sola vez entre ellos
+function seccionesCategoriaHTML(...secciones){vistosInicio=new Set();return secciones.map(s=>s()).join('');}
+/* ===== QUÉ HACER EN FUSA (U1): los eventos, protagonistas del Inicio =====
+   Un evento por diapositiva, todas del mismo alto (aspect-ratio), con flechas de 48 px, puntos y deslizamiento.
+   No avanza solo. Primero los de hoy, luego los del fin de semana y luego los próximos 30 días; máximo 6, sin repetidos. */
+const MAX_EVENTOS_INICIO=6;
+function eventosInicio(){
+  const vistos=new Set(),l=[];
+  ['hoy','finde','30'].forEach(r=>eventosEn(r).forEach(e=>{if(!vistos.has(e.id)){vistos.add(e.id);l.push(e);}}));
+  return l.slice(0,MAX_EVENTOS_INICIO);
+}
+// «Hoy · 3:00 p. m.», «Mañana · …», «Sábado 28 de noviembre · …»; si ya empezó, «En curso · hasta …»
+function cuandoEvento(e,ahora=Date.now()){
+  if(enCurso(e,ahora))return fechaEvento(e);
+  const medianoche=ms=>new Date(ms).setHours(0,0,0,0),d=new Date(e.ini);
+  const dias=Math.round((medianoche(e.ini)-medianoche(ahora))/864e5);
+  const dia=dias===0?'Hoy':dias===1?'Mañana':DIAS_LARGO[d.getDay()].replace(/^./,c=>c.toUpperCase())+' '+d.getDate()+' de '+MESES_LARGO[d.getMonth()];
+  return dia+' · '+horaEv(e.ini);
+}
+function diapositivaEventoHTML(e,i,n){
+  return '<div class="ev-diapo" role="group" aria-roledescription="diapositiva" aria-label="'+(i+1)+' de '+n+': '+esc(e.titulo)+'">'
+    +'<button type="button" class="ev-diapo-btn" data-evento="'+esc(e.id)+'"><span class="ev-diapo-foto">'+iluEvento(e,56,'ev-diapo-ilu')
+    +(e.imagen?'<img src="'+esc(e.imagen)+'" alt="" decoding="async"'+(i?' loading="lazy"':' fetchpriority="high"')+' onerror="this.remove()">':'')+'</span>'
+    +'<span class="ev-diapo-tx"><span class="ev-diapo-cuando">'+esc(cuandoEvento(e))+'</span><b>'+esc(e.titulo)+'</b>'
+    +'<span class="ev-diapo-lugar">'+icon('map-pin',16)+lugarEv(e)+'</span><span class="ev-diapo-precio'+(e.gratis?' gratis':'')+'">'+esc(precioEv(e))+'</span></span>'
+    +'</button></div>';
+}
+// Flechas de 48 px a los lados de la foto (si hay más de un evento); debajo, los puntos y «Ver toda la agenda»
+function flechasEventosHTML(n){
+  return n<2?'':'<button type="button" class="ev-flecha ant" data-ev-paso="-1" aria-label="Evento anterior">'+icon('chevron-left',24)+'</button>'
+    +'<button type="button" class="ev-flecha sig" data-ev-paso="1" aria-label="Evento siguiente">'+icon('chevron-right',24)+'</button>';
+}
+function controlesEventosHTML(n){
+  return '<div class="ev-ctrl">'+(n<2?'<span></span>':'<div class="banner-puntos" aria-hidden="true">'+Array.from({length:n},(_,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>')
+    +'<button class="btn-ghost" data-agenda="30">Ver toda la agenda</button></div>';
+}
+function seccionQueHacerHTML(){
+  const l=eventosInicio();
+  const zona=municipioElegido()==='Pasca'?'Pasca':'Fusa';
+  return '<section class="seccion-inicio que-hacer" aria-labelledby="tQueHacer"><div class="head-v"><h2 id="tQueHacer">Qué hacer en '+zona+'</h2></div>'
+    // Mientras llegan los eventos, un esqueleto del mismo alto; sin eventos, una caja del mismo alto: el Inicio no salta
+    +(!estado.eventosListos?'<div class="ev-diapo-btn esqueleto" aria-busy="true" aria-label="Cargando eventos"></div><div class="ev-ctrl"></div>'
+      :l.length?'<div class="ev-banner" role="region" aria-roledescription="carrusel" aria-label="Eventos de '+zona+'">'
+      +'<div class="ev-marco"><div class="ev-pista" id="evPista">'+l.map((e,i)=>diapositivaEventoHTML(e,i,l.length)).join('')+'</div>'+flechasEventosHTML(l.length)+'</div>'
+      +controlesEventosHTML(l.length)+'</div>'
+      :'<div class="ev-banner-vacio">'+ILU_EVENTOS+'<p>Esta semana no hay eventos publicados.</p></div>'
+        +'<div class="ev-ctrl"><span></span><button class="btn-ghost" data-agenda="30">Ver la agenda del mes</button></div>')
+    +'</section>';
+}
+function enlazarQueHacer(){
+  const pista=$('#evPista');if(!pista)return;
+  const paso=()=>pista.firstElementChild.offsetWidth+12,actual=()=>Math.round(pista.scrollLeft/paso());
+  pista.addEventListener('scroll',()=>{const i=actual();$$('.ev-banner .banner-puntos span').forEach((x,k)=>x.classList.toggle('on',k===i));},{passive:true});
+  $$('[data-ev-paso]').forEach(b=>(b.onclick=()=>{
+    const n=pista.children.length,i=(actual()+Number(b.dataset.evPaso)+n)%n;
+    pista.scrollTo({left:i*paso(),behavior:sinMovimiento()?'auto':'smooth'});
+  }));
+}
+/* ===== LO QUE NECESITAS (U1, U4): Transporte, Empleos, Salud y Trámites a un toque ===== */
+const NECESITAS=[
+  {t:'Transporte',ic:'bus',vista:{tipo:'transporte'}},
+  {t:'Empleos',ic:'briefcase',vista:{tipo:'empleos'}},
+  {t:'Salud',ic:'stethoscope',vista:{tipo:'lista',cat:'servicios',sub:'salud'}},
+  {t:'Trámites',ic:'landmark',vista:{tipo:'lista',cat:'tramite'}}
+];
+function seccionNecesitasHTML(){
+  return '<section class="seccion-inicio" aria-labelledby="tNecesitas"><div class="head-v"><h2 id="tNecesitas">Lo que necesitas</h2></div><div class="necesitas">'
+    +NECESITAS.map((x,i)=>'<button type="button" class="necesita" data-necesita="'+i+'"><span class="necesita-ic" aria-hidden="true">'+icon(x.ic,28)+'</span>'+x.t+'</button>').join('')
+    +'</div></section>';
+}
+/* ===== RUTAS Y TURISMO (U1): senderos con recorrido guiado primero; «Ver todos» abre Turismo (con Pasca y las rutas) ===== */
+function seccionTurismoHTML(){
+  const mun=municipioElegido();
+  const l=database.filter(d=>d.cat==='turismo'&&enMunicipio(d,mun)).sort((a,b)=>(!!RUTAS[b.id]-!!RUTAS[a.id])||(calificacionDe(b).prom-calificacionDe(a).prom));
+  return carruselHTML('Turismo','Rutas y turismo',paraCarrusel(l),'turismo');
+}
+/* ===== OFERTAS Y CUPONES (U1) =====
+   El negocio destacado y los anuncios del admin; después los cupones activos o, si no hay, una sola invitación a registrar
+   un negocio (reemplaza los banners «Ahorra en Fusa» y «¿Tienes un negocio? Súmalo gratis»). */
+function cuponesActivosLista(){const l=[];database.forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));return l.sort((a,b)=>(aMs(a.c.vigencia)||0)-(aMs(b.c.vigencia)||0));}
+function seccionOfertasHTML(){
+  const cupones=cuponesActivosLista(),anuncios=anunciosInicio();
+  return '<section class="seccion-inicio" aria-labelledby="tOfertas"><div class="head-v"><h2 id="tOfertas">Ofertas y cupones</h2>'
+    +(cupones.length?'<button class="btn-ghost" data-ir-cupones>Ver todos</button>':'')+'</div>'
+    +(anuncios.length?'<div class="carrusel carrusel-anuncios">'+anuncios.map((a,i)=>slideHTML(a,i,anuncios.length)).join('')+'</div>':'')
+    +(cupones.length?'<div class="carrusel carrusel-cupones">'+cupones.slice(0,10).map(({d,c})=>ticketHTML({clase:'ticket-oferta',icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,
+        titulo:c.descripcion,detalle:esc(detalleCupon(c)),accion:'<button class="btn btn-tonal btn-sm" data-vercom="'+esc(d.id)+'">Ver cupón</button>'})).join('')+'</div>'
+      :'<div class="oferta-vacia"><span class="oferta-vacia-ic" aria-hidden="true">'+icon('ticket',28)+'</span><p>Los comercios pueden ofrecer cupones de descuento aquí. ¿Tienes un negocio? Regístralo gratis.</p>'
+        +'<button class="btn btn-primario" data-registrar-negocio>'+icon('store',18)+'Registrar mi negocio</button></div>')
+    +'</section>';
+}
+// Al pie, discretos: opinión e instalar (ya no son tarjetas que aparecen de pronto y empujan el contenido)
+function pieInicioHTML(){
+  return '<div class="pie-inicio"><button type="button" class="enlace-discreto" data-pie-opinion>'+icon('message-circle-heart',16)+'Dar mi opinión</button>'
+    +(mostrarInstalar()?'<button type="button" class="enlace-discreto" data-pie-instalar>'+icon(esIOS?'square-plus':'download',16)+'Instalar la app</button>':'')+'</div>';
+}
+function enlazarInicio(){
+  enlazarQueHacer();
+  $$('#cuerpo [data-necesita]').forEach(b=>(b.onclick=()=>navegar({...NECESITAS[+b.dataset.necesita].vista})));
+  $$('#cuerpo [data-ir-cupones]').forEach(b=>(b.onclick=()=>navegar({tipo:'cupones'})));
+  $$('#cuerpo [data-registrar-negocio]').forEach(b=>(b.onclick=()=>registrarMiNegocio()));
+  $$('#cuerpo [data-vercom]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vercom)));
+  $$('#cuerpo [data-slide]').forEach(b=>(b.onclick=()=>accionSlide(b.dataset.slide)));
+  $$('#cuerpo [data-pie-opinion]').forEach(b=>(b.onclick=()=>abrirOpinion('inicio')));
+  $$('#cuerpo [data-pie-instalar]').forEach(b=>(b.onclick=instalarApp));
+  mejorarFotoDestacado();
+}
+function avisosMunicipioEntradaHTML(){
+  return '<button class="tarjeta-opinion mb-16" data-avisos-municipio><span class="to-ic">'+icon('megaphone',22)+'</span><span class="to-tx"><b>Avisos del municipio</b><small>Jornadas de salud, vacunación y cortes de servicio</small></span>'+icon('chevron-right')+'</button>';
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-avisos-municipio]')){estado.agenda.cat='avisos';irAgenda('30');}});
 
 /* ===== LISTADOS EN CUADRÍCULA DE 2 COLUMNAS (o mapa) ===== */
 const POR_PAGINA=24;
@@ -2828,7 +3204,7 @@ async function mapaDeLista(items){
     .bindPopup('<b>'+esc(d.nombre)+'</b><br><small>'+esc(etiquetaDe(d))+'</small><br><button class="pop-ver" data-ver="'+esc(d.id)+'">Ver ficha</button>');});
   if(pts.length>1)m.fitBounds(pts,{padding:[24,24],maxZoom:16});else if(pts.length)m.setView(pts[0],16);
   m.on('popupopen',e=>{const b=e.popup.getElement().querySelector('[data-ver]');if(b)b.onclick=()=>abrirDetalle(b.dataset.ver);});
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 /* ===== FICHA DEL LUGAR (RF-08 a RF-13, RF-20, RF-21) ===== */
@@ -2840,7 +3216,11 @@ function cuponesDe(d){
     .filter(c=>{const v=aMs(c.vigencia);return !v||v>hoy;});
 }
 // v1.4.0: autor y licencia de las fotos libres (Wikimedia Commons). CC BY y CC BY-SA exigen dar el crédito.
+// Fase 6: foto_fuente = propia | google_places | wikimedia | generica. La genérica dice que es de referencia
+const esImagenReferencia=d=>!!fotoVisible(d).referencia||(d.foto_fuente==='generica'&&!!imgSegura(d.imagen));
 function creditoFotoHTML(d){
+  const r=fotoVisible(d).referencia;
+  if(r)return filaDato('camera','Imagen de referencia','No es la foto de este lugar. Foto de <a href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.autor)+'</a> en Unsplash');
   const c=d.foto_credito;if(!c||!c.autor||!imgSegura(d.imagen))return '';
   const enlace=(u,t)=>/^https:\/\//.test(u||'')?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>':esc(t);
   return filaDato('camera','Foto',enlace(c.url,c.autor)+(c.licencia?' · '+enlace(c.licencia_url,c.licencia):'')+(c.fuente?(c.licencia?', ':' · ')+esc(c.fuente):''));
@@ -2952,7 +3332,8 @@ function abrirDetalle(id){
       +(c.comentario?'<p class="op-text">'+esc(c.comentario)+'</p>':'')
       +'<span class="op-fecha">'+fechaCorta(aMs(c.fecha))+(c.fueEditada?' · editada':'')+' · <button class="enlace-discreto" data-rep="'+esc(c._id)+'">Reportar</button></span></div>').join('');
   const formCalif=logueado()
-    ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella':' estrellas')+'">'+icon('star',28)+'</button>').join('')+'</div>'
+    ?'<div class="star-sel" id="starSel" role="radiogroup" aria-label="Tu calificación">'+[1,2,3,4,5].map(n=>'<button data-n="'+n+'" role="radio" aria-label="'+n+(n===1?' estrella: ':' estrellas: ')+PALABRA_ESTRELLAS[n]+'">'+icon('star',30)+'</button>').join('')+'</div>'
+      +'<p class="star-ayuda" id="starAyuda" aria-live="polite">'+textoEstrellas(miCalif?miCalif.estrellas:0)+'</p>'
       +'<div class="campo"><label for="ratingTxt">Tu opinión (opcional)</label><textarea id="ratingTxt" maxlength="500" placeholder="Cuéntanos tu experiencia...">'+esc(miCalif?miCalif.comentario:'')+'</textarea></div>'
       +'<button class="btn btn-tonal btn-bloque" id="bCalificar">'+(miCalif?'Actualizar mi calificación':'Enviar calificación')+'</button>'
     :'<button class="btn btn-secundario btn-bloque" id="bLoginCalif">Inicia sesión para calificar</button>';
@@ -2981,24 +3362,28 @@ function abrirDetalle(id){
   const destinoMapa=destinoDe(d);
   // Lugares verificados de Pasca (v1.3.0): sin teléfono no hay «Llamar» ni «WhatsApp»; con aviso no hay «Cómo llegar»
   const sinContacto=!d.tel&&!d.whatsapp;
+  const sinHorario=!natural&&!ap&&!d.horario&&!(d.dias&&d.dias.length);
   const embed='https://maps.google.com/maps?q='+encodeURIComponent(destinoMapa)+'&z='+(d.ubicacion_aprox?14:16)+'&output=embed';
   const llegar='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destinoMapa);
   const mapaHTML=estado.online
     ?'<div class="mapa-wrap"><iframe src="'+embed+'" allowfullscreen loading="lazy" title="Mapa de '+esc(d.nombre)+'"></iframe></div>'
     :'<div class="mapa-off">'+icon('wifi-off',24)+'El mapa no está disponible sin conexión. La dirección sigue disponible arriba.</div>';
 
+  // E5: Compartir, Guardar y Cerrar van en una barra fija arriba (no se van con la foto al bajar)
   const html='<div class="grab"></div>'
-    +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
-    +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
-    +badgeDestacado(d)
     +'<div class="det-top-acc">'
     +'<button class="btn-redondo" id="detShare" aria-label="Compartir '+esc(d.nombre)+'">'+icon('share-2')+'</button>'
-    +'<button class="btn-redondo'+(esFav?' on':'')+'" id="detFav" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos':'Guardar en favoritos')+'">'+icon('heart')+'</button>'
+    +'<button class="btn-redondo btn-con-texto'+(esFav?' on':'')+'" id="detFav" aria-pressed="'+esFav+'">'+icon('heart',18)+(esFav?'Guardado':'Guardar')+'</button>'
     +'<button class="btn-redondo" id="cerrarDet" aria-label="Cerrar ficha">'+icon('x')+'</button>'
-    +'</div></div>'
+    +'</div>'
+    +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
+    +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
+    +(esImagenReferencia(d)?'<span class="foto-referencia">Imagen de referencia</span>':'')
+    +badgeDestacado(d)
+    +'</div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
-    +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
+    +'<div class="meta">'+[califHTML(cal),ap&&ap.abierto?'<button type="button" class="explica" data-explica="abierto">'+estadoHTML(ap,d.id)+'</button>':estadoHTML(estadoLugar(d),d.id)].filter(Boolean).join(PTO)+'</div>'
     +chipsHTML
     +'<p class="det-desc">'+esc(d.desc)+'</p>'
     +(d.aviso?'<div class="aviso-oficial" role="note">'+icon('circle-alert',20)+'<p>'+esc(d.aviso)
@@ -3009,14 +3394,16 @@ function abrirDetalle(id){
     +(aDomicilio(d)&&d.zona_cobertura?filaDato('bike','Zonas que cubre',esc(d.zona_cobertura)):'')
     +(natural&&MEJOR_HORA[d.id]?filaDato('sun','Mejor hora',esc(MEJOR_HORA[d.id])):'')
     +(d.horario_nota?filaDato('clock','Horario',esc(d.horario_nota))
+      :sinHorario?filaDato('clock','Horario','Horario sin confirmar')
       :d.fuentes&&!d.horario?'':filaDato('clock',natural?'Horario recomendado':'Horario',esc(horarioTexto(d))))
-    +(natural||!d.tel?'':filaDato('phone','Contacto',esc(d.tel)))
+    +(natural?'':d.tel?filaDato('phone','Contacto',esc(d.tel))
+      :filaDato('phone','Contacto','Aún no tenemos el teléfono de este lugar<br><button class="btn btn-tonal btn-sm mt-8" id="detEnviarTel">'+icon('send',16)+'¿Lo conoces? Envíanoslo</button>'))
     +(d.correo?filaDato('mail','Correo','<a href="mailto:'+esc(d.correo)+'">'+esc(d.correo)+'</a>'):'')
     +(d.sitioWeb&&/^https:\/\//.test(d.sitioWeb)?filaDato('globe','Sitio web','<a href="'+esc(d.sitioWeb)+'" target="_blank" rel="noopener">'+esc(d.sitioWeb.replace(/^https:\/\/(www\.)?/,''))+'</a>'):'')
     +(d.fuentes&&d.fuentes.length?filaDato('badge-check','Fuente'+(d.fuentes.length>1?'s':''),d.fuentes.map(f=>/^https:\/\//.test(f.url||'')?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.nombre)+'</a>':esc(f.nombre)).join('<br>')
       +(d.verificado?'<br><small>Verificado el '+esc(fechaCorta(new Date(d.verificado+'T12:00:00-05:00').getTime()))+'</small>':'')):'')
     +creditoFotoHTML(d)
-    +'</div>'+menuFichaHTML(d)
+    +'</div>'+tarjetaReclamoHTML(d,natural)+menuFichaHTML(d)
     +(natural?'<div class="bloque-natural"><p class="bloque-tit">'+icon('mountain',18)+'Relieve</p>'
       +(estado.online?'<div class="relieve-prev" id="relievePrev" role="img" aria-label="Vista previa del relieve de '+esc(d.nombre)+'"></div>'
         +'<p class="relieve-cred">Mapa: OpenFreeMap · © OpenStreetMap · Relieve: Mapzen / AWS</p>':'')
@@ -3030,27 +3417,28 @@ function abrirDetalle(id){
       :esAdmin()?'<button class="btn btn-secundario btn-bloque mt-16" id="btnEditar">'+icon('shield-check')+'Editar ficha (administración)</button>':'')
     +'<div class="seccion-det"><h3>Calificaciones'+(califs.length?' ('+califs.length+')':'')+'</h3>'
     +formCalif+'<div class="opiniones">'+opiniones+'</div></div>'
-    +'<div class="det-pie">'+(!d.propietario_uid&&!natural&&!['tramite','turismo'].includes(d.cat)?'<button class="btn btn-ghost" id="bReclamar">'+icon('store',18)+'¿Es tu negocio? Reclámalo</button>':'')
-    +'<button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
+    +'<div class="det-pie"><button class="enlace-discreto" id="bReportar">'+icon('flag',14)+'Reportar un problema</button></div>'
     +'</div>'
     +'<div class="det-acc-fija">'
     +(natural||sinContacto
       ?(d.aviso?'':'<a class="btn btn-primario" id="detLlegar" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+(natural?'Cómo llegar al inicio':'Cómo llegar')+'</a>')
-        +'<button class="btn btn-secundario" id="detCompartir">'+icon('share-2')+'Compartir</button>'
+        +'<button class="btn btn-secundario'+(esFav?' on':'')+'" id="detGuardar" aria-pressed="'+esFav+'">'+icon('heart')+(esFav?'Guardado':'Guardar')+'</button>'
       :'<a class="btn btn-primario" data-tel="'+esc(d.id)+'" href="tel:'+esc(d.tel)+'" aria-label="Llamar a '+esc(d.nombre)+'">'+icon('phone')+'Llamar</a>'
         +'<button class="btn btn-wa-ficha" id="detWa" aria-label="Escribir por WhatsApp a '+esc(d.nombre)+'">'+icon('whatsapp',22)+'WhatsApp</button>'
         +'<a class="btn btn-secundario" href="'+llegar+'" target="_blank" rel="noopener">'+icon('navigation')+'Cómo llegar</a>')
     +'</div>';
 
   $('#sheetDetalle').innerHTML=html;
+  $('#sheetDetalle').dataset.id=String(d.id);
   $('#sheetDetalle').setAttribute('aria-label','Ficha de '+d.nombre);
   $('#sheetDetalle').scrollTop=0;
   abrir('ovDetalle');
   enlazarGaleriaFicha(d);
+  setTimeout(()=>explicarPrimeraVez($('#sheetDetalle')),350);
   $('#cerrarDet').onclick=()=>{quitarPreviaRelieve();cerrar('ovDetalle');};
   const dw=$('#detWa');if(dw)dw.onclick=()=>abrirWhatsApp(d);
   enlazarMenuFicha(d);
-  const dc=$('#detCompartir');if(dc)dc.onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
+  const et=$('#detEnviarTel');if(et)et.onclick=()=>{cerrar('ovDetalle');reportar(d,null,DATO_FALTANTE);};
   if(natural){
     // Trazado real: "Ver ruta en 3D" (y "Cómo llegar al inicio" va al primer punto del trazado); sin él, "Trazado en preparación"
     trazadoReal(d.id).then(coords=>{
@@ -3066,17 +3454,19 @@ function abrirDetalle(id){
     });
   }
   $('#detShare').onclick=()=>compartir(d.nombre,'/lugar/'+d.id);
-  $('#detFav').onclick=()=>{if(toggleFavorito(d.id)){const on=estado.favoritos.includes(String(d.id));$('#detFav').classList.toggle('on',on);$('#detFav').setAttribute('aria-pressed',on);}};
+  $('#detFav').onclick=()=>toggleFavorito(d.id);
+  const dg=$('#detGuardar');if(dg)dg.onclick=()=>toggleFavorito(d.id);
   if(ruta)$('#detRuta').onclick=()=>{cerrar('ovDetalle');navegar({tipo:'ruta',id:d.id});};
   $$('#sheetDetalle [data-cupon]').forEach(b=>(b.onclick=()=>generarCupon(d,cupones.find(c=>c.id===b.dataset.cupon),b)));
   const be=$('#btnEditar');if(be)be.onclick=()=>{cerrar('ovDetalle');abrirFormComercio(d);};
   const br=$('#bReclamar');if(br)br.onclick=()=>{cerrar('ovDetalle');reclamarNegocio(d);};
+  const vr=$('#bVerReclamo');if(vr)vr.onclick=()=>{cerrar('ovDetalle');navegar({tipo:'perfil'});};
   $('#bReportar').onclick=()=>{cerrar('ovDetalle');reportar(d);};
   $$('#sheetDetalle [data-rep]').forEach(b=>(b.onclick=()=>{cerrar('ovDetalle');reportar(d,califs.find(c=>c._id===b.dataset.rep));}));
   if(!logueado()){$('#bLoginCalif').onclick=()=>pedirLogin('Inicia sesión para calificar y comentar.');return;}
   let val=miCalif?miCalif.estrellas:0;
   const stars=$$('#starSel button');
-  const pintar=n=>stars.forEach((s,i)=>{s.classList.toggle('on',i<n);s.setAttribute('aria-checked',i+1===val);});
+  const pintar=n=>{stars.forEach((s,i)=>{s.classList.toggle('on',i<n);s.setAttribute('aria-checked',i+1===val);});$('#starAyuda').textContent=textoEstrellas(n);};
   pintar(val);
   stars.forEach(s=>{
     s.onclick=()=>{val=+s.dataset.n;pintar(val);};
@@ -3085,7 +3475,10 @@ function abrirDetalle(id){
   $('#bCalificar').onclick=()=>enviarCalificacion(d,val,$('#ratingTxt').value.trim(),!!miCalif);
 }
 
-/* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar ===== */
+/* ===== CALIFICACIONES (RF-12): una por usuario, se actualiza si vuelve a calificar =====
+   U5: estrellas vacías con borde oscuro (contraste 3:1 o más), amarillas al elegir y una palabra que explica la nota. */
+const PALABRA_ESTRELLAS=['','Malo','Regular','Bueno','Muy bueno','Excelente'];
+function textoEstrellas(n){return n?n+(n===1?' estrella: ':' estrellas: ')+PALABRA_ESTRELLAS[n]:'Toca una estrella para calificar';}
 async function enviarCalificacion(d,estrellasSel,comentario,editada){
   if(!estrellasSel){toast('Selecciona de 1 a 5 estrellas');return;}
   if(!estado.online){toast('Necesitas conexión a internet para calificar');return;}
@@ -3199,7 +3592,7 @@ async function generarCupon(d,cupon,boton){
 // Animación: el ticket se desliza desde el botón hasta la billetera de la cabecera
 function volarABilletera(desde){
   if(sinMovimiento()||!desde.animate)return;
-  const destino=$('[data-bn="cupones"] .bn-ic');
+  const destino=$('[data-bn="perfil"] .bn-ic');
   if(!destino)return;
   const a=desde.getBoundingClientRect(),b=destino.getBoundingClientRect();
   const v=document.createElement('div');v.className='ticket-vuelo';v.innerHTML=icon('ticket',22);
@@ -3250,10 +3643,11 @@ function irABilletera(){
   if(!logueado()){pedirLogin('Inicia sesión para ver tus cupones.');return;}
   if(vistaActual().tipo!=='billetera')navegar({tipo:'billetera'});
 }
+// Los cupones guardados viven en Perfil → Mis cupones: el globo con cuántos hay va en la pestaña Perfil
 function pintarGloboCupones(){
   const n=cuponesActivos(),b=$('#bnBadge');
   b.hidden=!n;b.textContent=n>9?'9+':n;
-  $('[data-bn="cupones"]').setAttribute('aria-label','Cupones'+(n?': '+n+(n===1?' activo':' activos'):''));
+  $('[data-bn="perfil"]').setAttribute('aria-label','Perfil'+(n?': '+n+(n===1?' cupón activo':' cupones activos'):''));
 }
 function actualizarBilletera(){
   pintarGloboCupones();
@@ -3319,26 +3713,6 @@ function renderCuponesDisponibles(){
   $$('[data-obtener]').forEach(b=>(b.onclick=()=>{const d=buscar(b.dataset.com);generarCupon(d,cuponesDe(d).find(c=>c.id===b.dataset.obtener),b);}));
   $$('[data-vercom]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.vercom)));
   enlazarFooter();
-}
-
-/* ---------- "Cupones de la semana" en el inicio ---------- */
-function cuponesDeLaSemana(){
-  const l=[];
-  database.filter(d=>enMunicipio(d,municipioElegido())).forEach(d=>cuponesDe(d).forEach(c=>l.push({d,c})));
-  return l.sort((a,b)=>(aMs(b.c.fecha_creacion)||0)-(aMs(a.c.fecha_creacion)||0)).slice(0,10);
-}
-function seccionCuponesHTML(){
-  const l=cuponesDeLaSemana();if(!l.length)return '';
-  return '<section class="cupones-semana" aria-labelledby="tCupSem"><div class="head-v"><h2 id="tCupSem">Cupones de la semana</h2><button class="btn-ghost" id="bConCupon">Ver todos</button></div>'
-    +'<div class="carrusel">'+l.map(({d,c})=>ticketHTML({clase:'ticket-mini',attrs:' role="button" tabindex="0" data-ver-cupon="'+esc(d.id)+'"',
-      icono:ICONO_TIPO_CUPON[c.tipo],comercio:d.nombre,titulo:c.descripcion,detalle:esc(detalleCupon(c))})).join('')+'</div></section>';
-}
-function enlazarCuponesSemana(){
-  $$('[data-ver-cupon]').forEach(t=>{
-    const ir=()=>abrirDetalle(t.dataset.verCupon);
-    t.onclick=ir;t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ir();}};
-  });
-  const b=$('#bConCupon');if(b)b.onclick=()=>{estado.filtros.cupon=true;render();};
 }
 
 /* ---------- El comerciante CREA el cupón: asistente de 3 pasos ---------- */
@@ -3768,7 +4142,7 @@ async function renderMapa(){
       if(!p){toast('No pudimos ver tu ubicación. Permite el acceso en los ajustes del navegador.');return;}
       L.marker(p,{icon:pinUsuario(),title:'Estás aquí'}).addTo(m).bindPopup('Estás aquí');m.setView(p,15);b.remove();$('#mapaInfo').textContent=items.length+' lugares cerca de ti';};
   }
-  setTimeout(()=>m.invalidateSize(),200);
+  setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
 }
 
 /* ===== NAVEGACIÓN GUIADA DE SENDEROS (RF-17) ===== */
@@ -4258,7 +4632,7 @@ async function renderRuta(id){
       r.puntosInteres.forEach(p=>L.marker(r.rutaWaypoints[p.wp],{icon:pinIcono('map-pin'),title:p.nombre}).addTo(m).bindPopup('<b>'+esc(p.nombre)+'</b><br><small>'+esc(p.descripcion)+'</small>'));
       L.marker(r.puntoLlegada,{icon:pinIcono('flag','pin-fc meta'),title:'Punto de llegada'}).addTo(m).bindPopup('Punto de llegada');
       m.fitBounds(linea.getBounds(),{padding:[24,24]});
-      setTimeout(()=>m.invalidateSize(),200);
+      setTimeout(()=>{if(mapaActivo===m)m.invalidateSize();},200);
     }catch(e){}
   }
   if(vistaActual().tipo!=='ruta')return;
@@ -4357,15 +4731,34 @@ function renderSOS(){
     +'<div class="seg" role="tablist" aria-label="Municipio"><button data-mun="fusagasuga" role="tab" aria-selected="'+(mun==='fusagasuga')+'" class="'+(mun==='fusagasuga'?'on':'')+'">Fusagasugá</button><button data-mun="pasca" role="tab" aria-selected="'+(mun==='pasca')+'" class="'+(mun==='pasca'?'on':'')+'">Pasca</button></div>'
     +(mun==='pasca'?'<p class="sos-nota">Líneas nacionales que operan en Pasca, Cundinamarca.</p>':'')
     +alertasVigentes(estado.alertas,mun==='pasca'?'Pasca':'Fusagasugá').map(a=>alertaHTML(a,false)).join('')
-    +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(e=>
-      '<div class="sos-fila"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(e.numero)+'</span></div>'
-      +'<button class="sos-llamar" data-llamar="'+esc(e.numero)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(e.numero)+'">'+icon('phone')+'</button></div>').join('')).join('')
+    +Object.entries(grupos).map(([tipo,l])=>'<h3 class="sos-grupo">'+esc(tipo)+'</h3>'+l.map(filaEmergenciaHTML).join('')).join('')
     +drogueriasHTML(mun)
     +'</div>'+footerHTML();
   $$('[data-verdrog]').forEach(b=>(b.onclick=()=>abrirDetalle(b.dataset.verdrog)));
   $$('.seg [data-mun]').forEach(b=>(b.onclick=()=>{estado.sosMunicipio=b.dataset.mun;render();}));
   $$('[data-llamar]').forEach(b=>(b.onclick=()=>confirmarLlamada(b.dataset.ent,b.dataset.llamar)));
+  $$('[data-copiar]').forEach(b=>(b.onclick=()=>copiarNumero(b.dataset.copiar,b)));
   enlazarFooter();
+}
+/* SOS más claro: la palabra «Llamar» junto al teléfono, «Copiar número» al lado y el número escrito en grupos
+   (601 886 8181) para leerlo mejor; se marca sin espacios. Todo sale de datos.js: funciona sin conexión (RF-16). */
+function numeroLegible(n){
+  const d=telLimpio(n);
+  if(d.length===10)return d.slice(0,3)+' '+d.slice(3,6)+' '+d.slice(6);
+  if(d.length===7)return d.slice(0,3)+' '+d.slice(3);
+  return d||String(n||'');
+}
+function filaEmergenciaHTML(e){
+  const num=telLimpio(e.numero),leg=numeroLegible(e.numero);
+  return '<div class="sos-fila sos-contacto"><span class="sos-ic">'+icon(iconoEmergencia(e))+'</span><div class="sos-info"><b>'+esc(e.entidad)+'</b><span>'+esc(e.detalle)+'</span><span class="sos-num">'+esc(leg)+'</span></div>'
+    +'<div class="sos-acc"><button class="btn sos-btn-llamar" data-llamar="'+esc(num)+'" data-ent="'+esc(e.entidad)+'" aria-label="Llamar a '+esc(e.entidad)+', '+esc(leg)+'">'+icon('phone',20)+'Llamar</button>'
+    +'<button class="btn btn-secundario sos-btn-copiar" data-copiar="'+esc(num)+'" aria-label="Copiar el número de '+esc(e.entidad)+'">'+icon('copy',18)+'Copiar número</button></div></div>';
+}
+async function copiarNumero(numero,boton){
+  try{await navigator.clipboard.writeText(numero);toast('Número copiado',5000);}catch(e){toast('Número: '+numeroLegible(numero),8000);return;}
+  if(!boton)return;
+  const antes=boton.innerHTML;boton.innerHTML=icon('check',18)+'Número copiado';
+  setTimeout(()=>{if(boton.isConnected)boton.innerHTML=antes;},3000);
 }
 /* ===== DROGUERÍAS Y TURNO (v87) =====
    Solo se muestra «De turno» si el admin lo publicó con su fuente oficial (enlace https) y la fecha de hoy está en
@@ -4385,7 +4778,7 @@ function drogueriasHTML(mun){
   if(!l.length&&!t)return '';
   const ab=d=>{const a=estadoApertura(d);return a&&a.abierto?0:a?1:2;};
   const fila=(d,extra)=>'<div class="sos-fila"><span class="sos-ic">'+icon('pill')+'</span><div class="sos-info"><b>'+esc(d.nombre)+'</b>'
-    +'<span>'+esc(extra||d.direccion||'')+'</span>'+estadoHTML(estadoApertura(d))+'</div>'
+    +'<span>'+esc(extra||d.direccion||'')+'</span>'+estadoHTML(estadoLugar(d))+'</div>'
     +'<button class="sos-llamar sos-ver" data-verdrog="'+esc(d.id)+'" aria-label="Ver la ficha de '+esc(d.nombre)+'">'+icon('chevron-right')+'</button></div>';
   const dt=t&&buscar(t.comercio_id);
   return '<h3 class="sos-grupo">Droguerías</h3>'
@@ -4395,13 +4788,74 @@ function drogueriasHTML(mun){
     +'<p class="sos-nota">'+(t?'':'Aún no tenemos el turno oficial de las droguerías. ')+'Llama o pregunta antes de ir: los horarios pueden cambiar.</p>'
     +l.filter(d=>!t||d.id!==t.comercio_id).sort((a,b)=>ab(a)-ab(b)||a.nombre.localeCompare(b.nombre,'es')).map(d=>fila(d)).join('');
 }
+// Hoja grande de confirmación: evita llamar a una línea de emergencia por un toque accidental
 function confirmarLlamada(entidad,numero){
-  abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic peligro">'+icon('phone',28)+'</div><h2>'+esc(entidad)+'</h2><div class="num-grande">'+esc(numero)+'</div>'
-    +'<div class="hoja-acc"><a class="btn btn-peligro btn-bloque" href="tel:'+esc(numero)+'">'+icon('phone')+'Llamar ahora</a>'
-    +'<button class="btn btn-secundario btn-bloque" id="bCopiar">'+icon('copy')+'Copiar número</button></div>'
-    +'<p class="nota">Esta información está guardada en tu teléfono y no requiere internet.</p>'
-    +'<div class="mapa-off atenuado">'+icon('map',24)+'Mapa desactivado en modo emergencia</div></div>');
-  $('#bCopiar').onclick=async()=>{try{await navigator.clipboard.writeText(numero);toast('Número copiado');}catch(e){toast('Número: '+numero);}};
+  const num=telLimpio(numero),leg=numeroLegible(numero);
+  abrirHoja('<div class="hoja-pad hoja-centro"><div class="mc-ic peligro">'+icon('phone',28)+'</div><h2 id="tLlamar">¿Llamar a '+esc(entidad)+' ('+esc(leg)+')?</h2>'
+    +'<div class="hoja-acc"><a class="btn btn-llamar-si btn-bloque" id="bSiLlamar" href="tel:'+esc(num)+'">'+icon('phone',22)+'Sí, llamar</a>'
+    +'<button class="btn btn-secundario btn-bloque" id="bNoLlamar">Cancelar</button></div>'
+    +'<p class="nota">Este número está guardado en tu teléfono y no necesita internet.</p></div>');
+  $('#sheetGen').setAttribute('aria-label','¿Llamar a '+entidad+'?');
+  $('#bNoLlamar').onclick=()=>cerrar('ovGen');
+  $('#bSiLlamar').focus();
+}
+
+/* Selector de tamaño de letra con vista previa: cada opción muestra «Aa» en su tamaño y el cambio se ve al instante */
+function selectorLetraHTML(){
+  const actual=letraActual();
+  return '<h4 class="sub-tit" id="tLetra">Tamaño de letra</h4><div class="letra-ops" role="radiogroup" aria-labelledby="tLetra">'
+    +TAMANOS_LETRA.map(([k,t,f])=>'<button type="button" class="letra-op'+(actual===k?' on':'')+'" role="radio" aria-checked="'+(actual===k)+'" data-letra-op="'+k+'">'
+      +'<span class="letra-muestra" style="font-size:'+(1.25*f)+'rem" aria-hidden="true">Aa</span>'+t+'</button>').join('')+'</div>'
+    +'<p class="letra-previa">Vista previa: «Droguería abierta cerca del parque principal».</p>';
+}
+function enlazarSelectorLetra(){
+  $$('[data-letra-op]').forEach(b=>(b.onclick=()=>{
+    elegirLetra(b.dataset.letraOp);render(true);
+    const n=$('[data-letra-op="'+b.dataset.letraOp+'"]');if(n)n.focus();
+  }));
+}
+// Primer uso: una hoja (no empuja el Inicio) pregunta si se quiere la letra más grande, una sola vez
+function ofrecerLetraUnaVez(){
+  if(letraElegida()||ls.get('fc_letra_preguntada',false)||$('.overlay.abierto')||$('#splash:not(.oculto)'))return;
+  ls.set('fc_letra_preguntada',true);
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">¿Quieres la letra más grande?</h2><p class="nota">Puedes cambiarla cuando quieras en Perfil → Apariencia.</p>'
+    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" data-oferta-letra="grande">Sí, más grande</button>'
+    +'<button class="btn btn-secundario btn-bloque" data-oferta-letra="sencillo">Modo sencillo: botones grandes</button>'
+    +'<button class="btn btn-ghost btn-bloque" data-oferta-letra="">No, gracias</button></div></div>');
+  $('#sheetGen').setAttribute('aria-label','Tamaño de letra');
+  $$('#sheetGen [data-oferta-letra]').forEach(b=>(b.onclick=()=>{
+    cerrar('ovGen');
+    const o=b.dataset.ofertaLetra;if(!o)return;
+    if(o==='sencillo')elegirSencillo(true);else elegirLetra(o);
+    render(true);toast(o==='sencillo'?'Listo: modo sencillo. Puedes quitarlo en Perfil.':'Listo: letra más grande. Puedes cambiarla en Perfil.',5000);
+  }));
+}
+
+/* ===== COMUNIDAD (Fase 4): servicios para la comunidad a un toque, en tarjetas grandes con su para qué ===== */
+const COMUNIDAD=[
+  {ic:'bus',t:'Transporte',d:'Rutas, horarios y cómo llegar a la terminal',vista:{tipo:'transporte'}},
+  {ic:'briefcase',t:'Empleos',d:'Ofertas de trabajo en Fusa y Pasca',vista:{tipo:'empleos'}},
+  {ic:'heart-handshake',t:'Perdidos y encontrados',d:'Si perdiste o encontraste algo',vista:{tipo:'perdidos'}},
+  {ic:'landmark',t:'Trámites y avisos del municipio',d:'Alcaldía, notarías, bancos y avisos oficiales',vista:{tipo:'lista',cat:'tramite'}},
+  {ic:'ticket',t:'Cupones y ofertas',d:'Descuentos de los comercios',vista:{tipo:'cupones'}},
+  {ic:'radio',t:'Radio en vivo',d:'',radio:true}
+];
+function tarjetaComunidadHTML(x,i){
+  const sonando=['sonando','conectando'].includes(radio.estado);
+  const detalle=x.radio?(sonando?'Sonando ahora. Toca para pausar':'Toca para escuchar '+EMISORA.nombre):x.d;
+  return '<button type="button" class="comunidad-card'+(x.radio&&sonando?' on':'')+'" data-comunidad="'+i+'"'+(x.radio?' aria-pressed="'+sonando+'"':'')+'>'
+    +'<span class="comunidad-ic" aria-hidden="true">'+icon(x.radio&&sonando?'pause':x.ic,28)+'</span><span class="comunidad-tx"><b>'+esc(x.radio?x.t+' '+EMISORA.frecuencia:x.t)+'</b><small>'+esc(detalle)+'</small></span>'
+    +icon('chevron-right',20)+'</button>';
+}
+function renderComunidad(){
+  $('#cuerpo').innerHTML='<div class="vista"><h1 class="sr-only">Comunidad</h1><p class="comunidad-intro">Servicios para la gente de Fusagasugá y Pasca.</p>'
+    +'<div class="comunidad">'+COMUNIDAD.map(tarjetaComunidadHTML).join('')+'</div></div>'+footerHTML();
+  $$('[data-comunidad]').forEach(b=>(b.onclick=()=>{
+    const x=COMUNIDAD[+b.dataset.comunidad];
+    if(!x.radio){navegar({...x.vista});return;}
+    radioAlternar();setTimeout(()=>{if(vistaActual().tipo==='comunidad')render(true);},400);
+  }));
+  enlazarFooter();
 }
 
 /* ===== PERFIL (RF-04, RNF-05) ===== */
@@ -4413,9 +4867,6 @@ function renderPerfil(){
       +'<div class="perfil-acc"><button class="btn btn-primario btn-bloque" id="pfRegistro">Crear cuenta</button><button class="btn btn-secundario btn-bloque" id="pfIngresar">Ya tengo cuenta</button>'
       +'<button class="btn btn-secundario btn-bloque" id="pfProductor">'+icon('store')+'Registrar mi negocio</button></div></div>'
       +'<button class="pf-item pf-suelto" id="pfFavoritos">'+icon('heart')+'<span class="flex-1">Mis favoritos</span>'+icon('chevron-right')+'</button>'
-      +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
       +'<div class="seccion">'+(puedeInstalar()?'<button class="pf-item" id="pfInstalar">'+icon(esIOS?'square-plus':'download')+(esIOS?'Agregar la app a mi inicio':'Instalar la app en mi celular')+'</button>':'')
@@ -4425,7 +4876,6 @@ function renderPerfil(){
     $('#pfProductor').onclick=registrarMiNegocio;$('#pfLegal').onclick=()=>abrir('ovLegal');
     $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
-  $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfFavoritos').onclick=irAFavoritos;
     enlazarFooter();return;
   }
@@ -4451,17 +4901,17 @@ function renderPerfil(){
       +'<small>Estadísticas, fotos, cupones, escanear y mi QR</small></span>'+icon('chevron-right')+'</button>':'')
     +misNegociosHTML()
     +'<button class="btn btn-secundario btn-bloque mt-16" id="pfSerComerciante">'+icon('plus')+(comerciosPropios.length?'Registrar otro negocio':'Registrar mi negocio')+'</button>'
-    +'<button class="pf-item pf-suelto" id="pfAgenda">'+icon('calendar-days')+'<span class="flex-1">Agenda de eventos</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irempleos>'+icon('briefcase')+'<span class="flex-1">Empleos locales</span>'+icon('chevron-right')+'</button>'
-    +'<button class="pf-item pf-suelto" data-irperdidos>'+icon('heart-handshake')+'<span class="flex-1">Perdidos y encontrados</span>'+icon('chevron-right')+'</button>'
     +'<button class="pf-item pf-suelto" id="pfRecorridos">'+icon('footprints')+'<span class="flex-1">Mis recorridos e insignias</span>'+icon('chevron-right')+'</button>'
     +'<button class="tarjeta-opinion" id="pfOpinion"><span class="to-ic">'+icon('message-circle-heart',22)+'</span><span class="to-tx"><b>Ayúdanos a mejorar</b><small>Cuéntanos qué te gustó y qué cambiarías</small></span>'+icon('chevron-right')+'</button>'
     +'<div class="seccion"><h3>'+icon('ticket',18)+'Mis cupones</h3>'
     +'<button class="pf-item" id="pfBilletera">'+icon('wallet')+'<span class="flex-1">Abrir mi billetera</span>'+(cupones.length?'<span class="globo">'+cupones.length+(cupones.length===1?' activo':' activos')+'</span>':'')+icon('chevron-right')+'</button>'
     +'<p class="nota-c izq">Tus cupones quedan guardados en el teléfono y funcionan sin conexión.</p></div>'
     +'<div class="seccion"><h3 id="tTema">'+icon('sun-moon',18)+'Apariencia</h3><div class="seg seg-tema" role="radiogroup" aria-labelledby="tTema">'
-      +[['automatico','clock','Automático'],['sistema','smartphone','Sistema'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
-      +'</div><p class="nota-c izq">«Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia). «Sistema» sigue el modo claro u oscuro de tu celular.</p></div>'
+      +[['sistema','smartphone','Sistema'],['automatico','clock','Automático'],['claro','sun','Claro'],['oscuro','moon','Oscuro']].map(([k,ic,t])=>'<button type="button" role="radio" aria-checked="'+(temaElegido()===k)+'" class="'+(temaElegido()===k?'on':'')+'" data-tema-op="'+k+'">'+icon(ic,16)+t+'</button>').join('')
+      +'</div><p class="nota-c izq">«Sistema» sigue el modo claro u oscuro de tu celular. «Automático» se oscurece de 6:00 p. m. a 6:00 a. m. (hora de Colombia).</p>'
+      +selectorLetraHTML()
+      +'<label class="switch-row mt-16"><span>Modo sencillo<small class="sw-det">Inicio con 6 botones grandes, sin carruseles ni radio, y «Llamar» en cada lugar</small></span>'
+      +'<input type="checkbox" id="pfSencillo" '+(modoSencillo()?'checked':'')+'></label></div>'
     +'<div class="seccion"><h3>'+icon('bell',18)+'Avisos</h3><label class="switch-row"><span>Avisos en este celular<small class="sw-det">Cuando aprueben lo que envías y con las novedades de los comercios destacados</small></span><input type="checkbox" id="pfNotif" '+(avisosOn?'checked':'')+'></label>'
     +(notifOn&&estadoAvisos()==='iphone-sin-instalar'?'<p class="nota-c izq">En iPhone, los avisos llegan solo con la app instalada en la pantalla de inicio (iOS 16.4 o superior).</p>':'')+'</div>'
     +'<div class="seccion"><h3>'+icon('shield-check',18)+'Privacidad (Ley 1581 de 2012)</h3>'
@@ -4476,12 +4926,13 @@ function renderPerfil(){
   const pa=$('#pfAdmin');if(pa)pa.onclick=irAlPanelAdmin;
   const ps=$('#pfSplash');if(ps)ps.onclick=verAnimacionEntrada;
   $$('[data-tema-op]').forEach(b=>(b.onclick=()=>{elegirTema(b.dataset.temaOp);render(true);const n=$('[data-tema-op="'+b.dataset.temaOp+'"]');if(n)n.focus();}));
+  enlazarSelectorLetra();
+  $('#pfSencillo').onchange=e=>{elegirSencillo(e.target.checked);toast(e.target.checked?'Modo sencillo activado':'Modo sencillo desactivado');render(true);};
   const sc=$('#pfSerComerciante');if(sc)sc.onclick=registrarMiNegocio;
   enlazarMisNegocios();
   $('#pfBilletera').onclick=irABilletera;
   $('#pfOpinion').onclick=()=>abrirOpinion('perfil');
   $('#pfRecorridos').onclick=()=>navegar({tipo:'recorridos'});
-  $('#pfAgenda').onclick=()=>irAgenda();
   $('#pfFavoritos').onclick=irAFavoritos;
   $('#pfNotif').onchange=async e=>{
     const sw=e.target,on=sw.checked;
@@ -4896,7 +5347,7 @@ async function migrarFotosAntiguas(lista){
    Todos se registran como "usuario". Ser comerciante se deriva de tener un negocio aprobado (o ser admin):
    no hay que elegir nada al registrarse ni cambiar de cuenta. */
 function misNegociosHTML(){
-  const l=comerciosPropios;if(!l.length)return '';
+  const l=comerciosPropios,reclamos=misReclamosHTML();if(!l.length&&!reclamos)return '';
   const chip=c=>({aprobado:'<span class="chip-estado pub">'+icon('circle-check',14)+'Publicado</span>',rechazado:'<span class="chip-estado rech">'+icon('circle-alert',14)+'Rechazado</span>',
     oculto:'<span class="chip-estado rech">'+icon('eye-off',14)+'Oculto por el administrador</span>'})[c.estado_publicacion]||'<span class="chip-estado rev">'+icon('clock',14)+'En revisión</span>';
   return '<div class="seccion"><h3>'+icon('store',18)+'Mis negocios</h3>'+l.map(c=>'<div class="mi-negocio">'
@@ -4905,7 +5356,7 @@ function misNegociosHTML(){
         :c.estado_publicacion==='oculto'?'<p class="mn-motivo">'+icon('info',14)+'No aparece en el directorio. Escríbenos desde «Ayúdanos a mejorar» si crees que es un error.</p>'
         :c.estado_publicacion!=='aprobado'?'<p class="mn-motivo">Un administrador lo revisará pronto. Te avisaremos aquí mismo.</p>':'')
       +avisoFichaHTML(c,'data-minegocio="'+esc(c.id)+'"')
-      +'</div>').join('')+'</div>';
+      +'</div>').join('')+reclamos+'</div>';
 }
 function enlazarMisNegocios(){
   $$('[data-minegocio]').forEach(b=>(b.onclick=()=>{estado.comercioSel=b.dataset.minegocio;navegar({tipo:'dashboard'});}));
@@ -4916,7 +5367,10 @@ function enlazarMisNegocios(){
 function guardarAccionPendiente(a){ls.set('fc_accion_pendiente',{a,t:Date.now()});}
 function retomarAccionPendiente(){
   const p=ls.get('fc_accion_pendiente',null);ls.del('fc_accion_pendiente');
-  if(p&&p.a==='negocio'&&Date.now()-p.t<15*60000&&logueado())abrirFormComercio(null);
+  if(!p||Date.now()-p.t>=15*60000||!logueado())return;
+  if(p.a==='negocio')abrirFormComercio(null);
+  // Fase 5: quien tocó «Reclamar» sin sesión vuelve a la misma ficha y al formulario
+  else if(String(p.a).startsWith('reclamar:')){const d=buscar(p.a.slice(9));if(d)setTimeout(()=>reclamarNegocio(d),300);}
 }
 
 /* ---------- Bienvenida después del primer registro: "¿Qué te gusta de Fusa?" (saltable) ---------- */
@@ -5191,7 +5645,7 @@ let modoLogin='ingresar',registroPendiente=null,creandoPerfil=null,correoAbierto
 function abrirLogin(modo='ingresar',productor=false,aviso=''){
   modoLogin=modo;correoAbierto=modo!=='registro';
   $('#loginAviso').innerHTML=aviso?icon('lock',18)+'<span>'+esc(aviso)+'</span>':'';$('#loginAviso').style.display=aviso?'flex':'none';
-  pintarModoLogin();abrir('ovLogin');
+  errorLogin('');pintarModoLogin();abrir('ovLogin');
 }
 function pedirLogin(msg,productor=false){abrirLogin('ingresar',productor,msg);}
 function pintarModoLogin(){
@@ -5216,21 +5670,29 @@ function mensajeAuth(e){
     'auth/invalid-login-credentials':'Correo o contraseña incorrectos.','auth/too-many-requests':'Demasiados intentos. Espera unos minutos.',
     'auth/network-request-failed':'Sin conexión a internet. Intenta de nuevo.','auth/popup-closed-by-user':'Cerraste la ventana de Google.',
     'auth/cancelled-popup-request':'Ventana de Google cancelada.','auth/unauthorized-domain':'Este dominio no está autorizado para iniciar sesión con Google.',
-    'auth/operation-not-allowed':'Este método de ingreso no está habilitado.','auth/requires-recent-login':'Por seguridad, vuelve a iniciar sesión.'};
+    'auth/operation-not-allowed':'Este método de ingreso no está habilitado.','auth/requires-recent-login':'Por seguridad, vuelve a iniciar sesión.',
+    'auth/missing-password':'Escribe tu contraseña.','auth/user-disabled':'Esta cuenta está desactivada. Escríbenos desde «Ayúdanos a mejorar».',
+    'auth/credential-already-in-use':'Ese correo ya tiene una cuenta. Ingresa con tu contraseña.','auth/popup-blocked':'El celular bloqueó la ventana de Google. Intenta de nuevo.'};
   return m[e&&e.code]||'No se pudo completar. Intenta de nuevo.';
+}
+// N2: el error queda escrito en el formulario (no solo en un aviso que se va), se anuncia y lleva al campo que hay que corregir
+function errorLogin(msg,campo){
+  const p=$('#loginError');p.textContent=msg||'';p.hidden=!msg;
+  if(msg&&campo){const c=$(campo);if(c)c.focus();}
 }
 function bloquearLogin(on){$$('#ovLogin button').forEach(b=>(b.disabled=on));$('#lMail').textContent=on?'Un momento...':(modoLogin==='registro'?'Crear mi cuenta':'Ingresar');}
 async function enviarLogin(e){
   e.preventDefault();
   const email=$('#mail').value.trim(),clave=$('#clave').value,nombre=$('#lNombre').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Ingresa un correo válido');return;}
-  if(clave.length<8){toast('La contraseña debe tener mínimo 8 caracteres');return;}
+  errorLogin('');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errorLogin('Escribe un correo válido, por ejemplo nombre@gmail.com.','#mail');return;}
+  if(clave.length<8){errorLogin('La contraseña debe tener al menos 8 caracteres.','#clave');return;}
   const rol='usuario';
   bloquearLogin(true);
   try{
     if(modoLogin==='registro'){
-      if(nombre.length<2){toast('Escribe tu nombre');return;}
-      if(!$('#lConsent').checked){toast('Debes aceptar el tratamiento de datos (Ley 1581)');return;}
+      if(nombre.length<2){errorLogin('Escribe tu nombre.','#lNombre');return;}
+      if(!$('#lConsent').checked){errorLogin('Para crear la cuenta, acepta el tratamiento de datos (Ley 1581).','#lConsent');return;}
       registroPendiente={consent:true,nombre,rol};
       const actual=auth.currentUser;let cred;
       if(actual&&actual.isAnonymous){
@@ -5248,7 +5710,7 @@ async function enviarLogin(e){
       toast('Bienvenida/o de nuevo');
     }
     $('#clave').value='';
-  }catch(err){console.warn(err.code);toast(mensajeAuth(err));}
+  }catch(err){errorLogin(mensajeAuth(err),/password|credential/.test(err.code||'')?'#clave':'#mail');}
   finally{bloquearLogin(false);}
 }
 async function ingresarGoogle(){
@@ -5280,9 +5742,9 @@ async function ingresarGoogle(){
 }
 async function olvideClave(){
   const email=$('#mail').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?»');return;}
-  try{await auth.sendPasswordResetEmail(email);toast('Te enviamos un correo para restablecer tu contraseña');}
-  catch(e){toast(mensajeAuth(e));}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errorLogin('Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?».','#mail');return;}
+  try{await auth.sendPasswordResetEmail(email);errorLogin('');toast('Te enviamos un correo para restablecer tu contraseña. Revisa también la carpeta de spam.',8000);}
+  catch(e){errorLogin(mensajeAuth(e),'#mail');}
 }
 // Factory: todas las cuentas nacen como "usuario" (el panel de negocio se habilita al aprobarse un negocio)
 function crearPerfil(user,datos){
@@ -5316,6 +5778,7 @@ async function _procesarUsuario(user){
   try{snap=await db.collection('usuarios').doc(user.uid).get();}catch(e){console.warn('Perfil sin conexión');}
   if(snap&&snap.exists){
     estado.perfil=snap.data();estado.perfilReal=true;
+    letraDelPerfil(estado.perfil);
     const nube=estado.perfil.favoritos||[];
     estado.favoritos=[...new Set([...nube,...estado.favoritos])];
     if(estado.favoritos.length!==nube.length)db.collection('usuarios').doc(user.uid).update({favoritos:estado.favoritos}).catch(()=>{});
@@ -5434,7 +5897,7 @@ function noLeidas(){const v=ls.get('fc_novedades_leido',0);return estado.novedad
 function pendientesAdmin(){return esAdmin()?porAprobar()+premiumPorActivar()+(estado.adminPend.eventos||[]).length+(estado.adminPend.rutas||[]).length:0;}
 function campanaHTML(){
   const n=noLeidas(),p=pendientesAdmin();
-  return '<button class="btn-redondo campana" id="bNovedades" aria-label="Novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
+  return '<button class="btn-redondo campana" id="bNovedades" data-explica-auto="avisos" aria-label="Avisos y novedades'+(n?', '+n+' sin leer':'')+(p?', '+p+' por aprobar':'')+'">'+icon('bell')+(n||p?'<span class="punto-nuevo'+(p?' alerta':'')+'" aria-hidden="true"></span>':'')+'</button>';
 }
 function actualizarCampana(){const b=$('#bNovedades');if(b)b.outerHTML=campanaHTML();const nb=$('#bNovedades');if(nb)nb.onclick=abrirNovedades;}
 function abrirNovedades(){
@@ -5652,11 +6115,15 @@ async function avisarAdmins(tipo,id){
 }
 /* ===== AVISOS PARA EL ADMIN: comercios y solicitudes pendientes en vivo ===== */
 let adminUnsubs=[];
-estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};
+estado.adminPend={comercios:[],solicitudes:[],reclamos:[],eventos:[],rutas:[],empleos:[]};
 function escucharAdmin(){
   if(adminUnsubs.length||!esAdmin())return;
   adminUnsubs.push(db.collection('comercios').where('estado_publicacion','==','pendiente').onSnapshot(s=>{
     estado.adminPend.comercios=s.docs.map(d=>{const x=d.data();return {id:d.id,nombre:x.nombre,fecha:aMs(x.fecha_modificacion)||aMs(x.fechaCreacion)||0};});
+    avisosAdminCambiaron();
+  },()=>{}));
+  adminUnsubs.push(db.collection('reclamos_comercio').where('estado','==','pendiente').onSnapshot(s=>{
+    estado.adminPend.reclamos=s.docs.map(d=>({id:d.id,...d.data(),fecha:aMs(d.data().fecha_solicitud)||0}));
     avisosAdminCambiaron();
   },()=>{}));
   adminUnsubs.push(db.collection('solicitudes').where('estado','==','pendiente').onSnapshot(s=>{
@@ -5684,9 +6151,9 @@ function escucharAdmin(){
     avisosAdminCambiaron();
   },()=>{}));
 }
-function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],eventos:[],rutas:[],empleos:[]};}
+function dejarDeEscucharAdmin(){adminUnsubs.forEach(u=>u());adminUnsubs=[];estado.adminPend={comercios:[],solicitudes:[],reclamos:[],eventos:[],rutas:[],empleos:[]};}
 // "Por aprobar" = comercios nuevos + reclamos de negocio
-function porAprobar(){return estado.adminPend.comercios.length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
+function porAprobar(){return estado.adminPend.comercios.length+(estado.adminPend.reclamos||[]).length+estado.adminPend.solicitudes.filter(s=>s.tipo==='reclamo').length;}
 function premiumPorActivar(){return estado.adminPend.solicitudes.filter(s=>s.tipo==='premium').length;}
 // Avisos del admin que llegaron después de la última vez que abrió la campana
 function avisosAdminNuevos(){
@@ -5707,37 +6174,108 @@ function irAlPanelAdmin(){
 }
 
 /* ===== RECLAMAR UN NEGOCIO EXISTENTE (Fase 2.4) ===== */
-async function reclamarNegocio(d){
-  if(!logueado()){pedirLogin('Inicia sesión para reclamar tu negocio.',true);return;}
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reclamar «'+esc(d.nombre)+'»</h2>'
-    +'<p class="nota">Un administrador te contactará para confirmar que eres el dueño. Cuando lo apruebe, podrás editar la ficha desde «Mi negocio».</p>'
-    +'<div class="campo mt-16"><label for="rTel">Teléfono de contacto <span class="req">*</span></label><input id="rTel" type="tel" maxlength="13" placeholder="Ej: 3001234567"></div>'
-    +'<div class="campo"><label for="rMsg">¿Cómo podemos confirmarlo? (opcional)</label><textarea id="rMsg" maxlength="300" placeholder="Ej: soy la propietaria desde 2019, mi NIT es..."></textarea></div>'
-    +'<button class="btn btn-primario btn-bloque" id="rEnviar">Enviar solicitud</button></div>');
-  $('#rEnviar').onclick=async()=>{
-    const tel=telLimpio($('#rTel').value);
-    if(!/^\d{7,10}$/.test(tel)){toast('Escribe un teléfono válido');return;}
-    try{
-      const prev=await db.collection('solicitudes').where('uid','==',estado.usuario.uid).where('tipo','==','reclamo').get();
-      if(prev.docs.some(x=>x.data().comercio_id===d.id&&x.data().estado==='pendiente')){cerrar('ovGen');toast('Ya enviaste una solicitud para este negocio');return;}
-      const refRec=await db.collection('solicitudes').add({tipo:'reclamo',comercio_id:String(d.id),comercio_nombre:d.nombre,telefono:tel,mensaje:$('#rMsg').value.trim().slice(0,300),
-        uid:estado.usuario.uid,usuario_nombre:estado.usuario.nombre,correo:estado.usuario.email,estado:'pendiente',fecha:FV.serverTimestamp()});
-      avisarAdmins('reclamo',refRec.id);
-      cerrar('ovGen');toast('Solicitud enviada. Te contactaremos pronto.');
-    }catch(e){console.error(e);toast('No se pudo enviar la solicitud. Revisa tu conexión.');}
-  };
+/* ===== RECLAMAR ESTE COMERCIO (Fase 5) =====
+   Colección reclamos_comercio con id <comercio>__<uid>: un solo reclamo por comercio y persona (dos personas pueden
+   reclamar el mismo comercio y el admin ve las dos). La prueba (foto del RUT, de la Cámara de Comercio o en la fachada)
+   va comprimida en reclamos_comercio/{id}/prueba/foto: el plan Spark no tiene Storage. La decisión (aprobar o rechazar)
+   la toma la API con su cuenta de servicio: solo un admin, nunca sobre su propio reclamo, y ningún navegador puede
+   escribir propietario_uid (firestore.rules). */
+const idReclamo=(cid,uid)=>String(cid)+'__'+uid;
+function miReclamo(cid){return logueado()?(estado.misReclamos||[]).find(r=>r.comercio_id===String(cid)):null;}
+function tarjetaReclamoHTML(d,natural){
+  if(d.propietario_uid||natural||['tramite','turismo'].includes(d.cat))return '';
+  const r=miReclamo(d.id);
+  if(r&&r.estado==='pendiente')return '<div class="reclamo-card">'+icon('clock',24)+'<div><b>Tu solicitud está en revisión</b><p>Te avisaremos cuando esté lista.</p>'
+    +'<button class="btn btn-tonal btn-sm" id="bVerReclamo">Ver en mi perfil</button></div></div>';
+  return '<div class="reclamo-card">'+icon('store',24)+'<div><b>¿Este es tu negocio?</b><p>Reclámalo gratis para actualizar fotos, horario y teléfono.</p>'
+    +(r&&r.estado==='rechazado'?'<p class="reclamo-motivo">'+icon('info',16)+'No aprobamos tu solicitud anterior: '+esc(r.motivo_rechazo||'')+'</p>':'')
+    +'<button class="btn btn-primario" id="bReclamar">'+(r&&r.estado==='rechazado'?'Reclamarlo de nuevo':'Reclamar mi negocio')+'</button></div></div>';
 }
+function formReclamoHTML(d){
+  const tel=telLimpio(d.tel);
+  return '<div class="form-head"><h2>Reclamar «'+esc(d.nombre)+'»</h2><p>Un administrador revisará tu solicitud. Cuando la apruebe, podrás editar la ficha.</p></div>'
+    +'<form class="form-body form-grande" id="formReclamo" novalidate>'
+    +'<div class="campo"><label for="rcNombre">Tu nombre <span class="req">*</span></label><input id="rcNombre" maxlength="80" autocomplete="name" value="'+esc(estado.usuario.nombre||'')+'"></div>'
+    +'<fieldset class="campo"><legend>Eres <span class="req">*</span></legend><div class="opciones-grandes">'
+      +'<label class="opcion-grande"><input type="radio" name="rcCargo" value="dueño" checked><span>Dueño o dueña</span></label>'
+      +'<label class="opcion-grande"><input type="radio" name="rcCargo" value="administrador"><span>Administrador</span></label></div></fieldset>'
+    +'<div class="campo"><label for="rcTel">Teléfono de contacto <span class="req">*</span></label><input id="rcTel" type="tel" inputmode="tel" maxlength="13" autocomplete="tel" placeholder="Ej: 3001234567"></div>'
+    +'<fieldset class="campo"><legend>¿Cómo comprobamos que es tuyo? <span class="req">*</span></legend><div class="opciones-grandes">'
+      +(tel?'<label class="opcion-grande"><input type="radio" name="rcMetodo" value="codigo" checked><span>Un código por WhatsApp o llamada al '+esc(numeroLegible(tel))+' (el teléfono de la ficha)</span></label>':'')
+      +'<label class="opcion-grande"><input type="radio" name="rcMetodo" value="documento"'+(tel?'':' checked')+'><span>Una foto del RUT, de la Cámara de Comercio o tuya en la fachada con el letrero</span></label></div></fieldset>'
+    +'<div class="campo" id="rcFotoCampo"'+(tel?' hidden':'')+'><label for="rcFoto">Foto <span class="req">*</span></label><input id="rcFoto" type="file" accept="image/*"><small class="ayuda">La reducimos en tu celular antes de enviarla.</small></div>'
+    +'<label class="check"><input type="checkbox" id="rcConsent"><span>Autorizo el tratamiento de mis datos personales para verificar este reclamo, conforme a la <button type="button" class="enlace" id="rcLegal">Ley 1581 de 2012</button>. <span class="req">*</span></span></label>'
+    +'<button type="submit" class="btn btn-primario btn-bloque" id="rcEnviar">Enviar solicitud</button></form>';
+}
+function datosReclamo(d){
+  const nombre=$('#rcNombre').value.trim(),telefono=telLimpio($('#rcTel').value),metodo=($('input[name="rcMetodo"]:checked')||{}).value;
+  const foto=$('#rcFoto').files[0];
+  if(nombre.length<3)return {error:'Escribe tu nombre',campo:'#rcNombre'};
+  if(!/^\d{7,10}$/.test(telefono))return {error:'Escribe un teléfono de 7 a 10 números',campo:'#rcTel'};
+  if(metodo==='documento'&&!foto)return {error:'Agrega la foto que lo comprueba',campo:'#rcFoto'};
+  if(!$('#rcConsent').checked)return {error:'Para enviar la solicitud, acepta el tratamiento de datos',campo:'#rcConsent'};
+  return {foto,datos:{comercio_id:String(d.id),comercio_nombre:d.nombre,usuario_uid:estado.usuario.uid,nombre,cargo:$('input[name="rcCargo"]:checked').value,
+    telefono,metodo,con_prueba:metodo==='documento',correo:estado.usuario.email||'',estado:'pendiente',consentimiento_ley1581:true,
+    fecha_solicitud:FV.serverTimestamp(),fecha_consentimiento:FV.serverTimestamp()}};
+}
+async function enviarReclamo(d){
+  const r=datosReclamo(d);
+  if(r.error){toast(r.error);const c=$(r.campo);if(c)c.focus();return;}
+  if(!estado.online){toast('Necesitas conexión a internet para enviar la solicitud');return;}
+  const btn=$('#rcEnviar');btn.disabled=true;btn.textContent='Enviando…';
+  try{
+    const ref=db.collection('reclamos_comercio').doc(idReclamo(d.id,estado.usuario.uid)),lote=db.batch();
+    lote.set(ref,r.datos);
+    if(r.foto){const f=await comprimirFoto(r.foto,1280,200000);lote.set(ref.collection('prueba').doc('foto'),{data:f.src,fecha:FV.serverTimestamp()});}
+    await lote.commit();
+    avisarAdmins('reclamo_comercio',ref.id);
+    cerrar('ovForm');toast('Solicitud enviada. Te avisaremos cuando esté lista.',6000);
+  }catch(e){reportarError('reclamo',e);toast('No se pudo enviar la solicitud. Revisa tu conexión e intenta de nuevo.');btn.disabled=false;btn.textContent='Enviar solicitud';}
+}
+function reclamarNegocio(d){
+  if(!logueado()){guardarAccionPendiente('reclamar:'+d.id);pedirLogin('Inicia sesión o crea tu cuenta para reclamar tu negocio.',true);return;}
+  const r=miReclamo(d.id);
+  if(r&&r.estado==='pendiente'){toast('Ya enviaste una solicitud para este negocio. Te avisaremos cuando esté lista.');return;}
+  $('#sheetForm').innerHTML='<div class="grab"></div><button class="btn-redondo cerrar" data-cerrar="ovForm" aria-label="Cerrar">'+icon('x')+'</button>'+formReclamoHTML(d);
+  $('#sheetForm').setAttribute('aria-label','Reclamar '+d.nombre);
+  abrir('ovForm');
+  $('#sheetForm [data-cerrar]').onclick=()=>cerrar('ovForm');
+  $$('input[name="rcMetodo"]').forEach(x=>(x.onchange=()=>{$('#rcFotoCampo').hidden=x.value!=='documento'||!x.checked;}));
+  $('#rcLegal').onclick=()=>abrir('ovLegal');
+  $('#formReclamo').onsubmit=e=>{e.preventDefault();enviarReclamo(d);};
+}
+// Los reclamos de la persona (para la ficha y Perfil → Mis negocios)
+let reclamosUnsub=null;
+function escucharMisReclamos(){
+  if(reclamosUnsub||!logueado())return;
+  reclamosUnsub=db.collection('reclamos_comercio').where('usuario_uid','==',estado.usuario.uid).onSnapshot(s=>{
+    estado.misReclamos=s.docs.map(x=>({id:x.id,...x.data()}));refrescarVista();
+  },()=>{reclamosUnsub=null;});
+}
+function dejarDeEscucharMisReclamos(){if(reclamosUnsub){reclamosUnsub();reclamosUnsub=null;}estado.misReclamos=[];}
+function misReclamosHTML(){
+  const l=(estado.misReclamos||[]).filter(r=>r.estado!=='aprobado');if(!l.length)return '';
+  return l.map(r=>'<div class="mi-negocio"><div class="pf-item"><span class="mn-tx"><b>'+esc(r.comercio_nombre)+'</b>'
+    +(r.estado==='pendiente'?'<span class="chip-estado rev">'+icon('clock',14)+'Solicitud en revisión</span>':'<span class="chip-estado rech">'+icon('circle-alert',14)+'No aprobada</span>')+'</span></div>'
+    +(r.estado==='pendiente'?'<p class="mn-motivo">Solicitud en revisión. Te avisaremos cuando esté lista.</p>'
+      :'<p class="mn-motivo">'+icon('info',14)+'Motivo: '+esc(r.motivo_rechazo||'')+'</p><button class="btn btn-tonal btn-sm" data-reclamar-otra="'+esc(r.comercio_id)+'">Reclamarlo de nuevo</button>')
+    +'</div>').join('');
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-reclamar-otra]');if(!b)return;const d=buscar(b.dataset.reclamarOtra);if(d)reclamarNegocio(d);});
 
 /* ===== REPORTAR UN PROBLEMA (ficha o reseña) ===== */
-function reportar(d,resena){
+// U2: «¿Lo conoces? Envíanoslo» abre el mismo reporte con el motivo ya elegido
+const DATO_FALTANTE={titulo:'Envíanos el teléfono',motivo:'Falta el teléfono o el horario',etiqueta:'Teléfono y, si lo sabes, el horario',
+  ayuda:'Ej: 3101234567, abre de lunes a sábado de 8 a. m. a 7 p. m.',boton:'Enviar'};
+function reportar(d,resena,previo={}){
   if(!logueado()){pedirLogin('Inicia sesión para reportar un problema.');return;}
   const motivos=resena?['Contenido ofensivo','Información falsa','No es una experiencia real','Otro']
-    :['Información incorrecta','Cerró definitivamente','Fotos inapropiadas','Otro'];
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Reportar '+(resena?'una reseña':'un problema')+'</h2><p class="nota">'+esc(d.nombre)+'</p>'
-    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+motivos.map(m=>'<button type="button" class="chip-filtro" data-mot="'+esc(m)+'" role="radio" aria-checked="false">'+esc(m)+'</button>').join('')+'</div>'
-    +'<div class="campo mt-16"><label for="repTxt">Detalles (opcional)</label><textarea id="repTxt" maxlength="300" placeholder="Cuéntanos qué está mal..."></textarea></div>'
-    +'<button class="btn btn-primario btn-bloque" id="repEnviar">Enviar reporte</button></div>');
-  let motivo='';
+    :['Información incorrecta','Falta el teléfono o el horario','Cerró definitivamente','Fotos inapropiadas','Otro'];
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">'+esc(previo.titulo||'Reportar '+(resena?'una reseña':'un problema'))+'</h2><p class="nota">'+esc(d.nombre)+'</p>'
+    +'<div class="chips-motivo mt-16" role="radiogroup" aria-label="Motivo">'+motivos.map(m=>'<button type="button" class="chip-filtro'+(m===previo.motivo?' on':'')+'" data-mot="'+esc(m)+'" role="radio" aria-checked="'+(m===previo.motivo)+'">'+esc(m)+'</button>').join('')+'</div>'
+    +'<div class="campo mt-16"><label for="repTxt">'+esc(previo.etiqueta||'Detalles (opcional)')+'</label><textarea id="repTxt" maxlength="300" placeholder="'+esc(previo.ayuda||'Cuéntanos qué está mal...')+'"></textarea></div>'
+    +'<button class="btn btn-primario btn-bloque" id="repEnviar">'+esc(previo.boton||'Enviar reporte')+'</button></div>');
+  let motivo=previo.motivo||'';
   $$('#sheetGen [data-mot]').forEach(b=>(b.onclick=()=>{motivo=b.dataset.mot;$$('#sheetGen [data-mot]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});}));
   $('#repEnviar').onclick=async()=>{
     if(!motivo){toast('Elige un motivo');return;}
@@ -6044,7 +6582,8 @@ function renderAdmin(){
   const A=estado.admin,D=A.datos;
   if(!D){cuerpo.innerHTML='<div class="vista"><div class="dash-top"><h2>Administración</h2></div><div class="vacio">'+icon('clock',48)+'<b>Cargando…</b></div></div>';if(!A.cargando)cargarAdmin();return;}
   const reclamos=D.solicitudes.filter(s=>s.tipo==='reclamo'),premium=D.solicitudes.filter(s=>s.tipo==='premium');
-  const nNegocios=D.pendientes.length+reclamos.length;
+  const nuevosReclamos=estado.adminPend.reclamos||[];
+  const nNegocios=D.pendientes.length+reclamos.length+nuevosReclamos.length;
   const tabs=[['aprobar','Por aprobar','clipboard-check',nNegocios+premium.length],['eventos','Eventos','calendar-days',(estado.adminPend.eventos||[]).length],['negocios','Negocios','store',0],['reportes','Reportes','flag',D.reportes.length],
     ['opiniones','Opiniones','message-circle-heart',0],['banners','Banners','image',0],['rutas','Rutas','route',(estado.adminPend.rutas||[]).length],['contactar','Contactar','phone',0],['transporte','Transporte','bus',0],['perdidos','Perdidos','heart-handshake',0],['empleos','Empleos','briefcase',(estado.adminPend.empleos||[]).length],['emergencias','Emergencias','siren',0]];
   if(!A.subtab)A.subtab='negocios';
@@ -6057,7 +6596,8 @@ function renderAdmin(){
         +(D.pendientes.length?'<p class="dash-section">Negocios nuevos ('+D.pendientes.length+')</p>'+D.pendientes.map(c=>vistaPreviaAdminHTML(c,
           '<p class="nota-c izq">Registrado por '+esc(c._raw.propietario||'un usuario')+' · '+(c.esPremium?'Premium':'Gratis')+' · '+fechaCorta(aMs(c._raw.fecha_modificacion)||aMs(c._raw.fechaCreacion))+'</p>'
           +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-aprobar="'+esc(c.id)+'">'+icon('check',16)+'Aprobar</button><button class="btn btn-secundario btn-sm" data-rechazar="'+esc(c.id)+'">Rechazar</button></div>')).join(''):'')
-        +(reclamos.length?'<p class="dash-section">Reclamos de negocios existentes ('+reclamos.length+')</p>'+reclamos.map(s=>{const c=buscar(s.comercio_id)||D.comercios.find(x=>x.id===s.comercio_id);
+        +reclamosAdminHTML(nuevosReclamos,D)
+        +(reclamos.length?'<p class="dash-section">Reclamos anteriores, sin verificación ('+reclamos.length+')</p>'+reclamos.map(s=>{const c=buscar(s.comercio_id)||D.comercios.find(x=>x.id===s.comercio_id);
             return c?vistaPreviaAdminHTML(c,'<p class="nota-c izq">'+icon('user',14)+' Lo reclama '+esc(s.usuario_nombre||'')+' · '+esc(s.correo||'')+' · Tel. '+esc(s.telefono||'')+'</p>'+(s.mensaje?'<p class="adm-desc">«'+esc(s.mensaje)+'»</p>':'')
               +'<div class="dc-actions"><button class="btn btn-primario btn-sm" data-okreclamo="'+esc(s.id)+'">'+icon('check',16)+'Aprobar reclamo</button><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div>')
               :'<div class="adm-card"><h3>'+esc(s.comercio_nombre)+'</h3><p class="nota-c izq">Lo reclama '+esc(s.usuario_nombre||'')+'</p><div class="dc-actions"><button class="btn btn-secundario btn-sm" data-noreclamo="'+esc(s.id)+'">Rechazar</button></div></div>';}).join(''):'');
@@ -6150,6 +6690,7 @@ function renderAdmin(){
   $$('[data-aprobar]').forEach(b=>(b.onclick=()=>adminAccion(()=>db.collection('comercios').doc(b.dataset.aprobar).update({estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),motivo_rechazo:FV.delete(),...premiumCampana(pend(b.dataset.aprobar)&&pend(b.dataset.aprobar)._raw)}),campanaVigente()?'Negocio aprobado, con Premium gratis hasta el '+CAMPANA.premiumTxt:'Negocio aprobado y publicado',['comercio',b.dataset.aprobar,'aprobado'])));
   $$('[data-rechazar]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar «'+pend(b.dataset.rechazar).nombre+'»',m=>adminAccion(()=>db.collection('comercios').doc(b.dataset.rechazar).update({estado_publicacion:'rechazado',motivo_rechazo:m}),'Negocio rechazado. La persona verá el motivo en su perfil.',['comercio',b.dataset.rechazar,'rechazado']))));
   $$('[data-okreclamo]').forEach(b=>(b.onclick=()=>aprobarReclamo(sol(b.dataset.okreclamo))));
+  enlazarReclamosAdmin();
   $$('[data-noreclamo]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noreclamo).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Reclamo rechazado',['reclamo',b.dataset.noreclamo,'rechazado']),['No se pudo verificar que sea el dueño','Duplicado','Otro'])));
   $$('[data-okprem]').forEach(b=>(b.onclick=()=>activarPremiumAdmin(sol(b.dataset.okprem))));
   $$('[data-noprem]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar Premium',m=>adminAccion(()=>db.collection('solicitudes').doc(b.dataset.noprem).update({estado:'rechazada',motivo:m,fecha_respuesta:FV.serverTimestamp()}),'Solicitud rechazada',['premium',b.dataset.noprem,'rechazado']),['Negocio aún en revisión','Datos incompletos','Otro'])));
@@ -6535,26 +7076,64 @@ function mostrarNegocio(c){
 // aviso = [tipo, id, resultado]: después de guardar, la API le avisa a la persona (en segundo plano)
 async function adminAccion(fn,msg,aviso){
   try{await fn();toast(msg);}
-  catch(e){console.error(e);toast('No se pudo completar. Revisa tu conexión y tus permisos.');return;}
+  catch(e){reportarError('admin',e);toast(String(e.code||'').startsWith('api-')?e.message:'No se pudo completar. Revisa tu conexión y tus permisos.',7000);return;}
   if(aviso)avisarDecision(...aviso);
   await cargarAdmin().catch(()=>{});
 }
-// Aprobar un reclamo: el negocio queda con dueño (si era de muestra, se crea en la nube con el mismo id)
+// Aprobar un reclamo anterior (colección solicitudes, sin verificación): lo hace la API y lo registra en reclamos_comercio
 async function aprobarReclamo(s){
   if(!s)return;
   if(!await confirmar('Aprobar reclamo','«'+s.comercio_nombre+'» pasará a ser administrado por '+(s.usuario_nombre||'el solicitante')+'.'
     +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
-  adminAccion(async()=>{
-    const ref=db.collection('comercios').doc(s.comercio_id);const snap=await ref.get();
-    const bt=db.batch();
-    if(snap.exists)bt.update(ref,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',estado_publicacion:'aprobado',fecha_aprobacion:FV.serverTimestamp(),...premiumCampana(snap.data())});
-    else{
-      const b=COMERCIOS_BASE.find(c=>c.id===s.comercio_id);if(!b)throw new Error('sin-datos');
-      bt.set(ref,datosSemilla(b,{propietario_uid:s.uid,propietario:s.usuario_nombre||'',...premiumCampana(null)}));
-    }
-    bt.update(db.collection('solicitudes').doc(s.id),{estado:'aprobada',fecha_respuesta:FV.serverTimestamp()});
-    await bt.commit();
+  adminAccion(()=>{
+    toast('Guardando la decisión… la primera vez del día puede tardar un minuto.',8000);
+    return pedirAPI('/v1/reclamos/anteriores/'+encodeURIComponent(s.id)+'/aprobar',{token:true,cuerpo:{}});
   },'Reclamo aprobado: la persona ya ve el negocio en su perfil',['reclamo',s.id,'aprobado']);
+}
+/* ---------- Reclamos de comercios (Fase 5) en el panel ---------- */
+const MOTIVOS_RECLAMO=['No se pudo verificar que sea el dueño','La foto no se ve o no corresponde','No contestó al código','Otro'];
+function reclamoAdminHTML(r,D,todos){
+  const c=buscar(r.comercio_id)||D.comercios.find(x=>x.id===r.comercio_id)||{id:r.comercio_id,nombre:r.comercio_nombre,cat:'comercio'};
+  const otros=todos.filter(x=>x.comercio_id===r.comercio_id).length-1,propio=r.usuario_uid===estado.usuario.uid;
+  const datos='<p class="nota-c izq">'+icon('user',14)+' '+esc(r.nombre)+' ('+esc(r.cargo)+') · Tel. '+esc(numeroLegible(r.telefono))+(r.correo?' · '+esc(r.correo):'')+' · '+fechaCorta(r.fecha)+'</p>'
+    +'<p class="adm-desc">'+(r.metodo==='codigo'?'Verificación: código por WhatsApp o llamada al teléfono de la ficha ('+esc(numeroLegible(c.tel||''))+'). Envíalo a mano y confirma antes de aprobar.'
+      :'Verificación: foto del RUT, la Cámara de Comercio o en la fachada.')+'</p>'
+    +(otros>0?'<p class="aviso-suave">'+icon('users',18)+'<span>Hay '+(otros+1)+' solicitudes para este comercio.</span></p>':'')
+    +(c.propietario_uid?'<p class="aviso-suave">'+icon('circle-alert',18)+'<span>Este comercio ya tiene dueño.</span></p>':'');
+  const acciones='<div class="dc-actions">'+(r.metodo==='documento'?'<button class="btn btn-secundario btn-sm" data-verprueba="'+esc(r.id)+'">'+icon('image',16)+'Ver la prueba</button>':'')
+    +(propio?'<p class="nota-c izq">No puedes aprobar tu propio reclamo.</p>':'<button class="btn btn-primario btn-sm" data-okrc="'+esc(r.id)+'">'+icon('check',16)+'Aprobar</button>'
+      +'<button class="btn btn-secundario btn-sm" data-norc="'+esc(r.id)+'">Rechazar</button>')+'</div>';
+  return vistaPreviaAdminHTML(c,datos+acciones);
+}
+function reclamosAdminHTML(l,D){
+  return l.length?'<p class="dash-section">Reclamos de comercios ('+l.length+')</p>'+l.map(r=>reclamoAdminHTML(r,D,l)).join(''):'';
+}
+function enlazarReclamosAdmin(){
+  const rc=id=>(estado.adminPend.reclamos||[]).find(x=>x.id===id);
+  $$('[data-verprueba]').forEach(b=>(b.onclick=()=>verPruebaReclamo(b.dataset.verprueba)));
+  $$('[data-okrc]').forEach(b=>(b.onclick=()=>aprobarReclamoComercio(rc(b.dataset.okrc))));
+  $$('[data-norc]').forEach(b=>(b.onclick=()=>pedirMotivo('Rechazar el reclamo',m=>adminAccion(()=>decidirReclamoEnAPI(b.dataset.norc,'rechazado',m),
+    'Reclamo rechazado',['reclamo_comercio',b.dataset.norc,'rechazado']),MOTIVOS_RECLAMO)));
+}
+async function verPruebaReclamo(id){
+  try{
+    const f=await db.collection('reclamos_comercio').doc(id).collection('prueba').doc('foto').get();
+    if(!f.exists){toast('Esta solicitud no tiene foto');return;}
+    abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Prueba enviada</h2><img class="prueba-foto" src="'+esc(imgSegura(f.data().data))+'" alt="Foto que envió quien reclama el comercio"></div>');
+  }catch(e){toast('No se pudo abrir la foto');}
+}
+/* La decisión la toma la API en una transacción (api/app/reclamos.py): el reclamo, el dueño del comercio (si era del
+   directorio base se crea en la nube con el mismo id), el Premium de la campaña y el rol. Ningún navegador puede escribir
+   propietario_uid (firestore.rules). Render puede tardar hasta un minuto en despertar. */
+function decidirReclamoEnAPI(id,resultado,motivo=''){
+  toast('Guardando la decisión… la primera vez del día puede tardar un minuto.',8000);
+  return pedirAPI('/v1/reclamos/'+encodeURIComponent(id)+'/decision',{token:true,cuerpo:{resultado,motivo}});
+}
+async function aprobarReclamoComercio(r){
+  if(!r)return;
+  if(!await confirmar('Aprobar reclamo','«'+r.comercio_nombre+'» pasará a ser administrado por '+r.nombre+'.'
+    +(campanaVigente()?' Por la campaña de lanzamiento tendrá Premium gratis hasta el '+CAMPANA.premiumTxt+'.':''),'Aprobar','Cancelar','store'))return;
+  adminAccion(()=>decidirReclamoEnAPI(r.id,'aprobado'),'Reclamo aprobado: la persona ya puede editar el comercio',['reclamo_comercio',r.id,'aprobado']);
 }
 // Activar Premium desde una solicitud (sin fecha de fin por defecto durante la fase de pruebas)
 function activarPremiumAdmin(s){
@@ -6652,17 +7231,6 @@ function mostrarInstalar(){
   if(Date.now()-ls.get('fc_instalar_cerrado',0)<3*86400000)return false;
   return ls.get('fc_visitas',1)>=2||Date.now()-INICIO_SESION>=30000;
 }
-function tarjetaInstalarHTML(){
-  if(!mostrarInstalar())return '';
-  return '<div class="tarjeta-instalar" id="tarjetaInstalar"><img src="img/icons/icon-192.png" alt="" width="44" height="44"><div><b>'+(esIOS?'Agrégala a tu inicio':'Instala Fusa Conecta')+'</b><span>'+(esIOS?'Sin App Store: ícono propio y avisos':'Úsala como app, sin navegador y sin conexión')+'</span></div>'
-    +'<button class="btn btn-tonal btn-sm" id="tiSi">'+icon(esIOS?'square-plus':'download',18)+(esIOS?'Cómo':'Instalar')+'</button><button class="btn-redondo ti-no" id="tiNo" aria-label="Cerrar aviso de instalación">'+icon('x')+'</button></div>';
-}
-function enlazarInstalar(){
-  const si=$('#tiSi');if(!si)return;
-  si.onclick=instalarApp;
-  $('#tiNo').onclick=()=>{ls.set('fc_instalar_cerrado',Date.now());$('#tarjetaInstalar').remove();};
-}
-setTimeout(()=>{if(vistaActual().tipo==='lista'&&!$('#tarjetaInstalar')&&mostrarInstalar())render(true);},30500);
 
 /* ===== Estado abierto/cerrado: una sola función (estadoApertura), refrescada cada 60 s ===== */
 let diaVisto=new Date().toDateString();
@@ -6763,8 +7331,9 @@ function renderBottomNav(){
     const bn=b.dataset.bn;
     // Mis favoritos vive en Perfil: su lista marca la pestaña Perfil
     const activo=(bn==='inicio'&&v.tipo==='lista'&&v.cat!=='favoritos')||(bn==='agenda'&&v.tipo==='agenda')
-      ||(bn==='cupones'&&(v.tipo==='billetera'||v.tipo==='cupones'))||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))
-      ||(bn==='perfil'&&(['perfil','dashboard','admin','planes'].includes(v.tipo)||(v.tipo==='lista'&&v.cat==='favoritos')));
+      ||(bn==='comunidad'&&['comunidad','transporte','empleos','perdidos','cupones'].includes(v.tipo))
+      ||(bn==='mapa'&&['mapa','ruta','recorridos','recorrido','grabarRuta','proponerRuta'].includes(v.tipo))
+      ||(bn==='perfil'&&(['perfil','dashboard','admin','planes','billetera'].includes(v.tipo)||(v.tipo==='lista'&&v.cat==='favoritos')));
     b.classList.toggle('bn-active',activo);
     if(activo)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
   });
@@ -6774,7 +7343,7 @@ $$('.bn-btn').forEach(b=>{
     const bn=b.dataset.bn;
     if(bn==='inicio'){inicio();return;}
     if(bn==='agenda'){if(vistaActual().tipo!=='agenda')irAgenda();return;}
-    if(bn==='cupones'){const t=logueado()?'billetera':'cupones';if(vistaActual().tipo!==t)navegar({tipo:t});return;}
+    if(bn==='comunidad'){if(vistaActual().tipo!=='comunidad')navegar({tipo:'comunidad'});return;}
     if(bn==='mapa'){navegar({tipo:'mapa'});return;}
     if(bn==='perfil'){navegar({tipo:'perfil'});}
   };
@@ -6893,6 +7462,7 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 
 let _deb;
 $('#busqueda').addEventListener('input',e=>{
+  pintarBorrar();
   clearTimeout(_deb);
   _deb=setTimeout(()=>{
     renderSugerencias();
@@ -6903,6 +7473,7 @@ $('#busqueda').addEventListener('input',e=>{
   },300);
 });
 $('#busqueda').addEventListener('focus',renderSugerencias);
+$('#bBorrar').onclick=()=>{clearTimeout(_deb);limpiarBusqueda();if(vistaActual().tipo==='lista')render();$('#busqueda').focus();};
 $('#busqueda').addEventListener('blur',()=>setTimeout(()=>$('#sugerencias').classList.remove('ver'),150));
 $('#busqueda').addEventListener('keydown',e=>{if(e.key==='Enter'){$('#sugerencias').classList.remove('ver');e.target.blur();}});
 
