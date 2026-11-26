@@ -1026,7 +1026,10 @@ button:disabled{opacity:.6;pointer-events:none}
 .s-bienvenida .slide-sub,.s-cupones .slide-sub,.s-negocio .slide-sub,.s-opinion .slide-sub{opacity:1}
 .s-negocio .slide-sub,.s-opinion .slide-sub{color:var(--ink-2)}
 /* Indicadores: el activo se alarga en píldora violeta */
-.banner-puntos{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.banner-ctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px}
+.banner-puntos{display:flex;justify-content:center;gap:6px}
+.banner-pausa{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:var(--radius-full);color:var(--ink-2);font-size:var(--text-sm);font-weight:600}
+.banner-pausa:hover{background:var(--soft);color:var(--ink)}
 .banner-puntos span{width:6px;height:6px;border-radius:var(--radius-full);background:var(--line);transition:width var(--dur-base) var(--ease-out),background var(--dur-base) var(--ease-out)}
 .banner-puntos span.on{width:20px;background:var(--primary-500)}
 /* ---------- Secciones del inicio ---------- */

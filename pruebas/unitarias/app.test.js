@@ -1265,3 +1265,20 @@ describe('Pregúntale a Fusa: tarjetas del directorio y salida a SOS (E3)', () =
     expect(a.busquedaDeAsis('¿Dónde venden xilófonos cerca?')).toBe('xilófonos');
   });
 });
+
+describe('fechaEvento larga para el detalle (Fase 3)', () => {
+  const { fechaEvento } = cargar(['horaTexto', 'horaEv', 'enCurso', 'MESES_LARGO', 'fechaEvento'], {
+    DIAS_EV: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+    DIAS_LARGO: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+    MESES3: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  });
+  it('escribe el día y el mes completos', () => {
+    vi.useFakeTimers();
+    enColombia('2026-11-20T10:00');
+    const e = {
+      ini: new Date('2026-11-24T14:00:00-05:00').getTime(),
+      fin: new Date('2026-11-28T18:00:00-05:00').getTime(),
+    };
+    expect(fechaEvento(e, true)).toBe('martes 24 de noviembre · 2:00 p. m. al sábado 28 de noviembre');
+  });
+});

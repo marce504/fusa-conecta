@@ -106,10 +106,30 @@ function toast(msg,ms=5000,accion=null){
   t.classList.add('ver');if(t._t)clearTimeout(t._t);
   t._t=setTimeout(()=>t.classList.remove('ver'),Math.max(ms,accion?8000:5000));
 }
-function abrir(id){$('#'+id).classList.add('abierto');}
+/* Fase 3: mientras una hoja está abierta, Tab no sale de ella; al cerrarla el foco vuelve a donde estaba */
+const focoAntes={};
+const enfocables=c=>[...c.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+  .filter(e=>e.offsetParent!==null);
+function abrir(id){
+  const o=$('#'+id);
+  if(!o.classList.contains('abierto'))focoAntes[id]=document.activeElement;
+  o.classList.add('abierto');
+  setTimeout(()=>{if(o.classList.contains('abierto')&&!o.contains(document.activeElement)){const f=enfocables(o)[0];if(f)f.focus({preventScroll:true});}},80);
+}
+function devolverFoco(id){
+  const f=focoAntes[id];focoAntes[id]=null;
+  if(f&&f.isConnected&&f.focus&&!$('.overlay.abierto'))f.focus({preventScroll:true});
+}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;
+  const o=[...$$('.overlay.abierto')].pop(),l=o?enfocables(o):[];if(!l.length)return;
+  const primero=l[0],ultimo=l[l.length-1],dentro=o.contains(document.activeElement);
+  if(e.shiftKey&&(!dentro||document.activeElement===primero)){e.preventDefault();ultimo.focus();}
+  else if(!e.shiftKey&&(!dentro||document.activeElement===ultimo)){e.preventDefault();primero.focus();}
+});
 // Acciones al cerrar una capa (apagar la cámara, liberar el bloqueo de pantalla)
 const alCerrar={};
-function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');cerrarExplicacion();if(alCerrar[id])alCerrar[id]();}
+function cerrar(id){const o=$('#'+id);if(!o||!o.classList.contains('abierto'))return;o.classList.remove('abierto');cerrarExplicacion();if(alCerrar[id])alCerrar[id]();devolverFoco(id);}
 /* ===== EXPLICACIONES CORTAS (Fase 3) =====
    Un toque en «Destacado», el punto verde de «Abierto» o «Fuente oficial» abre una frase que lo explica; la primera
    vez que aparecen se abre sola. La campana explica los avisos la primera vez. */
@@ -382,9 +402,11 @@ function eventosEn(rango,cat){
 function horaEv(ms){const d=new Date(ms);return horaTexto(d.getHours()*60+d.getMinutes());}
 // E8: ya empezó y no ha terminado
 const enCurso=(e,ahora=Date.now())=>e.ini<=ahora&&e.fin>=ahora;
-function fechaEvento(e){
+// Fase 3: con «largo» la fecha va completa («martes 24 de noviembre»), para el detalle donde hay espacio
+const MESES_LARGO=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function fechaEvento(e,largo=false){
   const a=new Date(e.ini),b=new Date(e.fin),mismoDia=a.toDateString()===b.toDateString();
-  const dia=d=>DIAS_EV[d.getDay()]+' '+d.getDate()+' de '+MESES3[d.getMonth()];
+  const dia=d=>(largo?DIAS_LARGO:DIAS_EV)[d.getDay()]+' '+d.getDate()+' de '+(largo?MESES_LARGO:MESES3)[d.getMonth()];
   if(enCurso(e))return 'En curso · hasta '+(mismoDia?'las '+horaEv(e.fin):'el '+dia(b));
   // v1.4.2: la fuente no dijo a qué hora termina (la agenda lo deja vigente todo el día)
   if(e.sin_hora_fin&&mismoDia)return dia(a)+' · desde las '+horaEv(e.ini);
@@ -522,7 +544,7 @@ function abrirEvento(id){
   abrirHoja('<div class="ev-hero">'+(e.imagen?'<img src="'+esc(e.imagen)+'" alt="">':iluEvento(e,44,'hero-ilu'))+calBloque(e)+'</div>'
     +'<div class="hoja-pad">'+(e.demo?'<span class="ev-chip ev-chip-demo">Ejemplo</span> ':'')+(esAviso(e)?'<span class="ev-chip ev-chip-aviso">'+icon('megaphone',12)+'Aviso del municipio</span> ':'')+'<span class="ev-chip">'+icon(c[2],12)+c[1]+'</span>'
     +(e.fuente_oficial?' <button type="button" class="ev-chip ev-chip-oficial" data-explica="oficial">'+icon('badge-check',12)+'Fuente oficial</button>':'')+'<h2 class="ev-titulo">'+esc(e.titulo)+'</h2>'
-    +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e)))
+    +'<div class="datos">'+filaDato('clock','Fecha y hora',esc(fechaEvento(e,true)))
     +filaDato('map-pin','Lugar',esc(e.lugar_nombre)+' · '+esc(e.municipio||'Fusagasugá')+'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destino)+'" target="_blank" rel="noopener">Cómo llegar</a>')
     +(e.organizador?filaDato('users','Organiza',esc(e.organizador)):'')
     +filaDato('ticket','Entrada',esc(precioEv(e)))
@@ -2779,7 +2801,9 @@ function renderLista(v){
       +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div>'
       +(estado.q?'<button class="btn btn-secundario mt-16" id="asisDesdeBusqueda">'+icon('sparkles',18)+'Pregúntale a Fusa</button>':'')+'</div>';
   }
-  $('#cuerpo').innerHTML='<div class="vista">'+html+'</div>'+footerHTML();
+  // Fase 3: cada listado tiene su h1 (oculto a la vista: el saludo y el buscador ya dicen dónde se está)
+  const h1='<h1 class="sr-only">'+(enInicio?'Inicio de Fusa Conecta':esc(titulo))+'</h1>';
+  $('#cuerpo').innerHTML='<div class="vista">'+h1+html+'</div>'+footerHTML();
   $$('[data-sugcat]').forEach(b=>(b.onclick=()=>{
     estado.q='';estado.filtros={abierto:false,noche:false,domicilio:false,cupon:false,municipio:municipioElegido(),orden:'recomendados'};$('#busqueda').value='';
     navegar({tipo:'lista',cat:b.dataset.sugcat});
@@ -2858,9 +2882,20 @@ function slideHTML(s,i,n){
 }
 function bannerHTML(sl){
   return '<div class="banner-pista" id="bannerPista">'+sl.map((s,i)=>slideHTML(s,i,sl.length)).join('')+'</div>'
-    +'<div class="banner-puntos" aria-hidden="true">'+sl.map((s,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>';
+    +'<div class="banner-ctrl"><div class="banner-puntos" aria-hidden="true">'+sl.map((s,i)=>'<span class="'+(i?'':'on')+'"></span>').join('')+'</div>'
+    +(sinMovimiento()?'':botonPausaBannerHTML())+'</div>';
 }
-const banner={actual:0,n:0,timer:null,pausaHasta:0,firma:'',arr:null,ventana:false};
+// WCAG 2.2.2: el carrusel que avanza solo se puede detener; tocarlo también lo detiene
+function botonPausaBannerHTML(){
+  const d=banner.detenido;
+  return '<button type="button" class="banner-pausa" id="bannerPausa" aria-pressed="'+d+'">'+icon(d?'play':'pause',16)+(d?'Reanudar':'Pausar')+'</button>';
+}
+function detenerBanner(detener=true){
+  banner.detenido=detener;
+  const b=$('#bannerPausa');if(!b)return;
+  b.setAttribute('aria-pressed',detener);b.innerHTML=icon(detener?'play':'pause',16)+(detener?'Reanudar':'Pausar');
+}
+const banner={actual:0,n:0,timer:null,pausaHasta:0,firma:'',arr:null,ventana:false,detenido:false};
 const pasoBanner=p=>p.firstElementChild.offsetWidth+8;
 function montarBanner(){
   const caja=$('#banner'),sl=slidesBanner();
@@ -2870,8 +2905,9 @@ function montarBanner(){
     banner.firma=firma;banner.n=sl.length;banner.actual=0;
     caja.innerHTML=bannerHTML(sl);
     const pista=$('#bannerPista');
-    const pausar=()=>{banner.pausaHasta=Date.now()+8000;};
+    const pausar=()=>detenerBanner(true);
     ['pointerdown','touchstart','wheel','focusin'].forEach(ev=>pista.addEventListener(ev,pausar,{passive:true}));
+    const bp=$('#bannerPausa');if(bp)bp.onclick=()=>detenerBanner(!banner.detenido);
     pista.addEventListener('scroll',()=>{
       const i=Math.round(pista.scrollLeft/pasoBanner(pista));
       if(i!==banner.actual){banner.actual=i;$$('.banner-puntos span').forEach((p,k)=>p.classList.toggle('on',k===i));}
@@ -2903,7 +2939,7 @@ function irASlide(i){
 function avanzarBanner(){
   const caja=$('#banner');
   // Solo avanza si se ve: en el inicio, sin la cabecera plegada y con la app en primer plano
-  if(Date.now()<banner.pausaHasta||document.hidden||!caja.offsetParent||$('#topbar').classList.contains('arriba')||$('.overlay.abierto'))return;
+  if(banner.detenido||Date.now()<banner.pausaHasta||document.hidden||!caja.offsetParent||$('#topbar').classList.contains('arriba')||$('.overlay.abierto'))return;
   irASlide(banner.actual+1);
 }
 function accionSlide(k){
