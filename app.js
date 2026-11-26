@@ -3167,15 +3167,17 @@ function abrirDetalle(id){
     ?'<div class="mapa-wrap"><iframe src="'+embed+'" allowfullscreen loading="lazy" title="Mapa de '+esc(d.nombre)+'"></iframe></div>'
     :'<div class="mapa-off">'+icon('wifi-off',24)+'El mapa no está disponible sin conexión. La dirección sigue disponible arriba.</div>';
 
+  // E5: Compartir, Guardar y Cerrar van en una barra fija arriba (no se van con la foto al bajar)
   const html='<div class="grab"></div>'
-    +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
-    +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
-    +badgeDestacado(d)
     +'<div class="det-top-acc">'
     +'<button class="btn-redondo" id="detShare" aria-label="Compartir '+esc(d.nombre)+'">'+icon('share-2')+'</button>'
     +'<button class="btn-redondo'+(esFav?' on':'')+'" id="detFav" aria-pressed="'+esFav+'" aria-label="'+(esFav?'Quitar de favoritos':'Guardar en favoritos')+'">'+icon('heart')+'</button>'
     +'<button class="btn-redondo" id="cerrarDet" aria-label="Cerrar ficha">'+icon('x')+'</button>'
-    +'</div></div>'
+    +'</div>'
+    +fotoHTML(d,'det-hero')+galeriaFichaHTML(d)
+    +'<span class="pill-cat">'+icon(iconoDe(d),14)+esc(etiquetaDe(d))+'</span>'
+    +badgeDestacado(d)
+    +'</div>'
     +'<div class="det-body">'
     +'<h2>'+esc(d.nombre)+'</h2>'
     +'<div class="meta">'+[califHTML(cal),estadoHTML(ap,d.id)].filter(Boolean).join(PTO)+'</div>'
