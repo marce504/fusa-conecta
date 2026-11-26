@@ -112,10 +112,28 @@ describe('formatearHora y horaTexto', () => {
 });
 
 // ---------------------------------------------------------------- búsqueda sin tildes ni plurales
-const busqueda = cargar(['norm', 'raiz', 'tokens', 'GRUPOS_SUB', 'subDe', 'nombreSub', 'coincide'], {}, [
-  'CAT',
-  'SUBCATS',
-]);
+const busqueda = cargar(
+  [
+    'norm',
+    'raiz',
+    'tokens',
+    'NIVEL',
+    'toleranciaDe',
+    'distanciaEdicion',
+    'gruposSinonimos',
+    'sinonimosDe',
+    'GRUPOS_SUB',
+    'subDe',
+    'nombreSub',
+    'camposBusqueda',
+    'camposDe',
+    'nivelPalabra',
+    'nivelCoincidencia',
+    'coincide',
+  ],
+  {},
+  ['CAT', 'SUBCATS', 'SINONIMOS'],
+);
 const panaderia = {
   nombre: 'Panadería La Espiga',
   desc: 'Pan de yuca y almojábanas',
@@ -1063,7 +1081,11 @@ describe('Rutas turísticas, pico y placa, cajeros y parqueaderos', () => {
 describe('Agenda: cada evento una sola vez (E1)', () => {
   const { sinRepetidos } = cargar(['norm', 'claveEvento', 'sinRepetidos']);
   const ini = new Date('2026-11-24T14:00:00-05:00').getTime();
-  const expo = { titulo: 'Exposiciones de la Escuela de Artes Visuales EFAC', ini, lugar_nombre: 'Casona Quinta Balmoral' };
+  const expo = {
+    titulo: 'Exposiciones de la Escuela de Artes Visuales EFAC',
+    ini,
+    lugar_nombre: 'Casona Quinta Balmoral',
+  };
   it('quita las copias guardadas varias veces y deja los eventos distintos', () => {
     const l = [
       { id: 'a', ...expo },
@@ -1103,5 +1125,86 @@ describe('fechaEvento: eventos en curso (E8)', () => {
       fin: new Date('2026-11-26T17:00:00-05:00').getTime(),
     };
     expect(fechaEvento(taller)).toBe('En curso · hasta las 5:00 p. m.');
+  });
+});
+
+describe('Buscador tolerante: sinónimos, errores de escritura y orden (E2)', () => {
+  // El directorio base real (datos.js); el orden secundario no importa aquí
+  const { COMERCIOS_BASE } = cargar([], {}, ['COMERCIOS_BASE']);
+  const b = cargar(
+    [
+      'norm',
+      'raiz',
+      'tokens',
+      'NIVEL',
+      'toleranciaDe',
+      'distanciaEdicion',
+      'gruposSinonimos',
+      'sinonimosDe',
+      'GRUPOS_SUB',
+      'subDe',
+      'nombreSub',
+      'camposBusqueda',
+      'camposDe',
+      'nivelPalabra',
+      'nivelCoincidencia',
+      'coincide',
+      'filtrarYOrdenar',
+      'vocabularioBusqueda',
+      'vocabulario',
+      'quisisteDecir',
+    ],
+    { database: COMERCIOS_BASE, ordenar: l => l },
+    ['CAT', 'SUBCATS', 'SINONIMOS'],
+  );
+  const buscar = q => b.filtrarYOrdenar([...COMERCIOS_BASE], q, 'recomendados');
+  const esDrogueria = d => d.sub === 'salud' && /drog|farma|rebaja/i.test(d.nombre);
+
+  it.each(['drogeria', 'farmacia', 'drogueria', 'Droguerías', 'farmasia'])('«%s» encuentra las droguerías', q => {
+    const r = buscar(q);
+    expect(r.filter(esDrogueria).length).toBeGreaterThanOrEqual(6);
+    expect(r.map(d => d.nombre)).toContain('Farmacenter');
+    expect(esDrogueria(r[0])).toBe(true);
+  });
+  it('«doctor» encuentra lugares de salud', () => {
+    expect(buscar('doctor').filter(d => d.sub === 'salud').length).toBeGreaterThan(3);
+  });
+  it('«almuerzo» encuentra restaurantes y comidas', () => {
+    expect(buscar('almuerzo').filter(d => d.sub === 'comidas').length).toBeGreaterThan(5);
+  });
+  it('«hotel» encuentra hospedaje', () => {
+    expect(buscar('hotel').filter(d => d.cat === 'hospedaje').length).toBeGreaterThan(3);
+  });
+  it('«alcaldia» pone primero las alcaldías', () => {
+    const r = buscar('alcaldia');
+    expect(r[0].nombre).toMatch(/^Alcaldía/);
+    expect(r.some(d => /Notaría/.test(d.nombre))).toBe(true);
+  });
+  it('ordena exactas, después parciales y al final aproximadas', () => {
+    const lugares = [
+      { id: 'aprox', nombre: 'Drogeria Mal Escrita', desc: '', cat: 'servicios', sub: 'salud' },
+      { id: 'parcial', nombre: 'Superdroguerías', desc: '', cat: 'servicios', sub: 'salud' },
+      { id: 'exacta', nombre: 'Droguería Central', desc: '', cat: 'servicios', sub: 'salud' },
+    ];
+    expect(b.filtrarYOrdenar(lugares, 'drogueria', 'recomendados').map(d => d.id)).toEqual([
+      'exacta',
+      'parcial',
+      'aprox',
+    ]);
+  });
+  it('tolerancia: nada en palabras cortas, 1 letra de 4 a 7 y 2 en las largas', () => {
+    expect([
+      b.toleranciaDe('pan'),
+      b.toleranciaDe('cafe'),
+      b.toleranciaDe('hospital'),
+      b.toleranciaDe('drogueria'),
+    ]).toEqual([0, 1, 2, 2]);
+    expect(b.distanciaEdicion('drogeria', 'drogueria', 2)).toBe(1);
+    expect(b.distanciaEdicion('pizza', 'plaza', 1)).toBe(2);
+    expect(b.coincide({ nombre: 'Pan del día', desc: '', cat: 'comercio' }, 'par')).toBe(false);
+  });
+  it('«¿Quisiste decir…?» propone la palabra más parecida del directorio', () => {
+    expect(b.quisisteDecir('restaurnte')).toBe('restaurante');
+    expect(b.quisisteDecir('xyzqw')).toBe('');
   });
 });

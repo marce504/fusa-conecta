@@ -4,7 +4,7 @@
  * Firestore es la fuente de verdad y agrega los comercios registrados por productores.
  */
 // Variables globales que usa app.js (la PWA carga datos.js, icons.js y app.js en ese orden)
-/* exported CAT, SUBCATS, PLAZA_FUSA, COMERCIOS_BASE, RUTAS, EMERGENCIAS */
+/* exported CAT, SUBCATS, SINONIMOS, PLAZA_FUSA, COMERCIOS_BASE, RUTAS, EMERGENCIAS */
 const CAT={
   campo:    {label:'Vitrina del Campo',    bg:'#DAB23F',fg:'#3a3110',hero:'linear-gradient(135deg,#e8cc78,#DAB23F)',emoji:'🌿'},
   comercio: {label:'Comida y tiendas',    bg:'#EA8143',fg:'#fff',   hero:'linear-gradient(135deg,#F4A079,#EA8143)',emoji:'🏪'},
@@ -22,6 +22,20 @@ const SUBCATS={
     {k:'transporte',t:'Transporte'},{k:'profesionales',t:'Profesionales'},{k:'salud',t:'Salud y bienestar'},{k:'mascotas',t:'Mascotas'},{k:'educacion',t:'Educación'}],
   turismo:[{k:'sendero',t:'🥾 Senderos'},{k:'mirador',t:'🌄 Miradores'},{k:'cascada',t:'Cascadas'},{k:'cultural',t:'⛪ Cultura'},{k:'finca',t:'☕ Fincas y haciendas'}]
 };
+
+// Sinónimos del buscador (E2): cada grupo reúne palabras que la gente usa para lo mismo. Buscar una encuentra las demás.
+// Para ampliarlo, agrega una palabra a un grupo o un grupo nuevo (sin importar tildes, mayúsculas ni plurales).
+const SINONIMOS=[
+  ['farmacia','droguería','drogas','medicamentos','remedios'],
+  ['médico','doctor','clínica','consultorio','hospital','salud'],
+  ['banco','cajero','plata'],
+  ['restaurante','almuerzo','comidas','corrientazo','comer'],
+  ['hotel','hospedaje','dormir','finca','hostal'],
+  ['taxi','transporte','bus','buses'],
+  ['veterinaria','veterinario','mascotas'],
+  ['ferretería','herramientas'],
+  ['alcaldía','trámites','notaría']
+];
 
 // Plaza principal de Fusagasugá: centro del mapa cuando no hay GPS (RF-10)
 const PLAZA_FUSA=[4.3443,-74.3619];

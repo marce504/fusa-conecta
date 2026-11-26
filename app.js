@@ -2310,14 +2310,104 @@ function subDe(d){return d.cat==='turismo'?(d.tipo||''):(d.sub||'');}
 function nombreSub(cat,k){if(GRUPOS_SUB[k])return GRUPOS_SUB[k].t;const s=(SUBCATS[cat]||[]).find(x=>x.k===k);return s?s.t.replace(/^[^\p{L}]+/u,'').trim():'';}
 function irABares(){if(estado.mayorEdad){navegar({tipo:'lista',cat:'bares'});return;}abrir('ovEdad');}
 
-/* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19) ===== */
-// Ignora tildes, mayúsculas y plurales: "droguerias" encuentra "Droguería"
+/* ===== BÚSQUEDA Y ORDEN (RF-05, RF-19, E2) =====
+   Ignora tildes, mayúsculas, espacios dobles y plurales («droguerias» encuentra «Droguería»), entiende sinónimos
+   (SINONIMOS en datos.js: «farmacia» encuentra droguerías) y errores de escritura: una letra de diferencia en
+   palabras de 4 a 7 letras y dos en las más largas («drogeria»). Primero van las coincidencias exactas, después
+   las parciales y al final las aproximadas. */
 function raiz(w){if(w.length>4&&w.endsWith('es'))return w.slice(0,-2);if(w.length>3&&w.endsWith('s'))return w.slice(0,-1);return w;}
 function tokens(s){return norm(s).split(/[^a-z0-9]+/).filter(Boolean).map(raiz);}
-function coincide(d,q){
-  if(!q)return true;
-  const txt=tokens(d.nombre+' '+d.desc+' '+d.direccion+' '+(CAT[d.cat]?CAT[d.cat].label:'')+' '+(d.tipo||'')+' '+nombreSub(d.cat,subDe(d))).join(' ');
-  return tokens(q).every(t=>txt.includes(t));
+const NIVEL={exacta:3,parcial:2,aproximada:1,ninguna:0};
+function toleranciaDe(w){return w.length>=8?2:w.length>=4?1:0;}
+// Distancia de edición (Levenshtein) con tope: apenas pasa de «max» devuelve max+1
+function distanciaEdicion(a,b,max){
+  if(Math.abs(a.length-b.length)>max)return max+1;
+  let previa=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){
+    const fila=[i];
+    for(let j=1;j<=b.length;j++)fila.push(Math.min(previa[j]+1,fila[j-1]+1,previa[j-1]+(a[i-1]===b[j-1]?0:1)));
+    if(Math.min(...fila)>max)return max+1;
+    previa=fila;
+  }
+  return previa[b.length];
+}
+// Grupos de sinónimos ya normalizados (se arman la primera vez)
+let gruposSinonimos=null;
+function sinonimosDe(t,tol=0){
+  if(!gruposSinonimos)gruposSinonimos=SINONIMOS.map(g=>g.map(w=>tokens(w)[0]));
+  const grupos=gruposSinonimos.filter(g=>g.some(w=>(tol?distanciaEdicion(t,w,tol)<=tol:w===t)));
+  return [...new Set(grupos.flat())].filter(w=>w!==t);
+}
+// Palabras donde se busca: nombre, descripción, subcategoría, tipo y etiquetas; aparte la dirección y la categoría
+const camposBusqueda=new WeakMap();
+function camposDe(d){
+  const principal=[d.nombre,d.desc,d.tipo,nombreSub(d.cat,subDe(d)),...(Array.isArray(d.etiquetas)?d.etiquetas:[])].join(' ');
+  const extra=(d.direccion||'')+' '+(CAT[d.cat]?CAT[d.cat].label:'');
+  const fuente=principal+'|'+extra,guardado=camposBusqueda.get(d);
+  if(guardado&&guardado.fuente===fuente)return guardado;
+  const p=tokens(principal),todo=p.concat(tokens(extra));
+  const c={fuente,principal:p,todo,unido:' '+todo.join(' ')+' '};
+  camposBusqueda.set(d,c);
+  return c;
+}
+// Qué tan bien coincide una palabra buscada con un lugar
+function nivelPalabra(c,t){
+  if(c.todo.includes(t))return NIVEL.exacta;
+  if(c.unido.includes(t))return NIVEL.parcial;   // parte de una palabra: «drog» → droguería
+  if(sinonimosDe(t).some(s=>c.principal.includes(s)))return NIVEL.parcial;
+  const tol=toleranciaDe(t);
+  if(!tol)return NIVEL.ninguna;
+  if(c.todo.some(w=>distanciaEdicion(t,w,tol)<=tol))return NIVEL.aproximada;
+  return sinonimosDe(t,tol).some(s=>c.principal.includes(s))?NIVEL.aproximada:NIVEL.ninguna;
+}
+// El lugar coincide si coinciden todas las palabras; su nivel es el de la peor
+function nivelCoincidencia(d,q){
+  const ts=tokens(q);if(!ts.length)return NIVEL.exacta;
+  const c=camposDe(d);let nivel=NIVEL.exacta;
+  for(const t of ts){nivel=Math.min(nivel,nivelPalabra(c,t));if(!nivel)break;}
+  return nivel;
+}
+function coincide(d,q){return !q||nivelCoincidencia(d,q)>NIVEL.ninguna;}
+// Filtra por la búsqueda y ordena: exactas, parciales y aproximadas (dentro de cada grupo, el orden elegido)
+function filtrarYOrdenar(items,q,orden){
+  if(!tokens(q).length)return ordenar(items,orden);
+  const nivel=new Map();
+  items.forEach(d=>{const n=nivelCoincidencia(d,q);if(n)nivel.set(d,n);});
+  return ordenar([...nivel.keys()],orden).sort((a,b)=>nivel.get(b)-nivel.get(a));
+}
+// «¿Quisiste decir…?»: la palabra del directorio más parecida a cada palabra buscada (una letra más de lo que tolera la búsqueda)
+let vocabularioBusqueda=null;
+function vocabulario(){
+  if(vocabularioBusqueda&&vocabularioBusqueda.n===database.length)return vocabularioBusqueda.mapa;
+  const mapa=new Map(),agregar=txt=>String(txt||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).forEach(w=>{
+    const k=tokens(w)[0];if(k&&k.length>=4&&!mapa.has(k))mapa.set(k,w);});
+  database.forEach(d=>{agregar(d.nombre);agregar(nombreSub(d.cat,subDe(d)));});
+  Object.values(CAT).forEach(c=>agregar(c.label));SINONIMOS.flat().forEach(agregar);
+  vocabularioBusqueda={n:database.length,mapa};
+  return mapa;
+}
+function quisisteDecirHTML(q){
+  const p=q?quisisteDecir(q):'';
+  return p?'<p class="quisiste">¿Quisiste decir <button type="button" class="enlace" data-quisiste="'+esc(p)+'">'+esc(p)+'</button>?</p>':'';
+}
+function buscarTexto(q){
+  $('#busqueda').value=q;estado.q=q;$('#sugerencias').classList.remove('ver');
+  if(vistaActual().tipo==='lista')render();else navegar({tipo:'lista',cat:'todas'});
+}
+function enlazarQuisisteDecir(caja=document){
+  $$('[data-quisiste]',caja).forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>buscarTexto(b.dataset.quisiste);});
+}
+function quisisteDecir(q){
+  const mapa=vocabulario();let cambio=false;
+  const palabras=norm(q).split(/\s+/).filter(Boolean).map(w=>{
+    const t=raiz(w);if(t.length<4||mapa.has(t))return w;
+    let mejor=null,dist=toleranciaDe(t)+2;
+    mapa.forEach((original,k)=>{const x=distanciaEdicion(t,k,dist-1);if(x<dist){dist=x;mejor=original;}});
+    if(mejor){cambio=true;return mejor;}
+    return w;
+  });
+  const propuesta=palabras.join(' ');
+  return cambio&&database.some(d=>coincide(d,propuesta))?propuesta:'';
 }
 function prioridad(d){
   // Premium primero cuando está dentro del radio de cercanía (2 km) o si no hay GPS
@@ -2347,7 +2437,7 @@ function itemsVisibles(cat,sub,conFiltros=true,f=estado.filtros){
     if(f.domicilio)items=items.filter(aDomicilio);
     if(f.cupon)items=items.filter(d=>cuponesDe(d).length>0);
   }
-  return ordenar(items.filter(d=>coincide(d,estado.q)),conFiltros?f.orden:'recomendados');
+  return filtrarYOrdenar(items,estado.q,conFiltros?f.orden:'recomendados');
 }
 function renderSugerencias(){
   const box=$('#sugerencias');const q=$('#busqueda').value.trim();
@@ -2355,8 +2445,9 @@ function renderSugerencias(){
   estado.q=q;
   const res=itemsVisibles('todas','',false).slice(0,6);estado.q='';
   box.innerHTML=res.length?res.map(d=>'<button data-sug="'+esc(d.id)+'"><span class="sg-ic c-'+esc(d.cat)+'">'+icon(iconoDe(d),16)+'</span><span class="sg-tx"><b>'+esc(d.nombre)+'</b><small>'+esc(etiquetaDe(d))+(premiumVigente(d)?' · Destacado':'')+'</small></span></button>').join('')
-    :'<p class="sg-vacio">Sin coincidencias para «'+esc(q)+'»</p>';
+    :'<p class="sg-vacio">Sin coincidencias para «'+esc(q)+'»</p>'+quisisteDecirHTML(q);
   box.classList.add('ver');
+  enlazarQuisisteDecir(box);
   $$('#sugerencias [data-sug]').forEach(b=>(b.onmousedown=e=>{e.preventDefault();box.classList.remove('ver');abrirDetalle(b.dataset.sug);}));
 }
 
@@ -2525,7 +2616,7 @@ function renderLista(v){
       :estado.filtros.municipio==='Pasca'?'Aún no hay lugares registrados en Pasca con estos filtros'
       :'No hay lugares que cumplan estos filtros';
     const sug=[['comercio','Comida y tiendas'],['servicios','Servicios'],['turismo','Turismo'],['hospedaje','Hospedaje'],['campo','Campo']];
-    html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b><p>Prueba con otra palabra o explora una categoría:</p>'
+    html='<div class="vacio">'+icon('search-x',48)+'<b>'+motivo+'</b>'+quisisteDecirHTML(estado.q)+'<p>Prueba con otra palabra o explora una categoría:</p>'
       +'<div class="sug-cats">'+sug.map(([k,t])=>'<button class="chip-filtro" data-sugcat="'+k+'">'+icon(ICONO_CAT[k],16)+t+'</button>').join('')+'</div>'
       +(estado.q?'<button class="btn btn-secundario mt-16" id="asisDesdeBusqueda">'+icon('sparkles',18)+'Pregúntale a Fusa</button>':'')+'</div>';
   }
@@ -2539,6 +2630,7 @@ function renderLista(v){
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
+  enlazarQuisisteDecir();
   if(enInicio){enlazarTiles();const vt=$('#verTodo');if(vt)vt.onclick=()=>navegar({tipo:'lista',cat:'todas',todo:true});}
   else if(items.length)enlazarListado(items);
 }

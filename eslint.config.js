@@ -18,6 +18,7 @@ const globalesPWA = {
   jsQR: 'readonly',
   CAT: 'readonly',
   SUBCATS: 'readonly',
+  SINONIMOS: 'readonly',
   PLAZA_FUSA: 'readonly',
   COMERCIOS_BASE: 'readonly',
   RUTAS: 'readonly',
