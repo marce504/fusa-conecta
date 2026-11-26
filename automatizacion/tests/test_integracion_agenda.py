@@ -95,7 +95,7 @@ def test_guardar_reparar_y_borrar_ejemplos():
         ahora,
     )
     r = agenda.guardar(db, None, unicos, ahora)
-    assert r == {"publicados": 1, "pendientes": 2, "duplicados": 1, "reparados": 1, "unidos": 0}
+    assert r == {"publicados": 1, "pendientes": 2, "duplicados": 1, "reparados": 1, "unidos": 0, "fotos_movidas": 0}
     eventos = {d.to_dict()["titulo"]: d.to_dict() for d in db.collection("eventos").stream()}
     assert (
         eventos["Concierto de prueba"]["estado"] == "publicado"
@@ -219,3 +219,59 @@ def test_evento_de_varios_dias_ya_empezado_no_se_repite():
     assert r["duplicados"] == 1 and r["publicados"] == 0 and r["pendientes"] == 0
     assert r["unidos"] == 1
     assert len(list(db.collection("eventos").stream())) == 1
+
+
+def test_la_foto_del_evento_va_aparte():
+    """La foto va en eventos/{id}/fotos/0, no dentro del evento (la app bajaba 1,7 MB al abrir): la de un evento
+    anterior se pasa sola, y al unir duplicados la foto del que se borra pasa al que queda."""
+    db, ahora = firestore_cliente(), ahora_ms()
+    for d in db.collection("eventos").stream():
+        agenda.ref_foto(d.reference).delete()
+        d.reference.delete()
+    dia = datetime.fromtimestamp(ahora / 1000, timezone.utc).astimezone(timezone(timedelta(hours=-5))) + timedelta(
+        days=2
+    )
+    a_las = lambda h: dia.replace(hour=h, minute=0, second=0, microsecond=0)  # noqa: E731
+    comun = {"origen": "automatico", "estado": "publicado", "categoria": "cultura", "tipo": "plan", "imagen": ""}
+    foto = "data:image/webp;base64,QUFBQQ=="
+    db.collection("eventos").document("anterior").set(
+        {
+            **comun,
+            "titulo": "Concierto de la banda sinfónica",
+            "lugar_nombre": "Parque principal",
+            "fecha_inicio": a_las(18),
+            "fecha_fin": a_las(20),
+            "imagen": foto,
+        }
+    )
+    # Dos copias del Día Dulce: queda «Día Dulce» (sin foto) y la foto de la otra no se pierde
+    db.collection("eventos").document("tarde").set(
+        {
+            **comun,
+            "titulo": "Día Dulce",
+            "lugar_nombre": "Estadio municipal Fernando Mazuera",
+            "fecha_inicio": a_las(14),
+            "fecha_fin": a_las(16),
+        }
+    )
+    sale = db.collection("eventos").document("manana")
+    agenda.ref_foto(sale).set(agenda.foto_doc(foto))
+    sale.set(
+        {
+            **comun,
+            "titulo": "Celebración del Día Dulce",
+            "lugar_nombre": "Estadio Fernando Mazuera",
+            "fecha_inicio": a_las(9),
+            "fecha_fin": a_las(11),
+            "con_foto": True,
+        }
+    )
+    r = agenda.guardar(db, None, [], ahora)
+    assert r["unidos"] == 1 and r["fotos_movidas"] == 1
+    for id_ in ("anterior", "tarde"):
+        x = db.collection("eventos").document(id_).get().to_dict()
+        assert x["imagen"] == "" and x["con_foto"] is True
+        assert agenda.leer_foto(db.collection("eventos").document(id_)) == foto
+    assert not sale.get().exists and not agenda.ref_foto(sale).get().exists
+    # La siguiente corrida ya no tiene nada que mover
+    assert agenda.mover_fotos(db) == 0

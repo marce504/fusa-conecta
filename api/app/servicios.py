@@ -219,7 +219,7 @@ def evento_publico(e: dict) -> dict:
         "organizador": e.get("organizador") or "",
         "fuente_oficial": bool(e.get("fuente_oficial")),
         "enlace_fuente": e.get("enlace_fuente") or None,
-        "tiene_imagen": bool(e.get("imagen")),
+        "tiene_imagen": bool(e.get("imagen") or e.get("con_foto")),  # la foto va en eventos/{id}/fotos/0
         "url": f"{SITIO}/#/evento/{e['id']}",
     }
 

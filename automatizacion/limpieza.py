@@ -127,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     for ref, _ in vencidos:
         lote.update(ref, {"estado": "finalizado", "finalizado_por": "limpieza", "fecha_finalizado": servidor()})
     for ref, _ in demos:
+        lote.delete(ref.collection("fotos").document("0"))  # la foto del evento va aparte
         lote.delete(ref)
     for ref, _ in perdidos + empleos:
         lote.update(ref, {"estado": "vencido"})
