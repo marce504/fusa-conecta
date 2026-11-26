@@ -146,6 +146,8 @@ button:disabled{opacity:.6;pointer-events:none}
 .btn-wa-ficha .ic{color:var(--whatsapp)}
 .btn-redondo{width:48px;height:48px;border-radius:var(--radius-full);display:inline-grid;place-items:center;background:var(--bg);color:var(--ink);box-shadow:var(--shadow-sm);transition:background var(--t),color var(--t)}
 .btn-redondo:hover{background:var(--soft)}
+/* «Aa»: tamaño de letra y modo sencillo (barra de arriba) */
+.btn-letra{font-weight:700;font-size:1.125rem;letter-spacing:-.01em;color:var(--primary-700)}
 .cerrar{position:absolute;top:12px;right:12px;z-index:5}
 .enlace{color:var(--primary-700);text-decoration:underline;font-weight:500;font-size:inherit;padding:0}
 

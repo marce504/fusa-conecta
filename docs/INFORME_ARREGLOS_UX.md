@@ -79,7 +79,7 @@ Emulator Suite (`/?emulador`) con cuentas y datos de prueba. La versión anterio
 | Prueba | Resultado |
 |---|---|
 | Vitest (unitarias, código real) | 158 pasan (26 nuevas: búsqueda, E1, E8, asistente, fechas, fotos) |
-| Playwright E2E contra el emulador | 25 pasan (3 nuevas: modo sencillo, modo sencillo por defecto y reclamo de punta a punta; 5 actualizadas al nuevo Inicio y la nueva barra) |
+| Playwright E2E contra el emulador | 25 pasan (3 nuevas: modo sencillo, Inicio normal por defecto con el botón «Aa» y reclamo de punta a punta; 5 actualizadas al nuevo Inicio y la nueva barra) |
 | API (pytest) | 103 pasan, 6 saltadas (3 de avisos de `reclamo_comercio` y 12 de la decisión de reclamos) |
 | API con el emulador (integración) | 6 pasan (1 nueva: aprobar y rechazar un reclamo en Firestore, con 403, 409 y 422) |
 | Automatización con emulador | 45 pasan (1 nueva: E1) |
@@ -172,8 +172,10 @@ Hosting sí (gzip/brotli), así que en producción la cifra será algo mejor, pe
    vivo cada vez que se ve, con 300 vistas de fichas al día serían unas 9 000 al mes ≈ USD 56/mes. La búsqueda de los
    `place_id` (unas 540, una sola vez) entra en el cupo gratis de búsqueda. Verifica las cifras en la lista oficial de
    precios antes de activarlo.
-4. ~~**Modo sencillo por defecto**~~ **Decidido (26-nov):** viene activado por defecto con letra Grande; se quita con
-   «Ver el Inicio completo» o en Perfil → Apariencia.
+4. ~~**Modo sencillo por defecto**~~ **Decidido (26-nov), y cambiado después de probarlo:** el Inicio normal viene por
+   defecto, que se ve mejor. El botón «Aa» de la barra de arriba (un globo lo explica la primera vez) abre el tamaño de
+   letra y el modo sencillo; también están en Perfil → Apariencia. Reemplaza la hoja que preguntaba por la letra al
+   entrar.
 5. ~~**Aprobación de reclamos en la API**~~ **Hecho (26-nov):** la decide la API (ver 5.1).
 6. ~~**N5:**~~ **Hecho (26-nov):** en modo emulador la app ya no llama a la API de producción (Render): usa la API local
    (`127.0.0.1:8000`), así los tokens y datos de prueba nunca salen hacia producción.

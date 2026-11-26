@@ -80,25 +80,28 @@ function elegirLetra(t,guardarEnPerfil=true){
   medir('letra',{tamano:t});
 }
 // La elección de este teléfono manda; si aún no hay, se usa la del perfil
+function olvidarLetra(guardarEnPerfil){
+  try{localStorage.removeItem('fc_letra');}catch(e){}
+  if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({tamano_letra:FV.delete()}).catch(()=>{});
+}
 function letraDelPerfil(p){
   if(!letraElegida()&&p&&p.tamano_letra)elegirLetra(p.tamano_letra,false);
   if(ls.get('fc_sencillo',null)===null&&p&&typeof p.modo_sencillo==='boolean')elegirSencillo(p.modo_sencillo,false);
 }
 /* ===== MODO SENCILLO (Fase 4) =====
    Inicio con 6 botones grandes (Buscar, Salud, Comida, Trámites, Emergencias, Mis favoritos), sin carruseles, banners ni
-   radio; las listas muestran «Llamar» en cada fila. Viene activado por defecto (decisión del proyecto, 26-nov-2026) y
-   con letra «Grande» mientras la persona no elija otra; se quita desde el mismo Inicio o en Perfil → Apariencia.
-   index.html lo aplica antes del primer pintado (data-sencillo y data-letra en <html>). */
-const modoSencillo=()=>ls.get('fc_sencillo',true)===true;
+   radio; las listas muestran «Llamar» en cada fila. Se activa con el botón «Aa» de la barra de arriba o en Perfil →
+   Apariencia, y sube la letra a «Grande» mientras la persona no elija otra. El Inicio normal es el de siempre por defecto
+   (decisión del proyecto, 26-nov-2026). index.html lo aplica antes del primer pintado (data-sencillo y data-letra). */
+const modoSencillo=()=>ls.get('fc_sencillo',false)===true;
 // Letra que se ve: la elegida o, sin elección, «Grande» en modo sencillo
 const letraActual=()=>letraElegida()||(modoSencillo()?'grande':'normal');
 function elegirSencillo(activo,guardarEnPerfil=true){
   ls.set('fc_sencillo',!!activo);
   if(activo)document.documentElement.dataset.sencillo='';else delete document.documentElement.dataset.sencillo;
-  // Activarlo sube la letra a «Grande» (sin guardarla como elección si la persona nunca eligió); quitarlo la devuelve
-  if(activo&&!letraElegida())aplicarLetra('grande');
-  else if(activo&&letraElegida()==='normal')elegirLetra('grande',guardarEnPerfil);
-  if(!activo)aplicarLetra(letraElegida()||'normal');
+  // Activarlo sube la letra a «Grande» sin guardarla («Normal» es lo mismo que no elegir); quitarlo la devuelve a la de antes
+  if(activo&&letraElegida()==='normal')olvidarLetra(guardarEnPerfil);
+  aplicarLetra(letraActual());
   if(guardarEnPerfil&&logueado())db.collection('usuarios').doc(estado.usuario.uid).update({modo_sencillo:!!activo}).catch(()=>{});
   medir('modo_sencillo',{activo:!!activo});
 }
@@ -114,11 +117,11 @@ function inicioSencilloHTML(){
   return '<div class="sencillo">'+BOTONES_SENCILLO.map((b,i)=>'<button type="button" class="sencillo-btn'+(b.clase?' '+b.clase:'')+'" data-sencillo="'+i+'">'
     +'<span class="sencillo-ic" aria-hidden="true">'+icon(b.ic,36)+'</span>'+b.t+'</button>').join('')+'</div>'
     +'<button type="button" class="btn btn-secundario btn-bloque mt-16" id="verInicioCompleto">'+icon('layout-grid',18)+'Ver el Inicio completo (eventos, categorías y más)</button>'
-    +'<p class="nota-c">Puedes volver al modo sencillo cuando quieras en Perfil → Apariencia.</p>';
+    +'<p class="nota-c">Puedes volver al modo sencillo cuando quieras con el botón «Aa» de arriba.</p>';
 }
 document.addEventListener('click',e=>{
   if(!(e.target.closest&&e.target.closest('#verInicioCompleto')))return;
-  elegirSencillo(false);render();toast('Listo: Inicio completo. El modo sencillo está en Perfil → Apariencia.',6000);
+  elegirSencillo(false);render();toast('Listo: Inicio completo. El modo sencillo está en el botón «Aa» de arriba.',6000);
 });
 // En modo sencillo cada lugar es una fila con su estado y el botón «Llamar» (los que tienen teléfono van primero)
 function listaSencillaHTML(items,limite){
@@ -189,7 +192,8 @@ const EXPLICACIONES={
   destacado:'«Destacado» es un negocio con plan Premium: sale primero en las búsquedas. No quiere decir que sea mejor que los demás.',
   abierto:'El punto verde quiere decir que está abierto ahora, según el horario publicado. Si vas a ir, llama antes.',
   oficial:'«Fuente oficial» quiere decir que la información viene de la Alcaldía, la Casa de la Cultura u otra entidad pública.',
-  avisos:'En la campana están los avisos del municipio y las novedades de los comercios.'
+  avisos:'En la campana están los avisos del municipio y las novedades de los comercios.',
+  letra:'Toca «Aa» para ver la letra más grande o para usar el modo sencillo, con botones grandes.'
 };
 function explicar(ancla,clave){
   cerrarExplicacion();
@@ -203,7 +207,9 @@ function explicar(ancla,clave){
   ls.set('fc_explicado_'+clave,true);
 }
 function cerrarExplicacion(){const g=$('#globoAyuda');if(g)g.remove();}
+// Uno a la vez y nunca detrás de la bienvenida ni de una hoja: el toque que la cierra también cerraría el globo
 function explicarPrimeraVez(raiz,selector='[data-explica]'){
+  if($('#globoAyuda')||$('.overlay.abierto')||$('#splash:not(.oculto)'))return;
   const el=[...$$(selector,raiz)].find(x=>x.offsetParent&&!ls.get('fc_explicado_'+(x.dataset.explica||x.dataset.explicaAuto),false));
   if(el)explicar(el,el.dataset.explica||el.dataset.explicaAuto);
 }
@@ -2396,6 +2402,9 @@ function logo(variante='horizontal',tema='claro',opc={}){
 }
 const MARCA_HTML=logo('horizontal','claro',{alto:36});
 const SOS_HTML='<button class="sos-pill" data-sos aria-label="SOS: números de emergencia">'+icon('siren',18)+'SOS</button>';
+// «Aa»: tamaño de letra y modo sencillo, siempre a la vista (la primera vez, un globo explica para qué sirve)
+const LETRA_HTML='<button class="btn-redondo btn-letra" id="bLetra" data-explica-auto="letra" aria-label="Tamaño de letra y modo sencillo">'
+  +'<span aria-hidden="true">Aa</span></button>';
 // Saludo según la hora: "Buenos días / Buenas tardes / Buenas noches" (+ nombre si hay sesión)
 // Hora de Colombia (UTC-5), aunque el teléfono esté en otra zona horaria (v7 · Fase 8)
 function saludoDeHora(h=new Date(Date.now()-5*36e5).getUTCHours()){return h>=5&&h<12?'Buenos días':h>=12&&h<19?'Buenas tardes':'Buenas noches';}
@@ -2431,15 +2440,16 @@ function renderHeader(){
   const ses=$('#sesion');
   if(logueado()){
     const nom=estado.usuario.nombre;
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+campanaHTML()+'<button class="btn-cuenta" id="bPerfilTop" aria-label="Mi perfil: '+esc(nom)+'"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span></button></div>';
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+LETRA_HTML+campanaHTML()+'<button class="btn-cuenta" id="bPerfilTop" aria-label="Mi perfil: '+esc(nom)+'"><span class="av">'+esc(nom.charAt(0).toUpperCase())+'</span></button></div>';
     $('#bPerfilTop').onclick=()=>navegar({tipo:'perfil'});
   }else{
-    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+campanaHTML()+'<button class="btn-cuenta" id="bEntrar" aria-label="Entrar o crear cuenta">'+icon('user',22)+'</button></div>';
+    ses.innerHTML=MARCA_HTML+'<div class="sesion-acciones">'+SOS_HTML+LETRA_HTML+campanaHTML()+'<button class="btn-cuenta" id="bEntrar" aria-label="Entrar o crear cuenta">'+icon('user',22)+'</button></div>';
     $('#bEntrar').onclick=()=>abrirLogin('ingresar');
   }
   $('#bNovedades').onclick=abrirNovedades;
-  // La campana se explica la primera vez, después de la pregunta de la letra grande (no dos avisos a la vez)
-  if(letraElegida()||ls.get('fc_letra_preguntada',false))setTimeout(()=>explicarPrimeraVez($('#sesion'),'[data-explica-auto]'),800);
+  $('#bLetra').onclick=abrirAjustesLetra;
+  // «Aa» y la campana se explican la primera vez, de a uno
+  setTimeout(()=>explicarPrimeraVez($('#sesion'),'[data-explica-auto]'),800);
   const chips=[{k:'todas',t:'Todas'},{k:'comercio',t:'Comida y tiendas'},{k:'servicios',t:'Servicios'},{k:'campo',t:'Campo'},{k:'turismo',t:'Turismo'},
     {k:'hospedaje',t:'Hospedaje'},{k:'bares',t:'Bares y Licores'},{k:'tramite',t:'Trámites'}];
   $('#cats').innerHTML=chips.map(c=>'<button class="cat'+(v.cat===c.k?' activa':'')+'" data-cat="'+c.k+'" role="tab" aria-selected="'+(v.cat===c.k)+'">'+icon(ICONO_CAT[c.k],18)+c.t+'</button>').join('');
@@ -2866,7 +2876,6 @@ function renderLista(v){
   }));
   enlazarTarjetas();enlazarSecciones();enlazarInicio();enlazarFooter();
   enlazarEventos();enlazarSeccionPasca();
-  if(enInicio&&!modoSencillo())ofrecerLetraUnaVez();
   $$('#cuerpo [data-grabar-ruta]').forEach(b=>(b.onclick=()=>navegar({tipo:'grabarRuta'})));
   const ae=$('#asisEntrada');if(ae)ae.onclick=()=>irAsistente();
   const ab=$('#asisDesdeBusqueda');if(ab)ab.onclick=()=>{const q=estado.q;estado.q='';$('#busqueda').value='';irAsistente(q);};
@@ -4814,21 +4823,25 @@ function enlazarSelectorLetra(){
     const n=$('[data-letra-op="'+b.dataset.letraOp+'"]');if(n)n.focus();
   }));
 }
-// Primer uso: una hoja (no empuja el Inicio) pregunta si se quiere la letra más grande, una sola vez
-function ofrecerLetraUnaVez(){
-  if(letraElegida()||ls.get('fc_letra_preguntada',false)||$('.overlay.abierto')||$('#splash:not(.oculto)'))return;
-  ls.set('fc_letra_preguntada',true);
-  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">¿Quieres la letra más grande?</h2><p class="nota">Puedes cambiarla cuando quieras en Perfil → Apariencia.</p>'
-    +'<div class="hoja-acc"><button class="btn btn-primario btn-bloque" data-oferta-letra="grande">Sí, más grande</button>'
-    +'<button class="btn btn-secundario btn-bloque" data-oferta-letra="sencillo">Modo sencillo: botones grandes</button>'
-    +'<button class="btn btn-ghost btn-bloque" data-oferta-letra="">No, gracias</button></div></div>');
-  $('#sheetGen').setAttribute('aria-label','Tamaño de letra');
-  $$('#sheetGen [data-oferta-letra]').forEach(b=>(b.onclick=()=>{
-    cerrar('ovGen');
-    const o=b.dataset.ofertaLetra;if(!o)return;
-    if(o==='sencillo')elegirSencillo(true);else elegirLetra(o);
-    render(true);toast(o==='sencillo'?'Listo: modo sencillo. Puedes quitarlo en Perfil.':'Listo: letra más grande. Puedes cambiarla en Perfil.',5000);
+// Botón «Aa»: tamaño de letra (con vista previa) y modo sencillo, en una hoja que no empuja el Inicio
+function botonSencilloHTML(){
+  const on=modoSencillo();
+  return '<button type="button" class="btn '+(on?'btn-secundario':'btn-primario')+' btn-bloque mt-16" id="hojaSencillo">'
+    +icon(on?'house':'layout-grid',18)+(on?'Volver al Inicio completo':'Usar el modo sencillo: botones grandes')+'</button>';
+}
+function abrirAjustesLetra(){
+  abrirHoja('<div class="hoja-pad"><h2 class="hoja-tit">Cómo quieres ver la app</h2>'+selectorLetraHTML()+botonSencilloHTML()
+    +'<p class="nota">También está en Perfil → Apariencia.</p></div>');
+  $('#sheetGen').setAttribute('aria-label','Tamaño de letra y modo sencillo');
+  $$('#sheetGen [data-letra-op]').forEach(b=>(b.onclick=()=>{
+    elegirLetra(b.dataset.letraOp);render(true);
+    $$('#sheetGen [data-letra-op]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});
   }));
+  $('#hojaSencillo').onclick=()=>{
+    const activar=!modoSencillo();
+    cerrar('ovGen');elegirSencillo(activar);render(true);
+    toast(activar?'Listo: modo sencillo. Para quitarlo, toca «Aa».':'Listo: Inicio completo.',5000);
+  };
 }
 
 /* ===== COMUNIDAD (Fase 4): servicios para la comunidad a un toque, en tarjetas grandes con su para qué ===== */
@@ -7387,7 +7400,10 @@ $$('.overlay .sheet').forEach(sh=>{
 });
 $$('[data-cerrar]').forEach(b=>{b.onclick=()=>cerrar(b.dataset.cerrar);});
 function colorBarra(token){const m=$('meta[name="theme-color"]');if(m)m.setAttribute('content',cssVar(token));}
-function ocultarSplash(){const sp=$('#splash');sp.classList.add('oculto');sp.setAttribute('aria-hidden','true');colorBarra('--bg');}
+function ocultarSplash(){
+  const sp=$('#splash');sp.classList.add('oculto');sp.setAttribute('aria-hidden','true');colorBarra('--bg');
+  setTimeout(()=>explicarPrimeraVez($('#sesion'),'[data-explica-auto]'),800);
+}
 // Al volver a la pantalla de entrada (p. ej. al cerrar sesión) se ve completa y quieta, con sus botones
 function mostrarSplash(){salirAlEstarLista=false;const sp=$('#splash');sp.classList.remove('oculto','corto','demo');sp.classList.add('saltar');sp.removeAttribute('aria-hidden');colorBarra('--primary-500');}
 /* Pantalla de entrada (v4 · Fase 4; v7 · Fase 5). Su HTML se pinta una sola vez y nunca se vuelve a generar.

@@ -66,7 +66,7 @@ async function main() {
     deviceScaleFactor: 2,
   });
   await contexto.addInitScript(() => {
-    localStorage.setItem('fc_letra_preguntada', 'true');
+    localStorage.setItem('fc_explicado_letra', 'true');
     localStorage.setItem('fc_sencillo', 'false'); // se mide el Inicio completo
   });
   const pagina = await contexto.newPage();
